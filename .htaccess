@@ -1,0 +1,45 @@
+# 1. Enable Rewrite Engine
+RewriteEngine On
+
+# 2. Force HTTPS (Security)
+# If the request is NOT HTTPS, redirect to HTTPS
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# 3. Remove trailing slashes (Optional, good for SEO consistency)
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteRule ^(.*)/$ /$1 [L,R=301]
+
+# 4. Browser Caching (Speed)
+# This tells the browser to keep images/CSS in memory so they don't download every time.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 1 month"
+    
+    # HTML documents - cache for 0 seconds (always check for updates)
+    ExpiresByType text/html "access plus 0 seconds"
+    
+    # CSS and JS - cache for 1 year (use versioning if you change them frequently)
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType text/javascript "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    
+    # Images/Fonts - cache for 1 year
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+# 5. Security Headers
+<IfModule mod_headers.c>
+    # Prevent site from being embedded in iframes on other sites (clickjacking protection)
+    Header always set X-Frame-Options "SAMEORIGIN"
+    # Block MIME type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+    # Enable XSS protection
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# 6. Custom 404 Page
+ErrorDocument 404 /index.html

@@ -158,3 +158,63 @@ function setupDropZone(dropZone, fileInput, onFilesSelected) {
         }
     });
 }
+
+function setupSEO() {
+    // 1. Get Page Details
+    const h1 = document.querySelector('h1');
+    const descP = document.querySelector('.tool-header p') || document.querySelector('p'); // Fallback to first p
+    
+    // Default values if H1 is missing
+    const titleText = h1 ? h1.innerText + ' | Linus Linhof' : 'Linus Linhof Toolbox';
+    const descText = descP ? descP.innerText : 'A privacy-first suite of web utilities.';
+    const currentUrl = window.location.href;
+    
+    // Determine path to social image (assuming you put one at assets/og-image.jpg)
+    // We need to calculate relative path back to root
+    const inToolsDir = window.location.pathname.includes('/tools/');
+    const origin = window.location.origin;
+    // Replace this URL with your actual hosted image URL for best social reliability
+    const imagePath = `${origin}/assets/og-image.jpg`; 
+
+    // 2. Set Document Title
+    document.title = titleText;
+
+    // 3. Helper to update/create meta tags
+    const setMeta = (name, value, isProperty = false) => {
+        const attr = isProperty ? 'property' : 'name';
+        let element = document.querySelector(`meta[${attr}="${name}"]`);
+        if (!element) {
+            element = document.createElement('meta');
+            element.setAttribute(attr, name);
+            document.head.appendChild(element);
+        }
+        element.setAttribute('content', value);
+    };
+
+    // 4. Set Standard Meta
+    setMeta('description', descText);
+    setMeta('theme-color', '#faf6f2');
+
+    // 5. Set Open Graph (Facebook/LinkedIn/Discord)
+    setMeta('og:title', titleText, true);
+    setMeta('og:description', descText, true);
+    setMeta('og:image', imagePath, true);
+    setMeta('og:url', currentUrl, true);
+    setMeta('og:type', 'website', true);
+
+    // 6. Set Twitter Card
+    setMeta('twitter:card', 'summary_large_image');
+    setMeta('twitter:title', titleText);
+    setMeta('twitter:description', descText);
+    setMeta('twitter:image', imagePath);
+}
+
+// === CALL IT INSIDE YOUR EXISTING LISTENER ===
+document.addEventListener('DOMContentLoaded', () => {
+    // ... your existing header/footer injection code ...
+
+    // Run SEO Setup
+    setupSEO(); 
+    
+    // ... rest of your code ...
+});
