@@ -1,32 +1,155 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Datenschutzerklärung | Linus Linhof</title>
+    <title>Privacy Policy / Datenschutz | Linus Linhof</title>
     <link rel="stylesheet" href="./assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+    <meta name="robots" content="noindex, follow">
+    <style>
+        .lang-switch {
+            float: right;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: var(--accent);
+            text-decoration: underline;
+            margin-bottom: 1rem;
+        }
+        h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2.5rem; color: var(--ink); }
+        h3 { margin-top: 1.5rem; font-size: 1.1rem; color: var(--accent-secondary); }
+        .highlight-box {
+            background: rgba(196, 77, 60, 0.1);
+            border: 1px solid var(--accent);
+            padding: 1.5rem;
+            border-radius: 4px;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .highlight-box strong { color: var(--accent); }
+    </style>
 </head>
 <body>
     <main>
         <div class="container">
-            <h1>Datenschutzerklärung</h1>
-            
-            <h2>1. Datenschutz auf einen Blick</h2>
-            <p><strong>Allgemeine Hinweise:</strong> Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren personenbezogenen Daten passiert, wenn Sie diese Website besuchen. Diese Website verarbeitet Ihre hochgeladenen Dateien (Bilder, PDFs) ausschließlich lokal in Ihrem Browser ("Client-Side Processing"). Es erfolgt kein Upload auf unsere Server.</p>
+            <div class="lang-switch" onclick="toggleLang()">Switch Language (DE/EN)</div>
 
-            <h2>2. Hosting (All-Inkl)</h2>
-            <p>Wir hosten unsere Website bei All-Inkl.com (ALL-INKL.COM - Neue Medien Münnich, Hauptstraße 68, 02742 Friedersdorf).<br>
-            Der Provider erhebt automatisch Informationen in sogenannten Server-Log-Dateien (IP-Adresse, Browser, Referrer URL, Zeitstempel). Dies dient der technischen Sicherheit.</p>
-            
-            <h2>3. Lokale Verarbeitung</h2>
-            <p>Alle Tools auf dieser Seite (PDF Tools, Bildkonverter, etc.) basieren auf JavaScript und WebAssembly. Die Datenverarbeitung findet ausschließlich im Arbeitsspeicher Ihres Endgeräts statt. Ihre Dateien verlassen Ihr Gerät nicht.</p>
+            <!-- GERMAN CONTENT -->
+            <div id="lang-de" style="display: none;">
+                <h1>Datenschutzerklärung</h1>
+                
+                <h2>1. Datenschutz auf einen Blick</h2>
+                <h3>Allgemeine Hinweise</h3>
+                <p>Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren personenbezogenen Daten passiert, wenn Sie diese Website besuchen. <strong>Besonderheit dieser Toolbox:</strong> Die Verarbeitung Ihrer Dateien (PDFs, Bilder) erfolgt durch WebAssembly und JavaScript ausschließlich lokal im Arbeitsspeicher Ihres Endgeräts ("Client-Side Processing"). Es erfolgt kein Upload dieser Dateien auf unsere Server.</p>
 
-            <h2>4. Externe Dienste (CDNs)</h2>
-            <p>Wir nutzen Content Delivery Networks (CDN) wie cdnjs.com und unpkg.com, um Programmbibliotheken schneller zu laden. Beim Aufruf der Seite baut Ihr Browser eine Verbindung zu den Servern dieser Anbieter auf. Hierbei wird Ihre IP-Adresse an diese Anbieter übermittelt.</p>
-            
-            <h2>5. LocalStorage</h2>
-            <p>Wir nutzen den lokalen Speicher Ihres Browsers (LocalStorage), um Ihre Favoritenliste und Eingaben (Auto-Save) zu speichern. Diese Daten verbleiben auf Ihrem Gerät und werden nicht an uns gesendet.</p>
+                <h3>Datenerfassung auf dieser Website</h3>
+                <ul>
+                    <li><strong>Wer ist verantwortlich?</strong> Die Datenverarbeitung erfolgt durch den Websitebetreiber (siehe Impressum).</li>
+                    <li><strong>Wie werden Daten erfasst?</strong> Daten werden automatisch beim Besuch der Website durch unsere IT-Systeme erfasst (z.B. technische Daten wie Browserversion, IP-Adresse). Andere Daten teilen Sie uns mit (z.B. Kontaktformular).</li>
+                    <li><strong>Wofür nutzen wir die Daten?</strong> Zur fehlerfreien Bereitstellung der Website (Server-Logs) und zur Beantwortung Ihrer Anfragen.</li>
+                </ul>
+
+                <h2>2. Hosting</h2>
+                <p>Wir hosten unsere Website bei <strong>All-Inkl.com</strong> (ALL-INKL.COM - Neue Medien Münnich, Hauptstraße 68, 02742 Friedersdorf).<br>
+                Der Provider erhebt automatisch Informationen in sogenannten Server-Log-Dateien (IP-Adresse, Browser, Referrer URL, Zeitstempel), die Ihr Browser automatisch übermittelt. Dies erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der sicheren und stabilen Bereitstellung der Website).</p>
+                
+                <h2>3. Allgemeine Hinweise und Pflichtinformationen</h2>
+                <h3>Rechte der betroffenen Person</h3>
+                <p>Sie haben jederzeit das Recht auf unentgeltliche Auskunft über Ihre gespeicherten personenbezogenen Daten, deren Herkunft und Empfänger und den Zweck der Datenverarbeitung sowie ein Recht auf Berichtigung, Sperrung oder Löschung dieser Daten.</p>
+
+                <div class="highlight-box">
+                    <strong>WIDERSPRUCHSRECHT (ART. 21 DSGVO)</strong><br>
+                    WENN DIE DATENVERARBEITUNG AUF GRUNDLAGE VON ART. 6 ABS. 1 LIT. E ODER F DSGVO ERFOLGT (BERECHTIGTES INTERESSE), HABEN SIE JEDERZEIT DAS RECHT, GEGEN DIE VERARBEITUNG IHRER PERSONENBEZOGENEN DATEN WIDERSPRUCH EINZULEGEN.
+                </div>
+
+                <h3>Beschwerderecht</h3>
+                <p>Im Falle von Verstößen gegen die DSGVO steht Ihnen ein Beschwerderecht bei einer Aufsichtsbehörde zu.</p>
+
+                <h2>4. Datenerfassung und Tools</h2>
+                
+                <h3>Lokale Verarbeitung (TDDDG/DSGVO)</h3>
+                <p>Die Kernfunktionen dieser Website (Konverter, Generatoren) laufen lokal in Ihrem Browser. Es findet keine Übermittlung der verarbeiteten Inhalte an den Server statt. Da keine Speicherung auf dem Server erfolgt, entfällt hierfür eine weitergehende datenschutzrechtliche Einwilligung.</p>
+
+                <h3>LocalStorage</h3>
+                <p>Wir nutzen den lokalen Speicher Ihres Browsers (LocalStorage), um Einstellungen (z.B. Dark Mode, Favoriten) zu speichern. Diese Daten verlassen Ihr Gerät nicht. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG (unbedingt erforderlich).</p>
+
+                <h3>Google Fonts (Lokales Hosting)</h3>
+                <p>Diese Seite nutzt zur einheitlichen Darstellung von Schriftarten so genannte Google Fonts. Diese sind lokal auf unserem Server installiert. Eine Verbindung zu Servern von Google findet dabei nicht statt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO.</p>
+
+                <h3>Content Delivery Networks (CDN)</h3>
+                <p>Wir nutzen externe CDNs (cdnjs.com, unpkg.com), um Programmbibliotheken (z.B. PDF-Lib, FFmpeg) bereitzustellen. Dies stellt ein berechtigtes Interesse dar (Art. 6 Abs. 1 lit. f DSGVO), um die Ladezeiten zu optimieren und die Funktionalität sicherzustellen.</p>
+
+                <h3>Kontaktformular (Formspree)</h3>
+                <p>Wenn Sie uns per Kontaktformular Anfragen zukommen lassen, werden Ihre Angaben zwecks Bearbeitung über den Dienstleister Formspree Inc. verarbeitet. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung/vorvertragliche Maßnahmen).</p>
+            </div>
+
+            <!-- ENGLISH CONTENT -->
+            <div id="lang-en" style="display: none;">
+                <h1>Privacy Policy</h1>
+                
+                <h2>1. Privacy at a Glance</h2>
+                <h3>General Information</h3>
+                <p>The following notes provide a simple overview of what happens to your personal data when you visit this website. <strong>Special Feature:</strong> All file processing (PDFs, Images) occurs exclusively locally in your device's RAM ("Client-Side Processing") via WebAssembly/JS. No files are uploaded to our servers.</p>
+
+                <h2>2. Hosting</h2>
+                <p>We host our website with <strong>All-Inkl.com</strong> (Germany). The provider automatically collects and stores information in so-called server log files (IP address, browser, referrer, timestamp). The legal basis is Art. 6 (1) (f) GDPR (legitimate interest in secure and stable website operation).</p>
+                
+                <h2>3. General Information & Rights</h2>
+                <h3>Rights of the Data Subject</h3>
+                <p>You have the right to request information about your stored personal data, its origin, recipients, and the purpose of data processing at any time. You also have the right to request the correction or deletion of this data.</p>
+
+                <div class="highlight-box">
+                    <strong>RIGHT TO OBJECT (ART. 21 GDPR)</strong><br>
+                    IF DATA PROCESSING IS BASED ON ART. 6 (1) (E) OR (F) GDPR (LEGITIMATE INTEREST), YOU HAVE THE RIGHT TO OBJECT TO THE PROCESSING OF YOUR PERSONAL DATA AT ANY TIME.
+                </div>
+
+                <h2>4. Data Collection & Tools</h2>
+                
+                <h3>Local Processing</h3>
+                <p>The core tools function locally in your browser. Processed files are not transmitted to the server.</p>
+
+                <h3>LocalStorage</h3>
+                <p>We use your browser's LocalStorage to save preferences (Dark Mode, Favorites). This data remains on your device. Legal basis: § 25 (2) No. 2 TDDDG (strictly necessary).</p>
+
+                <h3>Google Fonts (Local Hosting)</h3>
+                <p>This site uses Google Fonts, which are installed locally on our server. No connection to Google servers is established. Legal basis: Art. 6 (1) (f) GDPR.</p>
+
+                <h3>Content Delivery Networks (CDN)</h3>
+                <p>We use CDNs (cdnjs.com, unpkg.com) to load libraries. This is based on legitimate interest (Art. 6 (1) (f) GDPR) to ensure fast loading speeds and functionality.</p>
+
+                <h3>Contact Form (Formspree)</h3>
+                <p>Inquiries via the contact form are processed via Formspree Inc. Legal basis: Art. 6 (1) (b) GDPR.</p>
+            </div>
         </div>
     </main>
+
+    <script src="./assets/js/layout.js"></script>
+    <script>
+        function toggleLang() {
+            const de = document.getElementById('lang-de');
+            const en = document.getElementById('lang-en');
+            
+            if (de.style.display === 'none') {
+                de.style.display = 'block';
+                en.style.display = 'none';
+                document.documentElement.lang = 'de';
+            } else {
+                de.style.display = 'none';
+                en.style.display = 'block';
+                document.documentElement.lang = 'en';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userLang = navigator.language || navigator.userLanguage;
+            if (userLang.startsWith('de')) {
+                document.getElementById('lang-de').style.display = 'block';
+                document.documentElement.lang = 'de';
+            } else {
+                document.getElementById('lang-en').style.display = 'block';
+                document.documentElement.lang = 'en';
+            }
+        });
+    </script>
 </body>
 </html>

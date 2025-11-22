@@ -1,38 +1,143 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Impressum | Linus Linhof</title>
+    <title>Impressum / Legal Notice | Linus Linhof</title>
     <link rel="stylesheet" href="./assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+    <meta name="robots" content="noindex, follow"> <!-- Compliance Recommendation -->
+    <style>
+        .lang-switch {
+            float: right;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: var(--accent);
+            text-decoration: underline;
+            margin-bottom: 1rem;
+        }
+        .legal-block { margin-bottom: 2rem; }
+    </style>
 </head>
 <body>
     <main>
         <div class="container">
-            <h1>Impressum</h1>
-            <p>Angaben gemäß § 5 TMG</p>
+            <div class="lang-switch" onclick="toggleLang()">Switch Language (DE/EN)</div>
             
-            <h3>Kontakt</h3>
-            <p>
-                <strong>Linus Linhof</strong><br>
-                Elisenhöhe 47<br>
-                55411 Bingen am Rhein<br>
-                Germany<br><br>
-                E-Mail: immineal@immineal.com<br>
-            </p>
+            <!-- GERMAN CONTENT (DDG Compliant) -->
+            <div id="lang-de" style="display: none;">
+                <h1>Impressum</h1>
+                
+                <div class="legal-block">
+                    <h2>Angaben gemäß § 5 DDG</h2>
+                    <p>
+                        <strong>Linus Linhof</strong><br>
+                        Elisenhöhe 47<br>
+                        55411 Bingen am Rhein<br>
+                        Deutschland
+                    </p>
+                </div>
 
-            <h3>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h3>
-            <p>
-                Linus Linhof<br>
-                Elisenhöhe 47<br>
-                55411 Bingen am Rhein<br>
-                Germany<br><br>
-                E-Mail: immineal@immineal.com<br>
-            </p>
+                <div class="legal-block">
+                    <h2>Kontakt</h2>
+                    <p>
+                        E-Mail: immineal@immineal.com<br>
+                        Telefon: +49 170 5012475
+                    </p>
+                </div>
 
-            <h3>Haftungsausschluss</h3>
-            <p>Die Inhalte unserer Seiten wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir jedoch keine Gewähr übernehmen.</p>
+                <div class="legal-block">
+                    <h2>Redaktionell verantwortlich</h2>
+                    <p>
+                        Linus Linhof<br>
+                        Elisenhöhe 47<br>
+                        55411 Bingen am Rhein
+                    </p>
+                </div>
+
+                <div class="legal-block">
+                    <h2>Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2>
+                    <p>Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>
+                </div>
+
+                <div class="legal-block">
+                    <h2>Haftung und Urheberrecht</h2>
+                    <p>Die Inhalte unserer Seiten wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir jedoch keine Gewähr übernehmen. Als Diensteanbieter sind wir gemäß § 7 Abs.1 DDG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich.</p>
+                </div>
+            </div>
+
+            <!-- ENGLISH CONTENT -->
+            <div id="lang-en" style="display: none;">
+                <h1>Legal Notice (Impressum)</h1>
+                
+                <div class="legal-block">
+                    <h2>Information pursuant to Sect. 5 DDG</h2>
+                    <p>
+                        <strong>Linus Linhof</strong><br>
+                        Elisenhöhe 47<br>
+                        55411 Bingen am Rhein<br>
+                        Germany
+                    </p>
+                </div>
+
+                <div class="legal-block">
+                    <h2>Contact</h2>
+                    <p>
+                        E-Mail: immineal@immineal.com<br>
+                        Telefon: +49 170 5012475
+                    </p>
+                </div>
+
+                <div class="legal-block">
+                    <h2>Person Responsible for Editorial Content</h2>
+                    <p>
+                        Linus Linhof<br>
+                        Elisenhöhe 47<br>
+                        55411 Bingen am Rhein<br>
+                        Germany
+                    </p>
+                </div>
+
+                <div class="legal-block">
+                    <h2>Dispute Resolution</h2>
+                    <p>We are not willing or obliged to participate in dispute resolution proceedings before a consumer arbitration board.</p>
+                </div>
+
+                <div class="legal-block">
+                    <h2>Disclaimer</h2>
+                    <p>The contents of our pages have been created with the utmost care. However, we cannot guarantee the contents' accuracy, completeness, or topicality. According to § 7 para. 1 DDG, we as a service provider are responsible for our own content on these pages according to general laws.</p>
+                </div>
+            </div>
         </div>
     </main>
+
+    <script src="./assets/js/layout.js"></script>
+    <script>
+        function toggleLang() {
+            const de = document.getElementById('lang-de');
+            const en = document.getElementById('lang-en');
+            
+            if (de.style.display === 'none') {
+                de.style.display = 'block';
+                en.style.display = 'none';
+                document.documentElement.lang = 'de';
+            } else {
+                de.style.display = 'none';
+                en.style.display = 'block';
+                document.documentElement.lang = 'en';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userLang = navigator.language || navigator.userLanguage;
+            if (userLang.startsWith('de')) {
+                document.getElementById('lang-de').style.display = 'block';
+                document.documentElement.lang = 'de';
+            } else {
+                document.getElementById('lang-en').style.display = 'block';
+                document.documentElement.lang = 'en';
+            }
+        });
+    </script>
 </body>
 </html>

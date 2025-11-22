@@ -1,5 +1,5 @@
 if ('serviceWorker' in navigator) {
-    // Adjust path based on rootPath logic existing in layout.js
+    // Adjust path based on whether we are deep in tools or at root
     const swPath = window.location.pathname.includes('/tools/') ? '../../assets/sw.js' : './assets/sw.js';
     navigator.serviceWorker.register(swPath)
         .then(() => console.log('Service Worker Registered'))
@@ -8,8 +8,9 @@ if ('serviceWorker' in navigator) {
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Determine paths based on current location
-    const isRoot = window.location.pathname.endsWith('/tools/') || window.location.pathname.endsWith('/tools/index.html');
-    const rootPath = isRoot ? './' : '../../';
+    // Check if we are inside the 'tools' directory
+    const inToolsDir = window.location.pathname.includes('/tools/');
+    const rootPath = inToolsDir ? '../../' : './';
     
     // 2. Inject Header
     const headerHTML = `
@@ -31,8 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
     <footer style="text-align: center; padding: 3rem 1rem; opacity: 0.6; font-size: 0.9rem; border-top: 1px solid var(--border); margin-top: auto;">
         <p>&copy; ${new Date().getFullYear()} Linus Linhof. Built for utility.</p>
         <p style="margin-top: 0.5rem;">
-            <a href="${rootPath}impressum.html">Impressum</a> &bull; 
-            <a href="${rootPath}privacy.html">Datenschutz</a>
+            <a href="${rootPath}impressum.html">Impressum / Legal</a> &bull; 
+            <a href="${rootPath}privacy.html">Privacy / Datenschutz</a>
         </p>
     </footer>
     <div id="toast-container" class="toast-container"></div>`;
@@ -57,17 +58,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 5. Auto-Save State Logic (Global)
-    // Automatically saves inputs with IDs to localStorage to prevent data loss on refresh
     const pageId = window.location.pathname; // Unique key per tool
 
     const inputsToSave = document.querySelectorAll('textarea[id], input[type="text"][id], select[id]');
     
     inputsToSave.forEach(input => {
+        // Skip inputs that explicitly say no-save
+        if(input.getAttribute('data-no-save')) return;
+
         const storageKey = `autosave_${pageId}_${input.id}`;
         
         // Restore
         const savedValue = localStorage.getItem(storageKey);
-        if (savedValue !== null && input.value === '') { // Only restore if empty to respect HTML defaults
+        if (savedValue !== null && input.value === '') { 
             input.value = savedValue;
         }
 
@@ -82,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Helper: Clear specific autosave (useful for 'Clear' buttons in tools)
+    // Helper: Clear specific autosave
     window.clearAutoSave = function(elementIds) {
         if (!Array.isArray(elementIds)) elementIds = [elementIds];
         elementIds.forEach(id => {
@@ -96,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Show Toast Notification
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
-    if (!container) return; // Guard
+    if (!container) return; 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
@@ -126,7 +129,6 @@ function formatFileSize(bytes) {
 }
 
 // Setup Drag and Drop Zone
-// Usage: setupDropZone(dropZoneElement, fileInput, callbackFunction)
 function setupDropZone(dropZone, fileInput, onFilesSelected) {
     if (!dropZone || !fileInput) return;
 
@@ -146,7 +148,7 @@ function setupDropZone(dropZone, fileInput, onFilesSelected) {
         dropZone.classList.remove('drag-over');
         if (e.dataTransfer.files.length) {
             fileInput.files = e.dataTransfer.files;
-            onFilesSelected(e.dataTransfer.files); // Trigger callback
+            onFilesSelected(e.dataTransfer.files); 
         }
     });
 
