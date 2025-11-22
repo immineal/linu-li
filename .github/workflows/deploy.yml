@@ -19,25 +19,12 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASSWORD }}
-          # The protocol to use (ftp, ftps, ftps-legacy). 
-          # All-Inkl supports ftps (explicit) for better security.
           protocol: ftps
-          
-          # The folder on your computer to upload. 
-          # We upload the entire repo content.
+          port: 21
+          security: loose
           local-dir: ./
-          
-          # The folder on the server. 
-          # Since your user is restricted to /linu.li/, using ./ is usually correct.
-          # If your user sees a folder named "linu.li" when you login manually, change this to: ./linu.li/
           server-dir: ./
-          
-          # SAFETY FIRST:
-          # set dry-run to true for the first run to verify paths without overwriting anything.
-          # Once confirmed, change to false.
-          dry-run: false
-          
-          # Cleanup:
-          # Removes files on the server that are not in your git repo (keeps it clean).
-          # set to false if you store other files (like logs/images) on the server manually.
-          state-name: .ftp-deploy-sync-state.json
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
