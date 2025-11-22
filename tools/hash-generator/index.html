@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash Generator | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <!-- CryptoJS for MD5 support (Native API doesn't support insecure MD5) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Hash Generator</h1>
+                <p>Generate SHA-256, SHA-512, and MD5 hashes from text or files. Client-side only.</p>
+            </div>
+
+            <div class="card">
+                
+                <div style="margin-bottom: 2rem;">
+                    <div class="button-group">
+                        <button class="button active" id="modeText">Text</button>
+                        <button class="button outline" id="modeFile">File</button>
+                    </div>
+                </div>
+
+                <!-- TEXT INPUT -->
+                <div id="textSection">
+                    <label>Input Text</label>
+                    <textarea id="textInput" class="code-editor" style="min-height: 150px;" placeholder="Type something to hash..."></textarea>
+                </div>
+
+                <!-- FILE INPUT -->
+                <div id="fileSection" class="hidden">
+                    <div class="drop-zone" id="dropZone">
+                        <span class="drop-icon">📁</span>
+                        <p>Drag & Drop a file to hash</p>
+                        <p style="font-size: 0.8rem; color: var(--ink-secondary);">Large files are supported (processed locally).</p>
+                        <input type="file" id="fileInput" class="hidden">
+                    </div>
+                    <div id="fileNameDisplay" style="margin-top: 1rem; font-weight: bold; color: var(--accent);"></div>
+                </div>
+
+                <!-- OUTPUTS -->
+                <div id="outputSection" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label>SHA-256 (Recommended)</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="outSHA256" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                            <button class="button sm secondary" onclick="copyId('outSHA256')">Copy</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label>MD5 (Legacy)</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="outMD5" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                            <button class="button sm secondary" onclick="copyId('outMD5')">Copy</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label>SHA-1 (Legacy)</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="outSHA1" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                            <button class="button sm secondary" onclick="copyId('outSHA1')">Copy</button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        const modeText = document.getElementById('modeText');
+        const modeFile = document.getElementById('modeFile');
+        const textSection = document.getElementById('textSection');
+        const fileSection = document.getElementById('fileSection');
+        
+        const textInput = document.getElementById('textInput');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+        const outSHA256 = document.getElementById('outSHA256');
+        const outMD5 = document.getElementById('outMD5');
+        const outSHA1 = document.getElementById('outSHA1');
+
+        // --- Mode Switching ---
+        modeText.addEventListener('click', () => {
+            modeText.classList.remove('outline');
+            modeFile.classList.add('outline');
+            textSection.classList.remove('hidden');
+            fileSection.classList.add('hidden');
+        });
+
+        modeFile.addEventListener('click', () => {
+            modeText.classList.add('outline');
+            modeFile.classList.remove('outline');
+            textSection.classList.add('hidden');
+            fileSection.classList.remove('hidden');
+        });
+
+        // --- Text Hashing ---
+        textInput.addEventListener('input', async () => {
+            const val = textInput.value;
+            if(!val) { clearOutputs(); return; }
+
+            // Native Crypto for SHA
+            const msgUint8 = new TextEncoder().encode(val);
+            
+            // SHA-256
+            const hashBuffer256 = await crypto.subtle.digest('SHA-256', msgUint8);
+            outSHA256.value = buf2hex(hashBuffer256);
+
+            // SHA-1
+            const hashBuffer1 = await crypto.subtle.digest('SHA-1', msgUint8);
+            outSHA1.value = buf2hex(hashBuffer1);
+
+            // MD5 (via CryptoJS)
+            outMD5.value = CryptoJS.MD5(val).toString();
+        });
+
+        // --- File Hashing ---
+        setupDropZone(dropZone, fileInput, handleFile);
+
+        async function handleFile(files) {
+            if(files.length === 0) return;
+            const file = files[0];
+            
+            fileNameDisplay.textContent = `Hashing: ${file.name} (${formatFileSize(file.size)})`;
+            clearOutputs("Hashing...");
+
+            const arrayBuffer = await file.arrayBuffer();
+
+            // SHA-256 (Native)
+            const hash256 = await crypto.subtle.digest('SHA-256', arrayBuffer);
+            outSHA256.value = buf2hex(hash256);
+
+            // SHA-1 (Native)
+            const hash1 = await crypto.subtle.digest('SHA-1', arrayBuffer);
+            outSHA1.value = buf2hex(hash1);
+
+            // MD5 (CryptoJS requires WordArray)
+            // For large files, this crashes. We'll try for small files only.
+            if (file.size < 50 * 1024 * 1024) { // 50MB limit for JS MD5
+                const wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
+                outMD5.value = CryptoJS.MD5(wordArray).toString();
+            } else {
+                outMD5.value = "File too large for browser-based MD5";
+            }
+        }
+
+        // Helpers
+        function buf2hex(buffer) {
+            return [...new Uint8Array(buffer)]
+                .map(x => x.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+        function clearOutputs(placeholder = "") {
+            outSHA256.value = placeholder;
+            outMD5.value = placeholder;
+            outSHA1.value = placeholder;
+        }
+
+        window.copyId = function(id) {
+            const el = document.getElementById(id);
+            if(el.value) copyToClipboard(el.value);
+        }
+    </script>
+</body>
+</html>

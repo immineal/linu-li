@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Splitter | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <style>
+        /* Badge for page count */
+        .page-count-badge {
+            display: inline-block;
+            background: var(--accent-secondary);
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 0.5rem;
+            font-weight: 500;
+            vertical-align: middle;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>PDF Splitter</h1>
+                <p>Extract specific pages or explode the entire document into separate files.</p>
+            </div>
+
+            <div class="card">
+                
+                <!-- SECTION: FILE UPLOAD -->
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-icon">📄</span>
+                    <p>Drag & Drop PDF file here</p>
+                    <p style="font-size: 0.8rem; opacity: 0.7;">or click to browse</p>
+                    <input type="file" id="fileInput" class="hidden" accept=".pdf">
+                </div>
+
+                <!-- SELECTED FILE DISPLAY -->
+                <ul class="file-list hidden" id="fileListContainer">
+                    <li class="file-item">
+                        <div class="file-info">
+                            <span style="font-size: 1.5rem;">📑</span>
+                            <div>
+                                <div style="display: flex; align-items: center;">
+                                    <div class="file-name" id="fileName">filename.pdf</div>
+                                    <div id="pageCountBadge" class="page-count-badge hidden">0 Pages</div>
+                                </div>
+                                <div class="file-size" id="fileSize">0 MB</div>
+                            </div>
+                        </div>
+                        <button class="remove-file" id="removeFileBtn" aria-label="Remove file">×</button>
+                    </li>
+                </ul>
+
+                <!-- SECTION: OPTIONS -->
+                <div id="optionsPanel" class="hidden" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    <label for="pageRange">Page Range (Optional)</label>
+                    <p style="font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 0.5rem;">
+                        Leave empty to extract all pages. <span id="rangeHint"></span>
+                    </p>
+                    <input type="text" id="pageRange" placeholder="e.g. 1-5, 8">
+                </div>
+
+                <!-- SECTION: CONTROLS -->
+                <div class="button-group">
+                    <button class="button" id="splitBtn" disabled>Split PDF</button>
+                    <button class="button outline" id="resetBtn">Reset</button>
+                </div>
+
+                <!-- SECTION: PROGRESS BAR -->
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+
+                <!-- SECTION: RESULTS -->
+                <div class="result-box hidden" id="resultBox">
+                    <div style="text-align: center;">
+                        <h3 style="margin-bottom: 0.5rem;">Success!</h3>
+                        <p id="resultMessage">Your PDF has been split.</p>
+                        
+                        <div class="button-group" style="justify-content: center;">
+                            <button class="button secondary" id="downloadBtn">Download ZIP</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <!-- CORE LAYOUT SCRIPT -->
+    <script src="../../assets/js/layout.js"></script>
+    
+    <!-- TOOL LOGIC -->
+    <script>
+        // --- DOM Elements ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileListContainer = document.getElementById('fileListContainer');
+        const fileNameDisplay = document.getElementById('fileName');
+        const fileSizeDisplay = document.getElementById('fileSize');
+        const pageCountBadge = document.getElementById('pageCountBadge');
+        const removeFileBtn = document.getElementById('removeFileBtn');
+        const optionsPanel = document.getElementById('optionsPanel');
+        const pageRangeInput = document.getElementById('pageRange');
+        const rangeHint = document.getElementById('rangeHint');
+        
+        const splitBtn = document.getElementById('splitBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        
+        const resultBox = document.getElementById('resultBox');
+        const resultMessage = document.getElementById('resultMessage');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // --- State Variables ---
+        let currentFile = null;
+        let loadedPdfDoc = null; // Store parsed PDF here to avoid re-loading
+        let totalPages = 0;
+        let zipBlob = null;
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDropZone(dropZone, fileInput, handleFileSelection);
+        });
+
+        // --- File Handling ---
+        async function handleFileSelection(files) {
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            if (file.type !== 'application/pdf') {
+                showToast('Please upload a valid PDF file.', 'error');
+                return;
+            }
+
+            currentFile = file;
+            fileNameDisplay.textContent = file.name;
+            fileSizeDisplay.textContent = formatFileSize(file.size);
+            
+            // Show loading state
+            dropZone.classList.add('hidden');
+            fileListContainer.classList.remove('hidden');
+            pageCountBadge.innerHTML = '<div class="loading-spinner"></div> Analyzing...';
+            pageCountBadge.classList.remove('hidden');
+            
+            try {
+                // Pre-load PDF to count pages
+                const arrayBuffer = await file.arrayBuffer();
+                loadedPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                totalPages = loadedPdfDoc.getPageCount();
+                
+                // Update UI with count
+                pageCountBadge.textContent = `${totalPages} ${totalPages === 1 ? 'Page' : 'Pages'}`;
+                rangeHint.textContent = `Valid range: 1 - ${totalPages}`;
+                pageRangeInput.placeholder = `e.g. 1-${Math.min(5, totalPages)}, ${Math.min(8, totalPages)}`;
+                
+                // Enable Controls
+                optionsPanel.classList.remove('hidden');
+                splitBtn.disabled = false;
+
+            } catch (err) {
+                console.error(err);
+                showToast('Error reading PDF. Is it password protected?', 'error');
+                pageCountBadge.classList.add('hidden');
+                resetTool();
+            }
+        }
+
+        removeFileBtn.addEventListener('click', resetTool);
+        resetBtn.addEventListener('click', resetTool);
+
+        function resetTool() {
+            currentFile = null;
+            loadedPdfDoc = null;
+            totalPages = 0;
+            zipBlob = null;
+            fileInput.value = '';
+            pageRangeInput.value = '';
+            
+            dropZone.classList.remove('hidden');
+            fileListContainer.classList.add('hidden');
+            optionsPanel.classList.add('hidden');
+            splitBtn.disabled = true;
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            resultBox.classList.add('hidden');
+            pageCountBadge.classList.add('hidden');
+        }
+
+        // --- Helper: Parse Page Ranges ---
+        function getPagesToExtract(rangeStr, maxPages) {
+            if (!rangeStr.trim()) {
+                // Return all pages (0 to max-1)
+                return Array.from({ length: maxPages }, (_, i) => i);
+            }
+
+            const pages = new Set();
+            const parts = rangeStr.split(',');
+
+            parts.forEach(part => {
+                part = part.trim();
+                if (part.includes('-')) {
+                    const [start, end] = part.split('-').map(n => parseInt(n));
+                    if (!isNaN(start) && !isNaN(end)) {
+                        const s = Math.min(start, end);
+                        const e = Math.max(start, end);
+                        for (let i = s; i <= e; i++) {
+                            if (i >= 1 && i <= maxPages) pages.add(i - 1); // Convert 1-based to 0-based
+                        }
+                    }
+                } else {
+                    const page = parseInt(part);
+                    if (!isNaN(page) && page >= 1 && page <= maxPages) {
+                        pages.add(page - 1);
+                    }
+                }
+            });
+
+            return Array.from(pages).sort((a, b) => a - b);
+        }
+
+        // --- Split Logic ---
+        splitBtn.addEventListener('click', async () => {
+            if (!currentFile || !loadedPdfDoc) return;
+
+            try {
+                splitBtn.disabled = true;
+                splitBtn.textContent = 'Processing...';
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '5%';
+
+                // Parse Range
+                const indicesToExtract = getPagesToExtract(pageRangeInput.value, totalPages);
+                
+                if (indicesToExtract.length === 0) {
+                    throw new Error("No valid pages selected.");
+                }
+
+                const zip = new JSZip();
+                const baseName = currentFile.name.replace('.pdf', '');
+
+                for (let i = 0; i < indicesToExtract.length; i++) {
+                    const pageIndex = indicesToExtract[i];
+                    
+                    // Create new PDF for single page
+                    const newPdf = await PDFLib.PDFDocument.create();
+                    const [copiedPage] = await newPdf.copyPages(loadedPdfDoc, [pageIndex]);
+                    newPdf.addPage(copiedPage);
+                    
+                    const pdfBytes = await newPdf.save();
+                    const pageNum = pageIndex + 1;
+                    
+                    // Filename padding (e.g., page_01.pdf) for correct sorting
+                    const pad = totalPages > 99 ? 3 : (totalPages > 9 ? 2 : 1);
+                    const numStr = String(pageNum).padStart(pad, '0');
+                    
+                    const newFileName = `${baseName}_page_${numStr}.pdf`;
+                    zip.file(newFileName, pdfBytes);
+
+                    const percentage = Math.round(((i + 1) / indicesToExtract.length) * 90);
+                    progressBar.style.width = `${percentage}%`;
+                }
+
+                progressBar.style.width = '95%';
+                zipBlob = await zip.generateAsync({ type: "blob" });
+                progressBar.style.width = '100%';
+                
+                resultMessage.textContent = `Successfully extracted ${indicesToExtract.length} pages.`;
+                resultBox.classList.remove('hidden');
+                showToast('PDF split successfully!', 'success');
+
+            } catch (error) {
+                console.error(error);
+                showToast('Error: ' + error.message, 'error');
+            } finally {
+                splitBtn.textContent = 'Split PDF';
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (zipBlob && currentFile) {
+                const zipName = `${currentFile.name.replace('.pdf', '')}_split.zip`;
+                saveAs(zipBlob, zipName);
+            }
+        });
+    </script>
+</body>
+</html>

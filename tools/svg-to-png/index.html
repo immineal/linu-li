@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG to PNG Converter | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <style>
+        /* Tool-specific layout adjustments */
+        .preview-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: repeating-linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0),
+                        repeating-linear-gradient(45deg, #f0f0f0 25%, #faf6f2 25%, #faf6f2 75%, #f0f0f0 75%, #f0f0f0);
+            background-position: 0 0, 10px 10px;
+            background-size: 20px 20px;
+            padding: 20px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .preview-container img {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>SVG to PNG Converter</h1>
+                <p>Transform vector graphics into high-resolution raster images. Control scaling and transparency.</p>
+            </div>
+
+            <div class="card">
+                
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-icon">🖼️</span>
+                    <p>Drag & Drop SVG file here</p>
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0;">or click to browse</p>
+                    <input type="file" id="fileInput" class="hidden" accept=".svg">
+                </div>
+
+                <ul class="file-list" id="fileList"></ul>
+
+                <div id="settingsArea" class="hidden" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    <div class="split-view">
+                        <div>
+                            <label for="scaleSelect">Output Scale</label>
+                            <select id="scaleSelect">
+                                <option value="1">1x (Original Size)</option>
+                                <option value="2" selected>2x (High Res)</option>
+                                <option value="4">4x (Ultra Res)</option>
+                                <option value="8">8x (Maximum)</option>
+                                <option value="custom">Custom Width...</option>
+                            </select>
+                        </div>
+                        <div id="customWidthContainer" class="hidden">
+                            <label for="customWidth">Target Width (px)</label>
+                            <input type="number" id="customWidth" placeholder="e.g. 1920">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="button" id="convertBtn" disabled>Convert to PNG</button>
+                    <button class="button outline" id="clearBtn" style="display: none;">Reset</button>
+                </div>
+
+                <div class="result-box hidden" id="resultBox">
+                    <h3 style="font-size: 1.2rem; margin-bottom: 1rem;">Preview</h3>
+                    
+                    <div class="preview-container">
+                        <img id="previewImg" alt="Converted PNG Preview">
+                    </div>
+
+                    <div class="split-view" style="margin-bottom: 0;">
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <p style="margin-bottom: 0.5rem;"><strong>Final Size:</strong> <span id="finalDims">-</span></p>
+                            <p style="margin-bottom: 0;"><strong>File Size:</strong> <span id="finalSize">-</span></p>
+                        </div>
+                        <div class="button-group" style="justify-content: flex-end; margin-top: 0;">
+                            <button class="button secondary" id="downloadBtn">Download PNG</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const settingsArea = document.getElementById('settingsArea');
+        const convertBtn = document.getElementById('convertBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const resultBox = document.getElementById('resultBox');
+        const scaleSelect = document.getElementById('scaleSelect');
+        const customWidthInput = document.getElementById('customWidth');
+        const customWidthContainer = document.getElementById('customWidthContainer');
+        const previewImg = document.getElementById('previewImg');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const finalDims = document.getElementById('finalDims');
+        const finalSize = document.getElementById('finalSize');
+
+        // State
+        let currentFile = null;
+        let generatedBlob = null;
+
+        // 1. Setup Drag & Drop
+        setupDropZone(dropZone, fileInput, handleFileSelect);
+
+        function handleFileSelect(files) {
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            if (file.type !== 'image/svg+xml' && !file.name.toLowerCase().endsWith('.svg')) {
+                showToast('Please select a valid SVG file.', 'error');
+                return;
+            }
+
+            currentFile = file;
+            updateUIState();
+        }
+
+        // 2. UI State Management
+        function updateUIState() {
+            fileList.innerHTML = '';
+            
+            if (currentFile) {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                li.innerHTML = `
+                    <div class="file-info">
+                        <span class="file-name">${currentFile.name}</span>
+                        <span class="file-size">${formatFileSize(currentFile.size)}</span>
+                    </div>
+                    <button class="remove-file" onclick="clearFile()">×</button>
+                `;
+                fileList.appendChild(li);
+                
+                settingsArea.classList.remove('hidden');
+                convertBtn.disabled = false;
+                clearBtn.style.display = 'inline-flex';
+                dropZone.classList.add('hidden');
+            } else {
+                settingsArea.classList.add('hidden');
+                convertBtn.disabled = true;
+                clearBtn.style.display = 'none';
+                dropZone.classList.remove('hidden');
+                resultBox.classList.add('hidden');
+            }
+        }
+
+        window.clearFile = function() {
+            currentFile = null;
+            fileInput.value = '';
+            updateUIState();
+        }
+
+        clearBtn.addEventListener('click', clearFile);
+
+        // 3. Handle Scale Selection Logic
+        scaleSelect.addEventListener('change', () => {
+            if (scaleSelect.value === 'custom') {
+                customWidthContainer.classList.remove('hidden');
+                customWidthInput.focus();
+            } else {
+                customWidthContainer.classList.add('hidden');
+            }
+        });
+
+        // 4. Conversion Logic
+        convertBtn.addEventListener('click', () => {
+            if (!currentFile) return;
+
+            showToast('Converting...', 'info');
+            convertBtn.disabled = true;
+            convertBtn.textContent = 'Processing...';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const svgData = e.target.result;
+                const img = new Image();
+                
+                img.onload = function() {
+                    renderToCanvas(img);
+                };
+                
+                img.onerror = function() {
+                    showToast('Error parsing SVG data.', 'error');
+                    resetButton();
+                };
+
+                // Handle XML serializer for special characters/fonts if necessary, 
+                // but Data URL usually works for standalone SVGs
+                img.src = svgData;
+            };
+            reader.readAsDataURL(currentFile);
+        });
+
+        function renderToCanvas(img) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Determine output dimensions
+            const originalWidth = img.width || 300; // Fallback if SVG has no width
+            const originalHeight = img.height || 150;
+            const aspectRatio = originalWidth / originalHeight;
+
+            let targetWidth, targetHeight;
+
+            if (scaleSelect.value === 'custom') {
+                targetWidth = parseInt(customWidthInput.value) || originalWidth;
+                targetHeight = targetWidth / aspectRatio;
+            } else {
+                const scale = parseInt(scaleSelect.value);
+                targetWidth = originalWidth * scale;
+                targetHeight = originalHeight * scale;
+            }
+
+            // Set canvas size (high res)
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+
+            // Draw
+            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+            // Export
+            canvas.toBlob((blob) => {
+                generatedBlob = blob;
+                const url = URL.createObjectURL(blob);
+                
+                // Update Preview
+                previewImg.src = url;
+                previewImg.onload = () => {
+                    resultBox.classList.remove('hidden');
+                    finalDims.textContent = `${Math.round(targetWidth)} x ${Math.round(targetHeight)} px`;
+                    finalSize.textContent = formatFileSize(blob.size);
+                    
+                    // Scroll to result
+                    resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    resetButton();
+                };
+
+            }, 'image/png');
+        }
+
+        function resetButton() {
+            convertBtn.disabled = false;
+            convertBtn.textContent = 'Convert to PNG';
+        }
+
+        // 5. Download Logic
+        downloadBtn.addEventListener('click', () => {
+            if (!generatedBlob) return;
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(generatedBlob);
+            
+            // Construct filename: original-name.svg -> original-name.png
+            let newName = currentFile.name.replace(/\.svg$/i, '');
+            newName += `_${finalDims.textContent.replace(/ /g,'').replace('px','')}.png`;
+            
+            link.download = newName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('Download started', 'success');
+        });
+
+    </script>
+</body>
+</html>

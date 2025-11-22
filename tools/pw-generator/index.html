@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Password Generator | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <style>
+        .password-display {
+            font-family: var(--font-mono);
+            font-size: 1.5rem;
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            word-break: break-all;
+            text-align: center;
+            margin-bottom: 1rem;
+            position: relative;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .strength-bar {
+            height: 6px;
+            background: #eee;
+            border-radius: 3px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s, background 0.3s;
+        }
+        /* Colors for strength */
+        .weak { background: var(--accent); width: 30%; }
+        .medium { background: #e6c229; width: 60%; }
+        .strong { background: var(--accent-secondary); width: 100%; }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container" style="max-width: 800px;">
+            <div class="tool-header">
+                <h1>Password Generator</h1>
+                <p>Create strong, secure passwords instantly in your browser.</p>
+            </div>
+
+            <div class="card">
+                
+                <!-- DISPLAY -->
+                <div class="password-display" id="passwordOutput">Generate to start...</div>
+                
+                <div class="strength-bar">
+                    <div class="strength-fill" id="strengthMeter"></div>
+                </div>
+
+                <div class="button-group" style="justify-content: center; margin-bottom: 2rem;">
+                    <button class="button" id="generateBtn">Generate New</button>
+                    <button class="button secondary" id="copyBtn">Copy Password</button>
+                </div>
+
+                <!-- SETTINGS -->
+                <div style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    
+                    <label for="lengthRange">Length: <span id="lengthValue" style="color: var(--accent);">16</span></label>
+                    <input type="range" id="lengthRange" min="6" max="64" value="16">
+
+                    <div class="split-view" style="margin-top: 1.5rem;">
+                        <div>
+                            <label class="toggle-wrapper">
+                                <input type="checkbox" id="chkUppercase" class="toggle-checkbox" checked>
+                                <div class="toggle-switch"></div>
+                                <span>Uppercase (A-Z)</span>
+                            </label>
+                            <label class="toggle-wrapper">
+                                <input type="checkbox" id="chkLowercase" class="toggle-checkbox" checked>
+                                <div class="toggle-switch"></div>
+                                <span>Lowercase (a-z)</span>
+                            </label>
+                            <label class="toggle-wrapper">
+                                <input type="checkbox" id="chkNumbers" class="toggle-checkbox" checked>
+                                <div class="toggle-switch"></div>
+                                <span>Numbers (0-9)</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="toggle-wrapper">
+                                <input type="checkbox" id="chkSymbols" class="toggle-checkbox" checked>
+                                <div class="toggle-switch"></div>
+                                <span>Symbols (!@#$)</span>
+                            </label>
+                            <label class="toggle-wrapper">
+                                <input type="checkbox" id="chkAmbiguous" class="toggle-checkbox">
+                                <div class="toggle-switch"></div>
+                                <span>No Ambiguous (l, 1, O, 0)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        // Elements
+        const output = document.getElementById('passwordOutput');
+        const strengthMeter = document.getElementById('strengthMeter');
+        const lengthRange = document.getElementById('lengthRange');
+        const lengthValue = document.getElementById('lengthValue');
+        const generateBtn = document.getElementById('generateBtn');
+        const copyBtn = document.getElementById('copyBtn');
+
+        // Checkboxes
+        const chkUpper = document.getElementById('chkUppercase');
+        const chkLower = document.getElementById('chkLowercase');
+        const chkNum = document.getElementById('chkNumbers');
+        const chkSym = document.getElementById('chkSymbols');
+        const chkAmbiguous = document.getElementById('chkAmbiguous');
+
+        // Charsets
+        const charsUpper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const charsLower = "abcdefghijklmnopqrstuvwxyz";
+        const charsNum = "0123456789";
+        const charsSym = "!@#$%^&*()_+~`|}{[]:;?><,./-=";
+        const ambiguous = "Il1O0";
+
+        function generate() {
+            const length = parseInt(lengthRange.value);
+            let charset = "";
+            
+            if (chkUpper.checked) charset += charsUpper;
+            if (chkLower.checked) charset += charsLower;
+            if (chkNum.checked) charset += charsNum;
+            if (chkSym.checked) charset += charsSym;
+
+            // Remove ambiguous if requested
+            if (chkAmbiguous.checked) {
+                for (let char of ambiguous) {
+                    charset = charset.split(char).join('');
+                }
+            }
+
+            if (charset === "") {
+                output.textContent = "Please select at least one option.";
+                strengthMeter.className = "strength-fill";
+                return;
+            }
+
+            let password = "";
+            // Crypto secure random
+            const array = new Uint32Array(length);
+            window.crypto.getRandomValues(array);
+            
+            for (let i = 0; i < length; i++) {
+                password += charset[array[i] % charset.length];
+            }
+
+            output.textContent = password;
+            calcStrength(password);
+        }
+
+        function calcStrength(pw) {
+            // Simple heuristic
+            let score = 0;
+            if (pw.length > 8) score++;
+            if (pw.length > 12) score++;
+            if (/[A-Z]/.test(pw)) score++;
+            if (/[0-9]/.test(pw)) score++;
+            if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+            strengthMeter.className = "strength-fill";
+            
+            if (score < 3) strengthMeter.classList.add("weak");
+            else if (score < 5) strengthMeter.classList.add("medium");
+            else strengthMeter.classList.add("strong");
+        }
+
+        // Event Listeners
+        lengthRange.addEventListener('input', (e) => {
+            lengthValue.textContent = e.target.value;
+            generate();
+        });
+
+        [chkUpper, chkLower, chkNum, chkSym, chkAmbiguous].forEach(el => {
+            el.addEventListener('change', generate);
+        });
+
+        generateBtn.addEventListener('click', generate);
+        
+        copyBtn.addEventListener('click', () => {
+            if (output.textContent && !output.textContent.includes('Please select')) {
+                copyToClipboard(output.textContent);
+            }
+        });
+
+        // Init
+        generate();
+
+    </script>
+</body>
+</html>

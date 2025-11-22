@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to Grayscale | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <!-- Libraries for Rasterization and PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>PDF Grayscale Converter</h1>
+                <p>Convert PDFs to Black & White by rasterizing pages. This ensures full compatibility with all printers by modifying the image data directly.</p>
+            </div>
+
+            <div class="card">
+                
+                <!-- SECTION: UPLOAD -->
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-icon">🖨️</span>
+                    <p>Drag & Drop PDF file here</p>
+                    <input type="file" id="fileInput" class="hidden" accept="application/pdf">
+                </div>
+
+                <!-- Selected File Info -->
+                <ul class="file-list" id="fileList"></ul>
+
+                <!-- SECTION: OPTIONS -->
+                <div id="optionsPanel" class="hidden" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    <div class="split-view">
+                        <div>
+                            <label>Output Quality (DPI)</label>
+                            <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-bottom: 0.5rem;">Higher DPI = sharper text but larger file size.</p>
+                            <select id="dpiSelect">
+                                <option value="1.5">150 DPI (Fast / Draft)</option>
+                                <option value="2.0" selected>200 DPI (Standard)</option>
+                                <option value="3.0">300 DPI (High Quality / Print)</option>
+                                <option value="4.0">400 DPI (Ultra)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Contrast Boost</label>
+                            <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-bottom: 0.5rem;">Makes light grey text darker.</p>
+                            <label class="toggle-wrapper">
+                                <input type="checkbox" id="contrastToggle" class="toggle-checkbox" checked>
+                                <div class="toggle-switch"></div>
+                                <span>Enhance Text Contrast</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: CONTROLS -->
+                <div class="button-group hidden" id="controlButtons">
+                    <button class="button" id="convertBtn">Convert to Grayscale</button>
+                    <button class="button outline" id="resetBtn">Reset</button>
+                </div>
+
+                <!-- SECTION: PROGRESS -->
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+                <p id="statusText" style="text-align: center; font-size: 0.9rem; margin-top: 0.5rem; display: none; color: var(--ink-secondary);"></p>
+
+                <!-- SECTION: RESULTS -->
+                <div class="result-box hidden" id="resultBox">
+                    <div style="text-align: center;">
+                        <h3>Success!</h3>
+                        <p>Your PDF has been converted to strict Grayscale.</p>
+                        <div class="big-display" id="finalSizeDisplay" style="font-size: 1.5rem; margin-top: 0.5rem;"></div>
+                        <p style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 1.5rem;">(Text selection removed to guarantee color compliance)</p>
+                        <button class="button secondary" id="downloadBtn">Download PDF</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        // PDF.js Worker Setup
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const { jsPDF } = window.jspdf;
+
+        // Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const optionsPanel = document.getElementById('optionsPanel');
+        const controlButtons = document.getElementById('controlButtons');
+        const convertBtn = document.getElementById('convertBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const statusText = document.getElementById('statusText');
+        const resultBox = document.getElementById('resultBox');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const finalSizeDisplay = document.getElementById('finalSizeDisplay');
+        
+        const dpiSelect = document.getElementById('dpiSelect');
+        const contrastToggle = document.getElementById('contrastToggle');
+
+        let currentFile = null;
+        let outputBlob = null;
+
+        // 1. File Handling
+        setupDropZone(dropZone, fileInput, handleFileSelect);
+
+        function handleFileSelect(files) {
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                currentFile = files[0];
+                renderFileList();
+                optionsPanel.classList.remove('hidden');
+                controlButtons.classList.remove('hidden');
+                dropZone.classList.add('hidden');
+            } else {
+                showToast('Please upload a valid PDF file', 'error');
+            }
+        }
+
+        function renderFileList() {
+            fileList.innerHTML = '';
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            li.innerHTML = `
+                <div class="file-info">
+                    <span class="file-name">${currentFile.name}</span>
+                    <span class="file-size">${formatFileSize(currentFile.size)}</span>
+                </div>
+                <button class="remove-file" onclick="resetTool()">×</button>
+            `;
+            fileList.appendChild(li);
+        }
+
+        window.resetTool = function() {
+            currentFile = null;
+            outputBlob = null;
+            fileInput.value = '';
+            fileList.innerHTML = '';
+            optionsPanel.classList.add('hidden');
+            controlButtons.classList.add('hidden');
+            resultBox.classList.add('hidden');
+            dropZone.classList.remove('hidden');
+            progressContainer.style.display = 'none';
+            statusText.style.display = 'none';
+        }
+
+        resetBtn.addEventListener('click', resetTool);
+
+        // 2. Main Conversion Logic
+        convertBtn.addEventListener('click', async () => {
+            if (!currentFile) return;
+
+            // Lock UI
+            convertBtn.disabled = true;
+            resetBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            statusText.style.display = 'block';
+            resultBox.classList.add('hidden');
+            progressBar.style.width = '0%';
+
+            try {
+                const arrayBuffer = await currentFile.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                const totalPages = pdf.numPages;
+                const scale = parseFloat(dpiSelect.value);
+                const enhanceContrast = contrastToggle.checked;
+
+                // Initialize new PDF
+                const outPdf = new jsPDF({
+                    orientation: 'p',
+                    unit: 'px',
+                    format: 'a4',
+                    compress: true
+                });
+                outPdf.deletePage(1); // Remove default first page
+
+                for (let i = 1; i <= totalPages; i++) {
+                    statusText.textContent = `Processing page ${i} of ${totalPages}...`;
+
+                    // 1. Render Page to Canvas
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: scale });
+
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                    // 2. Manipulate Pixel Data (RGB -> Grayscale)
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imgData.data; // RGBA array
+
+                    for (let j = 0; j < data.length; j += 4) {
+                        const r = data[j];
+                        const g = data[j + 1];
+                        const b = data[j + 2];
+                        
+                        // Luminosity Formula: 0.299R + 0.587G + 0.114B
+                        let gray = (0.299 * r) + (0.587 * g) + (0.114 * b);
+
+                        // Contrast Enhancement: Push dark greys to black
+                        if (enhanceContrast) {
+                            if (gray < 240) { // If not pure white
+                                gray = gray * 0.9; // Darken by 10%
+                            }
+                        }
+
+                        data[j] = gray;     // R
+                        data[j + 1] = gray; // G
+                        data[j + 2] = gray; // B
+                        // Alpha (data[j+3]) remains unchanged
+                    }
+
+                    // Put modified data back
+                    ctx.putImageData(imgData, 0, 0);
+
+                    // 3. Add to new PDF
+                    const imgUrl = canvas.toDataURL('image/jpeg', 0.8); // 80% quality JPEG
+                    const pdfW = viewport.width / scale;
+                    const pdfH = viewport.height / scale;
+
+                    outPdf.addPage([pdfW, pdfH]);
+                    outPdf.addImage(imgUrl, 'JPEG', 0, 0, pdfW, pdfH);
+
+                    // Update Progress
+                    const percent = Math.round((i / totalPages) * 100);
+                    progressBar.style.width = `${percent}%`;
+                }
+
+                // Finish
+                outputBlob = outPdf.output('blob');
+                finalSizeDisplay.textContent = formatFileSize(outputBlob.size);
+                
+                progressBar.style.width = '100%';
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                    statusText.style.display = 'none';
+                    resultBox.classList.remove('hidden');
+                    convertBtn.disabled = false;
+                    resetBtn.disabled = false;
+                    showToast('Conversion successful', 'success');
+                }, 500);
+
+            } catch (err) {
+                console.error(err);
+                showToast('Error processing PDF. The file might be too large.', 'error');
+                convertBtn.disabled = false;
+                resetBtn.disabled = false;
+                statusText.textContent = "Error occurred.";
+            }
+        });
+
+        // 3. Download
+        downloadBtn.addEventListener('click', () => {
+            if (!outputBlob) return;
+            const name = currentFile.name.replace('.pdf', '_bw.pdf');
+            saveAs(outputBlob, name);
+        });
+
+    </script>
+</body>
+</html>

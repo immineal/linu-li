@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Image Extractor | Linus Linhof</title>
+    <!-- Paths relative to /tools/tools/[tool-name]/index.html -->
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <!-- External Libraries -->
+    <!-- JSZip for bundling images -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- FileSaver for saving the zip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- PDF.js for parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <style>
+        /* Minimal custom styling for the image grid, reusing existing variables */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .image-card {
+            border: 1px solid var(--border);
+            background: var(--input-bg);
+            border-radius: 4px;
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        .image-card:hover {
+            border-color: var(--accent);
+        }
+        .image-preview {
+            width: 100%;
+            height: 120px;
+            object-fit: contain;
+            background-color: #fff; /* To see transparent PNGs clearly */
+            border-radius: 2px;
+            margin-bottom: 0.5rem;
+        }
+        .image-meta {
+            font-size: 0.75rem;
+            color: var(--ink-secondary);
+            text-align: center;
+            font-family: var(--font-mono);
+            margin-bottom: 0.5rem;
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>PDF Image Extractor</h1>
+                <p>Upload a PDF to automatically scrape and extract all embedded images.</p>
+            </div>
+
+            <div class="card">
+                
+                <!-- SECTION: FILE UPLOAD -->
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-icon">🖼️</span>
+                    <p>Drag & Drop PDF file here</p>
+                    <p style="font-size: 0.85rem; opacity: 0.7;">(Extracts bitmaps, JPEGs, and PNGs)</p>
+                    <input type="file" id="fileInput" class="hidden" accept="application/pdf">
+                </div>
+                
+                <!-- SECTION: FILE INFO -->
+                <ul class="file-list" id="fileList"></ul>
+
+                <!-- SECTION: CONTROLS -->
+                <div class="button-group hidden" id="controlPanel">
+                    <button class="button" id="processBtn">Extract Images</button>
+                    <button class="button outline" id="resetBtn">Reset</button>
+                </div>
+
+                <!-- SECTION: PROGRESS -->
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+                <p id="statusText" style="text-align: center; font-size: 0.9rem; margin-top: 0.5rem; display: none;"></p>
+
+                <!-- SECTION: RESULTS -->
+                <div class="result-box hidden" id="resultBox">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <h3>Extracted Images <span id="imgCount" style="font-weight: normal; font-size: 0.9rem; color: var(--ink-secondary);"></span></h3>
+                        <button class="button secondary sm" id="downloadAllBtn">Download All (.zip)</button>
+                    </div>
+                    
+                    <div class="image-grid" id="imageGrid">
+                        <!-- Images injected here -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <!-- CORE LAYOUT SCRIPT -->
+    <script src="../../assets/js/layout.js"></script>
+    
+    <!-- TOOL LOGIC -->
+    <script>
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const controlPanel = document.getElementById('controlPanel');
+        const processBtn = document.getElementById('processBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const statusText = document.getElementById('statusText');
+        const resultBox = document.getElementById('resultBox');
+        const imageGrid = document.getElementById('imageGrid');
+        const imgCount = document.getElementById('imgCount');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+
+        let currentFile = null;
+        let extractedImages = []; // Stores { blob, filename }
+
+        // 1. Initialize Drop Zone
+        setupDropZone(dropZone, fileInput, handleFileSelection);
+
+        function handleFileSelection(files) {
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            if (file.type !== 'application/pdf') {
+                showToast('Please upload a valid PDF file.', 'error');
+                return;
+            }
+
+            currentFile = file;
+            
+            // Update UI
+            fileList.innerHTML = `
+                <li class="file-item">
+                    <div class="file-info">
+                        <span style="font-size: 1.5rem;">📄</span>
+                        <div>
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${formatFileSize(file.size)}</div>
+                        </div>
+                    </div>
+                    <button class="remove-file" onclick="resetTool()">×</button>
+                </li>
+            `;
+            
+            dropZone.classList.add('hidden');
+            controlPanel.classList.remove('hidden');
+            resultBox.classList.add('hidden');
+        }
+
+        // 2. Process Logic
+        processBtn.addEventListener('click', async () => {
+            if (!currentFile) return;
+
+            processBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            statusText.style.display = 'block';
+            statusText.textContent = 'Initializing PDF...';
+            progressBar.style.width = '5%';
+            imageGrid.innerHTML = '';
+            extractedImages = [];
+
+            try {
+                const arrayBuffer = await currentFile.arrayBuffer();
+                const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+                const pdf = await loadingTask.promise;
+
+                const numPages = pdf.numPages;
+                let imagesFoundTotal = 0;
+
+                for (let i = 1; i <= numPages; i++) {
+                    // Update Progress
+                    const percent = Math.round((i / numPages) * 100);
+                    progressBar.style.width = `${percent}%`;
+                    statusText.textContent = `Scanning page ${i} of ${numPages}...`;
+
+                    try {
+                        const page = await pdf.getPage(i);
+                        const operatorList = await page.getOperatorList();
+                        
+                        // Iterate through operators to find images
+                        const validOperators = [
+                            pdfjsLib.OPS.paintImageXObject, 
+                            pdfjsLib.OPS.paintInlineImageXObject
+                        ];
+
+                        for (let j = 0; j < operatorList.fnArray.length; j++) {
+                            const op = operatorList.fnArray[j];
+                            
+                            if (validOperators.includes(op)) {
+                                const imgName = operatorList.argsArray[j][0];
+                                
+                                // Retrieve the image object
+                                try {
+                                    const imageObj = await page.objs.get(imgName);
+                                    if (imageObj) {
+                                        const processedImg = await processPdfImage(imageObj, i, imagesFoundTotal + 1);
+                                        if (processedImg) {
+                                            extractedImages.push(processedImg);
+                                            addImageToGrid(processedImg);
+                                            imagesFoundTotal++;
+                                        }
+                                    }
+                                } catch (imgErr) {
+                                    console.warn(`Failed to extract image ${imgName} on page ${i}`, imgErr);
+                                }
+                            }
+                        }
+                    } catch (pageErr) {
+                        console.error(`Error processing page ${i}`, pageErr);
+                    }
+                }
+
+                // Finish
+                progressBar.style.width = '100%';
+                statusText.textContent = `Complete! Found ${imagesFoundTotal} images.`;
+                imgCount.textContent = `(${imagesFoundTotal} found)`;
+                resultBox.classList.remove('hidden');
+                
+                if (imagesFoundTotal === 0) {
+                    showToast('No extractable images found in this PDF.', 'info');
+                    imageGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--ink-secondary);">No images found. The PDF might contain flattened vectors instead of bitmaps.</p>';
+                    downloadAllBtn.disabled = true;
+                } else {
+                    downloadAllBtn.disabled = false;
+                    showToast(`Successfully extracted ${imagesFoundTotal} images.`, 'success');
+                }
+
+            } catch (error) {
+                console.error(error);
+                showToast('Error processing PDF: ' + error.message, 'error');
+                statusText.textContent = 'Error occurred.';
+            } finally {
+                processBtn.disabled = false;
+            }
+        });
+
+        // 3. Image Processing Helper
+        // Converts PDF Image Object -> HTML Canvas -> Blob
+        async function processPdfImage(img, pageNum, index) {
+            const width = img.width;
+            const height = img.height;
+            
+            // Skip tiny images (likely icons or artifacts)
+            if (width < 20 || height < 20) return null;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            // Handle different image kinds defined by PDF.js
+            // 1 = Grayscale, 2 = RGB, 3 = CMYK (converted by PDF.js mostly), etc.
+            // Using a temporary canvas to paint the RGBA data provided by PDF.js
+            
+            let imageData = ctx.createImageData(width, height);
+
+            if (img.kind === pdfjsLib.ImageKind.GRAYSCALE_1BPP) {
+                // 1 bit per pixel
+                 const data = img.data;
+                 const len = width * height;
+                 // This decoding is complex, usually PDF.js provides a bitmap in newer versions
+                 // Fallback: if bitmap exists (browser supported), use it
+                 if (img.bitmap) {
+                     ctx.drawImage(img.bitmap, 0, 0);
+                 } else {
+                     // Skip complex manual decoding for brevity in this tool context
+                     // or return null if unsupported format
+                     return null; 
+                 }
+            } else if (img.bitmap) {
+                // Valid ImageBitmap (fastest)
+                ctx.drawImage(img.bitmap, 0, 0);
+            } else if (img.data) {
+                // Raw RGBA data
+                // If the array is Uint8ClampedArray, we can put it directly
+                // Some PDF images might need color space conversion, handled by PDF.js usually
+                if (img.data.length === width * height * 4) {
+                    imageData.data.set(img.data);
+                    ctx.putImageData(imageData, 0, 0);
+                } else if (img.data.length === width * height * 3) {
+                    // RGB to RGBA
+                    const src = img.data;
+                    const dest = imageData.data;
+                    let j = 0;
+                    for (let i = 0; i < src.length; i += 3) {
+                        dest[j++] = src[i];     // R
+                        dest[j++] = src[i + 1]; // G
+                        dest[j++] = src[i + 2]; // B
+                        dest[j++] = 255;        // Alpha
+                    }
+                    ctx.putImageData(imageData, 0, 0);
+                } else {
+                     // Fallback for masks or other formats
+                     return null; 
+                }
+            } else {
+                return null;
+            }
+
+            // Determine Extension
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const filename = `image_p${pageNum}_${index}.png`;
+
+            return {
+                blob: blob,
+                filename: filename,
+                width: width,
+                height: height,
+                url: URL.createObjectURL(blob)
+            };
+        }
+
+        // 4. UI Helper: Add to Grid
+        function addImageToGrid(imgObj) {
+            const div = document.createElement('div');
+            div.className = 'image-card';
+            div.innerHTML = `
+                <img src="${imgObj.url}" class="image-preview" alt="${imgObj.filename}">
+                <div class="image-meta">${imgObj.width}x${imgObj.height}</div>
+                <button class="button sm outline" style="width:100%; font-size: 0.75rem;" onclick="downloadSingle('${imgObj.url}', '${imgObj.filename}')">Download</button>
+            `;
+            imageGrid.appendChild(div);
+        }
+
+        // 5. Download Functions
+        window.downloadSingle = (url, filename) => {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+
+        downloadAllBtn.addEventListener('click', () => {
+            if (extractedImages.length === 0) return;
+            
+            showToast('Zipping images...', 'info');
+            const zip = new JSZip();
+            const imgFolder = zip.folder("extracted_images");
+
+            extractedImages.forEach(img => {
+                imgFolder.file(img.filename, img.blob);
+            });
+
+            zip.generateAsync({ type: "blob" }).then(function(content) {
+                saveAs(content, `images_${currentFile.name.replace('.pdf', '')}.zip`);
+                showToast('Download started!', 'success');
+            });
+        });
+
+        // 6. Reset Logic
+        resetBtn.addEventListener('click', resetTool);
+        
+        function resetTool() {
+            currentFile = null;
+            extractedImages = [];
+            fileList.innerHTML = '';
+            dropZone.classList.remove('hidden');
+            controlPanel.classList.add('hidden');
+            resultBox.classList.add('hidden');
+            progressContainer.style.display = 'none';
+            statusText.style.display = 'none';
+            progressBar.style.width = '0%';
+            fileInput.value = ''; // Clear input
+        }
+    </script>
+</body>
+</html>

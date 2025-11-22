@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Previewer | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <!-- Marked Library -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        /* Preview Styles (mimicking simple typography) */
+        .markdown-body {
+            background: var(--card-bg);
+            padding: 2rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            height: 100%;
+            min-height: 500px;
+            overflow-y: auto;
+            font-family: var(--font-body);
+        }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { border-bottom: 1px solid var(--border); padding-bottom: 0.3em; margin-top: 1.5em; }
+        .markdown-body h1:first-child { margin-top: 0; }
+        .markdown-body blockquote { border-left: 4px solid var(--accent); padding-left: 1rem; color: var(--ink-secondary); margin: 1rem 0; }
+        .markdown-body code { background: var(--code-bg); padding: 0.2rem 0.4rem; border-radius: 3px; font-family: var(--font-mono); font-size: 0.85em; }
+        .markdown-body pre { background: var(--code-bg); padding: 1rem; overflow-x: auto; border-radius: 4px; }
+        .markdown-body pre code { background: transparent; padding: 0; }
+        .markdown-body ul, .markdown-body ol { padding-left: 2rem; margin-bottom: 1rem; }
+        .markdown-body img { max-width: 100%; }
+        .markdown-body hr { border: 0; border-top: 2px solid var(--border); margin: 2rem 0; }
+        
+        /* Split layout fix */
+        .editor-pane { display: flex; flex-direction: column; }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container" style="max-width: 1400px;">
+            <div class="tool-header">
+                <h1>Markdown Previewer</h1>
+                <p>Write Markdown on the left, see the rendered HTML on the right.</p>
+            </div>
+
+            <div class="split-view" style="grid-template-columns: 1fr 1fr; align-items: stretch;">
+                
+                <!-- EDITOR -->
+                <div class="editor-pane">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <label for="mdInput">Markdown Input</label>
+                        <button class="button sm outline" id="clearBtn">Clear</button>
+                    </div>
+                    <textarea id="mdInput" class="code-editor" style="flex-grow: 1; min-height: 600px; font-size: 0.9rem;" placeholder="# Hello World&#10;&#10;Start typing **Markdown** here..."></textarea>
+                </div>
+
+                <!-- PREVIEW -->
+                <div class="editor-pane">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <label>Live Preview</label>
+                        <button class="button sm secondary" id="copyHtmlBtn">Copy HTML</button>
+                    </div>
+                    <div id="preview" class="markdown-body"></div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        const mdInput = document.getElementById('mdInput');
+        const preview = document.getElementById('preview');
+        const clearBtn = document.getElementById('clearBtn');
+        const copyHtmlBtn = document.getElementById('copyHtmlBtn');
+
+        // Default text
+        const defaultText = `# Welcome to Markdown
+
+Type on the left to see the preview here.
+
+## Features
+- Live rendering
+- **Bold** and *Italic* text
+- [Links](https://immineal.com)
+- Code blocks:
+\`\`\`
+console.log('Hello World');
+\`\`\`
+
+> "Privacy is the power to selectively reveal oneself to the world."`;
+
+        // Render Logic
+        function render() {
+            const text = mdInput.value;
+            // Marked handles sanitization by default in newer versions, 
+            // but for a local tool, raw HTML is often desired.
+            preview.innerHTML = marked.parse(text);
+        }
+
+        mdInput.addEventListener('input', render);
+
+        // Init
+        mdInput.value = defaultText;
+        render();
+
+        // Actions
+        clearBtn.addEventListener('click', () => {
+            mdInput.value = '';
+            render();
+            mdInput.focus();
+        });
+
+        copyHtmlBtn.addEventListener('click', () => {
+            const html = preview.innerHTML;
+            copyToClipboard(html);
+        });
+    </script>
+</body>
+</html>

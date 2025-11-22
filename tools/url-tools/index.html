@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Encoder/Decoder | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>URL Encoder/Decoder</h1>
+                <p>Fix messy URLs, encode for code, or strip tracking parameters to get the shortest link.</p>
+            </div>
+
+            <div class="card">
+                
+                <label for="inputData">Input Text / URL</label>
+                <textarea id="inputData" class="code-editor" placeholder="Paste URL here (e.g., https://www.amazon.com/product-name/dp/B00...ref=xyz)..."></textarea>
+                
+                <div class="button-group">
+                    <button class="button secondary" id="cleanBtn" title="Detects Amazon, eBay, YouTube, etc.">Clean & Minify</button>
+                    <button class="button outline" id="decodeBtn" title="Convert %20 to spaces, etc.">Decode</button>
+                    <button class="button outline" id="encodeBtn" title="Convert special chars to % codes">Encode</button>
+                    <button class="button outline" id="clearBtn" style="margin-left: auto;">Clear</button>
+                </div>
+
+                <div class="result-box hidden" id="resultBox">
+                    <label style="margin-bottom: 0.5rem; display: block;">Result</label>
+                    
+                    <div id="textOutput" 
+                         style="min-height: 50px; 
+                                font-family: var(--font-mono); 
+                                background: var(--code-bg); 
+                                padding: 1rem; 
+                                border-radius: 4px; 
+                                white-space: pre-wrap; 
+                                word-break: break-all; 
+                                overflow-wrap: anywhere;"></div>
+                    
+                    <div class="button-group" style="margin-top: 1rem;">
+                        <button class="button sm secondary" id="copyBtn">Copy Result</button>
+                        <button class="button sm outline" id="shareBtn" title="Create a link with this result pre-filled">Share Link</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const inputData = document.getElementById('inputData');
+            const cleanBtn = document.getElementById('cleanBtn');
+            const decodeBtn = document.getElementById('decodeBtn');
+            const encodeBtn = document.getElementById('encodeBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const resultBox = document.getElementById('resultBox');
+            const textOutput = document.getElementById('textOutput');
+            const copyBtn = document.getElementById('copyBtn');
+            const shareBtn = document.getElementById('shareBtn');
+
+            // Helper to display results
+            function displayResult(text) {
+                if (!text) {
+                    resultBox.classList.add('hidden');
+                    return;
+                }
+                textOutput.textContent = text;
+                resultBox.classList.remove('hidden');
+            }
+
+            // === LOAD FROM HASH (Sharing Logic) ===
+            if (window.location.hash && window.location.hash.startsWith('#data=')) {
+                try {
+                    const rawHash = window.location.hash.substring(6); // remove #data=
+                    const decodedContent = decodeURIComponent(rawHash);
+                    
+                    // Populate input and show result immediately
+                    inputData.value = decodedContent;
+                    displayResult(decodedContent);
+                    
+                    showToast('Shared content loaded', 'info');
+                    
+                    // Clean URL (remove hash) without page refresh so it looks clean
+                    history.replaceState(null, null, ' ');
+                } catch (e) {
+                    console.error('Failed to parse share link', e);
+                }
+            }
+
+            // === ADVANCED CLEANING LOGIC ===
+            cleanBtn.addEventListener('click', () => {
+                let raw = inputData.value.trim();
+                if (!raw) {
+                    showToast('Please enter a URL', 'info');
+                    return;
+                }
+
+                // If user pasted a massive encoded block, decode it first
+                if (raw.includes('%3A') || raw.includes('%2F')) {
+                    try { raw = decodeURIComponent(raw); } catch (e) {}
+                }
+
+                try {
+                    const url = new URL(raw);
+                    const hostname = url.hostname.toLowerCase();
+                    let finalUrl = url.toString();
+                    let platformDetected = null;
+
+                    // 1. AMAZON (dp/ASIN)
+                    if (hostname.includes('amazon') || hostname.includes('amzn')) {
+                        const asinMatch = url.pathname.match(/\/(?:dp|gp\/product|exec\/obidos\/asin)\/([A-Z0-9]{10})/);
+                        if (asinMatch) {
+                            finalUrl = `https://${hostname}/dp/${asinMatch[1]}`;
+                            platformDetected = 'Amazon';
+                        }
+                    }
+                    
+                    // 2. EBAY (itm/ID)
+                    else if (hostname.includes('ebay')) {
+                        // eBay URLs are usually ebay.com/itm/TITLE-SLUG/12345678
+                        const itemMatch = url.pathname.match(/\/itm\/(?:.*\/)?(\d+)/);
+                        if (itemMatch) {
+                            finalUrl = `https://${hostname}/itm/${itemMatch[1]}`;
+                            platformDetected = 'eBay';
+                        }
+                    }
+
+                    // 3. YOUTUBE (ConvertTo youtu.be/ID)
+                    else if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
+                        let videoId = null;
+                        if (hostname.includes('youtu.be')) {
+                            videoId = url.pathname.substring(1);
+                        } else if (url.searchParams.has('v')) {
+                            videoId = url.searchParams.get('v');
+                        }
+                        
+                        if (videoId) {
+                            finalUrl = `https://youtu.be/${videoId}`;
+                            // Preserve timestamp if present
+                            if (url.searchParams.has('t')) {
+                                finalUrl += `?t=${url.searchParams.get('t')}`;
+                            }
+                            platformDetected = 'YouTube';
+                        }
+                    }
+
+                    // 4. TWITTER / X (Status ID only)
+                    else if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
+                        const statusMatch = url.pathname.match(/\/status\/(\d+)/);
+                        if (statusMatch) {
+                            // Normalize to x.com as it's shorter/current
+                            finalUrl = `https://x.com${url.pathname.split('/status/')[0]}/status/${statusMatch[1]}`;
+                            platformDetected = 'X / Twitter';
+                        }
+                    }
+
+                    // 5. GENERIC CLEANER (If no specific platform matched, or to clean remaining params)
+                    if (!platformDetected) {
+                        // Aggressive parameter removal list
+                        const paramsToRemove = [
+                            'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_cid', 'utm_reader', 'utm_referrer',
+                            'fbclid', 'gclid', 'msclkid', 'dclid', 'twclid', 'igshid', // Ad Clicks
+                            'ref', 'ref_', 'qid', 'sr', 'dchild', 'keywords', 'pf_rd_p', 'pf_rd_r', 'pd_rd_w', 'pd_rd_r', // Store Junk
+                            'si', 'share_id', 'feature', 'context', 's', 't', '_t', '_r' // Social Junk
+                        ];
+
+                        // Create a temporary URL object to strip params
+                        const tempUrl = new URL(finalUrl);
+                        paramsToRemove.forEach(p => tempUrl.searchParams.delete(p));
+                        finalUrl = tempUrl.toString();
+                    }
+
+                    displayResult(finalUrl);
+                    
+                    if (platformDetected) {
+                        showToast(`${platformDetected} link minified!`, 'success');
+                    } else {
+                        showToast('Tracking parameters removed', 'success');
+                    }
+
+                } catch (e) {
+                    showToast('Input is not a valid URL', 'error');
+                }
+            });
+
+            // Decode Logic
+            decodeBtn.addEventListener('click', () => {
+                const raw = inputData.value.trim();
+                if (!raw) return;
+                try {
+                    displayResult(decodeURIComponent(raw));
+                    showToast('Decoded', 'success');
+                } catch (e) { showToast('Invalid encoding', 'error'); }
+            });
+
+            // Encode Logic
+            encodeBtn.addEventListener('click', () => {
+                const raw = inputData.value.trim();
+                if (!raw) return;
+                try {
+                    displayResult(encodeURIComponent(raw));
+                    showToast('Encoded', 'success');
+                } catch (e) { showToast('Error encoding', 'error'); }
+            });
+
+            // Clear Logic
+            clearBtn.addEventListener('click', () => {
+                inputData.value = '';
+                resultBox.classList.add('hidden');
+                textOutput.textContent = '';
+                inputData.focus();
+                // Clear URL hash if present
+                history.replaceState(null, null, ' ');
+            });
+
+            // Copy Logic
+            copyBtn.addEventListener('click', () => {
+                const content = textOutput.textContent;
+                if (content) copyToClipboard(content);
+            });
+
+            // Share Logic
+            shareBtn.addEventListener('click', () => {
+                const content = textOutput.textContent;
+                if (!content) return;
+                
+                // Construct URL with hash
+                // We use encodeURIComponent to ensure special chars traverse the URL safely
+                const hash = 'data=' + encodeURIComponent(content);
+                const shareUrl = window.location.origin + window.location.pathname + '#' + hash;
+                
+                copyToClipboard(shareUrl);
+                showToast('Link copied to clipboard!', 'success');
+            });
+        });
+    </script>
+</body>
+</html>

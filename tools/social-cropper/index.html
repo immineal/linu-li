@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Cropper | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <style>
+        .cropper-wrapper {
+            height: 500px;
+            width: 100%;
+            background-color: #2a2621;
+            margin-bottom: 1.5rem;
+            display: none;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        #image-to-crop { max-width: 100%; display: block; }
+        #cropped-result { max-width: 100%; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+        /* Circular Crop Styling */
+        .cropper-view-box.circle-crop {
+            border-radius: 50%;
+            outline: 0;
+            box-shadow: 0 0 0 1px #39f;
+        }
+        .cropper-face.circle-crop {
+            background-color: inherit !important;
+        }
+        
+        /* Toolbar Icons */
+        .toolbar {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .tool-control {
+            flex: 1;
+            min-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Social Media Cropper</h1>
+                <p>Crop, rotate, and mask images for social media profiles and posts.</p>
+            </div>
+
+            <div class="card">
+                
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-icon">🖼️</span>
+                    <p>Drag & Drop an image here</p>
+                    <p style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.5rem;">Supports JPG, PNG, WEBP</p>
+                    <input type="file" id="fileInput" class="hidden" accept="image/*">
+                </div>
+
+                <div id="editorSection" class="hidden">
+                    <div class="cropper-wrapper">
+                        <img id="image-to-crop" src="" alt="Image to crop">
+                    </div>
+
+                    <!-- NEW: Toolbar for Rotation & Mask -->
+                    <div class="toolbar">
+                        <div class="tool-control">
+                            <label for="rotateRange">Rotation: <span id="rotateVal">0</span>°</label>
+                            <input type="range" id="rotateRange" min="-45" max="45" value="0" step="1">
+                        </div>
+                        <div>
+                             <label class="toggle-wrapper" style="margin-bottom:0;">
+                                <input type="checkbox" id="circleToggle" class="toggle-checkbox">
+                                <div class="toggle-switch"></div>
+                                <span>Circular Mask</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <label>Aspect Ratio</label>
+                    <div class="button-group" style="margin-bottom: 1.5rem;">
+                        <button class="button sm outline active-ratio" data-ratio="1">1:1 (Square)</button>
+                        <button class="button sm outline" data-ratio="0.8">4:5 (Portrait)</button>
+                        <button class="button sm outline" data-ratio="1.7777">16:9 (Landscape)</button>
+                        <button class="button sm outline" data-ratio="0.5625">9:16 (Story)</button>
+                        <button class="button sm outline" data-ratio="NaN">Free</button>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="button" id="btnCrop">Crop & Export</button>
+                        <button class="button secondary outline" id="btnReset">Reset</button>
+                        <button class="button outline" id="btnClear">Upload New</button>
+                    </div>
+                </div>
+
+                <div class="result-box hidden" id="resultBox">
+                    <label>Result Preview</label>
+                    <div style="text-align: center; margin-bottom: 1.5rem; background: var(--paper); padding: 2rem; border-radius: 4px;">
+                        <img id="cropped-result" src="" alt="Cropped Result">
+                    </div>
+                    
+                    <div class="button-group">
+                        <a href="#" id="btnDownload" class="button secondary" download="cropped-image.png">Download PNG</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const editorSection = document.getElementById('editorSection');
+        const cropperWrapper = document.querySelector('.cropper-wrapper');
+        const imageElement = document.getElementById('image-to-crop');
+        
+        const resultBox = document.getElementById('resultBox');
+        const resultImage = document.getElementById('cropped-result');
+        const btnDownload = document.getElementById('btnDownload');
+        
+        const btnCrop = document.getElementById('btnCrop');
+        const btnReset = document.getElementById('btnReset');
+        const btnClear = document.getElementById('btnClear');
+        const ratioButtons = document.querySelectorAll('[data-ratio]');
+        
+        const rotateRange = document.getElementById('rotateRange');
+        const rotateVal = document.getElementById('rotateVal');
+        const circleToggle = document.getElementById('circleToggle');
+
+        let cropper = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDropZone(dropZone, fileInput, handleFiles);
+        });
+
+        function handleFiles(files) {
+            if (!files.length) return;
+            const file = files[0];
+            if (!file.type.startsWith('image/')) {
+                showToast('Please upload an image file.', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                resultBox.classList.add('hidden');
+                dropZone.classList.add('hidden');
+                editorSection.classList.remove('hidden');
+                cropperWrapper.style.display = 'block';
+                imageElement.src = e.target.result;
+                initCropper();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function initCropper() {
+            if (cropper) cropper.destroy();
+
+            cropper = new Cropper(imageElement, {
+                aspectRatio: 1,
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 0.9,
+                restore: false,
+                guides: true,
+                center: true,
+                highlight: false,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                ready() {
+                    updateRatioButtons(document.querySelector('[data-ratio="1"]'));
+                    rotateRange.value = 0;
+                    rotateVal.textContent = '0';
+                }
+            });
+        }
+
+        // --- Feature: Rotation ---
+        rotateRange.addEventListener('input', (e) => {
+            if (!cropper) return;
+            const val = parseInt(e.target.value);
+            cropper.rotateTo(val);
+            rotateVal.textContent = val;
+        });
+
+        // --- Feature: Circular Mask Visuals ---
+        circleToggle.addEventListener('change', (e) => {
+            if (!cropper) return;
+            const viewBox = document.querySelector('.cropper-view-box');
+            
+            if (e.target.checked) {
+                cropper.setAspectRatio(1); // Force square for circle
+                viewBox.classList.add('circle-crop');
+                // Disable aspect ratio buttons visually
+                ratioButtons.forEach(b => b.disabled = true);
+            } else {
+                viewBox.classList.remove('circle-crop');
+                ratioButtons.forEach(b => b.disabled = false);
+            }
+        });
+
+        ratioButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!cropper || circleToggle.checked) return;
+                const ratio = parseFloat(btn.getAttribute('data-ratio'));
+                cropper.setAspectRatio(ratio);
+                updateRatioButtons(btn);
+            });
+        });
+
+        function updateRatioButtons(activeBtn) {
+            ratioButtons.forEach(b => {
+                b.classList.remove('active-ratio'); 
+                if (b === activeBtn) {
+                    b.classList.remove('outline');
+                    b.classList.add('secondary');
+                } else {
+                    b.classList.add('outline');
+                    b.classList.remove('secondary');
+                }
+            });
+        }
+
+        // --- Feature: Round Export Logic ---
+        function getRoundedCanvas(sourceCanvas) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            const width = sourceCanvas.width;
+            const height = sourceCanvas.height;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            context.imageSmoothingEnabled = true;
+            context.drawImage(sourceCanvas, 0, 0, width, height);
+            
+            context.globalCompositeOperation = 'destination-in';
+            context.beginPath();
+            context.arc(width / 2, height / 2, Math.min(width, height) / 2, 0, 2 * Math.PI, true);
+            context.fill();
+            
+            return canvas;
+        }
+
+        btnCrop.addEventListener('click', () => {
+            if (!cropper) return;
+
+            let canvas = cropper.getCroppedCanvas({
+                maxWidth: 4096,
+                maxHeight: 4096,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+
+            if (circleToggle.checked) {
+                canvas = getRoundedCanvas(canvas);
+            }
+
+            const croppedDataUrl = canvas.toDataURL('image/png');
+
+            resultImage.src = croppedDataUrl;
+            resultBox.classList.remove('hidden');
+            btnDownload.href = croppedDataUrl;
+            
+            resultBox.scrollIntoView({ behavior: 'smooth' });
+            showToast('Image cropped!', 'success');
+        });
+
+        btnReset.addEventListener('click', () => {
+            if (cropper) {
+                cropper.reset();
+                rotateRange.value = 0;
+                rotateVal.textContent = 0;
+            }
+            resultBox.classList.add('hidden');
+        });
+
+        btnClear.addEventListener('click', () => {
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            imageElement.src = '';
+            fileInput.value = '';
+            editorSection.classList.add('hidden');
+            resultBox.classList.add('hidden');
+            cropperWrapper.style.display = 'none';
+            dropZone.classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>

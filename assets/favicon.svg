@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background: Ink Color -->
+  <rect x="0" y="0" width="512" height="512" rx="128" fill="#2a2621"/>
+  
+  <!-- Accent Detail: The "Notification" Dot or Sun -->
+  <circle cx="390" cy="120" r="50" fill="#c44d3c"/>
+  
+  <!-- Monogram "LL" in Space Grotesk style -->
+  <!-- Paper Color -->
+  <path fill="#faf6f2" d="M115 150 v212 h130 v-60 h-70 v-152 z"/> <!-- First L -->
+  <path fill="#faf6f2" d="M275 210 v152 h130 v-60 h-70 v-92 z"/>  <!-- Second L, offset -->
+</svg>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Formatter | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <!-- SQL Formatter Library -->
+    <script src="https://unpkg.com/sql-formatter@4.0.2/dist/sql-formatter.min.js"></script>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>SQL Formatter</h1>
+                <p>Beautify messy SQL queries. Supports Standard SQL, MySQL, and PostgreSQL.</p>
+            </div>
+
+            <div class="split-view">
+                
+                <!-- INPUT -->
+                <div class="card" style="display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <label for="inputSql" style="margin: 0;">Input SQL</label>
+                        <select id="languageSelect" style="width: auto; margin: 0; padding: 0.4rem 1rem;">
+                            <option value="sql">Standard SQL</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="plsql">PL/SQL</option>
+                        </select>
+                    </div>
+                    <textarea id="inputSql" class="code-editor" style="flex-grow: 1; min-height: 400px;" placeholder="SELECT * FROM users WHERE id = 1..."></textarea>
+                </div>
+
+                <!-- OUTPUT -->
+                <div class="card" style="display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <label style="margin: 0;">Formatted Result</label>
+                        <div class="button-group" style="margin: 0;">
+                            <button class="button sm" id="formatBtn">Format</button>
+                            <button class="button sm secondary" id="copyBtn">Copy</button>
+                        </div>
+                    </div>
+                    <textarea id="outputSql" class="code-editor" readonly style="flex-grow: 1; min-height: 400px; background: var(--code-bg);"></textarea>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        const inputSql = document.getElementById('inputSql');
+        const outputSql = document.getElementById('outputSql');
+        const languageSelect = document.getElementById('languageSelect');
+        const formatBtn = document.getElementById('formatBtn');
+        const copyBtn = document.getElementById('copyBtn');
+
+        function formatQuery() {
+            const raw = inputSql.value;
+            const lang = languageSelect.value;
+
+            if (!raw.trim()) {
+                outputSql.value = "";
+                return;
+            }
+
+            try {
+                // Note: The global variable exposed by the CDN might vary slightly by version.
+                // For sql-formatter v4, it's often exposed as `sqlFormatter`.
+                const formatted = sqlFormatter.format(raw, {
+                    language: lang,
+                    uppercase: true, // Auto uppercase keywords
+                    linesBetweenQueries: 2
+                });
+                outputSql.value = formatted;
+            } catch (err) {
+                console.error(err);
+                outputSql.value = "Error formatting SQL. Check syntax.";
+            }
+        }
+
+        // Event Listeners
+        formatBtn.addEventListener('click', () => {
+            formatQuery();
+            showToast('SQL Formatted', 'success');
+        });
+        
+        // Optional: Auto-format on paste? 
+        // Sometimes annoying if editing large files, better to leave manual or on blur.
+        
+        copyBtn.addEventListener('click', () => {
+            if (outputSql.value) {
+                copyToClipboard(outputSql.value);
+            }
+        });
+
+        // Load default placeholder example
+        inputSql.value = "SELECT id, username, email FROM users WHERE active = 1 AND created_at > '2023-01-01' ORDER BY username ASC LIMIT 10;";
+        setTimeout(formatQuery, 100); // Format on load
+    </script>
+</body>
+</html>

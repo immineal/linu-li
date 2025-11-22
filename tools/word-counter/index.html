@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word & Character Counter | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-value {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1.2;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--ink-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Word & Character Counter</h1>
+                <p>Real-time analysis of your text. Counts words, characters, sentences, and estimates reading time.</p>
+            </div>
+
+            <div class="card">
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="wordCount">0</div>
+                        <div class="stat-label">Words</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="charCount">0</div>
+                        <div class="stat-label">Characters</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="charNoSpaceCount">0</div>
+                        <div class="stat-label">Chars (No Spaces)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="sentenceCount">0</div>
+                        <div class="stat-label">Sentences</div>
+                    </div>
+                </div>
+
+                <textarea id="textInput" class="code-editor" style="font-family: var(--font-body); font-size: 1.1rem; padding: 1.5rem; min-height: 400px;" placeholder="Start typing or paste your text here..."></textarea>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; color: var(--ink-secondary); font-size: 0.9rem;">
+                    <span id="readTime">Reading Time: 0 min</span>
+                    <div class="button-group" style="margin-top: 0;">
+                        <button class="button sm secondary" id="copyBtn">Copy Text</button>
+                        <button class="button sm outline" id="clearBtn">Clear</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        const textInput = document.getElementById('textInput');
+        const copyBtn = document.getElementById('copyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        
+        // Stats Elements
+        const elWord = document.getElementById('wordCount');
+        const elChar = document.getElementById('charCount');
+        const elCharNoSpace = document.getElementById('charNoSpaceCount');
+        const elSentences = document.getElementById('sentenceCount');
+        const elReadTime = document.getElementById('readTime');
+
+        function updateStats() {
+            const text = textInput.value;
+            
+            // Characters
+            elChar.textContent = text.length.toLocaleString();
+            elCharNoSpace.textContent = text.replace(/\s/g, '').length.toLocaleString();
+
+            // Words (Split by whitespace, filter empty)
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+            const wordCount = words.length;
+            elWord.textContent = wordCount.toLocaleString();
+
+            // Sentences (Split by . ! ? followed by space or end of string)
+            // Simple approximation
+            const sentences = text.split(/[.!?]+(\s|$)/).filter(s => s.trim().length > 0);
+            // The regex split creates artifacts, a cleaner way for basic counting:
+            const sentenceCount = (text.match(/[.!?]+(\s|$)/g) || []).length || (text.trim() ? 1 : 0);
+            elSentences.textContent = sentenceCount.toLocaleString();
+
+            // Reading Time (Average 200 wpm)
+            const minutes = Math.ceil(wordCount / 200);
+            elReadTime.textContent = `Reading Time: ~${minutes} min`;
+        }
+
+        textInput.addEventListener('input', updateStats);
+
+        clearBtn.addEventListener('click', () => {
+            textInput.value = '';
+            updateStats();
+            textInput.focus();
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if(textInput.value) copyToClipboard(textInput.value);
+        });
+
+        // Init
+        updateStats();
+    </script>
+</body>
+</html>

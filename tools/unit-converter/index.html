@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit Converter | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <style>
+        /* Fix 1: Remove default number input spinners (arrows) */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        /* Fix 2: Custom Flex Layout to center the Equals sign correctly */
+        .converter-layout {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .input-group {
+            flex: 1;
+            width: 100%; /* Ensures inputs take full width inside flex item */
+        }
+
+        .equals-sign {
+            font-size: 2rem;
+            opacity: 0.5;
+            padding-top: 1rem; /* Visual alignment with inputs */
+            user-select: none;
+        }
+
+        /* Responsive: Stack vertically on mobile */
+        @media (max-width: 768px) {
+            .converter-layout {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .equals-sign {
+                padding-top: 0;
+                transform: rotate(90deg); /* Optional: rotates = to || if preferred, or keep as = */
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Unit Converter</h1>
+                <p>Fast conversion for Length, Weight, Temperature, Speed, and Digital Storage.</p>
+            </div>
+
+            <div class="card">
+                
+                <!-- Category Selector -->
+                <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem;">
+                    <label>Category</label>
+                    <div class="button-group">
+                        <button class="button active-cat" onclick="setCategory('length')">Length</button>
+                        <button class="button outline" onclick="setCategory('weight')">Weight</button>
+                        <button class="button outline" onclick="setCategory('temp')">Temperature</button>
+                        <button class="button outline" onclick="setCategory('speed')">Speed</button>
+                        <button class="button outline" onclick="setCategory('data')">Data Storage</button>
+                    </div>
+                </div>
+
+                <!-- Converter UI -->
+                <div class="converter-layout">
+                    
+                    <!-- FROM (Left Side) -->
+                    <div class="input-group">
+                        <label>Value 1</label>
+                        <input type="number" id="inputFrom" value="1" style="font-size: 1.5rem; font-family: var(--font-mono);">
+                        <select id="unitFrom"></select>
+                    </div>
+
+                    <!-- EQUALS ICON -->
+                    <div class="equals-sign">=</div>
+
+                    <!-- TO (Right Side) -->
+                    <div class="input-group">
+                        <label>Value 2</label>
+                        <input type="number" id="inputTo" style="font-size: 1.5rem; font-family: var(--font-mono);">
+                        <select id="unitTo"></select>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        // Elements
+        const inputFrom = document.getElementById('inputFrom');
+        const inputTo = document.getElementById('inputTo');
+        const unitFrom = document.getElementById('unitFrom');
+        const unitTo = document.getElementById('unitTo');
+        const catButtons = document.querySelectorAll('.button-group button');
+
+        // Conversion Data
+        const factors = {
+            length: {
+                base: 'm', // meters
+                units: {
+                    mm: 0.001,
+                    cm: 0.01,
+                    m: 1,
+                    km: 1000,
+                    in: 0.0254,
+                    ft: 0.3048,
+                    yd: 0.9144,
+                    mi: 1609.344
+                }
+            },
+            weight: {
+                base: 'g', // grams
+                units: {
+                    mg: 0.001,
+                    g: 1,
+                    kg: 1000,
+                    oz: 28.3495,
+                    lb: 453.592
+                }
+            },
+            speed: {
+                base: 'm/s', // meters per second
+                units: {
+                    'm/s': 1,
+                    'km/h': 0.27777778, // 1 km/h = 0.277 m/s
+                    'mph': 0.44704,     // 1 mph = 0.447 m/s
+                    'knots': 0.51444444,// 1 knot = 0.514 m/s
+                    'ft/s': 0.3048      // 1 ft/s = 0.3048 m/s
+                }
+            },
+            data: {
+                base: 'MB', // megabytes
+                units: {
+                    B: 0.00000095367432,
+                    KB: 0.0009765625,
+                    MB: 1,
+                    GB: 1024,
+                    TB: 1048576
+                }
+            }
+        };
+
+        let currentCategory = 'length';
+
+        // --- 1. Logic ---
+        function setCategory(cat) {
+            currentCategory = cat;
+            
+            // Update Buttons Highlighting
+            catButtons.forEach(btn => {
+                // Simple matching to find which button was clicked based on text content vs category name
+                const btnText = btn.textContent.toLowerCase();
+                const isMatch = (cat === 'data' && btnText.includes('data')) || 
+                                (cat === 'speed' && btnText.includes('speed')) ||
+                                (cat === 'temp' && btnText.includes('temp')) ||
+                                (btnText.startsWith(cat.substring(0,3)));
+                                
+                if(isMatch) {
+                    btn.classList.remove('outline');
+                } else {
+                    btn.classList.add('outline');
+                }
+            });
+
+            populateSelects();
+            convert('from'); // Default update direction
+        }
+
+        function populateSelects() {
+            unitFrom.innerHTML = '';
+            unitTo.innerHTML = '';
+
+            if (currentCategory === 'temp') {
+                const units = ['Celsius (°C)', 'Fahrenheit (°F)', 'Kelvin (K)'];
+                units.forEach(u => {
+                    unitFrom.add(new Option(u, u));
+                    unitTo.add(new Option(u, u));
+                });
+                unitTo.selectedIndex = 1; // Default to C -> F
+            } else {
+                const units = Object.keys(factors[currentCategory].units);
+                units.forEach(u => {
+                    unitFrom.add(new Option(u, u));
+                    unitTo.add(new Option(u, u));
+                });
+                
+                // Smart defaults
+                if(currentCategory === 'length') { unitFrom.value = 'm'; unitTo.value = 'ft'; }
+                if(currentCategory === 'weight') { unitFrom.value = 'kg'; unitTo.value = 'lb'; }
+                if(currentCategory === 'speed')  { unitFrom.value = 'km/h'; unitTo.value = 'mph'; }
+                if(currentCategory === 'data')   { unitFrom.value = 'MB'; unitTo.value = 'GB'; }
+            }
+        }
+
+        /**
+         * Handles bidirectional conversion.
+         * @param {string} direction - 'from' (Left->Right) or 'to' (Right->Left)
+         */
+        function convert(direction) {
+            let val, outputEl, u1, u2;
+
+            if (direction === 'to') {
+                // Converting Right -> Left
+                val = parseFloat(inputTo.value);
+                outputEl = inputFrom;
+                u1 = unitTo.value;   // Source Unit
+                u2 = unitFrom.value; // Target Unit
+            } else {
+                // Converting Left -> Right (Default)
+                val = parseFloat(inputFrom.value);
+                outputEl = inputTo;
+                u1 = unitFrom.value; // Source Unit
+                u2 = unitTo.value;   // Target Unit
+            }
+
+            if (isNaN(val)) {
+                outputEl.value = '';
+                return;
+            }
+
+            if (currentCategory === 'temp') {
+                outputEl.value = convertTemp(val, u1, u2);
+            } else {
+                // Base unit conversion
+                const catData = factors[currentCategory];
+                const baseValue = val * catData.units[u1]; // Convert source to base
+                const result = baseValue / catData.units[u2]; // Convert base to target
+                
+                // Format: max 6 decimals, strip trailing zeros
+                outputEl.value = parseFloat(result.toFixed(6));
+            }
+        }
+
+        function convertTemp(val, from, to) {
+            // 1. Normalize source to Celsius
+            let c = val;
+            if (from.includes('Fahrenheit')) c = (val - 32) * 5/9;
+            if (from.includes('Kelvin')) c = val - 273.15;
+
+            // 2. Convert Celsius to Target
+            if (to.includes('Celsius')) return parseFloat(c.toFixed(2));
+            if (to.includes('Fahrenheit')) return parseFloat((c * 9/5 + 32).toFixed(2));
+            if (to.includes('Kelvin')) return parseFloat((c + 273.15).toFixed(2));
+        }
+
+        // --- 2. Event Listeners ---
+        
+        // Typing in Left Box -> Update Right
+        inputFrom.addEventListener('input', () => convert('from'));
+        
+        // Typing in Right Box -> Update Left
+        inputTo.addEventListener('input', () => convert('to'));
+        
+        // Changing Units -> Update based on which side changed
+        // If left unit changes, re-calculate Right based on Left
+        unitFrom.addEventListener('change', () => convert('from'));
+        // If right unit changes, re-calculate Right based on Left (keep input logic consistent)
+        unitTo.addEventListener('change', () => convert('from'));
+
+        // Init
+        setCategory('length');
+    </script>
+</body>
+</html>

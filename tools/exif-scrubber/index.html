@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EXIF Data Remover | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Piexifjs for Non-Destructive Editing -->
+    <script src="https://unpkg.com/piexifjs@1.0.6/piexif.js"></script>
+    
+    <!-- Leaflet for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        .preview-section {
+            margin-top: 2rem;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .preview-header {
+            background: var(--input-bg);
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: bold;
+            color: var(--accent);
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+        @media (max-width: 768px) { .meta-grid { grid-template-columns: 1fr; } }
+
+        /* Data Table */
+        .meta-table {
+            padding: 1.5rem;
+            font-size: 0.9rem;
+            width: 100%;
+            overflow-x: auto;
+        }
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .meta-label { color: var(--ink-secondary); font-weight: 500; }
+        .meta-value { font-family: var(--font-mono); text-align: right; }
+
+        /* Map */
+        #mapContainer {
+            height: 300px;
+            width: 100%;
+            background: #eee;
+            position: relative;
+        }
+        .no-gps-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.05);
+            color: var(--ink-secondary);
+            font-style: italic;
+            z-index: 1000;
+        }
+        
+        .risk-badge {
+            background: rgba(196, 77, 60, 0.1);
+            color: var(--accent);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>EXIF Data Remover</h1>
+                <p>Strip GPS coordinates, camera details, and metadata non-destructively. <br>Review what is hidden inside your photos below.</p>
+            </div>
+
+            <div class="card">
+                
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-icon">📷</span>
+                    <p>Drag & Drop images here (JPG only)</p>
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;">Currently supports standard JPEG/JPG files.</p>
+                    <input type="file" id="fileInput" class="hidden" multiple accept="image/jpeg, image/jpg">
+                </div>
+
+                <ul class="file-list" id="fileList"></ul>
+
+                <!-- PREVIEW SECTION (New) -->
+                <div id="metadataPreview" class="preview-section hidden">
+                    <div class="preview-header">
+                        Privacy Report <span style="font-weight: normal; color: var(--ink); font-size: 0.9rem;">(Previewing: <span id="previewFileName">filename.jpg</span>)</span>
+                    </div>
+                    <div class="meta-grid">
+                        <div class="meta-table" id="metaTable">
+                            <!-- JS Injected Rows -->
+                        </div>
+                        <div style="position: relative;">
+                            <div id="mapContainer"></div>
+                            <div id="noGpsMsg" class="no-gps-overlay hidden">No GPS Data Found</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="button-group hidden" id="controlPanel" style="margin-top: 2rem;">
+                    <button class="button" id="processBtn">Remove All Metadata</button>
+                    <button class="button outline" id="clearBtn">Clear</button>
+                </div>
+
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+
+                <div class="result-box hidden" id="resultBox">
+                    <h3>Processing Complete</h3>
+                    <p id="resultMessage">Your images have been scrubbed.</p>
+                    
+                    <div class="button-group">
+                        <button class="button secondary" id="downloadBtn">Download Cleaned Files</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        // --- Elements ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const controlPanel = document.getElementById('controlPanel');
+        const processBtn = document.getElementById('processBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const resultBox = document.getElementById('resultBox');
+        const resultMessage = document.getElementById('resultMessage');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        // Preview Elements
+        const metadataPreview = document.getElementById('metadataPreview');
+        const metaTable = document.getElementById('metaTable');
+        const previewFileName = document.getElementById('previewFileName');
+        const mapContainer = document.getElementById('mapContainer');
+        const noGpsMsg = document.getElementById('noGpsMsg');
+
+        // --- State ---
+        let queue = []; 
+        let processedBlobs = []; 
+        let mapInstance = null;
+        let mapMarker = null;
+
+        // --- Initialization ---
+        setupDropZone(dropZone, fileInput, handleFiles);
+
+        // --- Event Listeners ---
+        clearBtn.addEventListener('click', resetTool);
+        processBtn.addEventListener('click', processImages);
+
+        // --- Functions ---
+
+        function handleFiles(files) {
+            const validTypes = ['image/jpeg', 'image/jpg'];
+            let addedCount = 0;
+            let firstValidFile = null;
+
+            Array.from(files).forEach(file => {
+                if (validTypes.includes(file.type)) {
+                    const exists = queue.some(f => f.name === file.name && f.size === file.size);
+                    if (!exists) {
+                        queue.push(file);
+                        addedCount++;
+                        if (!firstValidFile) firstValidFile = file;
+                    }
+                } else {
+                    showToast(`Skipped ${file.name}: Only JPG supported`, 'error');
+                }
+            });
+
+            if (addedCount > 0) {
+                renderFileList();
+                controlPanel.classList.remove('hidden');
+                resultBox.classList.add('hidden');
+                dropZone.classList.add('hidden'); // Hide drop zone to focus on preview
+
+                // Analyze the first new file for preview
+                if (firstValidFile) {
+                    analyzeMetadata(firstValidFile);
+                }
+            }
+        }
+
+        function renderFileList() {
+            fileList.innerHTML = '';
+            queue.forEach((file, index) => {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                li.innerHTML = `
+                    <div class="file-info" onclick="previewFileIndex(${index})" style="cursor: pointer;">
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-size">${formatFileSize(file.size)}</span>
+                    </div>
+                    <button class="remove-file" onclick="removeFile(${index})" title="Remove">&times;</button>
+                `;
+                fileList.appendChild(li);
+            });
+
+            if (queue.length === 0) {
+                controlPanel.classList.add('hidden');
+                metadataPreview.classList.add('hidden');
+                dropZone.classList.remove('hidden');
+            }
+        }
+
+        // Allow clicking a file in list to switch preview
+        window.previewFileIndex = function(index) {
+            if (queue[index]) analyzeMetadata(queue[index]);
+        }
+
+        window.removeFile = function(index) {
+            queue.splice(index, 1);
+            renderFileList();
+            if (queue.length > 0) {
+                analyzeMetadata(queue[0]);
+            } else {
+                resetTool();
+            }
+        };
+
+        function resetTool() {
+            queue = [];
+            processedBlobs = [];
+            fileList.innerHTML = '';
+            fileInput.value = ''; 
+            controlPanel.classList.add('hidden');
+            metadataPreview.classList.add('hidden');
+            resultBox.classList.add('hidden');
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            dropZone.classList.remove('hidden');
+        }
+
+        // --- METADATA ANALYSIS & MAP ---
+
+        async function analyzeMetadata(file) {
+            previewFileName.textContent = file.name;
+            metadataPreview.classList.remove('hidden');
+            metaTable.innerHTML = '<p style="color:var(--ink-secondary);">Scanning...</p>';
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const exifObj = piexif.load(e.target.result);
+                    renderMetadataUI(exifObj);
+                } catch (err) {
+                    console.error(err);
+                    metaTable.innerHTML = '<p>Could not read EXIF data (File might be clean).</p>';
+                    hideMap();
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderMetadataUI(exifData) {
+            const rows = [];
+            let hasGPS = false;
+
+            // Helper to extract string from char codes
+            const cleanStr = (str) => str && str.replace ? str.replace(/\0/g, '').trim() : str;
+
+            // 1. Standard Tags (0th IFD)
+            const ifd0 = exifData["0th"];
+            if (ifd0) {
+                if (ifd0[piexif.ImageIFD.Make]) rows.push({ label: 'Camera Make', val: cleanStr(ifd0[piexif.ImageIFD.Make]) });
+                if (ifd0[piexif.ImageIFD.Model]) rows.push({ label: 'Camera Model', val: cleanStr(ifd0[piexif.ImageIFD.Model]) });
+                if (ifd0[piexif.ImageIFD.Software]) rows.push({ label: 'Software', val: cleanStr(ifd0[piexif.ImageIFD.Software]) });
+                if (ifd0[piexif.ImageIFD.DateTime]) rows.push({ label: 'Date Modified', val: cleanStr(ifd0[piexif.ImageIFD.DateTime]) });
+            }
+
+            // 2. Exif Tags
+            const exif = exifData["Exif"];
+            if (exif) {
+                if (exif[piexif.ExifIFD.DateTimeOriginal]) rows.push({ label: 'Date Original', val: cleanStr(exif[piexif.ExifIFD.DateTimeOriginal]) });
+                if (exif[piexif.ExifIFD.LensModel]) rows.push({ label: 'Lens', val: cleanStr(exif[piexif.ExifIFD.LensModel]) });
+            }
+
+            // 3. GPS Tags
+            const gps = exifData["GPS"];
+            if (gps && gps[piexif.GPSIFD.GPSLatitude] && gps[piexif.GPSIFD.GPSLongitude]) {
+                hasGPS = true;
+                const lat = convertDMSToDD(gps[piexif.GPSIFD.GPSLatitude], gps[piexif.GPSIFD.GPSLatitudeRef]);
+                const lng = convertDMSToDD(gps[piexif.GPSIFD.GPSLongitude], gps[piexif.GPSIFD.GPSLongitudeRef]);
+                
+                rows.push({ label: 'GPS Coordinates', val: `${lat.toFixed(4)}, ${lng.toFixed(4)} <span class="risk-badge">RISK</span>` });
+                
+                showMap(lat, lng);
+            } else {
+                hideMap();
+            }
+
+            // Render Table
+            if (rows.length === 0) {
+                metaTable.innerHTML = '<p style="text-align:center; color:var(--accent-secondary);"><strong>Safe:</strong> No significant metadata found.</p>';
+            } else {
+                metaTable.innerHTML = rows.map(r => `
+                    <div class="meta-row">
+                        <span class="meta-label">${r.label}</span>
+                        <span class="meta-value">${r.val}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function convertDMSToDD(dms, ref) {
+            // Piexif returns rationals as [numerator, denominator]
+            const d = dms[0][0] / dms[0][1];
+            const m = dms[1][0] / dms[1][1];
+            const s = dms[2][0] / dms[2][1];
+            
+            let dd = d + (m / 60) + (s / 3600);
+            if (ref === 'S' || ref === 'W') dd = dd * -1;
+            return dd;
+        }
+
+        function showMap(lat, lng) {
+            noGpsMsg.classList.add('hidden');
+            
+            // Initialize map if not exists
+            if (!mapInstance) {
+                mapInstance = L.map('mapContainer').setView([lat, lng], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OSM'
+                }).addTo(mapInstance);
+            } else {
+                mapInstance.setView([lat, lng], 13);
+                mapInstance.invalidateSize(); // Fix rendering if hidden previously
+            }
+
+            // Update Marker
+            if (mapMarker) mapInstance.removeLayer(mapMarker);
+            mapMarker = L.marker([lat, lng]).addTo(mapInstance)
+                .bindPopup("Hidden Location Data found inside image.")
+                .openPopup();
+        }
+
+        function hideMap() {
+            noGpsMsg.classList.remove('hidden');
+            if (mapInstance) {
+                // Reset view or hide marker
+                if (mapMarker) mapInstance.removeLayer(mapMarker);
+                mapInstance.setView([0,0], 1);
+            }
+        }
+
+        // --- REMOVAL LOGIC ---
+
+        async function processImages() {
+            if (queue.length === 0) return;
+
+            processBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            resultBox.classList.add('hidden');
+            processedBlobs = [];
+
+            const total = queue.length;
+            
+            try {
+                for (let i = 0; i < total; i++) {
+                    const file = queue[i];
+                    const blob = await stripMetadataPiexif(file);
+                    
+                    processedBlobs.push({ name: `clean_${file.name}`, blob: blob });
+
+                    const percent = Math.round(((i + 1) / total) * 100);
+                    progressBar.style.width = `${percent}%`;
+                }
+
+                setTimeout(() => {
+                    showResult();
+                    processBtn.disabled = false;
+                }, 500);
+
+            } catch (error) {
+                console.error(error);
+                showToast('Error processing images.', 'error');
+                processBtn.disabled = false;
+            }
+        }
+
+        function stripMetadataPiexif(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const originalData = e.target.result;
+                        // strip
+                        const cleanData = piexif.remove(originalData);
+                        // convert back to blob
+                        const byteString = atob(cleanData.split(',')[1]);
+                        const ab = new ArrayBuffer(byteString.length);
+                        const ia = new Uint8Array(ab);
+                        for (let i = 0; i < byteString.length; i++) {
+                            ia[i] = byteString.charCodeAt(i);
+                        }
+                        resolve(new Blob([ab], { type: 'image/jpeg' }));
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function showResult() {
+            resultBox.classList.remove('hidden');
+            // Hide preview after processing to emphasize completion
+            metadataPreview.classList.add('hidden');
+            
+            const count = processedBlobs.length;
+            resultMessage.textContent = `Successfully scrubbed metadata from ${count} image${count !== 1 ? 's' : ''}.`;
+            
+            // Clone button to clear old listeners
+            const newBtn = downloadBtn.cloneNode(true);
+            downloadBtn.parentNode.replaceChild(newBtn, downloadBtn);
+            
+            newBtn.addEventListener('click', () => {
+                if (processedBlobs.length === 1) {
+                    saveAs(processedBlobs[0].blob, processedBlobs[0].name);
+                } else {
+                    const zip = new JSZip();
+                    processedBlobs.forEach(item => zip.file(item.name, item.blob));
+                    zip.generateAsync({type: "blob"}).then(content => saveAs(content, "clean_images.zip"));
+                }
+            });
+        }
+    </script>
+</body>
+</html>

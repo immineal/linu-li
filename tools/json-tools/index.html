@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Workbench | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <script src="https://unpkg.com/json5@2/dist/index.min.js"></script>
+
+    <style>
+        /* Override to fix the "Infinity" scroll issue */
+        .result-box-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            background: var(--code-bg);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            position: relative;
+            min-height: 400px;
+            max-height: 800px; /* prevent page growing too huge */
+            display: flex; 
+            flex-direction: column;
+        }
+        
+        #resultBox {
+            margin: 0;
+            border: none;
+            flex-grow: 1;
+            width: 100%;
+            min-height: 400px;
+            overflow: auto; /* internal scroll */
+        }
+
+        /* === TREE VIEW STYLES === */
+        #treeBox {
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--ink);
+            overflow: auto;
+            flex-grow: 1;
+        }
+
+        .json-tree ul {
+            list-style: none;
+            padding-left: 1.2em;
+            margin: 0;
+            border-left: 1px solid rgba(0,0,0,0.1);
+        }
+        body.dark-mode .json-tree ul { border-left-color: rgba(255,255,255,0.1); }
+
+        .json-tree li { margin: 2px 0; position: relative; line-height: 1.5; }
+        
+        /* Collapsible Details */
+        .json-tree details > summary {
+            cursor: pointer;
+            outline: none;
+            list-style: none;
+            display: inline-flex;
+            align-items: center;
+        }
+        .json-tree details > summary::-webkit-details-marker { display: none; }
+        
+        /* Arrow Icon */
+        .json-tree details > summary::before {
+            content: '▶';
+            display: inline-block;
+            font-size: 0.6em;
+            margin-right: 6px;
+            transition: transform 0.15s;
+            opacity: 0.6;
+        }
+        .json-tree details[open] > summary::before { transform: rotate(90deg); }
+
+        /* Syntax Highlighting */
+        .jt-key { color: #9c27b0; font-weight: bold; }
+        .jt-string { color: var(--accent-secondary); }
+        .jt-num { color: #d35400; }
+        .jt-bool { color: var(--accent); font-weight: bold; }
+        .jt-null { color: var(--ink-secondary); font-style: italic; }
+        .jt-meta { 
+            color: var(--ink-secondary); 
+            font-size: 0.8em; 
+            background: rgba(0,0,0,0.05);
+            padding: 0 4px;
+            border-radius: 3px;
+            margin-left: 5px;
+        }
+        body.dark-mode .jt-meta { background: rgba(255,255,255,0.1); }
+
+        /* View Toggle Switch Style */
+        .view-toggle-group {
+            display: flex;
+            background: var(--border);
+            padding: 2px;
+            border-radius: 4px;
+            gap: 2px;
+        }
+        .view-toggle-btn {
+            border: none;
+            background: transparent;
+            padding: 4px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 3px;
+            color: var(--ink-secondary);
+            font-weight: 500;
+        }
+        .view-toggle-btn.active {
+            background: var(--card-bg);
+            color: var(--ink);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>JSON Workbench</h1>
+                <p>Validate, repair, and explore massive JSON files with Tree View.</p>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem; padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <button class="button sm outline" id="uploadTrigger">📂 Upload File</button>
+                        <input type="file" id="jsonFileInput" accept=".json,.txt,.csv" class="hidden">
+                        
+                        <select id="indentSelect" style="margin: 0; width: auto; padding-right: 2rem;">
+                            <option value="2">2 Spaces</option>
+                            <option value="4">4 Spaces</option>
+                            <option value="tab">Tabs</option>
+                            <option value="min">Minify (Compact)</option>
+                        </select>
+
+                        <label class="toggle-wrapper" style="margin:0;">
+                            <input type="checkbox" id="unescapeToggle" class="toggle-checkbox">
+                            <div class="toggle-switch" style="transform:scale(0.8);"></div>
+                            <span style="font-size:0.9rem;">Unescape Strings</span>
+                        </label>
+                    </div>
+
+                    <div class="button-group" style="margin: 0;">
+                        <button class="button" id="processBtn">Format / Repair</button>
+                        <button class="button secondary" id="csvBtn">Export to CSV</button>
+                        <button class="button outline" id="clearBtn">Clear</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="split-view">
+                
+                <!-- INPUT -->
+                <div class="card" style="display: flex; flex-direction: column; padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <label for="jsonInput">Input</label>
+                    </div>
+                    <textarea id="jsonInput" class="code-editor" style="flex-grow: 1; min-height: 500px;" placeholder="// Paste broken JSON here...&#10;// We'll fix missing quotes & trailing commas!" spellcheck="false"></textarea>
+                </div>
+
+                <!-- OUTPUT -->
+                <div class="card" style="display: flex; flex-direction: column; position: relative; padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center;">
+                        <label>Result</label>
+                        
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <!-- View Toggle -->
+                            <div class="view-toggle-group">
+                                <button class="view-toggle-btn active" id="viewCodeBtn">Code</button>
+                                <button class="view-toggle-btn" id="viewTreeBtn">Tree</button>
+                            </div>
+
+                            <div style="display: flex; gap: 5px;">
+                                <button class="button sm outline" id="toggleWrapBtn">Unwrap</button>
+                                <button class="button sm outline" id="downloadBtn">Download</button>
+                                <button class="button sm" id="copyBtn">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: var(--paper); padding: 0.5rem; font-size: 0.8rem; font-family: var(--font-mono); color: var(--ink-secondary); border-bottom: 1px solid var(--border); border-top: 1px solid var(--border);">
+                        <span id="statusText">Waiting for input...</span>
+                    </div>
+
+                    <div class="result-box-wrapper">
+                        <!-- Code View -->
+                        <div id="resultBox" class="code-editor" style="background: var(--code-bg); padding: 1rem; font-family: var(--font-mono); white-space: pre-wrap; word-break: break-word;"></div>
+                        <!-- Tree View (Hidden by default) -->
+                        <div id="treeBox" class="json-tree hidden" style="background: var(--code-bg);"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        // --- DOM Elements ---
+        const jsonInput = document.getElementById('jsonInput');
+        const resultBox = document.getElementById('resultBox');
+        const treeBox = document.getElementById('treeBox');
+        const statusText = document.getElementById('statusText');
+        
+        const processBtn = document.getElementById('processBtn');
+        const csvBtn = document.getElementById('csvBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const toggleWrapBtn = document.getElementById('toggleWrapBtn');
+        const uploadTrigger = document.getElementById('uploadTrigger');
+        const fileInput = document.getElementById('jsonFileInput');
+        
+        const indentSelect = document.getElementById('indentSelect');
+        const unescapeToggle = document.getElementById('unescapeToggle');
+
+        // View Toggles
+        const viewCodeBtn = document.getElementById('viewCodeBtn');
+        const viewTreeBtn = document.getElementById('viewTreeBtn');
+
+        // State
+        let currentData = null; // Store parsed object
+        let isWrapped = true; 
+        let currentView = 'code'; // 'code' or 'tree'
+
+        // --- Event Listeners ---
+
+        processBtn.addEventListener('click', () => runProcessor('format'));
+        csvBtn.addEventListener('click', () => runProcessor('csv'));
+        
+        clearBtn.addEventListener('click', () => {
+            jsonInput.value = '';
+            resultBox.innerHTML = '';
+            treeBox.innerHTML = '';
+            currentData = null;
+            statusText.textContent = 'Cleared.';
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (currentView === 'code' && resultBox.innerText) {
+                copyToClipboard(resultBox.innerText);
+            } else if (currentData) {
+                // If in tree view, copy the underlying data stringified
+                copyToClipboard(JSON.stringify(currentData, null, 2));
+            }
+        });
+
+        downloadBtn.addEventListener('click', downloadResult);
+
+        // Handle Wrap Toggle
+        toggleWrapBtn.addEventListener('click', () => {
+            isWrapped = !isWrapped;
+            resultBox.style.whiteSpace = isWrapped ? 'pre-wrap' : 'pre';
+            toggleWrapBtn.textContent = isWrapped ? 'Unwrap' : 'Wrap';
+        });
+
+        // View Switching
+        viewCodeBtn.addEventListener('click', () => switchView('code'));
+        viewTreeBtn.addEventListener('click', () => switchView('tree'));
+
+        function switchView(mode) {
+            currentView = mode;
+            if (mode === 'code') {
+                viewCodeBtn.classList.add('active');
+                viewTreeBtn.classList.remove('active');
+                resultBox.classList.remove('hidden');
+                treeBox.classList.add('hidden');
+                toggleWrapBtn.disabled = false;
+            } else {
+                viewCodeBtn.classList.remove('active');
+                viewTreeBtn.classList.add('active');
+                resultBox.classList.add('hidden');
+                treeBox.classList.remove('hidden');
+                toggleWrapBtn.disabled = true;
+                
+                // If we have data but tree is empty, render it
+                if (currentData && treeBox.children.length === 0) {
+                    renderTree(currentData);
+                }
+            }
+        }
+
+        // --- File Upload Logic ---
+        
+        uploadTrigger.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileUpload);
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            jsonInput.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+        jsonInput.addEventListener('dragover', () => jsonInput.style.borderColor = 'var(--accent)');
+        jsonInput.addEventListener('dragleave', () => jsonInput.style.borderColor = 'var(--border)');
+        jsonInput.addEventListener('drop', (e) => {
+            jsonInput.style.borderColor = 'var(--border)';
+            if(e.dataTransfer.files.length) readFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFileUpload(e) { if(e.target.files.length) readFile(e.target.files[0]); }
+        
+        function readFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                jsonInput.value = e.target.result;
+                showToast('File loaded', 'success');
+                runProcessor('format'); 
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Core Processing Logic ---
+
+        function runProcessor(mode) {
+            let raw = jsonInput.value.trim();
+            if (!raw) {
+                showToast('Input is empty', 'info');
+                return;
+            }
+
+            try {
+                // 1. Unescape if requested
+                if (unescapeToggle.checked) {
+                    try {
+                        const temp = JSON.parse(raw);
+                        if (typeof temp === 'string') raw = temp;
+                    } catch (e) { /* Ignore */ }
+                }
+
+                // 2. Aggressive Repair (Regex)
+                raw = raw.replace(/:\s*"([^"]*?)(,\s*[\r\n]|\s*[\r\n])/g, ': "$1"$2');
+                raw = raw.replace(/:\s*"([^"]*?)\s*}/g, ': "$1"}');
+
+                // 3. Parsing
+                let parsed;
+                try {
+                    parsed = JSON5.parse(raw);
+                } catch (e) { throw e; }
+
+                currentData = parsed; // Cache parsed data
+
+                // 4. Render based on Mode
+                if (mode === 'csv') {
+                    renderCSV(parsed);
+                    // Force code view for CSV output
+                    switchView('code');
+                } else {
+                    // Update both views (lazily)
+                    renderCode(parsed);
+                    treeBox.innerHTML = ''; // Clear old tree
+                    if (currentView === 'tree') {
+                        renderTree(parsed);
+                    }
+                    
+                    // Stats
+                    const size = formatFileSize(new Blob([JSON.stringify(parsed)]).size);
+                    const type = Array.isArray(parsed) ? `Array(${parsed.length})` : typeof parsed;
+                    statusText.textContent = `Valid JSON | Type: ${type} | Size: ${size}`;
+                    showToast('Processed successfully', 'success');
+                }
+
+            } catch (err) {
+                showError(err);
+            }
+        }
+
+        function renderCode(obj) {
+            const indentVal = indentSelect.value;
+            const space = indentVal === 'tab' ? '\t' : (indentVal === 'min' ? 0 : parseInt(indentVal));
+            const jsonString = JSON.stringify(obj, null, space);
+
+            if (indentVal === 'min') {
+                resultBox.innerHTML = escapeHtml(jsonString);
+            } else {
+                resultBox.innerHTML = syntaxHighlight(jsonString);
+            }
+        }
+
+        // --- Tree View Implementation ---
+        
+        function renderTree(obj) {
+            treeBox.innerHTML = '';
+            const root = buildTreeElement('root', obj, true); // Root is always open
+            treeBox.appendChild(root);
+        }
+
+        function buildTreeElement(key, value, isOpen = false) {
+            // Primitive Types
+            if (value === null) return createLeaf(key, 'null', 'jt-null');
+            if (typeof value === 'boolean') return createLeaf(key, value.toString(), 'jt-bool');
+            if (typeof value === 'number') return createLeaf(key, value.toString(), 'jt-num');
+            if (typeof value === 'string') return createLeaf(key, `"${value}"`, 'jt-string');
+
+            // Objects & Arrays
+            const isArray = Array.isArray(value);
+            const details = document.createElement('details');
+            if (isOpen) details.open = true;
+
+            const summary = document.createElement('summary');
+            const size = isArray ? value.length : Object.keys(value).length;
+            const typeMeta = isArray ? `[ ${size} ]` : `{ ${size} }`;
+            
+            // Summary Content
+            const keySpan = document.createElement('span');
+            if (key && key !== 'root') {
+                keySpan.className = 'jt-key';
+                keySpan.textContent = `"${key}": `;
+            }
+            const metaSpan = document.createElement('span');
+            metaSpan.className = 'jt-meta';
+            metaSpan.textContent = typeMeta;
+
+            summary.appendChild(keySpan);
+            summary.appendChild(metaSpan);
+            details.appendChild(summary);
+
+            // Children Container
+            const ul = document.createElement('ul');
+            
+            // Optimization: If huge, maybe limit rendering? 
+            // For now, standard recursion. Details element hides DOM layout cost when closed.
+            for (const k in value) {
+                const li = document.createElement('li');
+                const childKey = isArray ? null : k; // Arrays don't show index keys in standard trees usually, or index
+                li.appendChild(buildTreeElement(childKey, value[k]));
+                ul.appendChild(li);
+            }
+            
+            details.appendChild(ul);
+            return details;
+        }
+
+        function createLeaf(key, displayValue, valueClass) {
+            const div = document.createElement('div');
+            div.style.paddingLeft = '1.2em'; // Indent to match details arrow
+            
+            if (key) {
+                const k = document.createElement('span');
+                k.className = 'jt-key';
+                k.textContent = `"${key}": `;
+                div.appendChild(k);
+            }
+
+            const v = document.createElement('span');
+            v.className = valueClass;
+            v.textContent = displayValue;
+            div.appendChild(v);
+
+            return div;
+        }
+
+        // --- CSV Logic ---
+        function renderCSV(obj) {
+            if (!Array.isArray(obj)) {
+                showToast('CSV requires an Array', 'error');
+                return;
+            }
+            const headers = Array.from(new Set(obj.flatMap(o => o ? Object.keys(o) : [])));
+            const csvRows = [headers.join(',')];
+            for (const row of obj) {
+                if (!row) continue;
+                const values = headers.map(header => {
+                    let val = row[header];
+                    if (val === null || val === undefined) return '';
+                    if (typeof val === 'object') val = JSON.stringify(val).replace(/"/g, '""');
+                    val = String(val);
+                    if (val.includes(',') || val.includes('"') || val.includes('\n')) val = `"${val.replace(/"/g, '""')}"`;
+                    return val;
+                });
+                csvRows.push(values.join(','));
+            }
+            resultBox.textContent = csvRows.join('\n');
+            statusText.textContent = `CSV Generated | ${obj.length} rows`;
+            showToast('Converted to CSV', 'success');
+        }
+
+        // --- Helpers ---
+        function showError(err) {
+            resultBox.innerHTML = `<div style="color: var(--accent); font-weight: bold;">❌ Parsing Error</div><div style="opacity: 0.8; margin-top: 10px;">${err.message}</div>`;
+            statusText.textContent = 'Status: Invalid JSON';
+            showToast('Fix failed', 'error');
+        }
+
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'color: var(--ink);';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) cls = 'color: #9c27b0; font-weight: 700;';
+                    else cls = 'color: var(--accent-secondary);';
+                } else if (/true|false/.test(match)) cls = 'color: var(--accent); font-weight: bold;';
+                else if (/null/.test(match)) cls = 'color: var(--ink-secondary); font-style: italic;';
+                else cls = 'color: #d35400;';
+                return '<span style="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/[&<>"']/g, function(m) { 
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]; 
+            });
+        }
+
+        function downloadResult() {
+            const content = currentView === 'code' ? resultBox.innerText : JSON.stringify(currentData, null, 2);
+            if(!content) return;
+            const blob = new Blob([content], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'result.json'; // Could sniff csv if csv mode
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

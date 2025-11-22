@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Image Compressor | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+        /* --- MODE TABS --- */
+        .mode-tabs { display: flex; gap: 1rem; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; }
+        .mode-tab { padding: 0.5rem 1rem; cursor: pointer; font-weight: 500; opacity: 0.6; transition: all 0.2s; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+        .mode-tab:hover { opacity: 1; color: var(--accent); }
+        .mode-tab.active { opacity: 1; color: var(--accent); border-bottom-color: var(--accent); }
+
+        /* --- COMPARISON SLIDER --- */
+        .compare-wrapper {
+            position: relative; width: 100%; max-width: 100%; margin: 0 auto 2rem; border-radius: 4px; overflow: hidden;
+            border: 1px solid var(--border);
+            /* Checkerboard pattern for transparency */
+            background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%);
+            background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            user-select: none; cursor: ew-resize; line-height: 0;
+            min-height: 200px; /* Fix for layout jump */
+            display: block; /* Ensure it takes space */
+        }
+        .img-original { display: block; width: 100%; height: auto; pointer-events: none; }
+        .img-modified-container { position: absolute; top: 0; left: 0; bottom: 0; width: 50%; overflow: hidden; border-right: 2px solid var(--accent); background: inherit; z-index: 2; }
+        .img-modified { display: block; position: absolute; top: 0; left: 0; height: 100%; width: 100vw; max-width: none; object-fit: fill; pointer-events: none; }
+        .slider-handle {
+            position: absolute; top: 50%; right: -16px; width: 32px; height: 32px; background: var(--accent);
+            color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; transform: translateY(-50%); box-shadow: 0 2px 6px rgba(0,0,0,0.2); pointer-events: none; z-index: 3; line-height: 1;
+        }
+        
+        /* UPDATED: Bigger labels */
+        .label-badge { 
+            position: absolute; 
+            top: 10px; 
+            padding: 6px 12px; 
+            background: rgba(0,0,0,0.7); 
+            color: white; 
+            font-size: 0.85rem; 
+            border-radius: 4px; 
+            pointer-events: none; 
+            z-index: 4; 
+            font-family: sans-serif; 
+            white-space: nowrap;
+        }
+        .label-before { right: 10px; } .label-after { left: 10px; }
+
+        /* --- CONTROLS --- */
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; background: var(--input-bg); padding: 1.5rem; border-radius: 4px; }
+        .stat-diff { font-family: var(--font-mono); font-size: 0.9rem; }
+        .stat-good { color: var(--accent-secondary); font-weight: bold; }
+        .stat-bad { color: var(--accent); }
+
+        /* Fix for weird focus box on sliders */
+        input[type="range"]:focus { outline: none; box-shadow: none; }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Smart Image Compressor</h1>
+                <p>Intelligent compression using WebAssembly (MozJPEG, OxiPNG, WebP, AVIF).</p>
+            </div>
+
+            <div class="card">
+                
+                <!-- TABS -->
+                <div class="mode-tabs">
+                    <div class="mode-tab active" id="tabSingle" onclick="switchMode('single')">Single Image (Detailed)</div>
+                    <div class="mode-tab" id="tabBulk" onclick="switchMode('bulk')">Bulk Mode (Batch)</div>
+                </div>
+
+                <!-- DROP ZONE -->
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-icon">🖼️</span>
+                    <p id="dropText">Drag & Drop an image here</p>
+                    <p style="font-size: 0.8rem; opacity: 0.7;">JPG, PNG, WEBP, AVIF</p>
+                    <input type="file" id="fileInput" class="hidden" multiple accept="image/*">
+                </div>
+
+                <!-- === SINGLE MODE === -->
+                <div id="singleModeUI">
+                    <div class="compare-wrapper hidden" id="compareWrapper">
+                        <img id="imgOrg" class="img-original" src="" alt="Original">
+                        <span class="label-badge label-before">Original</span>
+                        <div class="img-modified-container" id="imgModContainer">
+                            <img id="imgMod" class="img-modified" src="" alt="Compressed">
+                            <span class="label-badge label-after">Compressed</span>
+                            <div class="slider-handle">↔</div>
+                        </div>
+                    </div>
+
+                    <div id="singleStats" class="hidden" style="text-align: center; margin-bottom: 1.5rem;">
+                        <span id="singleStatOriginal" style="color: var(--ink-secondary);">Original: 0 KB</span>
+                        <span style="margin: 0 10px;">&rarr;</span>
+                        <span id="singleStatCompressed" style="font-weight: bold;">New: ...</span>
+                        <span id="singleStatDiff" class="stat-diff"></span>
+                    </div>
+
+                    <div class="settings-grid">
+                        <div>
+                            <label>Output Format</label>
+                            <select id="singleFormat">
+                                <option value="image/webp">WebP (Balanced)</option>
+                                <option value="image/avif">AVIF (Best & Slowest)</option>
+                                <option value="image/jpeg">MozJPEG (Compatible)</option>
+                                <option value="image/png">OxiPNG (Lossless)</option>
+                            </select>
+                        </div>
+                        <div id="singleQualityWrapper">
+                            <label>Quality: <span id="singleQualityVal">75</span></label>
+                            <input type="range" id="singleQuality" min="0" max="100" value="75">
+                        </div>
+                        <div>
+                            <label>Resize Width</label>
+                            <select id="singleResize">
+                                <option value="0">Original Dimensions</option>
+                                <option value="1920">1920px</option>
+                                <option value="1280">1280px</option>
+                                <option value="800">800px</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="button-group hidden" id="singleControls" style="justify-content: center;">
+                        <button class="button" id="singleDownloadBtn">Download Image</button>
+                        <button class="button outline" id="singleResetBtn">Start Over</button>
+                    </div>
+                </div>
+
+                <!-- === BULK MODE === -->
+                <div id="bulkModeUI" class="hidden">
+                    <div class="settings-grid" style="margin-bottom: 2rem;">
+                        <div>
+                            <label>Target Format</label>
+                            <select id="bulkFormat">
+                                <option value="image/webp">Everything to WebP</option>
+                                <option value="image/avif">Everything to AVIF</option>
+                                <option value="image/jpeg">Everything to JPEG</option>
+                            </select>
+                        </div>
+                        <div id="bulkQualityWrapper">
+                            <label>Quality: <span id="bulkQualityVal">75</span></label>
+                            <input type="range" id="bulkQuality" min="0" max="100" value="75">
+                        </div>
+                        <div>
+                            <label>Max Width</label>
+                            <select id="bulkResize">
+                                <option value="0">Keep Original</option>
+                                <option value="1920">1920px</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="progress-container" id="bulkProgressContainer">
+                        <div class="progress-fill" id="bulkProgressBar"></div>
+                    </div>
+
+                    <ul class="file-list" id="bulkFileList"></ul>
+
+                    <!-- Bulk Summary Section -->
+                    <div id="bulkSummary" class="hidden" style="text-align: center; margin-top: 1.5rem; padding: 1rem; background: var(--paper); border: 1px solid var(--border); border-radius: 4px;">
+                        <h3 style="margin-bottom: 0.5rem;">Batch Completed</h3>
+                        <p id="bulkSavingsText" style="font-size: 1.2rem; font-weight: bold; color: var(--accent-secondary);">Saved 0 MB (0%)</p>
+                    </div>
+
+                    <div class="button-group hidden" id="bulkControls" style="margin-top: 1.5rem;">
+                        <button class="button" id="bulkProcessBtn">Compress All</button>
+                        <button class="button secondary hidden" id="bulkDownloadBtn">Download ZIP</button>
+                        <button class="button outline" id="bulkClearBtn">Clear List</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        /* =========================================
+           WORKER BRIDGE
+           ========================================= */
+        class CompressionWorker {
+            constructor() {
+                this.worker = new Worker('./worker.js', { type: 'module' });
+                this.msgId = 0;
+                this.callbacks = new Map();
+
+                this.worker.onmessage = (e) => {
+                    const { id, success, buffer, error } = e.data;
+                    if (this.callbacks.has(id)) {
+                        const { resolve, reject } = this.callbacks.get(id);
+                        this.callbacks.delete(id);
+                        if (success) resolve(buffer);
+                        else reject(new Error(error));
+                    }
+                };
+            }
+
+            async compress(imageData, format, options) {
+                const id = ++this.msgId;
+                return new Promise((resolve, reject) => {
+                    this.callbacks.set(id, { resolve, reject });
+                    this.worker.postMessage({ id, imageData, format, options }, [imageData.data.buffer]);
+                });
+            }
+        }
+
+        const compressor = new CompressionWorker();
+
+        /* =========================================
+           MAIN UI LOGIC
+           ========================================= */
+        
+        // DOM & State
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        
+        // Single UI Elements
+        const singleFormat = document.getElementById('singleFormat');
+        const singleQuality = document.getElementById('singleQuality');
+        const singleQualityWrapper = document.getElementById('singleQualityWrapper');
+        const singleQualityVal = document.getElementById('singleQualityVal');
+        const singleResize = document.getElementById('singleResize');
+        
+        // Bulk UI Elements
+        const bulkFormat = document.getElementById('bulkFormat');
+        const bulkQuality = document.getElementById('bulkQuality');
+        const bulkQualityWrapper = document.getElementById('bulkQualityWrapper');
+        const bulkQualityVal = document.getElementById('bulkQualityVal');
+        
+        let currentMode = 'single';
+        let singleFile = null;
+        let singleResultBlob = null;
+        let bulkQueue = [];
+        let debounceTimer;
+
+        // Setup
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDropZone(dropZone, fileInput, handleFiles);
+            initComparisonEvents();
+            window.addEventListener('resize', syncComparisonImages);
+            
+            updateQualityVisibility('single');
+            switchMode('single'); // Explicit initialize
+        });
+
+        // --- Mode Switching ---
+        window.switchMode = function(mode) {
+            currentMode = mode;
+            document.getElementById('tabSingle').classList.toggle('active', mode === 'single');
+            document.getElementById('tabBulk').classList.toggle('active', mode === 'bulk');
+            document.getElementById('singleModeUI').classList.toggle('hidden', mode !== 'single');
+            document.getElementById('bulkModeUI').classList.toggle('hidden', mode !== 'bulk');
+            
+            updateDropText();
+
+            // FIX: If we switch back to single mode and a file exists, force layout recalc
+            if (mode === 'single' && singleFile) {
+                setTimeout(() => {
+                    syncComparisonImages();
+                }, 50);
+            }
+        };
+
+        function updateDropText() {
+            const txt = document.getElementById('dropText');
+            const dropZoneEl = document.getElementById('dropZone');
+            
+            if (currentMode === 'single' && singleFile) {
+                dropZoneEl.classList.add('hidden');
+            } else if (currentMode === 'bulk' && bulkQueue.length > 0) {
+                dropZoneEl.classList.add('hidden');
+            } else {
+                dropZoneEl.classList.remove('hidden');
+                txt.textContent = currentMode === 'single' ? "Drag & Drop an image" : "Drag & Drop multiple images";
+            }
+        }
+
+        // --- File Handling ---
+        function handleFiles(files) {
+            const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+            if (validFiles.length === 0) return;
+
+            if (currentMode === 'single') {
+                loadSingleFile(validFiles[0]);
+            } else {
+                validFiles.forEach(f => bulkQueue.push({ file: f, status: 'pending', blob: null }));
+                renderBulkList();
+                updateDropText();
+            }
+        }
+
+        // --- IMAGE PROCESSING PIPELINE ---
+        async function processImagePipeline(file, format, quality, targetWidth) {
+            const bitmap = await createImageBitmap(file);
+            let w = bitmap.width;
+            let h = bitmap.height;
+
+            if (targetWidth > 0 && w > targetWidth) {
+                const ratio = targetWidth / w;
+                w = targetWidth;
+                h = Math.round(h * ratio);
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(bitmap, 0, 0, w, h);
+            
+            const imageData = ctx.getImageData(0, 0, w, h);
+            const arrayBuffer = await compressor.compress(imageData, format, { quality });
+            return new Blob([arrayBuffer], { type: format });
+        }
+
+        /* =========================================
+           SINGLE MODE IMPLEMENTATION
+           ========================================= */
+        function loadSingleFile(file) {
+            singleFile = file;
+            document.getElementById('singleStatOriginal').textContent = `Original: ${formatFileSize(file.size)}`;
+            
+            document.getElementById('dropZone').classList.add('hidden');
+            document.getElementById('compareWrapper').classList.remove('hidden');
+            document.getElementById('singleStats').classList.remove('hidden');
+            document.getElementById('singleControls').classList.remove('hidden');
+
+            const url = URL.createObjectURL(file);
+            const imgOrg = document.getElementById('imgOrg');
+            
+            imgOrg.onload = () => {
+                syncComparisonImages();
+                processSingleImage();
+            };
+            imgOrg.src = url;
+        }
+
+        async function processSingleImage() {
+            if (!singleFile) return;
+            
+            const elComp = document.getElementById('singleStatCompressed');
+            const elDiff = document.getElementById('singleStatDiff');
+            elComp.textContent = "Processing...";
+            elDiff.textContent = "";
+            
+            const fmt = singleFormat.value;
+            const q = parseInt(singleQuality.value);
+            const w = parseInt(singleResize.value);
+
+            try {
+                const blob = await processImagePipeline(singleFile, fmt, q, w);
+                singleResultBlob = blob;
+
+                const saved = singleFile.size - blob.size;
+                const percent = Math.round((saved / singleFile.size) * 100);
+                elComp.textContent = `New: ${formatFileSize(blob.size)}`;
+                elDiff.textContent = `(${saved >= 0 ? '-' : '+'}${Math.abs(percent)}%)`;
+                elDiff.className = saved >= 0 ? 'stat-diff stat-good' : 'stat-diff stat-bad';
+
+                const url = URL.createObjectURL(blob);
+                const imgMod = document.getElementById('imgMod');
+                imgMod.onload = () => syncComparisonImages();
+                imgMod.src = url;
+
+            } catch (e) {
+                console.error(e);
+                showToast('Compression failed: ' + e.message, 'error');
+            }
+        }
+
+        // --- DYNAMIC SLIDER CONFIGURATION ---
+        function updateQualityVisibility(mode) {
+            const formatEl = mode === 'single' ? singleFormat : bulkFormat;
+            const wrapperEl = mode === 'single' ? singleQualityWrapper : bulkQualityWrapper;
+            const sliderEl = mode === 'single' ? singleQuality : bulkQuality;
+            const valEl = mode === 'single' ? singleQualityVal : bulkQualityVal;
+            
+            const format = formatEl.value;
+            const isPng = format === 'image/png';
+            const isAvif = format === 'image/avif';
+            
+            // Visibility
+            wrapperEl.style.display = isPng ? 'none' : 'block';
+
+            // Slider Attributes & Label Logic
+            const labelNode = wrapperEl.querySelector('label').childNodes[0];
+            
+            if (isAvif) {
+                // AVIF: Speed Mode (0 to 10)
+                labelNode.nodeValue = "Encoding Speed (0=Slow, 10=Fast): ";
+                sliderEl.min = 0;
+                sliderEl.max = 10;
+                sliderEl.value = 6; // Default to decent speed
+            } else {
+                // WebP/JPEG: Quality Mode (0 to 100)
+                labelNode.nodeValue = "Quality (0-100): ";
+                sliderEl.min = 0;
+                sliderEl.max = 100;
+                sliderEl.value = 75; // Default Quality
+            }
+            
+            // Update display text
+            valEl.textContent = sliderEl.value;
+        }
+
+        // Single Mode Events
+        singleFormat.addEventListener('change', () => {
+            updateQualityVisibility('single');
+            processSingleImage();
+        });
+        
+        singleResize.addEventListener('change', processSingleImage);
+        
+        singleQuality.addEventListener('input', (e) => {
+            singleQualityVal.textContent = e.target.value;
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(processSingleImage, 400);
+        });
+
+        document.getElementById('singleDownloadBtn').addEventListener('click', () => {
+            if(singleResultBlob) {
+                const ext = singleResultBlob.type.split('/')[1].replace('jpeg','jpg');
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(singleResultBlob);
+                a.download = `compressed.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            }
+        });
+
+        document.getElementById('singleResetBtn').addEventListener('click', () => {
+            singleFile = null;
+            document.getElementById('imgOrg').src = '';
+            document.getElementById('imgMod').src = '';
+            document.getElementById('compareWrapper').classList.add('hidden');
+            document.getElementById('singleStats').classList.add('hidden');
+            document.getElementById('singleControls').classList.add('hidden');
+            updateDropText();
+        });
+
+        /* =========================================
+           BULK MODE EVENTS
+           ========================================= */
+        bulkFormat.addEventListener('change', () => {
+            updateQualityVisibility('bulk');
+        });
+
+        bulkQuality.addEventListener('input', (e) => {
+            bulkQualityVal.textContent = e.target.value;
+        });
+
+        function renderBulkList() {
+            const list = document.getElementById('bulkFileList');
+            list.innerHTML = '';
+            bulkQueue.forEach((item, i) => {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                let statusHtml = `<span style="opacity:0.5">Pending</span>`;
+                if(item.status === 'done') {
+                     const saved = item.file.size - item.blob.size;
+                     const percent = Math.round((saved/item.file.size)*100);
+                     const color = saved >= 0 ? 'var(--accent-secondary)' : 'var(--accent)';
+                     statusHtml = `<div style="text-align:right;"><span style="color:${color}; font-weight:bold;">${saved>=0?'-':'+'}${Math.abs(percent)}%</span> <span style="font-size:0.8rem; opacity:0.7;">${formatFileSize(item.blob.size)}</span></div>`;
+                } else if (item.status === 'processing') statusHtml = `<span style="color:var(--accent)">Compressing...</span>`;
+                else if (item.status === 'error') statusHtml = `<span style="color:red">Error</span>`;
+
+                li.innerHTML = `<div class="file-info"><span class="file-name">${item.file.name}</span> <span class="file-size">${formatFileSize(item.file.size)}</span></div><div>${statusHtml}</div>`;
+                list.appendChild(li);
+            });
+            document.getElementById('bulkControls').classList.toggle('hidden', bulkQueue.length === 0);
+        }
+
+        document.getElementById('bulkProcessBtn').addEventListener('click', async () => {
+            const fmt = bulkFormat.value;
+            const w = parseInt(document.getElementById('bulkResize').value);
+            const q = parseInt(bulkQuality.value);
+            const bar = document.getElementById('bulkProgressBar');
+            
+            document.getElementById('bulkProcessBtn').disabled = true;
+            document.getElementById('bulkProgressContainer').style.display = 'block';
+            document.getElementById('bulkSummary').classList.add('hidden');
+
+            let totalOriginal = 0;
+            let totalCompressed = 0;
+
+            for (let i = 0; i < bulkQueue.length; i++) {
+                bulkQueue[i].status = 'processing';
+                renderBulkList();
+                try {
+                    const blob = await processImagePipeline(bulkQueue[i].file, fmt, q, w);
+                    bulkQueue[i].blob = blob;
+                    bulkQueue[i].status = 'done';
+                    totalOriginal += bulkQueue[i].file.size;
+                    totalCompressed += blob.size;
+                } catch(e) { bulkQueue[i].status = 'error'; }
+                bar.style.width = `${((i+1)/bulkQueue.length)*100}%`;
+            }
+
+            renderBulkList();
+            if (totalOriginal > 0) {
+                const totalSaved = totalOriginal - totalCompressed;
+                const totalPct = Math.round((totalSaved / totalOriginal) * 100);
+                const summaryEl = document.getElementById('bulkSummary');
+                summaryEl.classList.remove('hidden');
+                document.getElementById('bulkSavingsText').textContent = `Total Saved: ${formatFileSize(totalSaved)} (${totalPct}%)`;
+            }
+            document.getElementById('bulkProcessBtn').disabled = false;
+            document.getElementById('bulkDownloadBtn').classList.remove('hidden');
+        });
+
+        document.getElementById('bulkDownloadBtn').addEventListener('click', () => {
+            const zip = new JSZip();
+            let count = 0;
+            bulkQueue.forEach(item => {
+                if(item.blob) {
+                    const ext = item.blob.type.split('/')[1].replace('jpeg','jpg');
+                    const name = item.file.name.substring(0, item.file.name.lastIndexOf('.'));
+                    zip.file(`${name}_compressed.${ext}`, item.blob);
+                    count++;
+                }
+            });
+            if(count > 0) zip.generateAsync({type:"blob"}).then(c => saveAs(c, "batch_images.zip"));
+            else showToast('No images to download.', 'error');
+        });
+
+        document.getElementById('bulkClearBtn').addEventListener('click', () => {
+            bulkQueue = [];
+            renderBulkList();
+            updateDropText();
+            document.getElementById('bulkProgressContainer').style.display = 'none';
+            document.getElementById('bulkSummary').classList.add('hidden');
+            document.getElementById('bulkDownloadBtn').classList.add('hidden');
+        });
+
+        /* =========================================
+           HELPERS (Comparison Slider)
+           ========================================= */
+        function initComparisonEvents() {
+            let drag = false;
+            const wrapper = document.getElementById('compareWrapper');
+            const container = document.getElementById('imgModContainer');
+            const move = (cx) => {
+                const rect = wrapper.getBoundingClientRect();
+                if (rect.width === 0) return; 
+                let x = cx - rect.left;
+                if (x < 0) x = 0; if (x > rect.width) x = rect.width;
+                container.style.width = `${(x / rect.width) * 100}%`;
+            };
+            wrapper.addEventListener('mousedown', (e) => { drag = true; move(e.clientX); });
+            window.addEventListener('mousemove', (e) => { if(drag) move(e.clientX); });
+            window.addEventListener('mouseup', () => drag = false);
+            wrapper.addEventListener('touchstart', (e) => { drag = true; move(e.touches[0].clientX); }, {passive:false});
+            window.addEventListener('touchmove', (e) => { if(drag) { e.preventDefault(); move(e.touches[0].clientX); }}, {passive:false});
+            window.addEventListener('touchend', () => drag = false);
+        }
+        function syncComparisonImages() {
+            const imgOrg = document.getElementById('imgOrg');
+            const imgMod = document.getElementById('imgMod');
+            if(imgOrg.offsetWidth > 0) {
+                imgMod.style.width = `${imgOrg.offsetWidth}px`;
+                const container = document.getElementById('imgModContainer');
+                if (container.style.width === '0%' || container.style.width === '') container.style.width = '50%';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Image Resizer | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Bulk Image Resizer</h1>
+                <p>Resize multiple images to a specific width while maintaining aspect ratio. Process happens entirely in your browser.</p>
+            </div>
+
+            <div class="card">
+                
+                <div class="split-view">
+                    <div>
+                        <label for="targetWidth">Target Width (px)</label>
+                        <input type="number" id="targetWidth" value="1200" min="100" max="5000">
+                    </div>
+                    <div>
+                        <label for="outputFormat">Output Format</label>
+                        <select id="outputFormat">
+                            <option value="image/jpeg">JPEG (Efficient)</option>
+                            <option value="image/png">PNG (Lossless)</option>
+                            <option value="image/webp">WebP (Modern)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="qualityWrapper">
+                    <label for="qualityRange">JPEG/WebP Quality (<span id="qualityValue">80</span>%)</label>
+                    <input type="range" id="qualityRange" min="10" max="100" value="80">
+                </div>
+
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-icon">🖼️</span>
+                    <p>Drag & Drop images here</p>
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary);">(JPG, PNG, WEBP)</p>
+                    <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+                </div>
+
+                <ul class="file-list" id="fileList"></ul>
+
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+
+                <div class="button-group">
+                    <button class="button" id="resizeBtn" disabled>Resize Images</button>
+                    <button class="button outline" id="clearBtn">Clear All</button>
+                </div>
+
+                <div class="result-box hidden" id="resultBox">
+                    <h3 style="text-align: center;">Processing Complete!</h3>
+                    <p style="text-align: center; margin-bottom: 1rem;" id="resultStats"></p>
+                    
+                    <div style="display: flex; justify-content: center;">
+                        <button class="button secondary" id="downloadZipBtn">Download All as ZIP</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        // === DOM ELEMENTS ===
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileListEl = document.getElementById('fileList');
+        const resizeBtn = document.getElementById('resizeBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const targetWidthInput = document.getElementById('targetWidth');
+        const outputFormatInput = document.getElementById('outputFormat');
+        const qualityRange = document.getElementById('qualityRange');
+        const qualityValue = document.getElementById('qualityValue');
+        const qualityWrapper = document.getElementById('qualityWrapper');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const resultBox = document.getElementById('resultBox');
+        const resultStats = document.getElementById('resultStats');
+        const downloadZipBtn = document.getElementById('downloadZipBtn');
+
+        // === STATE ===
+        let selectedFiles = [];
+        let zipBlob = null;
+
+        // === INITIALIZATION ===
+        document.addEventListener('DOMContentLoaded', () => {
+            // Setup Layout Helper
+            setupDropZone(dropZone, fileInput, handleFiles);
+        });
+
+        // Update Quality Label
+        qualityRange.addEventListener('input', (e) => {
+            qualityValue.textContent = e.target.value;
+        });
+
+        // Toggle Quality Slider based on format (PNG doesn't use quality in canvas toBlob)
+        outputFormatInput.addEventListener('change', (e) => {
+            if (e.target.value === 'image/png') {
+                qualityWrapper.classList.add('hidden');
+            } else {
+                qualityWrapper.classList.remove('hidden');
+            }
+        });
+
+        // === FILE HANDLING ===
+        function handleFiles(fileList) {
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            
+            Array.from(fileList).forEach(file => {
+                if (validTypes.includes(file.type)) {
+                    selectedFiles.push(file);
+                } else {
+                    showToast(`Skipped ${file.name} (unsupported format)`, 'error');
+                }
+            });
+
+            updateFileList();
+        }
+
+        function updateFileList() {
+            fileListEl.innerHTML = '';
+            
+            selectedFiles.forEach((file, index) => {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                
+                li.innerHTML = `
+                    <div class="file-info">
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-size">${formatFileSize(file.size)}</span>
+                    </div>
+                    <button class="remove-file" onclick="removeFile(${index})">&times;</button>
+                `;
+                fileListEl.appendChild(li);
+            });
+
+            resizeBtn.disabled = selectedFiles.length === 0;
+            
+            if (selectedFiles.length > 0) {
+                resultBox.classList.add('hidden'); // Hide old results if new files added
+            }
+        }
+
+        // Exposed to global scope for the onclick handler
+        window.removeFile = function(index) {
+            selectedFiles.splice(index, 1);
+            updateFileList();
+        };
+
+        clearBtn.addEventListener('click', () => {
+            selectedFiles = [];
+            updateFileList();
+            resultBox.classList.add('hidden');
+            progressContainer.style.display = 'none';
+            fileInput.value = ''; // Reset input
+        });
+
+        // === IMAGE PROCESSING LOGIC ===
+        resizeBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+
+            // UI Reset
+            resizeBtn.disabled = true;
+            clearBtn.disabled = true;
+            resultBox.classList.add('hidden');
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            
+            const width = parseInt(targetWidthInput.value) || 1200;
+            const format = outputFormatInput.value;
+            const quality = parseInt(qualityRange.value) / 100;
+
+            const zip = new JSZip();
+            let processedCount = 0;
+            let totalSizeOriginal = 0;
+            let totalSizeNew = 0;
+
+            try {
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    totalSizeOriginal += file.size;
+
+                    // Process individual image
+                    const blob = await resizeImage(file, width, format, quality);
+                    
+                    // Add to ZIP
+                    const extension = format === 'image/jpeg' ? 'jpg' : format.split('/')[1];
+                    const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                    const newName = `${originalName}_resized.${extension}`;
+                    
+                    zip.file(newName, blob);
+                    totalSizeNew += blob.size;
+
+                    // Update Progress
+                    processedCount++;
+                    const percentage = Math.round((processedCount / selectedFiles.length) * 100);
+                    progressBar.style.width = `${percentage}%`;
+                }
+
+                // Generate ZIP
+                showToast('Generating ZIP file...', 'info');
+                zipBlob = await zip.generateAsync({type: "blob"});
+
+                // Show Results
+                const savedPercent = Math.round((1 - (totalSizeNew / totalSizeOriginal)) * 100);
+                const savedStr = savedPercent > 0 ? `(Saved ${savedPercent}%)` : '';
+                
+                resultStats.innerHTML = `
+                    Processed <strong>${selectedFiles.length}</strong> images.<br>
+                    Size: ${formatFileSize(totalSizeOriginal)} &rarr; <strong>${formatFileSize(totalSizeNew)}</strong> ${savedStr}
+                `;
+                
+                resultBox.classList.remove('hidden');
+                showToast('Batch processing complete!', 'success');
+
+            } catch (err) {
+                console.error(err);
+                showToast('An error occurred during processing.', 'error');
+            } finally {
+                resizeBtn.disabled = false;
+                clearBtn.disabled = false;
+            }
+        });
+
+        // Core Resize Function using Canvas
+        function resizeImage(file, targetWidth, format, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    
+                    img.onload = () => {
+                        // Calculate aspect ratio
+                        const scaleFactor = targetWidth / img.width;
+                        const targetHeight = img.height * scaleFactor;
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = targetWidth;
+                        canvas.height = targetHeight;
+                        
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Better quality smoothing
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        
+                        // Draw
+                        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                        
+                        // Export
+                        canvas.toBlob((blob) => {
+                            if (blob) resolve(blob);
+                            else reject(new Error('Canvas conversion failed'));
+                        }, format, quality);
+                    };
+                    
+                    img.onerror = (err) => reject(err);
+                };
+                
+                reader.onerror = (err) => reject(err);
+            });
+        }
+
+        // === DOWNLOAD HANDLER ===
+        downloadZipBtn.addEventListener('click', () => {
+            if (!zipBlob) return;
+            
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "resized_images.zip";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('Download started', 'success');
+        });
+    </script>
+</body>
+</html>

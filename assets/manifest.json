@@ -1,0 +1,15 @@
+{
+  "name": "Linus Linhof Toolbox",
+  "short_name": "Toolbox",
+  "start_url": "../../index.html",
+  "display": "standalone",
+  "background_color": "#faf6f2",
+  "theme_color": "#faf6f2",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

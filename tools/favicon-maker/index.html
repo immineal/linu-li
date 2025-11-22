@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favicon Generator | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <!-- Dynamic Favicon Link -->
+    <link rel="icon" type="image/png" href="../../assets/favicon.svg" id="dynamic-favicon">
+    
+    <style>
+        .preview-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: repeating-linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0),
+                        repeating-linear-gradient(45deg, #f0f0f0 25%, #faf6f2 25%, #faf6f2 75%, #f0f0f0 75%, #f0f0f0);
+            background-position: 0 0, 10px 10px;
+            background-size: 20px 20px;
+            padding: 3rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+        }
+        
+        canvas {
+            max-width: 128px;
+            max-height: 128px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        canvas:hover {
+            transform: scale(1.1);
+        }
+
+        .color-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+        
+        input[type="color"] {
+            -webkit-appearance: none;
+            appearance: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            border-radius: 4px;
+            overflow: hidden;
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; }
+
+        .tab-preview-hint {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--accent);
+            margin-top: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Favicon Generator</h1>
+                <p>Design simple text, emoji, or image-based favicons. <br>Look at your browser tab to see the live preview!</p>
+            </div>
+
+            <div class="split-view">
+                
+                <!-- LEFT: CONTROLS -->
+                <div class="card">
+                    
+                    <!-- TYPE SELECTOR -->
+                    <div class="button-group" style="margin-bottom: 1.5rem;">
+                        <button class="button active" id="modeText" onclick="setMode('text')">Text / Emoji</button>
+                        <button class="button outline" id="modeImage" onclick="setMode('image')">Upload Image</button>
+                    </div>
+
+                    <!-- TEXT CONTROLS -->
+                    <div id="textControls">
+                        <label>Text or Emoji (Max 2 chars)</label>
+                        <input type="text" id="inputText" value="L" maxlength="2" style="font-size: 1.5rem; text-align: center;">
+                        
+                        <div class="split-view" style="margin-bottom: 0;">
+                            <div>
+                                <label>Font Size</label>
+                                <input type="range" id="fontSize" min="50" max="450" value="300">
+                            </div>
+                            <div>
+                                <label>Font Family</label>
+                                <select id="fontFamily">
+                                    <option value="sans-serif">Sans Serif</option>
+                                    <option value="serif">Serif</option>
+                                    <option value="monospace">Monospace</option>
+                                    <option value="cursive">Cursive</option>
+                                    <option value="Arial">Arial</option>
+                                    <option value="Verdana">Verdana</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- IMAGE CONTROLS -->
+                    <div id="imageControls" class="hidden">
+                        <div class="drop-zone" id="dropZone" style="padding: 1.5rem; min-height: 120px;">
+                            <span style="font-size: 1.5rem;">🖼️</span>
+                            <p style="margin: 0.5rem 0;">Upload Logo</p>
+                            <input type="file" id="fileInput" class="hidden" accept="image/*">
+                        </div>
+                        <div style="margin-top: 1rem;">
+                            <label>Image Scale</label>
+                            <input type="range" id="imgScale" min="10" max="100" value="70">
+                        </div>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+
+                    <!-- SHAPE & COLORS -->
+                    <div class="split-view">
+                        <div>
+                            <label>Shape / Background</label>
+                            <select id="shapeSelect">
+                                <option value="rounded">Rounded Square</option>
+                                <option value="circle">Circle</option>
+                                <option value="square">Square</option>
+                                <option value="none">Transparent (No Background)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Colors</label>
+                            <div class="color-input-group" id="bgColorGroup">
+                                <input type="color" id="bgColor" value="#2a2621" title="Background Color">
+                                <span style="font-size: 0.8rem;">Background</span>
+                            </div>
+                            <div class="color-input-group" id="fgColorGroup">
+                                <input type="color" id="fgColor" value="#faf6f2" title="Text Color">
+                                <span style="font-size: 0.8rem;">Text Color</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT: PREVIEW -->
+                <div class="card" style="display: flex; flex-direction: column;">
+                    <label>High-Res Preview (512px)</label>
+                    
+                    <div class="preview-area">
+                        <canvas id="previewCanvas" width="512" height="512"></canvas>
+                    </div>
+
+                    <div class="tab-preview-hint">
+                        ⬆️ Look at your browser tab! ⬆️
+                    </div>
+
+                    <div style="margin-top: auto;">
+                        <div class="button-group" style="justify-content: center;">
+                            <button class="button" id="downloadPng">Download PNG</button>
+                            <button class="button secondary" id="downloadIco">Download ICO</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        // --- DOM Elements ---
+        const canvas = document.getElementById('previewCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Inputs
+        const inputText = document.getElementById('inputText');
+        const fontSize = document.getElementById('fontSize');
+        const fontFamily = document.getElementById('fontFamily');
+        const shapeSelect = document.getElementById('shapeSelect');
+        const bgColor = document.getElementById('bgColor');
+        const bgColorGroup = document.getElementById('bgColorGroup'); // Added Group
+        const fgColor = document.getElementById('fgColor');
+        const fgColorGroup = document.getElementById('fgColorGroup');
+        
+        // Modes
+        const modeTextBtn = document.getElementById('modeText');
+        const modeImageBtn = document.getElementById('modeImage');
+        const textControls = document.getElementById('textControls');
+        const imageControls = document.getElementById('imageControls');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const imgScale = document.getElementById('imgScale');
+
+        // Download
+        const downloadPng = document.getElementById('downloadPng');
+        const downloadIco = document.getElementById('downloadIco');
+        const tabIcon = document.getElementById('dynamic-favicon');
+
+        // State
+        let currentMode = 'text';
+        let uploadedImage = null;
+
+        // --- Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            updateUIForShape();
+            draw();
+            setupDropZone(dropZone, fileInput, handleFile);
+        });
+
+        // --- Event Listeners ---
+        [inputText, fontSize, fontFamily, bgColor, fgColor, imgScale].forEach(el => {
+            el.addEventListener('input', draw);
+            el.addEventListener('change', draw);
+        });
+
+        // Special handling for shape to toggle background color visibility
+        shapeSelect.addEventListener('change', () => {
+            updateUIForShape();
+            draw();
+        });
+
+        function updateUIForShape() {
+            if (shapeSelect.value === 'none') {
+                bgColorGroup.classList.add('hidden');
+            } else {
+                bgColorGroup.classList.remove('hidden');
+            }
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            if (mode === 'text') {
+                modeTextBtn.classList.remove('outline');
+                modeTextBtn.classList.add('active');
+                modeImageBtn.classList.add('outline');
+                textControls.classList.remove('hidden');
+                imageControls.classList.add('hidden');
+                fgColorGroup.classList.remove('hidden');
+            } else {
+                modeImageBtn.classList.remove('outline');
+                modeImageBtn.classList.add('active');
+                modeTextBtn.classList.add('outline');
+                textControls.classList.add('hidden');
+                imageControls.classList.remove('hidden');
+                fgColorGroup.classList.add('hidden'); // Hide text color picker in image mode
+            }
+            draw();
+        }
+
+        function handleFile(files) {
+            if (files.length === 0) return;
+            const file = files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadedImage = new Image();
+                uploadedImage.onload = draw;
+                uploadedImage.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- Core Drawing Logic ---
+        function draw() {
+            // 1. Clear
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const size = canvas.width;
+            
+            // 2. Draw Background Shape
+            const shape = shapeSelect.value;
+            ctx.fillStyle = bgColor.value;
+
+            if (shape === 'square') {
+                ctx.fillRect(0, 0, size, size);
+            } else if (shape === 'circle') {
+                ctx.beginPath();
+                ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (shape === 'rounded') {
+                const r = size * 0.2; // 20% radius
+                ctx.beginPath();
+                ctx.moveTo(r, 0);
+                ctx.lineTo(size - r, 0);
+                ctx.quadraticCurveTo(size, 0, size, r);
+                ctx.lineTo(size, size - r);
+                ctx.quadraticCurveTo(size, size, size - r, size);
+                ctx.lineTo(r, size);
+                ctx.quadraticCurveTo(0, size, 0, size - r);
+                ctx.lineTo(0, r);
+                ctx.quadraticCurveTo(0, 0, r, 0);
+                ctx.closePath();
+                ctx.fill();
+            }
+            // 'none' does nothing (transparent)
+
+            // 3. Draw Content
+            if (currentMode === 'text') {
+                const text = inputText.value;
+                const fSize = fontSize.value;
+                const family = fontFamily.value;
+                
+                ctx.fillStyle = fgColor.value;
+                ctx.font = `${fSize}px ${family}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Adjust vertical alignment slightly for emojis/text visual center
+                const yOffset = size / 2 + (fSize * 0.05); 
+                ctx.fillText(text, size / 2, yOffset);
+            } 
+            else if (currentMode === 'image' && uploadedImage) {
+                const scale = imgScale.value / 100;
+                const drawW = size * scale;
+                const drawH = (uploadedImage.height / uploadedImage.width) * drawW;
+                
+                const x = (size - drawW) / 2;
+                const y = (size - drawH) / 2;
+                
+                ctx.save();
+                // Clip to shape if needed, to ensure image doesn't bleed out of rounded corners
+                if (shape !== 'none') {
+                    // Note: For most favicon use cases, users prefer the image *on top* of the shape
+                    // without clipping, or clipping *to* the shape.
+                    // Standard behavior: Image floats above background.
+                }
+                ctx.drawImage(uploadedImage, x, y, drawW, drawH);
+                ctx.restore();
+            }
+
+            // 4. Update Live Preview (Browser Tab)
+            updateTabIcon();
+        }
+
+        // --- Live Browser Preview ---
+        function updateTabIcon() {
+            const dataUrl = canvas.toDataURL('image/png');
+            tabIcon.href = dataUrl;
+        }
+
+        // --- Download Handlers ---
+        downloadPng.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'favicon.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showToast('PNG Downloaded', 'success');
+        });
+
+        downloadIco.addEventListener('click', () => {
+            try {
+                const canvasData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const icoBlob = generateIco(canvas);
+                
+                const link = document.createElement('a');
+                link.download = 'favicon.ico';
+                link.href = URL.createObjectURL(icoBlob);
+                link.click();
+                showToast('ICO Downloaded', 'success');
+            } catch(e) {
+                console.error(e);
+                showToast('Error generating ICO', 'error');
+            }
+        });
+
+        // --- Simple ICO Generator (Binary) ---
+        function generateIco(sourceCanvas) {
+            // Resize to standard 256x256 for ICO (max standard size)
+            const icoCanvas = document.createElement('canvas');
+            icoCanvas.width = 256;
+            icoCanvas.height = 256;
+            const ictx = icoCanvas.getContext('2d');
+            ictx.drawImage(sourceCanvas, 0, 0, 256, 256);
+            
+            // Convert to PNG buffer
+            const dataUrl = icoCanvas.toDataURL('image/png');
+            const byteString = atob(dataUrl.split(',')[1]);
+            const pngBuffer = new Uint8Array(byteString.length);
+            for (let i = 0; i < byteString.length; i++) {
+                pngBuffer[i] = byteString.charCodeAt(i);
+            }
+
+            const imageSize = pngBuffer.length;
+            const width = 0; // 0 means 256px in ICO format
+            const height = 0;
+            const numColors = 0; 
+            const reserved = 0;
+            const planes = 1;
+            const bpp = 32; 
+            const imageOffset = 22; // 6 (header) + 16 (entry)
+
+            // ICO Header (6 bytes)
+            const header = new Uint8Array([
+                0, 0, 1, 0, 1, 0
+            ]);
+
+            // ICO Directory Entry (16 bytes)
+            const entry = new Uint8Array([
+                width, height, numColors, reserved,
+                1, 0, 32, 0,
+                imageSize & 0xFF, (imageSize >> 8) & 0xFF, (imageSize >> 16) & 0xFF, (imageSize >> 24) & 0xFF,
+                imageOffset, 0, 0, 0
+            ]);
+
+            // Combine
+            const icoFile = new Uint8Array(header.length + entry.length + pngBuffer.length);
+            icoFile.set(header, 0);
+            icoFile.set(entry, header.length);
+            icoFile.set(pngBuffer, header.length + entry.length);
+
+            return new Blob([icoFile], { type: 'image/x-icon' });
+        }
+
+        // Expose to global for onclicks
+        window.setMode = setMode;
+    </script>
+</body>
+</html>

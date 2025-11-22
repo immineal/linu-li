@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linus Linhof — Toolbox</title>
+    <meta name="description" content="A curated set of privacy-first utilities for developers and creatives. PDF tools, image converters, and dev helpers. No server uploads.">
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+    <link rel="stylesheet" href="./assets/css/style.css">
+    <link rel="manifest" href="./assets/manifest.json">
+    <style>
+        /* --- PAGE SPECIFIC STYLES --- */
+        h2 { margin-top: 3.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        h2:first-of-type { margin-top: 2rem; }
+        .category-intro { margin-bottom: 1.5rem; color: var(--ink-secondary); font-size: 0.95rem; }
+        .grid-wrapper { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
+
+        /* --- FAVORITES SYSTEM CSS --- */
+        /* Hidden by default to prevent empty space */
+        .favorites-section {
+            display: none; 
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px dashed var(--border);
+            animation: fadeIn 0.5s ease;
+        }
+        /* Only shown when JS adds this class */
+        .favorites-section.visible { 
+            display: block; 
+        }
+        
+        .card.interactive { position: relative; }
+
+        /* Animation for adding items */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Privacy Badge */
+        .privacy-badge {
+            display: inline-block;
+            background: rgba(107, 144, 128, 0.15);
+            color: #4a6b5d;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-top: 1rem;
+            border: 1px solid rgba(107, 144, 128, 0.3);
+        }
+        body.dark-mode .privacy-badge { color: #88a899; background: rgba(107, 144, 128, 0.2); }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Toolbox</h1>
+                <p>A curated suite of privacy-first utilities.</p>
+                <div>                       
+                    <a href="./privacy.html" class="privacy-badge" style="text-decoration: none; transition: all 0.2s;">
+                        🔒 100% Client-Side &bull; GDPR Compliant &bull; Offline Ready
+                    </a>
+                    <style>
+                        .privacy-badge:hover {
+                            background: rgba(107, 144, 128, 0.25);
+                            transform: translateY(-1px);
+                            cursor: pointer;
+                        }
+                    </style>
+                </div>
+            </div>
+
+            <div style="max-width: 500px; margin: 0 auto 3rem; position: relative;">
+                <input type="text" id="toolSearch" placeholder="Search tools (e.g. 'pdf', 'crop', 'hash')..." 
+                    style="padding-left: 2.5rem; border-radius: 50px; margin-bottom: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
+                <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
+            </div>
+
+            <!-- 0. FAVORITES SECTION (Populated via JS) -->
+            <div id="favorites-container" class="favorites-section">
+                <h2>Favorites <span style="font-size: 0.9rem; font-weight: normal; opacity: 0.6;">(Pinned)</span></h2>
+                <div class="grid-wrapper" id="favorites-grid">
+                    <!-- JS puts pinned cards here -->
+                </div>
+            </div>
+
+            <!-- 1. PDF TOOLS -->
+            <h2>PDF Tools</h2>
+            <p class="category-intro">Merge, split, and manipulate documents locally.</p>
+            <div class="grid-wrapper">
+                <a href="./tools/pdf-merger" class="card interactive" data-id="pdf-merger">
+                    <h3>PDF Merger</h3>
+                    <p class="small-text">Combine multiple PDF documents into a single file with drag-and-drop reordering.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/pdf-splitter" class="card interactive" data-id="pdf-splitter">
+                    <h3>PDF Splitter</h3>
+                    <p class="small-text">Extract specific page ranges or explode a document into separate files.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/pdf-extractor" class="card interactive" data-id="pdf-extractor">
+                    <h3>Asset Extractor</h3>
+                    <p class="small-text">Scrape and download high-resolution images embedded inside PDFs.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/pdf-grayscale" class="card interactive" data-id="pdf-grayscale">
+                    <h3>PDF Grayscale</h3>
+                    <p class="small-text">Convert color PDFs to laser-printer-friendly black & white.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/pdf-watermarker" class="card interactive" data-id="pdf-watermarker">
+                    <h3>PDF Watermarker</h3>
+                    <p class="small-text">Stamp text, confidential labels, or copyright notices onto pages.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/pdf-2up" class="card interactive" data-id="pdf-2up">
+                    <h3>PDF 2-Up Maker</h3>
+                    <p class="small-text">Duplicate or sequence pages side-by-side for booklet printing.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+            </div>
+
+            <!-- 2. IMAGE TOOLS -->
+            <h2>Image Tools</h2>
+            <p class="category-intro">Compress, convert, and resize visual assets.</p>
+            <div class="grid-wrapper">
+                <a href="./tools/image-compressor" class="card interactive" data-id="image-compressor">
+                    <h3>Smart Compressor</h3>
+                    <p class="small-text">Intelligent WebP/AVIF compression with before-and-after comparison.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/image-resizer" class="card interactive" data-id="image-resizer">
+                    <h3>Bulk Resizer</h3>
+                    <p class="small-text">Batch resize dimensions for web/email without losing quality.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/social-cropper" class="card interactive" data-id="social-cropper">
+                    <h3>Social Cropper</h3>
+                    <p class="small-text">Crop, rotate, and mask images for profiles (4:5, 16:9, Circle).</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/exif-scrubber" class="card interactive" data-id="exif-scrubber">
+                    <h3>EXIF Scrubber</h3>
+                    <p class="small-text">View hidden GPS data and strip metadata for privacy.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/favicon-maker" class="card interactive" data-id="favicon-maker">
+                    <h3>Favicon Creator</h3>
+                    <p class="small-text">Generate .ico and .png icons from text, emojis, or logos.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/svg-to-png" class="card interactive" data-id="svg-to-png">
+                    <h3>SVG Rasterizer</h3>
+                    <p class="small-text">Convert vector files to high-resolution PNGs at any scale.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+            </div>
+
+            <!-- 3. TEXT & WRITING -->
+            <h2>Text & Writing</h2>
+            <p class="category-intro">Clean, format, and analyze text.</p>
+            <div class="grid-wrapper">
+                <a href="./tools/word-counter" class="card interactive" data-id="word-counter">
+                    <h3>Word & Char Counter</h3>
+                    <p class="small-text">Real-time text analysis with reading time estimation.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/case-converter" class="card interactive" data-id="case-converter">
+                    <h3>Case Converter</h3>
+                    <p class="small-text">Switch between Title Case, camelCase, snake_case, and SCREAMING.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/list-cleaner" class="card interactive" data-id="list-cleaner">
+                    <h3>List Sanitizer</h3>
+                    <p class="small-text">Deduplicate, randomize, sort, and clean messy text lists.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/markdown-editor" class="card interactive" data-id="markdown-editor">
+                    <h3>Markdown Live</h3>
+                    <p class="small-text">Write Markdown with instant preview and HTML export.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/diff-checker" class="card interactive" data-id="diff-checker">
+                    <h3>Diff Checker</h3>
+                    <p class="small-text">Compare text or code to highlight additions and removals.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/lorem-generator" class="card interactive" data-id="lorem-generator">
+                    <h3>Lorem Ipsum Generator</h3>
+                    <p class="small-text">Generate placeholder text in "Latin", Tech-babble, or Corporate-speak.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+            </div>
+
+            <!-- 4. DEVELOPER & WEB -->
+            <h2>Developer Tools</h2>
+            <p class="category-intro">Encoders, decoders, and debuggers.</p>
+            <div class="grid-wrapper">
+                <a href="./tools/json-tools" class="card interactive" data-id="json-tools">
+                    <h3>JSON Workbench</h3>
+                    <p class="small-text">Validate, auto-repair, minify, and explore JSON data.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/sql-formatter" class="card interactive" data-id="sql-formatter">
+                    <h3>SQL Prettifier</h3>
+                    <p class="small-text">Format messy SQL queries for MySQL, PostgreSQL, and Standard SQL.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/jwt-debugger" class="card interactive" data-id="jwt-debugger">
+                    <h3>JWT Debugger</h3>
+                    <p class="small-text">Inspect JSON Web Token headers and payloads without server calls.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/url-tools" class="card interactive" data-id="url-tools">
+                    <h3>URL Cleaner & Encoder</h3>
+                    <p class="small-text">Strip tracking parameters (UTM, fbclid) and encode strings.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/base64-converter" class="card interactive" data-id="base64-converter">
+                    <h3>Base64 Converter</h3>
+                    <p class="small-text">Convert files to Data URIs or text to Base64 strings.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/epoch-converter" class="card interactive" data-id="epoch-converter">
+                    <h3>Epoch Converter</h3>
+                    <p class="small-text">Convert Unix timestamps to human time and vice versa.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+            </div>
+
+            <!-- 5. DAILY UTILITIES -->
+            <h2>Daily Utilities</h2>
+            <p class="category-intro">Calculators and helpers for everyday tasks.</p>
+            <div class="grid-wrapper">
+                <a href="./tools/password-generator" class="card interactive" data-id="password-generator">
+                    <h3>Password Gen</h3>
+                    <p class="small-text">Generate cryptographically strong, random passwords locally.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/qr-creator" class="card interactive" data-id="qr-creator">
+                    <h3>QR Code Creator</h3>
+                    <p class="small-text">Generate custom QR codes for WiFi, Contacts (vCard), and URLs.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/color-tools" class="card interactive" data-id="color-tools">
+                    <h3>Color & Contrast</h3>
+                    <p class="small-text">Pick colors, convert formats, and check WCAG accessibility.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/aspect-ratio" class="card interactive" data-id="aspect-ratio">
+                    <h3>Aspect Ratio Calc</h3>
+                    <p class="small-text">Calculate dimensions for video and images (16:9, 4:3).</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/unit-converter" class="card interactive" data-id="unit-converter">
+                    <h3>Unit Converter</h3>
+                    <p class="small-text">Convert between metric/imperial, digital storage, and temperature.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/hash-generator" class="card interactive" data-id="hash-generator">
+                    <h3>Hash Generator</h3>
+                    <p class="small-text">Calculate SHA-256, MD5, and SHA-512 hashes for text or files.</p>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Standard Layout Script -->
+    <script src="./assets/js/layout.js"></script>
+
+    <!-- LOGIC: Favorites & Offline PWA -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            /* === FAVORITES SYSTEM === */
+            const MAX_FAVES = 6;
+            const STORAGE_KEY = 'll_toolbox_favorites';
+            const favContainer = document.getElementById('favorites-container');
+            const favGrid = document.getElementById('favorites-grid');
+            
+            // 1. Load Saved Favorites
+            function getFavorites() {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            }
+
+            // 2. Render the Favorites Grid
+            function renderFavorites() {
+                let faves = getFavorites();
+                favGrid.innerHTML = ''; // Clear current
+
+                if (faves.length > 0) {
+                    let validFaves = 0;
+
+                    faves.forEach(id => {
+                        // Find original card in the DOM to clone
+                        const original = document.querySelector(`.card.interactive[data-id="${id}"]`);
+                        if (original) {
+                            const clone = original.cloneNode(true);
+                            // Re-bind the heart click on the clone
+                            const btn = clone.querySelector('.fav-btn');
+                            // Ensure btn exists (in case original logic hasn't run yet)
+                            if(btn) {
+                                btn.addEventListener('click', (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleFavorite(id);
+                                });
+                                favGrid.appendChild(clone);
+                                validFaves++;
+                            }
+                        }
+                    });
+
+                    // If we had IDs but none matched valid cards (e.g. tools renamed), hide section
+                    if (validFaves > 0) {
+                        favContainer.style.display = 'block';
+                        setTimeout(() => favContainer.classList.add('visible'), 10);
+                    } else {
+                        favContainer.classList.remove('visible');
+                        favContainer.style.display = 'none';
+                    }
+
+                } else {
+                    // Strict Hide
+                    favContainer.classList.remove('visible');
+                    favContainer.style.display = 'none';
+                }
+
+                // Update heart state on ALL cards (original list)
+                updateHeartStates();
+            }
+
+            // 3. Update Visual State of Hearts
+            function updateHeartStates() {
+                const faves = getFavorites();
+                document.querySelectorAll('.fav-btn').forEach(btn => {
+                    const parentCard = btn.closest('.card');
+                    if(parentCard) {
+                        const parentId = parentCard.getAttribute('data-id');
+                        if (faves.includes(parentId)) {
+                            btn.classList.add('active');
+                            btn.innerHTML = '&#9829;'; // Filled heart
+                        } else {
+                            btn.classList.remove('active');
+                            btn.innerHTML = '&#9825;'; // Empty heart
+                        }
+                    }
+                });
+            }
+
+            // 4. Toggle Logic
+            function toggleFavorite(id) {
+                let faves = getFavorites();
+                
+                if (faves.includes(id)) {
+                    // Remove
+                    faves = faves.filter(favId => favId !== id);
+                } else {
+                    // Add
+                    if (faves.length >= MAX_FAVES) {
+                        showToast(`Maximum ${MAX_FAVES} favorites allowed.`, 'error');
+                        return;
+                    }
+                    faves.push(id);
+                }
+                
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(faves));
+                renderFavorites();
+            }
+
+            // 5. Init: Inject Buttons into Original Cards
+            const allCards = document.querySelectorAll('.card.interactive[data-id]');
+            allCards.forEach(card => {
+                const id = card.getAttribute('data-id');
+                
+                // Avoid duplicate buttons if script runs twice
+                if(card.querySelector('.fav-btn')) return;
+
+                const btn = document.createElement('button');
+                btn.className = 'fav-btn';
+                btn.innerHTML = '&#9825;'; // Empty heart default
+                btn.title = 'Pin to Favorites';
+                
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault(); // Prevent link navigation
+                    e.stopPropagation();
+                    toggleFavorite(id);
+                });
+
+                card.appendChild(btn);
+            });
+
+            // Initial Render
+            renderFavorites();
+
+            /* === OFFLINE PWA SUPPORT === */
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./assets/sw.js')
+                    .then(() => console.log('Offline Ready: Service Worker Registered'))
+                    .catch(err => console.error('SW Fail', err));
+            }
+
+            // === INSTANT SEARCH LOGIC ===
+            const searchInput = document.getElementById('toolSearch');
+            const categories = document.querySelectorAll('h2:not(#favorites-container h2)'); // Select category headers
+            const searchGridWrappers = document.querySelectorAll('.grid-wrapper:not(#favorites-grid)'); // Select tool grids
+
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+
+                // 1. Filter Cards
+                document.querySelectorAll('.card.interactive:not(#favorites-grid .card)').forEach(card => {
+                    const text = card.textContent.toLowerCase();
+                    // Toggle visibility based on match
+                    card.style.display = text.includes(term) ? 'flex' : 'none';
+                });
+
+                // 2. Hide Empty Categories
+                searchGridWrappers.forEach((grid, index) => {
+                    // Check if this grid has any visible cards left
+                    const hasVisible = Array.from(grid.children).some(card => card.style.display !== 'none');
+                    
+                    // Toggle the grid and its preceding H2 and P description
+                    grid.style.display = hasVisible ? 'grid' : 'none';
+                    
+                    // Find the header associated with this grid
+                    // (Assumes DOM order: H2 -> P -> DIV.grid-wrapper)
+                    const desc = grid.previousElementSibling; // The <p>
+                    const title = desc.previousElementSibling; // The <h2>
+                    
+                    if (desc && desc.tagName === 'P') desc.style.display = hasVisible ? 'block' : 'none';
+                    if (title && title.tagName === 'H2') title.style.display = hasVisible ? 'block' : 'none';
+                });
+                
+                // 3. Hide Favorites when searching (optional, reduces clutter)
+                const favContainer = document.getElementById('favorites-container');
+                if (term.length > 0) {
+                    favContainer.classList.remove('visible');
+                    favContainer.style.display = 'none';
+                } else {
+                    // Restore favorites if search is cleared
+                    if (localStorage.getItem('ll_toolbox_favorites')) {
+                        // Re-run your existing renderFavorites() logic here or toggle simple display
+                        const hasItems = document.getElementById('favorites-grid').children.length > 0;
+                        if(hasItems) {
+                            favContainer.style.display = 'block';
+                            setTimeout(() => favContainer.classList.add('visible'), 10);
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

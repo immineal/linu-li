@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Converter & Contrast Checker | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinycolor/1.4.2/tinycolor.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
+
+    <style>
+        /* --- Layout & Picker --- */
+        .picker-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem 0; 
+            margin-bottom: 1.5rem;
+        }
+
+        /* --- Tabs for Target Selection --- */
+        .target-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: var(--input-bg);
+            padding: 0.25rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .target-tab {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 0.6rem;
+            font-size: 0.85rem;
+            font-family: var(--font-heading);
+            cursor: pointer;
+            border-radius: 4px;
+            color: var(--ink-secondary);
+            transition: all 0.2s;
+        }
+        .target-tab.active {
+            background: var(--paper);
+            color: var(--ink);
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* --- Mini Swatches on Right Side --- */
+        .mini-picker-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+            border: 1px solid transparent;
+        }
+        .mini-picker-label:hover {
+            background: var(--input-bg);
+        }
+        .mini-picker-label.active-target {
+            background: var(--input-bg);
+            border-color: var(--accent);
+        }
+
+        .mini-picker-swatch {
+            width: 32px; 
+            height: 32px; 
+            border-radius: 50%; 
+            border: 2px solid var(--border);
+        }
+
+        /* --- Contrast Card --- */
+        .contrast-card {
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+        .pass-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Color Tools</h1>
+                <p>Master color picker with real-time WCAG contrast checking.</p>
+            </div>
+
+            <div class="split-view">
+                
+                <!-- LEFT: PICKER & CONVERTER -->
+                <div class="card">
+                    
+                    <!-- Target Selection Tabs -->
+                    <div class="target-tabs">
+                        <button class="target-tab active" onclick="setTarget('main')">Converter</button>
+                        <button class="target-tab" onclick="setTarget('fg')">Text Color</button>
+                        <button class="target-tab" onclick="setTarget('bg')">Background</button>
+                    </div>
+
+                    <!-- Config: Layout Selector -->
+                    <div style="margin-bottom: 1rem; display: flex; justify-content: flex-end;">
+                        <select id="layoutSelect" style="width: auto; font-size: 0.8rem; padding: 0.3rem 1rem; margin: 0;">
+                            <option value="wheel">Wheel (HSL)</option>
+                            <option value="box">Box (HSV)</option>
+                            <option value="kelvin">Kelvin (Temp)</option>
+                        </select>
+                    </div>
+
+                    <!-- Main Picker (Control Center) -->
+                    <div class="picker-wrapper">
+                        <div id="iroPicker"></div>
+                    </div>
+                    
+                    <!-- Inputs (Always reflects the Active Target) -->
+                    <label>HEX</label>
+                    <div style="display:flex; gap:10px; margin-bottom: 1rem;">
+                        <input type="text" id="valHex" value="#c44d3c">
+                        <button class="button sm secondary" onclick="copyId('valHex')">Copy</button>
+                    </div>
+
+                    <label>RGB</label>
+                    <div style="display:flex; gap:10px; margin-bottom: 1rem;">
+                        <input type="text" id="valRgb" value="rgb(196, 77, 60)">
+                        <button class="button sm secondary" onclick="copyId('valRgb')">Copy</button>
+                    </div>
+
+                    <label>HSL</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="valHsl" value="hsl(7, 54%, 50%)">
+                        <button class="button sm secondary" onclick="copyId('valHsl')">Copy</button>
+                    </div>
+                </div>
+
+                <!-- RIGHT: CONTRAST CHECKER -->
+                <div class="card">
+                    <h3>Accessibility Contrast</h3>
+                    
+                    <div class="split-view" style="margin-bottom: 1rem; gap: 0.5rem;">
+                        
+                        <!-- Text Color Trigger -->
+                        <div class="mini-picker-label" id="targetBtn-fg" onclick="setTarget('fg')">
+                            <div class="mini-picker-swatch" style="background: #ffffff;" id="swatchFG"></div>
+                            <div>
+                                <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7;">Text Color</div>
+                                <div id="labelFG" style="font-family: var(--font-mono); font-size: 0.9rem;">#ffffff</div>
+                            </div>
+                        </div>
+
+                        <!-- BG Color Trigger -->
+                        <div class="mini-picker-label" id="targetBtn-bg" onclick="setTarget('bg')">
+                            <div class="mini-picker-swatch" style="background: #c44d3c;" id="swatchBG"></div>
+                            <div>
+                                <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7;">Background</div>
+                                <div id="labelBG" style="font-family: var(--font-mono); font-size: 0.9rem;">#c44d3c</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Live Preview -->
+                    <div id="contrastPreview" class="contrast-card" style="background: #c44d3c; color: #ffffff;">
+                        <h2 style="margin:0; color: inherit;">Preview Text</h2>
+                        <p style="margin:0; color: inherit;">The quick brown fox jumps over the lazy dog.</p>
+                    </div>
+
+                    <!-- Stats -->
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <div class="big-display" id="contrastRatio" style="font-size: 2.5rem; margin: 0.5rem 0;">4.12</div>
+                        <p style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Contrast Ratio</p>
+                        
+                        <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;">
+                            <div>
+                                <div style="font-size:0.8rem;">AA Normal</div>
+                                <div id="badgeAA" class="pass-tag fail">Fail</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.8rem;">AAA Normal</div>
+                                <div id="badgeAAA" class="pass-tag fail">Fail</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        // --- Elements ---
+        const valHex = document.getElementById('valHex');
+        const valRgb = document.getElementById('valRgb');
+        const valHsl = document.getElementById('valHsl');
+        const layoutSelect = document.getElementById('layoutSelect');
+
+        // Right Side Elements
+        const swatchFG = document.getElementById('swatchFG');
+        const swatchBG = document.getElementById('swatchBG');
+        const labelFG = document.getElementById('labelFG');
+        const labelBG = document.getElementById('labelBG');
+        const preview = document.getElementById('contrastPreview');
+        const ratioDisplay = document.getElementById('contrastRatio');
+        const badgeAA = document.getElementById('badgeAA');
+        const badgeAAA = document.getElementById('badgeAAA');
+
+        // Tabs
+        const tabs = document.querySelectorAll('.target-tab');
+        const rightSideBtns = {
+            fg: document.getElementById('targetBtn-fg'),
+            bg: document.getElementById('targetBtn-bg')
+        };
+
+        // State
+        let activeTarget = 'main'; // 'main', 'fg', 'bg'
+        let colors = {
+            main: '#c44d3c',
+            fg: '#ffffff',
+            bg: '#c44d3c'
+        };
+
+        // --- 1. Init iro.js (WITHOUT ALPHA SLIDER) ---
+        var colorPicker = new iro.ColorPicker("#iroPicker", {
+            width: 240,
+            color: colors.main,
+            borderWidth: 1,
+            borderColor: "#fff",
+            layout: [
+                { component: iro.ui.Wheel },
+                { component: iro.ui.Slider, options: { sliderType: 'value' } }
+                // Alpha slider removed
+            ]
+        });
+
+        // --- 2. Switch Picker Layout ---
+        layoutSelect.addEventListener('change', (e) => {
+            const mode = e.target.value;
+            
+            // Re-configure layout based on selection (No Alpha)
+            let newLayout = [];
+            if (mode === 'wheel') {
+                newLayout = [
+                    { component: iro.ui.Wheel },
+                    { component: iro.ui.Slider, options: { sliderType: 'value' } }
+                ];
+            } else if (mode === 'box') {
+                newLayout = [
+                    { component: iro.ui.Box },
+                    { component: iro.ui.Slider, options: { sliderType: 'hue' } }
+                ];
+            } else if (mode === 'kelvin') {
+                newLayout = [
+                    { component: iro.ui.Slider, options: { sliderType: 'kelvin' } },
+                    { component: iro.ui.Slider, options: { sliderType: 'value' } }
+                ];
+            }
+
+            colorPicker.setOptions({ layout: newLayout });
+        });
+
+        // --- 3. Core Logic: Target Switching ---
+        function setTarget(target) {
+            activeTarget = target;
+            
+            // 1. Update Tabs Visuals
+            tabs.forEach(t => t.classList.remove('active'));
+            if (target === 'main') tabs[0].classList.add('active');
+            if (target === 'fg') tabs[1].classList.add('active');
+            if (target === 'bg') tabs[2].classList.add('active');
+
+            // 2. Update Right Side Highlights
+            Object.values(rightSideBtns).forEach(b => b.classList.remove('active-target'));
+            if (target === 'fg') rightSideBtns.fg.classList.add('active-target');
+            if (target === 'bg') rightSideBtns.bg.classList.add('active-target');
+
+            // 3. Set Picker to Current Target Color
+            colorPicker.color.set(colors[target]);
+            
+            updateInputs(colors[target]); // Update displayed HEX/RGB values immediately
+        }
+
+        // Helper to update text inputs based on current color state
+        function updateInputs(hexValue) {
+            const c = tinycolor(hexValue);
+            valHex.value = c.toHexString();
+            valRgb.value = c.toRgbString();
+            valHsl.value = c.toHslString();
+        }
+
+        // --- 4. Picker Events ---
+        colorPicker.on(['color:init', 'color:change'], function(color) {
+            const hex = color.hexString;
+            
+            // Update State
+            colors[activeTarget] = hex;
+
+            // Update Text Inputs (Hex/RGB/HSL)
+            // Only update if not focused to avoid typing conflicts
+            if (document.activeElement !== valHex) valHex.value = hex;
+            if (document.activeElement !== valRgb) valRgb.value = color.rgbString;
+            if (document.activeElement !== valHsl) valHsl.value = color.hslString;
+
+            // Update Specific UI based on target
+            if (activeTarget === 'fg') {
+                swatchFG.style.background = hex;
+                labelFG.textContent = hex;
+                updateContrast();
+            } else if (activeTarget === 'bg') {
+                swatchBG.style.background = hex;
+                labelBG.textContent = hex;
+                updateContrast();
+            }
+        });
+
+        // --- 5. Manual Input Handling ---
+        function handleManualInput(val) {
+            const c = tinycolor(val);
+            if (c.isValid()) {
+                colorPicker.color.set(c.toHexString());
+            }
+        }
+
+        [valHex, valRgb, valHsl].forEach(input => {
+            input.addEventListener('input', (e) => handleManualInput(e.target.value));
+        });
+
+        // --- 6. Contrast Calculation ---
+        function updateContrast() {
+            const fg = tinycolor(colors.fg);
+            const bg = tinycolor(colors.bg);
+
+            // Update Preview
+            preview.style.color = fg.toHexString();
+            preview.style.backgroundColor = bg.toHexString();
+
+            const ratio = tinycolor.readability(fg, bg).toFixed(2);
+            ratioDisplay.textContent = ratio;
+
+            updateBadges(ratio);
+        }
+
+        function updateBadges(ratio) {
+            // AA (4.5)
+            if (ratio >= 4.5) {
+                badgeAA.className = 'pass-tag pass';
+                badgeAA.textContent = 'Pass';
+            } else {
+                badgeAA.className = 'pass-tag fail';
+                badgeAA.textContent = 'Fail';
+            }
+            // AAA (7.0)
+            if (ratio >= 7) {
+                badgeAAA.className = 'pass-tag pass';
+                badgeAAA.textContent = 'Pass';
+            } else {
+                badgeAAA.className = 'pass-tag fail';
+                badgeAAA.textContent = 'Fail';
+            }
+        }
+
+        // Helpers
+        window.copyId = function(id) {
+            const el = document.getElementById(id);
+            copyToClipboard(el.value);
+        };
+
+        // Expose to window for onclick
+        window.setTarget = setTarget;
+
+        // Initial Render
+        updateContrast();
+        
+    </script>
+</body>
+</html>

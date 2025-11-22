@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unix Timestamp Converter | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/localizedFormat.js"></script>
+    <!-- Added Timezone Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+
+    <style>
+        /* Polyfill style to make datetime input match the project's text inputs 
+           (Since the base CSS targets input[type="text"] specifically)
+        */
+        input[type="datetime-local"] {
+            width: 100%; 
+            padding: 0.8rem 1rem; 
+            margin-bottom: 1.25rem;
+            border: 1px solid var(--border); 
+            background: var(--input-bg); 
+            color: var(--input-text);
+            font-family: var(--font-mono); /* Mono looks better for aligning numbers */
+            font-size: 0.95rem; 
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        input[type="datetime-local"]:focus {
+            outline: none; 
+            border-color: var(--accent); 
+            box-shadow: 0 0 0 3px rgba(196, 77, 60, 0.1);
+        }
+        
+        /* Hero Section Styling */
+        .hero-time {
+            font-family: var(--font-heading);
+            color: var(--accent-secondary);
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Unix Timestamp Converter</h1>
+                <p>View the current epoch time or convert between timestamps, local time, and specific timezones.</p>
+            </div>
+
+            <div class="card">
+                
+                <div style="text-align: center; margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border);">
+                    
+                    <div class="hero-time" id="currentHumanTime">Loading...</div>
+                    
+                    <div class="big-display" id="currentTimestamp" style="margin-top: 0;">...</div>
+                    <label style="color: var(--ink-secondary); font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; margin-top: -10px; display: block; margin-bottom: 1.5rem;">Seconds since Epoch</label>
+                    
+                    <div class="button-group" style="justify-content: center;">
+                        <button class="button sm" id="pauseBtn">Pause</button>
+                        <button class="button sm outline" id="copyCurrentBtn">Copy Timestamp</button>
+                    </div>
+                </div>
+
+                <div class="split-view">
+                    <div>
+                        <h3>Timestamp &rarr; Date</h3>
+                        <label for="tsInput">Enter Timestamp</label>
+                        <input type="number" id="tsInput" placeholder="e.g. 1678886400">
+                        
+                        <label for="targetTz">Convert to Timezone</label>
+                        <select id="targetTz">
+                            <!-- Populated via JS -->
+                        </select>
+
+                        <div class="button-group">
+                            <button class="button" id="convertToDateBtn">Convert</button>
+                            <button class="button outline" id="clearTsBtn">Clear</button>
+                        </div>
+
+                        <div class="result-box hidden" id="tsResultBox" style="margin-top: 1.5rem;">
+                            <label>GMT / UTC</label>
+                            <input type="text" readonly id="resUtc" style="font-family: var(--font-mono); font-size: 0.9rem;" onclick="this.select()">
+                            
+                            <label>Your Local Time</label>
+                            <input type="text" readonly id="resLocal" style="font-family: var(--font-mono); font-size: 0.9rem;" onclick="this.select()">
+                            
+                            <label>Selected Timezone</label>
+                            <input type="text" readonly id="resZone" style="font-family: var(--font-mono); font-size: 0.9rem; font-weight: bold; color: var(--accent);" onclick="this.select()">
+
+                            <label>Relative</label>
+                            <p id="resRelative" style="font-family: var(--font-mono); margin-bottom: 0; color: var(--ink-secondary);"></p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3>Date &rarr; Timestamp</h3>
+                        <label for="dateInput">Select Date & Time (Local)</label>
+                        
+                        <div style="display: flex; gap: 10px; align-items: flex-start;">
+                            <input type="datetime-local" id="dateInput" step="1">
+                            <button class="button sm outline" id="setNowBtn" style="height: 48px; margin-top: 0;" title="Set to current time">Now</button>
+                        </div>
+                        
+                        <div class="button-group">
+                            <button class="button" id="convertToTsBtn">Get Timestamp</button>
+                            <button class="button outline" id="clearDateBtn">Clear</button>
+                        </div>
+
+                        <div class="result-box hidden" id="dateResultBox" style="margin-top: 1.5rem;">
+                            <label>Unix Timestamp (Seconds)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" readonly id="resTsSeconds" style="font-family: var(--font-mono);">
+                                <button class="button sm secondary" onclick="copyInput('resTsSeconds')">Copy</button>
+                            </div>
+
+                            <label>Timestamp (Milliseconds)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" readonly id="resTsMillis" style="font-family: var(--font-mono);">
+                                <button class="button sm secondary" onclick="copyInput('resTsMillis')">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        // Initialize Day.js plugins
+        dayjs.extend(window.dayjs_plugin_utc);
+        dayjs.extend(window.dayjs_plugin_relativeTime);
+        dayjs.extend(window.dayjs_plugin_localizedFormat);
+        dayjs.extend(window.dayjs_plugin_timezone);
+
+        // DOM Elements
+        const currentTimestampDisplay = document.getElementById('currentTimestamp');
+        const currentHumanTimeDisplay = document.getElementById('currentHumanTime');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const copyCurrentBtn = document.getElementById('copyCurrentBtn');
+
+        // Left Column (TS -> Date)
+        const tsInput = document.getElementById('tsInput');
+        const targetTz = document.getElementById('targetTz');
+        const convertToDateBtn = document.getElementById('convertToDateBtn');
+        const clearTsBtn = document.getElementById('clearTsBtn');
+        const tsResultBox = document.getElementById('tsResultBox');
+        const resUtc = document.getElementById('resUtc');
+        const resLocal = document.getElementById('resLocal');
+        const resZone = document.getElementById('resZone');
+        const resRelative = document.getElementById('resRelative');
+
+        // Right Column (Date -> TS)
+        const dateInput = document.getElementById('dateInput');
+        const setNowBtn = document.getElementById('setNowBtn');
+        const convertToTsBtn = document.getElementById('convertToTsBtn');
+        const clearDateBtn = document.getElementById('clearDateBtn');
+        const dateResultBox = document.getElementById('dateResultBox');
+        const resTsSeconds = document.getElementById('resTsSeconds');
+        const resTsMillis = document.getElementById('resTsMillis');
+
+        // State
+        let isPaused = false;
+        let timerInterval;
+
+        // Common Timezones List
+        const commonTimezones = [
+            { name: "UTC (Coordinated Universal Time)", zone: "UTC" },
+            { name: "🇺🇸 New York (EST/EDT)", zone: "America/New_York" },
+            { name: "🇺🇸 Los Angeles (PST/PDT)", zone: "America/Los_Angeles" },
+            { name: "🇺🇸 Chicago (CST/CDT)", zone: "America/Chicago" },
+            { name: "🇬🇧 London (GMT/BST)", zone: "Europe/London" },
+            { name: "🇫🇷 Paris (CET/CEST)", zone: "Europe/Paris" },
+            { name: "🇩🇪 Berlin (CET/CEST)", zone: "Europe/Berlin" },
+            { name: "🇷🇺 Moscow (MSK)", zone: "Europe/Moscow" },
+            { name: "🇦🇪 Dubai (GST)", zone: "Asia/Dubai" },
+            { name: "🇮🇳 Mumbai (IST)", zone: "Asia/Kolkata" },
+            { name: "🇸🇬 Singapore (SGT)", zone: "Asia/Singapore" },
+            { name: "🇨🇳 Shanghai (CST)", zone: "Asia/Shanghai" },
+            { name: "🇯🇵 Tokyo (JST)", zone: "Asia/Tokyo" },
+            { name: "🇦🇺 Sydney (AEST/AEDT)", zone: "Australia/Sydney" },
+            { name: "🇳🇿 Auckland (NZST/NZDT)", zone: "Pacific/Auckland" }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateTimezones();
+            startClock();
+            setDatePickerToNow();
+            
+            // Try to guess user's timezone to set default selection
+            const userZone = dayjs.tz.guess();
+            if (userZone) {
+                // Check if it exists in our list, otherwise just default to index 0 (UTC) or try to match
+                const exists = Array.from(targetTz.options).some(opt => opt.value === userZone);
+                if (exists) targetTz.value = userZone;
+            }
+        });
+
+        function populateTimezones() {
+            commonTimezones.forEach(tz => {
+                const option = document.createElement('option');
+                option.value = tz.zone;
+                option.textContent = tz.name;
+                targetTz.appendChild(option);
+            });
+        }
+
+        /* === CLOCK LOGIC === */
+        function startClock() {
+            updateClock(); // Run once immediately
+            timerInterval = setInterval(updateClock, 1000);
+        }
+
+        function updateClock() {
+            if (!isPaused) {
+                const now = dayjs();
+                // Update Unix TS
+                currentTimestampDisplay.textContent = now.unix();
+                // Update Human Time
+                currentHumanTimeDisplay.textContent = now.format('dddd, MMM D, YYYY h:mm:ss A');
+            }
+        }
+
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+            pauseBtn.classList.toggle('secondary');
+        });
+
+        copyCurrentBtn.addEventListener('click', () => {
+            copyToClipboard(currentTimestampDisplay.textContent);
+        });
+
+        /* === DATE INPUT HELPERS === */
+        function setDatePickerToNow() {
+            const now = dayjs();
+            // datetime-local requires format YYYY-MM-DDTHH:mm:ss
+            dateInput.value = now.format('YYYY-MM-DDTHH:mm:ss');
+        }
+
+        setNowBtn.addEventListener('click', setDatePickerToNow);
+
+        /* === TIMESTAMP TO DATE CONVERSION === */
+        convertToDateBtn.addEventListener('click', () => {
+            const inputVal = tsInput.value.trim();
+            const selectedZone = targetTz.value;
+            
+            if (!inputVal) {
+                showToast('Please enter a timestamp', 'error');
+                return;
+            }
+
+            let ts = Number(inputVal);
+            if (isNaN(ts)) {
+                showToast('Invalid timestamp format', 'error');
+                return;
+            }
+
+            // Guess if seconds or milliseconds
+            // If less than 100 billion, assume seconds. Else ms.
+            let dayObj;
+            if (ts < 10000000000) {
+                dayObj = dayjs.unix(ts);
+            } else {
+                dayObj = dayjs(ts);
+            }
+
+            if (!dayObj.isValid()) {
+                showToast('Invalid date result', 'error');
+                return;
+            }
+
+            // Render Results
+            resUtc.value = dayObj.utc().format('YYYY-MM-DD HH:mm:ss [UTC]');
+            resLocal.value = dayObj.format('YYYY-MM-DD HH:mm:ss Z'); // Local
+            
+            // Convert to selected timezone
+            resZone.value = dayObj.tz(selectedZone).format('YYYY-MM-DD HH:mm:ss Z');
+            
+            resRelative.textContent = dayObj.fromNow();
+            
+            tsResultBox.classList.remove('hidden');
+        });
+
+        clearTsBtn.addEventListener('click', () => {
+            tsInput.value = '';
+            tsResultBox.classList.add('hidden');
+        });
+
+        /* === DATE TO TIMESTAMP CONVERSION === */
+        convertToTsBtn.addEventListener('click', () => {
+            const dateVal = dateInput.value;
+            
+            if (!dateVal) {
+                showToast('Please select a date', 'error');
+                return;
+            }
+
+            const dayObj = dayjs(dateVal);
+            
+            if (!dayObj.isValid()) {
+                showToast('Invalid date selected', 'error');
+                return;
+            }
+
+            resTsSeconds.value = dayObj.unix();
+            resTsMillis.value = dayObj.valueOf();
+            
+            dateResultBox.classList.remove('hidden');
+        });
+
+        clearDateBtn.addEventListener('click', () => {
+            dateInput.value = '';
+            dateResultBox.classList.add('hidden');
+        });
+
+        /* === UTILITY === */
+        window.copyInput = function(elementId) {
+            const val = document.getElementById(elementId).value;
+            copyToClipboard(val);
+        };
+    </script>
+</body>
+</html>

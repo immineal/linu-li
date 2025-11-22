@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64 Encoder/Decoder | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Base64 Converter</h1>
+                <p>Encode text and images to Base64 strings, or decode strings back to readable text.</p>
+            </div>
+
+            <div class="card">
+                
+                <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem;">
+                    <label>Conversion Mode</label>
+                    <div class="button-group">
+                        <button class="button" id="modeTextBtn">From Text String</button>
+                        <button class="button outline" id="modeImageBtn">From Image File</button>
+                    </div>
+                </div>
+
+                <div id="textModeSection">
+                    <label for="textInput">Input Text / Base64 String</label>
+                    <textarea id="textInput" class="code-editor" placeholder="Type text to encode, or paste a Base64 string to decode..."></textarea>
+                    
+                    <div class="button-group">
+                        <button class="button" id="encodeBtn">Encode to Base64</button>
+                        <button class="button secondary" id="decodeBtn">Decode from Base64</button>
+                        <button class="button outline" id="clearTextBtn">Clear</button>
+                    </div>
+                </div>
+
+                <div id="imageModeSection" class="hidden">
+                    <div class="drop-zone" id="dropZone">
+                        <span class="drop-icon">🖼️</span>
+                        <p>Drag & Drop an image here</p>
+                        <p style="font-size: 0.8rem; color: var(--ink-secondary);">(PNG, JPG, SVG, GIF, WEBP)</p>
+                        <input type="file" id="fileInput" class="hidden" accept="image/*">
+                    </div>
+                    
+                    <ul class="file-list" id="fileList"></ul>
+                </div>
+
+                <div class="result-box hidden" id="resultBox">
+                    <label>Result</label>
+                    
+                    <div id="imagePreviewContainer" class="hidden" style="text-align: center; margin-bottom: 1.5rem; padding: 1rem; background: var(--paper); border: 1px solid var(--border); border-radius: 4px;">
+                        <img id="imagePreview" src="" alt="Preview" style="max-width: 100%; max-height: 300px; height: auto; border-radius: 4px;">
+                        <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem; margin-bottom: 0;">Image Preview (Auto-detected)</p>
+                    </div>
+
+                    <textarea id="outputArea" class="code-editor" readonly></textarea>
+
+                    <div class="button-group" style="margin-top: 1rem;">
+                        <button class="button sm secondary" onclick="copyResult()">Copy Result</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        // --- DOM ELEMENTS ---
+        const modeTextBtn = document.getElementById('modeTextBtn');
+        const modeImageBtn = document.getElementById('modeImageBtn');
+        const textModeSection = document.getElementById('textModeSection');
+        const imageModeSection = document.getElementById('imageModeSection');
+        
+        const textInput = document.getElementById('textInput');
+        const encodeBtn = document.getElementById('encodeBtn');
+        const decodeBtn = document.getElementById('decodeBtn');
+        const clearTextBtn = document.getElementById('clearTextBtn');
+        
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        
+        const resultBox = document.getElementById('resultBox');
+        const outputArea = document.getElementById('outputArea');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+
+        // --- STATE ---
+        let currentMode = 'text'; // 'text' or 'image'
+
+        // --- 1. MODE SWITCHING LOGIC ---
+        function switchMode(mode) {
+            currentMode = mode;
+            resultBox.classList.add('hidden');
+            outputArea.value = '';
+            imagePreviewContainer.classList.add('hidden');
+            fileList.innerHTML = ''; // Clear file list
+
+            if (mode === 'text') {
+                textModeSection.classList.remove('hidden');
+                imageModeSection.classList.add('hidden');
+                
+                modeTextBtn.classList.remove('outline');
+                modeImageBtn.classList.add('outline');
+            } else {
+                textModeSection.classList.add('hidden');
+                imageModeSection.classList.remove('hidden');
+                
+                modeTextBtn.classList.add('outline');
+                modeImageBtn.classList.remove('outline');
+            }
+        }
+
+        modeTextBtn.addEventListener('click', () => switchMode('text'));
+        modeImageBtn.addEventListener('click', () => switchMode('image'));
+
+        // --- 2. TEXT LOGIC (UTF-8 SUPPORT & AUTO-IMAGE DETECT) ---
+        
+        // Helper: Unicode-safe Encode
+        function utf8_to_b64(str) {
+            try {
+                return window.btoa(unescape(encodeURIComponent(str)));
+            } catch (e) {
+                throw new Error('Encoding failed.');
+            }
+        }
+
+        // Helper: Unicode-safe Decode
+        function b64_to_utf8(str) {
+            try {
+                return decodeURIComponent(escape(window.atob(str)));
+            } catch (e) {
+                throw new Error('Invalid Base64 string.');
+            }
+        }
+
+        // --- AUTO IMAGE DETECTION ON INPUT ---
+        textInput.addEventListener('input', () => {
+            const val = textInput.value.trim();
+            if (!val) {
+                // If empty, hide preview if it was shown
+                if (imagePreviewContainer.classList.contains('hidden') === false) {
+                    imagePreviewContainer.classList.add('hidden');
+                    // If no output area content, hide result box too
+                    if (!outputArea.value) resultBox.classList.add('hidden');
+                }
+                return;
+            }
+            detectAndPreviewImage(val);
+        });
+
+        function detectAndPreviewImage(str) {
+            let imgSrc = null;
+
+            // 1. Check for explicit Data URI (e.g., data:image/png;base64,...)
+            if (str.match(/^data:image\/[a-zA-Z]+;base64,/i)) {
+                imgSrc = str;
+            } 
+            // 2. Check for Raw Base64 Signatures (Magic Numbers)
+            else {
+                // PNG (iVBORw0KGgo), JPG (/9j/), GIF (R0lGOD), WEBP (UklGR)
+                if (str.startsWith('iVBORw0KGgo')) imgSrc = `data:image/png;base64,${str}`;
+                else if (str.startsWith('/9j/')) imgSrc = `data:image/jpeg;base64,${str}`;
+                else if (str.startsWith('R0lGOD')) imgSrc = `data:image/gif;base64,${str}`;
+                else if (str.startsWith('UklGR')) imgSrc = `data:image/webp;base64,${str}`;
+            }
+
+            if (imgSrc) {
+                imagePreview.src = imgSrc;
+                imagePreviewContainer.classList.remove('hidden');
+                resultBox.classList.remove('hidden');
+                // We don't populate outputArea here to keep it clean, just show the visual
+            } else {
+                // If input changed to text, hide the image preview
+                imagePreviewContainer.classList.add('hidden');
+            }
+        }
+
+        encodeBtn.addEventListener('click', () => {
+            const input = textInput.value.trim();
+            if (!input) {
+                showToast('Please enter text to encode', 'error');
+                return;
+            }
+            try {
+                const result = utf8_to_b64(input);
+                showResult(result);
+                showToast('Encoded successfully', 'success');
+            } catch (err) {
+                showToast('Encoding error', 'error');
+            }
+        });
+
+        decodeBtn.addEventListener('click', () => {
+            const input = textInput.value.trim();
+            if (!input) {
+                showToast('Please enter a string to decode', 'error');
+                return;
+            }
+            try {
+                const result = b64_to_utf8(input);
+                showResult(result);
+                showToast('Decoded successfully', 'success');
+            } catch (err) {
+                showToast('Invalid Base64 string provided', 'error');
+            }
+        });
+
+        clearTextBtn.addEventListener('click', () => {
+            textInput.value = '';
+            resultBox.classList.add('hidden');
+            imagePreviewContainer.classList.add('hidden');
+            textInput.focus();
+        });
+
+        // --- 3. IMAGE LOGIC ---
+        
+        setupDropZone(dropZone, fileInput, (files) => {
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            
+            // Validation
+            if (!file.type.startsWith('image/')) {
+                showToast('Please upload an image file', 'error');
+                return;
+            }
+
+            // Update UI with file info
+            updateFileList(file);
+
+            // Process File
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const base64String = e.target.result;
+                
+                // Show Preview
+                imagePreview.src = base64String;
+                imagePreviewContainer.classList.remove('hidden');
+                
+                // Show Result
+                showResult(base64String);
+                showToast('Image converted to Base64', 'success');
+            };
+            
+            reader.onerror = function() {
+                showToast('Error reading file', 'error');
+            };
+            
+            reader.readAsDataURL(file);
+        });
+
+        function updateFileList(file) {
+            fileList.innerHTML = ''; // Only allowing single file for this tool
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            li.innerHTML = `
+                <div class="file-info">
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-size">${formatFileSize(file.size)}</div>
+                </div>
+                <button class="remove-file" onclick="clearImageSelection()">&times;</button>
+            `;
+            fileList.appendChild(li);
+        }
+
+        // Exposed to global scope for the onclick in HTML
+        window.clearImageSelection = function() {
+            fileList.innerHTML = '';
+            fileInput.value = ''; // Reset input
+            resultBox.classList.add('hidden');
+            imagePreviewContainer.classList.add('hidden');
+        };
+
+        // --- 4. SHARED HELPERS ---
+
+        function showResult(content) {
+            outputArea.value = content;
+            resultBox.classList.remove('hidden');
+            // Auto-scroll to result
+            resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Helper: Copy Result (Exposed to Window)
+        window.copyResult = function() {
+            const content = outputArea.value;
+            if (!content) return;
+            copyToClipboard(content); 
+        }
+    </script>
+</body>
+</html>

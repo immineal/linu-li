@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Cleaner & Sorter | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>List Cleaner</h1>
+                <p>Organize messy lists: sort, remove duplicates, randomize, or add prefixes/suffixes.</p>
+            </div>
+
+            <div class="split-view">
+                
+                <!-- INPUT COLUMN -->
+                <div class="card" style="display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <label for="listInput" style="margin: 0;">Input List</label>
+                        <span id="inputCount" style="font-size: 0.8rem; color: var(--ink-secondary);">0 lines</span>
+                    </div>
+                    <textarea id="listInput" class="code-editor" style="flex-grow: 1; min-height: 400px;" placeholder="Paste your list here (one item per line)..."></textarea>
+                </div>
+
+                <!-- CONTROLS & OUTPUT COLUMN -->
+                <div class="card">
+                    <label>Actions</label>
+                    <div class="button-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem;">
+                        <button class="button outline" onclick="processList('sortAZ')">Sort A → Z</button>
+                        <button class="button outline" onclick="processList('sortZA')">Sort Z → A</button>
+                        <button class="button outline" onclick="processList('reverse')">Reverse Order</button>
+                        <button class="button outline" onclick="processList('random')">Randomize</button>
+                        <button class="button outline" onclick="processList('dedup')">Remove Duplicates</button>
+                        <button class="button outline" onclick="processList('trim')">Trim Whitespace</button>
+                        <button class="button outline" onclick="processList('empty')">Remove Empty Lines</button>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border); padding-top: 1rem; margin-bottom: 1.5rem;">
+                        <label>Decorate Items</label>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="prefixInput" placeholder="Prefix (start)" style="margin-bottom: 0;">
+                            <input type="text" id="suffixInput" placeholder="Suffix (end)" style="margin-bottom: 0;">
+                        </div>
+                        <button class="button outline" style="width: 100%;" onclick="processList('decorate')">Apply Prefix/Suffix</button>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label style="margin: 0;">Result</label>
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <span id="outputCount" style="font-size: 0.8rem; color: var(--ink-secondary);">0 lines</span>
+                                <button class="button sm secondary" onclick="copyResult()">Copy</button>
+                            </div>
+                        </div>
+                        <textarea id="listOutput" class="code-editor" style="min-height: 200px; background: var(--paper);" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        const listInput = document.getElementById('listInput');
+        const listOutput = document.getElementById('listOutput');
+        const inputCount = document.getElementById('inputCount');
+        const outputCount = document.getElementById('outputCount');
+        const prefixInput = document.getElementById('prefixInput');
+        const suffixInput = document.getElementById('suffixInput');
+
+        // Update line count on type
+        listInput.addEventListener('input', () => {
+            const lines = listInput.value.split('\n').length;
+            inputCount.textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
+        });
+
+        function processList(action) {
+            let raw = listInput.value;
+            if (!raw) return;
+
+            // Split into array
+            let items = raw.split('\n');
+
+            switch(action) {
+                case 'sortAZ':
+                    items.sort((a, b) => a.localeCompare(b));
+                    break;
+                case 'sortZA':
+                    items.sort((a, b) => b.localeCompare(a));
+                    break;
+                case 'reverse':
+                    items.reverse();
+                    break;
+                case 'random':
+                    items.sort(() => Math.random() - 0.5);
+                    break;
+                case 'dedup':
+                    // Use Set to remove duplicates, preserve order
+                    items = [...new Set(items)];
+                    break;
+                case 'trim':
+                    items = items.map(item => item.trim());
+                    break;
+                case 'empty':
+                    items = items.filter(item => item.trim() !== '');
+                    break;
+                case 'decorate':
+                    const pre = prefixInput.value || '';
+                    const suf = suffixInput.value || '';
+                    items = items.map(item => `${pre}${item}${suf}`);
+                    break;
+            }
+
+            const result = items.join('\n');
+            listOutput.value = result;
+            
+            const outLines = items.length;
+            outputCount.textContent = `${outLines} line${outLines !== 1 ? 's' : ''}`;
+            
+            // Highlight output
+            listOutput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function copyResult() {
+            copyToClipboard(listOutput.value);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Watermarker | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <!-- External Libraries -->
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        .preview-wrapper {
+            position: relative;
+            width: 100%;
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            min-height: 400px;
+            user-select: none;
+        }
+
+        .canvas-container {
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            line-height: 0;
+        }
+
+        #pdfPreviewCanvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .watermark-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            cursor: grab;
+            white-space: nowrap;
+            font-family: Helvetica, sans-serif;
+            font-weight: bold;
+            line-height: 1;
+            /* Match pdf-lib rotation anchor (bottom-left of text box) */
+            transform-origin: 0% 100%; 
+            border: 2px dashed rgba(196, 77, 60, 0.5); /* Accent color */
+            z-index: 10;
+            padding: 0 4px; /* Handle padding for cursor grabbing */
+        }
+
+        .watermark-overlay:active {
+            cursor: grabbing;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>PDF Watermarker</h1>
+                <p>Stamp text onto your PDF. Drag the text on the preview to position it.</p>
+            </div>
+
+            <div class="card">
+                
+                <!-- SECTION: FILE UPLOAD -->
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-icon">📄</span>
+                    <p>Drag & Drop PDF file here</p>
+                    <input type="file" id="fileInput" class="hidden" accept="application/pdf">
+                </div>
+
+                <!-- SECTION: PREVIEW & EDITOR (Hidden initially) -->
+                <div id="editorArea" class="hidden">
+                    
+                    <div class="preview-wrapper">
+                        <div class="canvas-container" id="canvasContainer">
+                            <canvas id="pdfPreviewCanvas"></canvas>
+                            <div id="watermarkOverlay" class="watermark-overlay">CONFIDENTIAL</div>
+                        </div>
+                    </div>
+
+                    <div class="split-view">
+                        <div>
+                            <label>Watermark Text</label>
+                            <input type="text" id="watermarkText" value="CONFIDENTIAL">
+                        </div>
+                        <div>
+                            <label>Color</label>
+                            <select id="watermarkColor">
+                                <option value="0.76, 0.3, 0.23">Accent Red</option>
+                                <option value="0.42, 0.56, 0.5">Secondary Green</option>
+                                <option value="0.6, 0.6, 0.6" selected>Grey</option>
+                                <option value="0, 0, 0">Black</option>
+                                <option value="0.9, 0.9, 0.9">Light Watermark</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="split-view">
+                        <div>
+                            <label>Opacity: <span id="opacityValue">0.5</span></label>
+                            <input type="range" id="opacityRange" min="0.1" max="1" step="0.1" value="0.5">
+                        </div>
+                        <div>
+                            <label>Font Size (Points): <span id="sizeValue">60</span></label>
+                            <input type="range" id="fontSize" min="10" max="300" step="5" value="60">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <label>Rotation: <span id="rotValue">45</span>°</label>
+                        <input type="range" id="rotRange" min="-180" max="180" step="5" value="45">
+                    </div>
+
+                </div>
+
+                <!-- SECTION: CONTROLS -->
+                <div class="button-group">
+                    <button class="button" id="processBtn" disabled>Apply & Download</button>
+                    <button class="button outline" id="clearBtn">Reset</button>
+                </div>
+
+                <!-- SECTION: RESULTS -->
+                <div class="result-box hidden" id="resultBox">
+                    <p style="margin-bottom: 1rem; text-align: center;">Watermark applied successfully!</p>
+                    <div style="display: flex; justify-content: center;">
+                        <a id="downloadLink" class="button secondary" download="watermarked.pdf">Download PDF</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <!-- CORE LAYOUT SCRIPT -->
+    <script src="../../assets/js/layout.js"></script>
+    
+    <!-- TOOL LOGIC -->
+    <script>
+        // Setup PDF.js Worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        // Import PDFLib primitives
+        const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
+
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const editorArea = document.getElementById('editorArea');
+        const processBtn = document.getElementById('processBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const resultBox = document.getElementById('resultBox');
+        const downloadLink = document.getElementById('downloadLink');
+
+        // Canvas Elements
+        const canvas = document.getElementById('pdfPreviewCanvas');
+        const overlay = document.getElementById('watermarkOverlay');
+        const canvasContainer = document.getElementById('canvasContainer');
+
+        // Inputs
+        const txtInput = document.getElementById('watermarkText');
+        const colInput = document.getElementById('watermarkColor');
+        const opRange = document.getElementById('opacityRange');
+        const opVal = document.getElementById('opacityValue');
+        const szRange = document.getElementById('fontSize');
+        const szVal = document.getElementById('sizeValue');
+        const rotRange = document.getElementById('rotRange');
+        const rotVal = document.getElementById('rotValue');
+
+        // State
+        let currentFile = null;
+        let generatedPdfUrl = null;
+        
+        // Position State (Relative Percentage 0.0 - 1.0)
+        let posX = 0.3; 
+        let posY = 0.5;
+        
+        // Scale Ratio (Screen Pixels per PDF Point)
+        let renderScaleRatio = 1; 
+
+        // --- 1. Event Listeners ---
+        opRange.addEventListener('input', updateVisuals);
+        szRange.addEventListener('input', updateVisuals);
+        rotRange.addEventListener('input', updateVisuals);
+        txtInput.addEventListener('input', updateVisuals);
+        colInput.addEventListener('change', updateVisuals);
+
+        function updateVisuals() {
+            // Update Text Displays
+            opVal.textContent = opRange.value;
+            szVal.textContent = szRange.value;
+            rotVal.textContent = rotRange.value;
+
+            // Update Overlay Content
+            overlay.textContent = txtInput.value || "CONFIDENTIAL";
+            overlay.style.opacity = opRange.value;
+            
+            // Update Overlay Size
+            // Fix: Multiply PDF Point Size by the Render Scale Ratio
+            // This ensures 60pt on PDF looks like 60pt * scale on screen.
+            const visualSize = parseInt(szRange.value) * renderScaleRatio;
+            overlay.style.fontSize = `${visualSize}px`;
+
+            // Update Rotation
+            // CSS Rotation is clockwise. pdf-lib is counter-clockwise.
+            // We use negative here for visual preview so logic matches pdf-lib expectation later.
+            overlay.style.transform = `rotate(${rotRange.value * -1}deg)`;
+
+            // Update Color
+            const rgbStr = colInput.value.split(',').map(n => Math.floor(parseFloat(n) * 255));
+            overlay.style.color = `rgb(${rgbStr.join(',')})`;
+        }
+
+        // --- 2. File Loading ---
+        setupDropZone(dropZone, fileInput, handleFiles);
+
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+            const file = files[0];
+            if (file.type !== 'application/pdf') {
+                showToast('Please upload a PDF.', 'error');
+                return;
+            }
+
+            currentFile = file;
+            dropZone.classList.add('hidden');
+            editorArea.classList.remove('hidden');
+            processBtn.disabled = false;
+
+            await renderPreview(file);
+            initDraggable(); 
+        }
+
+        async function renderPreview(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            const page = await pdf.getPage(1);
+            
+            // 1. Get Unscaled Viewport (Original PDF Dimensions in Points)
+            const unscaledViewport = page.getViewport({ scale: 1 });
+            
+            // 2. Calculate Fit Scale (Fit to width of container, max 800px)
+            const desiredWidth = Math.min(800, window.innerWidth - 60);
+            const scale = desiredWidth / unscaledViewport.width;
+            
+            // Store this ratio for Font Sizing
+            renderScaleRatio = scale;
+
+            // 3. Render Canvas
+            const scaledViewport = page.getViewport({ scale: scale });
+            canvas.width = scaledViewport.width;
+            canvas.height = scaledViewport.height;
+
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+
+            // Set initial overlay position
+            overlay.style.left = (canvas.width * posX) + 'px';
+            overlay.style.top = (canvas.height * posY) + 'px';
+            
+            // Force update visuals now that we have the correct scale ratio
+            updateVisuals();
+        }
+
+        // --- 3. Draggable Logic ---
+        function initDraggable() {
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+
+            const onMouseDown = (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                initialLeft = overlay.offsetLeft;
+                initialTop = overlay.offsetTop;
+                
+                overlay.style.cursor = 'grabbing';
+                
+                // Add listeners to document to catch fast movements outside div
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+
+            const onMouseMove = (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                let newLeft = initialLeft + dx;
+                let newTop = initialTop + dy;
+
+                // Keep loosely within bounds
+                newLeft = Math.max(-50, Math.min(newLeft, canvas.width + 50));
+                newTop = Math.max(-50, Math.min(newTop, canvas.height + 50));
+
+                overlay.style.left = `${newLeft}px`;
+                overlay.style.top = `${newTop}px`;
+
+                // Save percentage position
+                posX = newLeft / canvas.width;
+                posY = newTop / canvas.height;
+            };
+
+            const onMouseUp = () => {
+                isDragging = false;
+                overlay.style.cursor = 'grab';
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+
+            overlay.addEventListener('mousedown', onMouseDown);
+            overlay.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent scrolling while dragging
+                onMouseDown(e.touches[0]);
+            }, { passive: false });
+        }
+
+        // --- 4. PDF Generation Logic ---
+        processBtn.addEventListener('click', async () => {
+            if (!currentFile) return;
+            processBtn.disabled = true;
+            processBtn.textContent = 'Processing...';
+
+            try {
+                const arrayBuffer = await currentFile.arrayBuffer();
+                const pdfDoc = await PDFDocument.load(arrayBuffer);
+                const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+                const text = txtInput.value || 'CONFIDENTIAL';
+                const fontSize = parseInt(szRange.value); // Use Raw Point Size
+                const opacity = parseFloat(opRange.value);
+                const angle = parseInt(rotRange.value);
+                
+                const colorVals = colInput.value.split(',').map(Number);
+                const color = rgb(colorVals[0], colorVals[1], colorVals[2]);
+
+                const pages = pdfDoc.getPages();
+
+                pages.forEach(page => {
+                    const { width, height } = page.getSize();
+                    
+                    // Convert percentage position to PDF coordinates
+                    const pdfX = width * posX;
+                    
+                    // PDF Y is inverted (0 at bottom)
+                    // HTML y=0 is top. We saved posY as (TopOffset / CanvasHeight)
+                    const pdfY = height - (height * posY);
+
+                    page.drawText(text, {
+                        x: pdfX,
+                        y: pdfY,
+                        size: fontSize,
+                        font: helveticaFont,
+                        color: color,
+                        opacity: opacity,
+                        rotate: degrees(angle),
+                    });
+                });
+
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                
+                if (generatedPdfUrl) URL.revokeObjectURL(generatedPdfUrl);
+                generatedPdfUrl = URL.createObjectURL(blob);
+                
+                downloadLink.href = generatedPdfUrl;
+                downloadLink.download = `watermarked-${currentFile.name}`;
+                
+                resultBox.classList.remove('hidden');
+                resultBox.scrollIntoView({ behavior: 'smooth' });
+
+            } catch (err) {
+                console.error(err);
+                showToast('Error applying watermark.', 'error');
+            } finally {
+                processBtn.disabled = false;
+                processBtn.textContent = 'Apply & Download';
+            }
+        });
+
+        // --- 5. Reset ---
+        clearBtn.addEventListener('click', () => {
+            currentFile = null;
+            fileInput.value = '';
+            editorArea.classList.add('hidden');
+            resultBox.classList.add('hidden');
+            dropZone.classList.remove('hidden');
+            if (generatedPdfUrl) URL.revokeObjectURL(generatedPdfUrl);
+        });
+
+    </script>
+</body>
+</html>

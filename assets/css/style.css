@@ -1,0 +1,285 @@
+/* === FONTS === */
+@font-face { font-family: 'Libre Baskerville'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/libre-baskerville-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Libre Baskerville'; font-style: italic; font-weight: 400; font-display: swap; src: url('../fonts/libre-baskerville-latin-400-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Libre Baskerville'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/libre-baskerville-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/space-grotesk-latin-400-500-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/space-grotesk-latin-400-500-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/space-grotesk-latin-400-500-700-normal.woff2') format('woff2'); }
+
+:root {
+    /* Color Scheme - Muted Analog Film */
+    --paper: #faf6f2;
+    --ink: #2a2621;
+    --accent: #c44d3c;     
+    --accent-secondary: #6b9080; 
+    --border: rgba(42, 38, 33, 0.15);
+    --card-bg: #ffffff;
+    --input-bg: #faf6f2;
+    --input-text: #2a2621;
+    --ink-secondary: rgba(42, 38, 33, 0.7);
+    --code-bg: #f4f1ed;
+    --header-height: 80px;
+    
+    /* Typography */
+    --font-heading: 'Space Grotesk', system-ui, sans-serif;
+    --font-body: 'Libre Baskerville', Georgia, serif;
+    --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+}
+
+/* === RESET & BASE === */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+    font-family: var(--font-body); color: var(--ink); background: var(--paper);
+    line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column;
+}
+/* Texture Overlay */
+body::after {
+    content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 1px, transparent 1px, transparent 4px);
+    pointer-events: none; z-index: -1;
+}
+
+main { flex-grow: 1; padding-top: var(--header-height); }
+
+/* === TYPOGRAPHY === */
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); font-weight: 500; letter-spacing: -0.03em; margin-bottom: 1rem; color: var(--ink); }
+h1 { font-size: clamp(2rem, 6vw, 3rem); line-height: 1.1; }
+h2 { font-size: clamp(1.5rem, 5vw, 2.2rem); }
+p { max-width: 65ch; margin-bottom: 1.5rem; }
+a { color: var(--accent); text-decoration: none; transition: opacity 0.3s; }
+a:hover { opacity: 0.7; text-decoration: underline; }
+.hidden { display: none !important; }
+
+/* === LAYOUT === */
+.container { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.tool-header { text-align: center; margin-bottom: 3rem; }
+.tool-header h1 { margin-bottom: 0.5rem; }
+.tool-header p { margin: 0 auto; color: var(--ink-secondary); }
+
+/* Split View (for Diff Checker, Markdown, Converters) */
+.split-view { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+@media (max-width: 768px) { .split-view { grid-template-columns: 1fr; } }
+
+/* === HEADER & NAV === */
+.main-header {
+    position: fixed; top: 0; left: 0; width: 100%;
+    background: rgba(250, 246, 242, 0.9); backdrop-filter: blur(5px);
+    border-bottom: 1px solid var(--border); z-index: 1000;
+    height: var(--header-height); display: flex; align-items: center;
+}
+.main-header nav { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; width: 100%; margin: 0 auto; padding: 0 1.5rem; }
+.logo-link { font-family: var(--font-heading); font-weight: 700; font-size: 1.2rem; color: var(--ink); text-decoration: none; }
+
+/* === UI: CARDS === */
+.card {
+    background: var(--card-bg); border: 1px solid var(--border); padding: 2rem;
+    border-radius: 4px; transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card.interactive { cursor: pointer; height: 100%; display: flex; flex-direction: column; text-decoration: none;}
+.card.interactive:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(0,0,0,0.06); border-color: var(--accent); }
+
+/* === UI: FORMS & INPUTS === */
+label { display: block; margin-bottom: 0.5rem; font-family: var(--font-heading); font-size: 0.9rem; font-weight: 500; }
+
+input[type="text"], input[type="number"], input[type="file"], select, textarea {
+    width: 100%; padding: 0.8rem 1rem; margin-bottom: 1.25rem;
+    border: 1px solid var(--border); background: var(--input-bg); color: var(--input-text);
+    font-family: var(--font-body); font-size: 1rem; border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+/* Code/Data Editor Style (for JSON, Base64, CSS) */
+textarea.code-editor {
+    font-family: var(--font-mono); font-size: 0.9rem; white-space: pre;
+    background: var(--code-bg); min-height: 200px; margin-bottom: 0;
+}
+
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(196, 77, 60, 0.1); }
+
+/* Range Slider */
+input[type=range] { width: 100%; margin: 10px 0; cursor: pointer; accent-color: var(--accent); }
+
+/* Toggle Switch */
+.toggle-wrapper { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; cursor: pointer; }
+.toggle-switch { position: relative; width: 44px; height: 24px; background: #ccc; border-radius: 24px; transition: 0.3s; }
+.toggle-checkbox:checked + .toggle-switch { background: var(--accent-secondary); }
+.toggle-switch::before { content: ''; position: absolute; width: 18px; height: 18px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: 0.3s; }
+.toggle-checkbox:checked + .toggle-switch::before { transform: translateX(20px); }
+.toggle-checkbox { display: none; }
+
+/* === UI: BUTTONS === */
+.button-group { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+.button {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.75rem 1.5rem; background: var(--accent); color: white;
+    font-family: var(--font-heading); font-weight: 500; border: none;
+    cursor: pointer; border-radius: 4px; transition: all 0.2s; text-decoration: none; font-size: 1rem;
+}
+.button:hover { background-color: #a83f31; transform: translateY(-1px); opacity: 1; color: white; }
+.button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.button.secondary { background: var(--accent-secondary); }
+.button.secondary:hover { background: #577a6b; }
+.button.outline { background: transparent; border: 1px solid var(--border); color: var(--ink); }
+.button.outline:hover { border-color: var(--accent); color: var(--accent); background: rgba(196, 77, 60, 0.05); }
+.button.sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+
+/* === UI: DROP ZONE (PDFs/Images) === */
+.drop-zone {
+    border: 2px dashed var(--border); padding: 3rem; text-align: center;
+    background: rgba(0,0,0,0.02); border-radius: 8px; transition: all 0.3s; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 200px;
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: rgba(196, 77, 60, 0.05); }
+.drop-zone p { margin-bottom: 0.5rem; pointer-events: none; }
+.drop-icon { font-size: 2.5rem; opacity: 0.5; margin-bottom: 1rem; }
+
+/* === UI: FILE LIST (For Mergers/Batch) === */
+.file-list { margin-top: 1.5rem; list-style: none; padding: 0; }
+.file-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.8rem; background: var(--paper); border: 1px solid var(--border);
+    margin-bottom: 0.5rem; border-radius: 4px;
+}
+.file-info { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+.file-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem; max-width: 300px;}
+.file-size { font-size: 0.8rem; color: var(--ink-secondary); font-family: var(--font-mono); }
+.remove-file { color: var(--accent); cursor: pointer; background: none; border: none; font-size: 1.2rem; padding: 0 0.5rem; }
+
+/* === UI: RESULTS & OUTPUT === */
+.result-box { margin-top: 2rem; padding: 1.5rem; background: var(--paper); border: 1px solid var(--border); border-radius: 4px; position: relative; }
+.result-box.code-view { font-family: var(--font-mono); white-space: pre-wrap; word-break: break-all; background: var(--code-bg); max-height: 400px; overflow-y: auto; }
+.big-display { font-size: 4rem; font-weight: 700; font-family: var(--font-mono); text-align: center; margin: 1rem 0; letter-spacing: -2px; }
+
+/* === PROGRESS BAR === */
+.progress-container { width: 100%; height: 6px; background: #e0e0e0; border-radius: 3px; margin: 1rem 0; overflow: hidden; display: none; }
+.progress-fill { height: 100%; background: var(--accent-secondary); width: 0%; transition: width 0.3s; }
+
+/* === TOAST NOTIFICATION === */
+.toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+    padding: 1rem 1.5rem; background: var(--ink); color: var(--paper);
+    border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    font-family: var(--font-heading); font-size: 0.9rem;
+    animation: slideIn 0.3s ease-out forwards;
+}
+.toast.success { border-left: 4px solid var(--accent-secondary); }
+.toast.error { border-left: 4px solid var(--accent); }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* === DARK MODE OVERRIDES === */
+body.dark-mode {
+    --paper: #1a1918; --ink: #e8e6e3; --accent: #b56d5a; --accent-secondary: #88a899;
+    --border: rgba(232, 230, 227, 0.15); --card-bg: #252422; --input-bg: #333230;
+    --input-text: #e8e6e3; --ink-secondary: rgba(232, 230, 227, 0.7); --code-bg: #2a2927;
+}
+body.dark-mode .main-header { background: rgba(26, 25, 24, 0.95); }
+body.dark-mode::after { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 5px); }
+body.dark-mode .switch-track { background-color: #666666; }
+body.dark-mode .switch-thumb { left: 27px; }
+body.dark-mode .drop-zone { background: rgba(255,255,255,0.02); }
+body.dark-mode .toggle-switch { background: #555; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container { padding: 1.5rem 1rem; }
+    h1 { font-size: 2rem; }
+    .main-header { padding: 0 1rem; }
+    .big-display { font-size: 2.5rem; }
+}
+
+/* === FAVORITES SYSTEM === */
+.favorites-section {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px dashed var(--border);
+    display: none; /* Hidden by default if empty */
+}
+.favorites-section.has-items { display: block; }
+
+/* The Heart Toggle Button */
+.fav-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--ink);
+    opacity: 0.5;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 10;
+    padding: 0;
+    line-height: 1;
+}
+
+.fav-btn:hover { 
+    transform: scale(1.2); 
+    color: var(--accent); 
+    opacity: 1; /* Full visibility on hover */
+}
+
+.fav-btn.active { 
+    color: var(--accent); 
+    opacity: 1; /* Full visibility when active */
+}
+
+/* Ensure card handles absolute positioning */
+.card.interactive { position: relative; }
+
+/* === HEADER THEME SWITCH FIX === */
+
+/* 1. The Clickable Container (Invisible, but provides hit area) */
+.theme-switch {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 10px; /* Adds invisible padding to make it easier to aim/click */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent; /* Removes blue tap box on mobile */
+}
+
+/* 2. The Track (The pill shape) */
+.switch-track {
+    width: 52px;
+    height: 28px;
+    background-color: rgba(42, 38, 33, 0.2); /* Using your --ink color with opacity */
+    border-radius: 30px;
+    position: relative;
+    transition: background-color 0.3s ease;
+}
+
+/* 3. The Thumb (The sliding circle) */
+.switch-thumb {
+    width: 22px;
+    height: 22px;
+    background-color: var(--paper); /* Matches your background color */
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* 4. Hover Effect */
+.theme-switch:hover .switch-track {
+    background-color: rgba(42, 38, 33, 0.3);
+}
+
+/* === DARK MODE STATES === */
+
+/* Slide the thumb to the right */
+body.dark-mode .switch-thumb {
+    transform: translateX(0px);
+    background-color: #ffffff;
+}
+
+/* Change track color when active */
+body.dark-mode .switch-track {
+    background-color: var(--accent-secondary); /* Your green accent */
+}

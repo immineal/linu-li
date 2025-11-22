@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Decoder | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <style>
+        .jwt-section {
+            margin-bottom: 1.5rem;
+        }
+        .jwt-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        /* Standard JWT Colors */
+        .color-header { color: #fb015b; }
+        .color-payload { color: #d63aff; }
+        .color-signature { color: #00b9f1; }
+        
+        .border-header { border-left: 4px solid #fb015b; }
+        .border-payload { border-left: 4px solid #d63aff; }
+        .border-signature { border-left: 4px solid #00b9f1; }
+
+        .timestamp-hint {
+            color: var(--ink-secondary);
+            font-size: 0.8rem;
+            font-family: var(--font-body);
+            font-style: italic;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>JWT Decoder</h1>
+                <p>Decode JSON Web Tokens (JWT) to view their header and payload. <br>Client-side only; tokens never leave your browser.</p>
+            </div>
+
+            <div class="split-view">
+                
+                <!-- INPUT -->
+                <div class="card" style="display: flex; flex-direction: column;">
+                    <label for="jwtInput">Encoded Token</label>
+                    <textarea id="jwtInput" class="code-editor" style="flex-grow: 1; min-height: 400px; color: var(--ink-secondary);" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
+                    <div class="button-group">
+                        <button class="button outline" id="clearBtn">Clear</button>
+                        <button class="button outline" id="pasteBtn">Paste</button>
+                    </div>
+                </div>
+
+                <!-- OUTPUT -->
+                <div class="card">
+                    
+                    <!-- HEADER -->
+                    <div class="jwt-section">
+                        <div class="jwt-label color-header">
+                            Header
+                            <span style="font-size: 0.7rem; opacity: 0.7;">ALGORITHM & TOKEN TYPE</span>
+                        </div>
+                        <textarea id="outHeader" class="code-editor border-header" readonly style="min-height: 100px;"></textarea>
+                    </div>
+
+                    <!-- PAYLOAD -->
+                    <div class="jwt-section">
+                        <div class="jwt-label color-payload">
+                            Payload
+                            <span style="font-size: 0.7rem; opacity: 0.7;">DATA</span>
+                        </div>
+                        <textarea id="outPayload" class="code-editor border-payload" readonly style="min-height: 250px;"></textarea>
+                    </div>
+
+                    <!-- SIGNATURE -->
+                    <div class="jwt-section">
+                        <div class="jwt-label color-signature">
+                            Signature
+                            <span style="font-size: 0.7rem; opacity: 0.7;">VERIFICATION</span>
+                        </div>
+                        <div class="code-editor border-signature" style="min-height: 60px; font-family: var(--font-mono); word-break: break-all; color: var(--ink-secondary); padding: 1rem;">
+                            <span id="outSignature">waiting for input...</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        const input = document.getElementById('jwtInput');
+        const outHeader = document.getElementById('outHeader');
+        const outPayload = document.getElementById('outPayload');
+        const outSignature = document.getElementById('outSignature');
+        const clearBtn = document.getElementById('clearBtn');
+        const pasteBtn = document.getElementById('pasteBtn');
+
+        function decode() {
+            const token = input.value.trim();
+            
+            if (!token) {
+                resetOutputs();
+                return;
+            }
+
+            const parts = token.split('.');
+            if (parts.length !== 3) {
+                // Basic validation fail
+                outHeader.value = "Invalid Token Format";
+                outPayload.value = "";
+                outSignature.textContent = "";
+                return;
+            }
+
+            try {
+                // Decode Header
+                const headerObj = JSON.parse(base64UrlDecode(parts[0]));
+                outHeader.value = JSON.stringify(headerObj, null, 2);
+
+                // Decode Payload
+                const payloadObj = JSON.parse(base64UrlDecode(parts[1]));
+                
+                // Annotate Timestamps for display
+                // We do this by intercepting the stringify process or appending comments?
+                // Easier: Convert to string first, then do a display version
+                
+                // Let's construct a display string that isn't valid JSON but is readable
+                // Or just parse it and modify the specific fields if they exist
+                
+                outPayload.value = JSON.stringify(payloadObj, null, 2);
+                
+                // Add comments to specific lines if possible, or just show toast
+                checkForTimestamps(payloadObj);
+
+                // Signature (just show encoded part)
+                outSignature.textContent = parts[2];
+
+            } catch (e) {
+                outHeader.value = "Error decoding token.";
+                console.error(e);
+            }
+        }
+
+        function base64UrlDecode(str) {
+            // Replace non-url compatible chars
+            let output = str.replace(/-/g, '+').replace(/_/g, '/');
+            // Pad with =
+            switch (output.length % 4) {
+                case 0: break;
+                case 2: output += '=='; break;
+                case 3: output += '='; break;
+                default: throw 'Illegal base64url string!';
+            }
+            return decodeURIComponent(escape(window.atob(output))); 
+            // Note: decodeURIComponent(escape(...)) handles UTF-8 characters correctly
+        }
+
+        function checkForTimestamps(obj) {
+            // Helper to show toast for expiration
+            if (obj.exp) {
+                const date = new Date(obj.exp * 1000);
+                showToast(`Expires: ${date.toLocaleString()}`, 'info');
+            }
+        }
+
+        function resetOutputs() {
+            outHeader.value = "";
+            outPayload.value = "";
+            outSignature.textContent = "waiting for input...";
+        }
+
+        input.addEventListener('input', decode);
+        
+        clearBtn.addEventListener('click', () => {
+            input.value = '';
+            resetOutputs();
+        });
+
+        pasteBtn.addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                input.value = text;
+                decode();
+            } catch (err) {
+                showToast('Clipboard permission denied', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case Converter | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Case Converter</h1>
+                <p>Transform text between UPPERCASE, lowercase, Title Case, camelCase, and more.</p>
+            </div>
+
+            <div class="card">
+                <label for="textInput">Input Text</label>
+                <textarea id="textInput" class="code-editor" style="min-height: 200px;" placeholder="Type or paste your text here..."></textarea>
+
+                <div class="button-group" style="margin-bottom: 1.5rem; justify-content: center;">
+                    <button class="button outline" onclick="convert('upper')">UPPERCASE</button>
+                    <button class="button outline" onclick="convert('lower')">lowercase</button>
+                    <button class="button outline" onclick="convert('title')">Title Case</button>
+                    <button class="button outline" onclick="convert('sentence')">Sentence case</button>
+                    <button class="button outline" onclick="convert('camel')">camelCase</button>
+                    <button class="button outline" onclick="convert('snake')">snake_case</button>
+                    <button class="button outline" onclick="convert('kebab')">kebab-case</button>
+                    <button class="button outline" onclick="convert('alternating')">aLtErNaTiNg</button>
+                </div>
+
+                <div class="result-box hidden" id="resultBox">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label style="margin-bottom: 0;">Result</label>
+                        <div class="button-group" style="margin: 0;">
+                            <button class="button sm secondary" id="copyBtn">Copy</button>
+                            <button class="button sm outline" id="clearBtn">Clear</button>
+                        </div>
+                    </div>
+                    <textarea id="outputBox" class="code-editor" readonly style="background: var(--paper); min-height: 200px;"></textarea>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        const textInput = document.getElementById('textInput');
+        const outputBox = document.getElementById('outputBox');
+        const resultBox = document.getElementById('resultBox');
+        const copyBtn = document.getElementById('copyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        function convert(type) {
+            let text = textInput.value;
+            if (!text) return;
+
+            let result = '';
+
+            switch(type) {
+                case 'upper':
+                    result = text.toUpperCase();
+                    break;
+                case 'lower':
+                    result = text.toLowerCase();
+                    break;
+                case 'title':
+                    result = text.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+                    break;
+                case 'sentence':
+                    result = text.toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g, c => c.toUpperCase());
+                    break;
+                case 'alternating':
+                    result = text.split('').map((c, i) => i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()).join('');
+                    break;
+                case 'camel':
+                    // Convert to plain words first, then camel
+                    result = toWords(text)
+                        .map((w, i) => i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                        .join('');
+                    break;
+                case 'snake':
+                    result = toWords(text).map(w => w.toLowerCase()).join('_');
+                    break;
+                case 'kebab':
+                    result = toWords(text).map(w => w.toLowerCase()).join('-');
+                    break;
+            }
+
+            outputBox.value = result;
+            resultBox.classList.remove('hidden');
+            resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Helper to split text into words regardless of current casing
+        function toWords(text) {
+            // Split by space, punctuation, or CamelCase boundary
+            return text
+                .replace(/([a-z])([A-Z])/g, '$1 $2') // split camelCase
+                .replace(/[_-]/g, ' ') // split snake/kebab
+                .split(/\s+/)
+                .filter(w => w.length > 0);
+        }
+
+        copyBtn.addEventListener('click', () => copyToClipboard(outputBox.value));
+        
+        clearBtn.addEventListener('click', () => {
+            textInput.value = '';
+            outputBox.value = '';
+            resultBox.classList.add('hidden');
+            textInput.focus();
+        });
+    </script>
+</body>
+</html>

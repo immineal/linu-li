@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Page Duplicator | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>PDF Page Duplicator</h1>
+                <p>Create a new landscape PDF with two pages side-by-side. Supports duplicating pages or arranging them sequentially.</p>
+            </div>
+
+            <div class="card">
+                
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-icon">📄</span>
+                    <p>Drag & Drop PDF file here</p>
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0;">or click to browse</p>
+                    <input type="file" id="fileInput" class="hidden" accept="application/pdf">
+                </div>
+
+                <ul class="file-list" id="fileList"></ul>
+
+                <div id="optionsPanel" class="hidden" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 2rem;">
+                    
+                    <label for="layoutStyle">Layout Style</label>
+                    <select id="layoutStyle">
+                        <option value="duplicate">Duplicate Each Page (e.g., 1-1, 2-2, 3-3)</option>
+                        <option value="sequential">Arrange Sequentially (e.g., 1-2, 3-4, 5-6)</option>
+                    </select>
+
+                    <div class="split-view">
+                        <div>
+                            <label for="pageMargin">Page Margin (mm)</label>
+                            <input type="number" id="pageMargin" value="0" min="0" step="1" placeholder="0">
+                        </div>
+                        <div>
+                            <label for="cutLine">Cut Line Style</label>
+                            <select id="cutLine">
+                                <option value="dashed">Dashed Line</option>
+                                <option value="solid">Solid Line</option>
+                                <option value="none">No Line</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="button" id="processBtn" disabled>Process PDF</button>
+                    <button class="button outline" id="clearBtn" disabled>Clear</button>
+                </div>
+
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+
+                <div class="result-box hidden" id="resultBox">
+                    <div style="text-align: center;">
+                        <h3 style="margin-bottom: 0.5rem;">Success!</h3>
+                        <p style="margin-bottom: 1.5rem;">Your PDF has been processed successfully.</p>
+                        <a id="downloadLink" class="button secondary">Download Result</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    
+    <script>
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const optionsPanel = document.getElementById('optionsPanel');
+        const processBtn = document.getElementById('processBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const resultBox = document.getElementById('resultBox');
+        const downloadLink = document.getElementById('downloadLink');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+
+        // Inputs
+        const layoutStyleInput = document.getElementById('layoutStyle');
+        const pageMarginInput = document.getElementById('pageMargin');
+        const cutLineInput = document.getElementById('cutLine');
+
+        // State
+        let currentFile = null;
+
+        // 1. Setup Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDropZone(dropZone, fileInput, handleFileSelection);
+        });
+
+        // 2. Handle File Selection
+        function handleFileSelection(files) {
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            if (file.type !== 'application/pdf') {
+                showToast('Please upload a valid PDF file.', 'error');
+                return;
+            }
+
+            currentFile = file;
+            updateUI();
+        }
+
+        function updateUI() {
+            fileList.innerHTML = '';
+            
+            if (currentFile) {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                li.innerHTML = `
+                    <div class="file-info">
+                        <span style="font-size: 1.2rem;">📄</span>
+                        <div>
+                            <div class="file-name">${currentFile.name}</div>
+                            <div class="file-size">${formatFileSize(currentFile.size)}</div>
+                        </div>
+                    </div>
+                    <button class="remove-file" aria-label="Remove file" onclick="removeFile()">×</button>
+                `;
+                fileList.appendChild(li);
+                
+                dropZone.classList.add('hidden');
+                optionsPanel.classList.remove('hidden');
+                processBtn.disabled = false;
+                clearBtn.disabled = false;
+                resultBox.classList.add('hidden');
+            } else {
+                dropZone.classList.remove('hidden');
+                optionsPanel.classList.add('hidden');
+                processBtn.disabled = true;
+                clearBtn.disabled = true;
+            }
+        }
+
+        function removeFile() {
+            currentFile = null;
+            fileInput.value = ''; 
+            updateUI();
+        }
+
+        clearBtn.addEventListener('click', removeFile);
+
+        // 3. Process Logic
+        processBtn.addEventListener('click', async () => {
+            if (!currentFile) return;
+
+            try {
+                // -- UI State: Processing --
+                processBtn.disabled = true;
+                processBtn.textContent = 'Processing...';
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '10%';
+
+                // -- Read Options --
+                const layoutMode = layoutStyleInput.value; // 'duplicate' or 'sequential'
+                const marginMm = parseFloat(pageMarginInput.value) || 0;
+                const cutStyle = cutLineInput.value;
+
+                // Convert mm to points (1mm = 2.835pt)
+                const marginPts = marginMm * 2.83465;
+
+                const arrayBuffer = await currentFile.arrayBuffer();
+                progressBar.style.width = '25%';
+
+                // -- Initialize PDF Docs --
+                const { PDFDocument, grayscale } = PDFLib;
+                const srcDoc = await PDFDocument.load(arrayBuffer);
+                const dstDoc = await PDFDocument.create();
+
+                // -- FIX: Explicitly get all page indices --
+                // This ensures embedPdf knows exactly which pages to grab (all of them)
+                const pageIndices = srcDoc.getPageIndices(); 
+                const embeddedPages = await dstDoc.embedPdf(srcDoc, pageIndices);
+                const totalSrcPages = embeddedPages.length;
+                
+                console.log(`Detected ${totalSrcPages} pages in source file.`); // Debugging
+                
+                progressBar.style.width = '40%';
+
+                // -- Determine Loop Count --
+                let outputPageCount = 0;
+                if (layoutMode === 'duplicate') {
+                    outputPageCount = totalSrcPages; 
+                } else {
+                    // Sequential: 2 source pages = 1 output page
+                    outputPageCount = Math.ceil(totalSrcPages / 2);
+                }
+
+                // -- Loop through pages --
+                for (let i = 0; i < outputPageCount; i++) {
+                    
+                    // Determine which pages go on Left and Right
+                    let leftPage, rightPage;
+
+                    if (layoutMode === 'duplicate') {
+                        // Case: Duplicate (1,1), (2,2)
+                        leftPage = embeddedPages[i];
+                        rightPage = embeddedPages[i];
+                    } else {
+                        // Case: Sequential (1,2), (3,4)
+                        leftPage = embeddedPages[i * 2];
+                        const nextIndex = i * 2 + 1;
+                        rightPage = (nextIndex < totalSrcPages) ? embeddedPages[nextIndex] : null;
+                    }
+
+                    // Dimensions (based on the left page)
+                    // Using the left page dimensions to set the canvas size
+                    const { width, height } = leftPage; 
+                    
+                    // Create new Landscape Page (2x Width)
+                    const newPage = dstDoc.addPage([width * 2, height]);
+
+                    // -- Helper: Draw Page with Scaling for Margins --
+                    const drawContent = (pageObj, xOffset) => {
+                        if (!pageObj) return;
+
+                        // Dimensions of the content to draw
+                        const contentW = pageObj.width;
+                        const contentH = pageObj.height;
+
+                        // Calculate available space inside margins
+                        const availW = width - (marginPts * 2);
+                        const availH = height - (marginPts * 2);
+
+                        // Calculate Scale to fit margins (while maintaining aspect ratio)
+                        const scaleX = availW / contentW;
+                        const scaleY = availH / contentH;
+                        const scale = Math.min(scaleX, scaleY);
+
+                        // Calculate Centering Adjustments (if margins create extra space)
+                        const drawnW = contentW * scale;
+                        const drawnH = contentH * scale;
+                        const centerOffsetX = (availW - drawnW) / 2;
+                        const centerOffsetY = (availH - drawnH) / 2;
+
+                        newPage.drawPage(pageObj, {
+                            x: xOffset + marginPts + centerOffsetX,
+                            y: marginPts + centerOffsetY,
+                            width: drawnW,
+                            height: drawnH,
+                        });
+                    };
+
+                    // Draw Left Side
+                    drawContent(leftPage, 0);
+
+                    // Draw Right Side (if exists)
+                    if (layoutMode === 'duplicate') {
+                        // In duplicate mode, we always draw the same page on the right
+                        drawContent(rightPage, width);
+                    } else {
+                        // In sequential mode, we only draw if there is a next page
+                        if (rightPage) {
+                            drawContent(rightPage, width);
+                        }
+                    }
+
+                    // -- Draw Cut Line --
+                    if (cutStyle !== 'none') {
+                        const lineConfig = {
+                            start: { x: width, y: 0 },
+                            end: { x: width, y: height },
+                            thickness: 1,
+                            color: grayscale(0.5), // Medium Grey
+                            opacity: 0.5
+                        };
+
+                        if (cutStyle === 'dashed') {
+                            lineConfig.dashArray = [5, 5];
+                        }
+
+                        newPage.drawLine(lineConfig);
+                    }
+
+                    // Visual Progress Update
+                    const percent = 40 + Math.round(((i + 1) / outputPageCount) * 50);
+                    progressBar.style.width = `${percent}%`;
+                }
+
+                // -- Save & Download --
+                const pdfBytes = await dstDoc.save();
+                progressBar.style.width = '100%';
+
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+
+                downloadLink.href = url;
+                downloadLink.download = `processed-${layoutMode}-${currentFile.name}`;
+                
+                // Reset UI
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    processBtn.textContent = 'Process PDF';
+                    processBtn.disabled = false;
+                    resultBox.classList.remove('hidden');
+                    showToast(`Processed ${outputPageCount} pages successfully!`, 'success');
+                }, 500);
+
+            } catch (error) {
+                console.error('Processing Error:', error);
+                showToast('Error processing PDF. See console for details.', 'error');
+                processBtn.textContent = 'Process PDF';
+                processBtn.disabled = false;
+                progressContainer.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aspect Ratio Calculator | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <style>
+        .preview-box-container {
+            width: 100%;
+            height: 300px;
+            background: var(--code-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+            overflow: hidden;
+            position: relative;
+        }
+        .preview-shape {
+            background: var(--accent);
+            opacity: 0.8;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-family: var(--font-mono);
+            box-shadow: 0 10px 30px rgba(196, 77, 60, 0.3);
+            max-width: 90%;
+            max-height: 90%;
+        }
+        /* Grid lines for context */
+        .preview-box-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(var(--border) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.5;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <div class="tool-header">
+                <h1>Aspect Ratio Calculator</h1>
+                <p>Calculate dimensions based on common ratios or custom values.</p>
+            </div>
+
+            <div class="card">
+                
+                <!-- VISUAL PREVIEW -->
+                <div class="preview-box-container">
+                    <div id="shape" class="preview-shape" style="width: 160px; height: 90px;">16:9</div>
+                </div>
+
+                <!-- CONTROLS -->
+                <div class="split-view">
+                    <!-- Ratio Selection -->
+                    <div>
+                        <label>Common Presets</label>
+                        <div class="button-group" style="margin-bottom: 1.5rem;">
+                            <button class="button sm outline" onclick="setRatio(16,9)">16:9</button>
+                            <button class="button sm outline" onclick="setRatio(4,3)">4:3</button>
+                            <button class="button sm outline" onclick="setRatio(1,1)">1:1</button>
+                            <button class="button sm outline" onclick="setRatio(9,16)">9:16</button>
+                            <button class="button sm outline" onclick="setRatio(21,9)">21:9</button>
+                        </div>
+                        
+                        <label>Custom Ratio (W : H)</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" id="ratioW" value="16" min="1">
+                            <span style="font-weight: bold;">:</span>
+                            <input type="number" id="ratioH" value="9" min="1">
+                        </div>
+                    </div>
+
+                    <!-- Dimension Calculation -->
+                    <div>
+                        <label>Dimensions (px)</label>
+                        <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center;">
+                            <div>
+                                <label style="font-size: 0.8rem; color: var(--ink-secondary);">Width</label>
+                                <input type="number" id="widthInput" value="1920">
+                            </div>
+                            <div style="padding-top: 15px;">×</div>
+                            <div>
+                                <label style="font-size: 0.8rem; color: var(--ink-secondary);">Height</label>
+                                <input type="number" id="heightInput" value="1080">
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--ink-secondary); text-align: center;">
+                            Adjust either Width or Height to calculate the other.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        // Elements
+        const ratioW = document.getElementById('ratioW');
+        const ratioH = document.getElementById('ratioH');
+        const widthInput = document.getElementById('widthInput');
+        const heightInput = document.getElementById('heightInput');
+        const shape = document.getElementById('shape');
+
+        // State
+        let currentW = 16;
+        let currentH = 9;
+
+        // --- 1. Ratio Logic ---
+        function setRatio(w, h) {
+            ratioW.value = w;
+            ratioH.value = h;
+            updateCalculations('ratio');
+        }
+
+        // --- 2. Calculation Logic ---
+        function updateCalculations(source) {
+            const rW = parseFloat(ratioW.value) || 1;
+            const rH = parseFloat(ratioH.value) || 1;
+            const ratio = rW / rH;
+
+            // Update Preview Shape text and size
+            shape.textContent = `${rW}:${rH}`;
+            
+            // Visual Logic: Fit shape within 250px box while keeping ratio
+            if (ratio > 1) {
+                // Wider
+                shape.style.width = '250px';
+                shape.style.height = `${250 / ratio}px`;
+            } else {
+                // Taller
+                shape.style.height = '250px';
+                shape.style.width = `${250 * ratio}px`;
+            }
+
+            // Update Inputs
+            if (source === 'width') {
+                const w = parseFloat(widthInput.value) || 0;
+                heightInput.value = Math.round(w / ratio);
+            } else if (source === 'height') {
+                const h = parseFloat(heightInput.value) || 0;
+                widthInput.value = Math.round(h * ratio);
+            } else {
+                // Source is Ratio change, update Height based on current Width
+                const w = parseFloat(widthInput.value) || 0;
+                heightInput.value = Math.round(w / ratio);
+            }
+        }
+
+        // --- 3. Event Listeners ---
+        ratioW.addEventListener('input', () => updateCalculations('ratio'));
+        ratioH.addEventListener('input', () => updateCalculations('ratio'));
+        
+        widthInput.addEventListener('input', () => updateCalculations('width'));
+        heightInput.addEventListener('input', () => updateCalculations('height'));
+
+        // Init
+        setRatio(16, 9);
+    </script>
+</body>
+</html>
