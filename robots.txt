@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+Disallow: /.github/
+Disallow: /README.md
+Disallow: /LICENSE
+Disallow: /.gitignore
+
+Disallow: /tools/image-compressor/worker.js
+Disallow: /assets/sw.js
+
+User-agent: GPTBot
+Disallow: /
+User-agent: CCBot
+Disallow: /
+User-agent: anthropic-ai
+Disallow: /
+
+Sitemap: https://linu.li/sitemap.xml
