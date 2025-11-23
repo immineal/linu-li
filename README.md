@@ -6,7 +6,7 @@ A curated suite of **privacy-first** web utilities for developers, creatives, an
 
 ![Privacy](https://img.shields.io/badge/Privacy-100%25%20Client--Side-green)
 ![PWA](https://img.shields.io/badge/PWA-Offline%20Ready-blue)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
+![License](https://img.shields.io/badge/license-%20%20GNU%20GPLv3%20-lightgray)
 
 ## Philosophy
 
