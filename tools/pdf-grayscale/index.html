@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF to Grayscale | Linus Linhof</title>
+    <title>PDF Grayscale & Scan Cleaner | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -11,13 +11,45 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+        .preview-container {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            overflow: hidden;
+            display: none; /* Hidden until file loaded */
+        }
+        canvas#previewCanvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 1px solid #ccc;
+        }
+        .settings-group {
+            background: var(--input-bg);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--ink-secondary);
+            margin-top: -5px;
+        }
+    </style>
 </head>
 <body>
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>PDF Grayscale Converter</h1>
-                <p>Convert PDFs to Black & White by rasterizing pages. This ensures full compatibility with all printers by modifying the image data directly.</p>
+                <h1>PDF Grayscale & Scan Cleaner</h1>
+                <p>Convert to Grayscale and clean up scans for printing.</p>
             </div>
 
             <div class="card">
@@ -32,34 +64,72 @@
                 <!-- Selected File Info -->
                 <ul class="file-list" id="fileList"></ul>
 
+                <!-- SECTION: LIVE PREVIEW -->
+                <div id="previewSection" class="preview-container">
+                    <label style="margin-bottom: 0.5rem; display: block; text-align: left;">Page 1 Preview (Live Adjustment)</label>
+                    <canvas id="previewCanvas"></canvas>
+                </div>
+
                 <!-- SECTION: OPTIONS -->
                 <div id="optionsPanel" class="hidden" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    
                     <div class="split-view">
+                        <!-- Quality Settings -->
                         <div>
-                            <label>Output Quality (DPI)</label>
-                            <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-bottom: 0.5rem;">Higher DPI = sharper text but larger file size.</p>
+                            <label>Output DPI</label>
                             <select id="dpiSelect">
                                 <option value="1.5">150 DPI (Fast / Draft)</option>
                                 <option value="2.0" selected>200 DPI (Standard)</option>
-                                <option value="3.0">300 DPI (High Quality / Print)</option>
-                                <option value="4.0">400 DPI (Ultra)</option>
+                                <option value="3.0">300 DPI (High Quality)</option>
                             </select>
+                            <p style="font-size: 0.8rem; color: var(--ink-secondary);">Higher DPI = clearer text but larger file size.</p>
                         </div>
+
+                        <!-- Cleaning Settings -->
                         <div>
-                            <label>Contrast Boost</label>
-                            <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-bottom: 0.5rem;">Makes light grey text darker.</p>
+                            <label>Scan Cleaning Mode</label>
                             <label class="toggle-wrapper">
-                                <input type="checkbox" id="contrastToggle" class="toggle-checkbox" checked>
+                                <input type="checkbox" id="cleanerToggle" class="toggle-checkbox">
                                 <div class="toggle-switch"></div>
-                                <span>Enhance Text Contrast</span>
+                                <span>Enable Background Removal</span>
                             </label>
                         </div>
                     </div>
+
+                    <!-- CLEANER SLIDERS (Conditional) -->
+                    <div id="cleanerControls" class="hidden">
+                        <div class="settings-group">
+                            <label>Background Threshold (White Point)</label>
+                            <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-bottom: 0.5rem;">
+                                Pixels lighter than this will become pure white. Increase to remove gray backgrounds.
+                            </p>
+                            <input type="range" id="whitePoint" min="100" max="255" value="200">
+                            <div class="range-labels">
+                                <span>Gentle (100)</span>
+                                <span id="valWhite">200</span>
+                                <span>Aggressive (255)</span>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <label>Text Darkness (Black Point)</label>
+                            <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-bottom: 0.5rem;">
+                                Pixels darker than this will become pure black. Increase to make faint text bolder.
+                            </p>
+                            <input type="range" id="blackPoint" min="0" max="150" value="50">
+                            <div class="range-labels">
+                                <span>Original (0)</span>
+                                <span id="valBlack">50</span>
+                                <span>Bold (150)</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- SECTION: CONTROLS -->
                 <div class="button-group hidden" id="controlButtons">
-                    <button class="button" id="convertBtn">Convert to Grayscale</button>
+                    <button class="button" id="convertBtn">Process Entire PDF</button>
                     <button class="button outline" id="resetBtn">Reset</button>
                 </div>
 
@@ -73,9 +143,8 @@
                 <div class="result-box hidden" id="resultBox">
                     <div style="text-align: center;">
                         <h3>Success!</h3>
-                        <p>Your PDF has been converted to strict Grayscale.</p>
+                        <p>Your PDF has been processed.</p>
                         <div class="big-display" id="finalSizeDisplay" style="font-size: 1.5rem; margin-top: 0.5rem;"></div>
-                        <p style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 1.5rem;">(Text selection removed to guarantee color compliance)</p>
                         <button class="button secondary" id="downloadBtn">Download PDF</button>
                     </div>
                 </div>
@@ -106,22 +175,42 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const finalSizeDisplay = document.getElementById('finalSizeDisplay');
         
+        // Settings Elements
         const dpiSelect = document.getElementById('dpiSelect');
-        const contrastToggle = document.getElementById('contrastToggle');
+        const cleanerToggle = document.getElementById('cleanerToggle');
+        const cleanerControls = document.getElementById('cleanerControls');
+        const whitePointSlider = document.getElementById('whitePoint');
+        const blackPointSlider = document.getElementById('blackPoint');
+        const valWhite = document.getElementById('valWhite');
+        const valBlack = document.getElementById('valBlack');
+
+        // Preview Elements
+        const previewSection = document.getElementById('previewSection');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewCtx = previewCanvas.getContext('2d');
 
         let currentFile = null;
         let outputBlob = null;
+        let pdfDoc = null; // Loaded PDF document
+        let page1Viewport = null; // To keep aspect ratio for preview
+        let originalPreviewData = null; // Copy of page 1 raw pixels for live filtering
 
         // 1. File Handling
         setupDropZone(dropZone, fileInput, handleFileSelect);
 
-        function handleFileSelect(files) {
+        async function handleFileSelect(files) {
             if (files.length > 0 && files[0].type === 'application/pdf') {
                 currentFile = files[0];
+                
+                // UI Reset
                 renderFileList();
                 optionsPanel.classList.remove('hidden');
                 controlButtons.classList.remove('hidden');
                 dropZone.classList.add('hidden');
+                resultBox.classList.add('hidden');
+
+                // Load PDF Page 1 for Preview
+                await loadPreview(currentFile);
             } else {
                 showToast('Please upload a valid PDF file', 'error');
             }
@@ -144,11 +233,15 @@
         window.resetTool = function() {
             currentFile = null;
             outputBlob = null;
+            pdfDoc = null;
+            originalPreviewData = null;
             fileInput.value = '';
             fileList.innerHTML = '';
+            
             optionsPanel.classList.add('hidden');
             controlButtons.classList.add('hidden');
             resultBox.classList.add('hidden');
+            previewSection.style.display = 'none';
             dropZone.classList.remove('hidden');
             progressContainer.style.display = 'none';
             statusText.style.display = 'none';
@@ -156,9 +249,123 @@
 
         resetBtn.addEventListener('click', resetTool);
 
-        // 2. Main Conversion Logic
+        // 2. Preview System
+        async function loadPreview(file) {
+            try {
+                statusText.style.display = 'block';
+                statusText.textContent = "Loading preview...";
+                
+                const arrayBuffer = await file.arrayBuffer();
+                pdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+                const page = await pdfDoc.getPage(1);
+                
+                // Render at low scale for preview performance
+                const viewport = page.getViewport({ scale: 1.0 }); 
+                previewCanvas.width = viewport.width;
+                previewCanvas.height = viewport.height;
+
+                await page.render({ canvasContext: previewCtx, viewport: viewport }).promise;
+
+                // Store original pixel data
+                originalPreviewData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
+                
+                previewSection.style.display = 'block';
+                statusText.style.display = 'none';
+                
+                // Initial Apply
+                updatePreview();
+
+            } catch (err) {
+                console.error(err);
+                showToast("Could not load PDF preview.", "error");
+            }
+        }
+
+        // 3. Live Filter Updates
+        function updatePreview() {
+            if (!originalPreviewData) return;
+
+            // Get values
+            const isCleaning = cleanerToggle.checked;
+            const wPoint = parseInt(whitePointSlider.value);
+            const bPoint = parseInt(blackPointSlider.value);
+
+            // Create a copy of data to manipulate
+            // Note: In a heavy app we'd use createImageBitmap, but for a small preview PutImageData is fine
+            const processed = new ImageData(
+                new Uint8ClampedArray(originalPreviewData.data), 
+                originalPreviewData.width, 
+                originalPreviewData.height
+            );
+
+            processPixelData(processed.data, isCleaning, wPoint, bPoint);
+            
+            previewCtx.putImageData(processed, 0, 0);
+        }
+
+        // The core algorithm (Shared by Preview and Main Processor)
+        function processPixelData(data, cleanEnabled, whitePoint, blackPoint) {
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                // 1. Convert to Grayscale (Luminosity)
+                let gray = (0.299 * r) + (0.587 * g) + (0.114 * b);
+
+                // 2. Scan Cleaning (Levels / Histogram Stretch)
+                if (cleanEnabled) {
+                    if (gray >= whitePoint) {
+                        gray = 255; // Clip to White
+                    } else if (gray <= blackPoint) {
+                        gray = 0;   // Clip to Black
+                    } else {
+                        // Stretch contrast between blackPoint and whitePoint
+                        // Formula: (val - min) * (255 / (max - min))
+                        gray = (gray - blackPoint) * (255 / (whitePoint - blackPoint));
+                    }
+                }
+
+                data[i] = gray;     // R
+                data[i + 1] = gray; // G
+                data[i + 2] = gray; // B
+                // Alpha data[i+3] stays same
+            }
+        }
+
+        // Event Listeners for Settings
+        cleanerToggle.addEventListener('change', () => {
+            if (cleanerToggle.checked) {
+                cleanerControls.classList.remove('hidden');
+            } else {
+                cleanerControls.classList.add('hidden');
+            }
+            updatePreview();
+        });
+
+        whitePointSlider.addEventListener('input', (e) => {
+            valWhite.textContent = e.target.value;
+            // Prevent crossing
+            if (parseInt(e.target.value) <= parseInt(blackPointSlider.value)) {
+                blackPointSlider.value = parseInt(e.target.value) - 10;
+                valBlack.textContent = blackPointSlider.value;
+            }
+            updatePreview();
+        });
+
+        blackPointSlider.addEventListener('input', (e) => {
+            valBlack.textContent = e.target.value;
+            if (parseInt(e.target.value) >= parseInt(whitePointSlider.value)) {
+                whitePointSlider.value = parseInt(e.target.value) + 10;
+                valWhite.textContent = whitePointSlider.value;
+            }
+            updatePreview();
+        });
+
+
+        // 4. Main Batch Processing Logic
         convertBtn.addEventListener('click', async () => {
-            if (!currentFile) return;
+            if (!pdfDoc) return;
 
             // Lock UI
             convertBtn.disabled = true;
@@ -169,65 +376,48 @@
             progressBar.style.width = '0%';
 
             try {
-                const arrayBuffer = await currentFile.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-                const totalPages = pdf.numPages;
+                const totalPages = pdfDoc.numPages;
                 const scale = parseFloat(dpiSelect.value);
-                const enhanceContrast = contrastToggle.checked;
+                
+                // Get Settings Snapshot
+                const isCleaning = cleanerToggle.checked;
+                const wPoint = parseInt(whitePointSlider.value);
+                const bPoint = parseInt(blackPointSlider.value);
 
-                // Initialize new PDF
+                // Initialize output PDF
                 const outPdf = new jsPDF({
                     orientation: 'p',
                     unit: 'px',
                     format: 'a4',
                     compress: true
                 });
-                outPdf.deletePage(1); // Remove default first page
+                outPdf.deletePage(1); 
 
                 for (let i = 1; i <= totalPages; i++) {
                     statusText.textContent = `Processing page ${i} of ${totalPages}...`;
 
-                    // 1. Render Page to Canvas
-                    const page = await pdf.getPage(i);
+                    // 1. Render Page to Canvas at requested DPI
+                    const page = await pdfDoc.getPage(i);
                     const viewport = page.getViewport({ scale: scale });
 
                     const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
                     canvas.width = viewport.width;
                     canvas.height = viewport.height;
 
                     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-                    // 2. Manipulate Pixel Data (RGB -> Grayscale)
+                    // 2. Manipulate Pixel Data
                     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const data = imgData.data; // RGBA array
+                    
+                    // Apply same logic as preview
+                    processPixelData(imgData.data, isCleaning, wPoint, bPoint);
 
-                    for (let j = 0; j < data.length; j += 4) {
-                        const r = data[j];
-                        const g = data[j + 1];
-                        const b = data[j + 2];
-                        
-                        // Luminosity Formula: 0.299R + 0.587G + 0.114B
-                        let gray = (0.299 * r) + (0.587 * g) + (0.114 * b);
-
-                        // Contrast Enhancement: Push dark greys to black
-                        if (enhanceContrast) {
-                            if (gray < 240) { // If not pure white
-                                gray = gray * 0.9; // Darken by 10%
-                            }
-                        }
-
-                        data[j] = gray;     // R
-                        data[j + 1] = gray; // G
-                        data[j + 2] = gray; // B
-                        // Alpha (data[j+3]) remains unchanged
-                    }
-
-                    // Put modified data back
                     ctx.putImageData(imgData, 0, 0);
 
                     // 3. Add to new PDF
-                    const imgUrl = canvas.toDataURL('image/jpeg', 0.8); // 80% quality JPEG
+                    // Use JPEG with modest compression to keep file size down
+                    const imgUrl = canvas.toDataURL('image/jpeg', 0.75); 
                     const pdfW = viewport.width / scale;
                     const pdfH = viewport.height / scale;
 
@@ -255,17 +445,17 @@
 
             } catch (err) {
                 console.error(err);
-                showToast('Error processing PDF. The file might be too large.', 'error');
+                showToast('Error processing PDF. Memory limit exceeded?', 'error');
                 convertBtn.disabled = false;
                 resetBtn.disabled = false;
                 statusText.textContent = "Error occurred.";
             }
         });
 
-        // 3. Download
+        // 5. Download
         downloadBtn.addEventListener('click', () => {
             if (!outputBlob) return;
-            const name = currentFile.name.replace('.pdf', '_bw.pdf');
+            const name = currentFile.name.replace('.pdf', '_clean.pdf');
             saveAs(outputBlob, name);
         });
 
