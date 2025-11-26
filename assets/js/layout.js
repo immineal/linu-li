@@ -29,9 +29,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 3. Inject Footer
     const footerHTML = `
-    <footer style="text-align: center; padding: 3rem 1rem; opacity: 0.6; font-size: 0.9rem; border-top: 1px solid var(--border); margin-top: auto;">
+    <footer style="text-align: center; padding: 3rem 1rem; opacity: 0.8; font-size: 0.9rem; border-top: 1px solid var(--border); margin-top: auto;">
+        
+        <!-- Donation Section -->
+        <div style="margin-bottom: 1.5rem;">
+            <a href="https://ko-fi.com/linuslinhof" target="_blank" rel="noopener noreferrer" class="donate-btn">
+                <span>☕</span> Buy me a coffee
+            </a>
+        </div>
+
         <p>&copy; ${new Date().getFullYear()} Linus Linhof. Built for utility.</p>
-        <p style="margin-top: 0.5rem;">
+        <p style="margin-top: 0.5rem; opacity: 0.7;">
             <a href="${rootPath}impressum.html">Impressum / Legal</a> &bull; 
             <a href="${rootPath}privacy.html">Privacy / Datenschutz</a>
         </p>

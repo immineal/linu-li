@@ -283,3 +283,31 @@ body.dark-mode .switch-thumb {
 body.dark-mode .switch-track {
     background-color: var(--accent-secondary); /* Your green accent */
 }
+
+/* === DONATION BUTTON === */
+.donate-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #FF5E5B; /* Ko-fi Red or your var(--accent) */
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    font-size: 0.9rem;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.donate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 94, 91, 0.3);
+    color: white;
+    text-decoration: none;
+}
+
+/* Dark Mode adjustment if you stick to specific brand colors */
+body.dark-mode .donate-btn {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
