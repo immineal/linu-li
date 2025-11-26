@@ -38,8 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
             </a>
         </div>
 
-        <p>&copy; ${new Date().getFullYear()} Linus Linhof. Built for utility.</p>
-        <p style="margin-top: 0.5rem; opacity: 0.7;">
+        <p style="margin: 0 auto; text-align: center;">
+            &copy; ${new Date().getFullYear()} Linus Linhof. Built for utility.
+        </p>
+        
+        <!-- Links with auto margins -->
+        <p style="margin: 0.5rem auto 0; opacity: 0.7; text-align: center;">
             <a href="${rootPath}impressum.html">Impressum / Legal</a> &bull; 
             <a href="${rootPath}privacy.html">Privacy / Datenschutz</a>
         </p>
