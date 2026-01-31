@@ -87,6 +87,7 @@ input[type="text"], input[type="number"], input[type="email"], input[type="file"
     border: 1px solid var(--border); background: var(--input-bg); color: var(--input-text);
     font-family: var(--font-body); font-size: 1rem; border-radius: 4px;
     transition: all 0.3s ease;
+    resize: vertical;
 }
 
 /* Code/Data Editor Style (for JSON, Base64, CSS) */
