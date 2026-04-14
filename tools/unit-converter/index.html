@@ -55,11 +55,17 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Unit Converter</h1>
-                <p>Fast conversion for Length, Weight, Temperature, Speed, and Digital Storage.</p>
+                <p>Fast conversion for Length, Weight, Temperature, Speed, Data Storage, and Currency.</p>
             </div>
 
             <div class="card">
                 
+                <!-- Natural Language Quick Convert -->
+                <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem;">
+                    <label>Quick Convert (Type anywhere)</label>
+                    <input type="text" id="nlpInput" placeholder="e.g., '5 km in miles' or '100 usd to eur'" style="width: 100%; font-size: 1.1rem; padding: 0.75rem;">
+                </div>
+
                 <!-- Category Selector -->
                 <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem;">
                     <label>Category</label>
@@ -69,6 +75,7 @@
                         <button class="button outline" onclick="setCategory('temp')">Temperature</button>
                         <button class="button outline" onclick="setCategory('speed')">Speed</button>
                         <button class="button outline" onclick="setCategory('data')">Data Storage</button>
+                        <button class="button outline" onclick="setCategory('currency')">Currency</button>
                     </div>
                 </div>
 
@@ -100,6 +107,7 @@
     <script src="../../assets/js/layout.js"></script>
     <script>
         // Elements
+        const nlpInput = document.getElementById('nlpInput');
         const inputFrom = document.getElementById('inputFrom');
         const inputTo = document.getElementById('inputTo');
         const unitFrom = document.getElementById('unitFrom');
@@ -150,10 +158,84 @@
                     GB: 1024,
                     TB: 1048576
                 }
+            },
+            currency: {
+                base: 'USD',
+                units: {
+                    USD: 1,
+                    EUR: 0.9,
+                    GBP: 0.78,
+                    JPY: 150,
+                    CAD: 1.35,
+                    AUD: 1.5,
+                    CHF: 0.88,
+                    CNY: 7.2,
+                    INR: 83
+                } // Will be updated via fetch
             }
         };
 
         let currentCategory = 'length';
+
+        async function fetchExchangeRates() {
+            const CACHE_KEY = 'linuli_currency_rates';
+            const CACHE_TIME = 'linuli_currency_time';
+            const ONE_HOUR = 60 * 60 * 1000;
+            const now = Date.now();
+
+            try {
+                // Check cache
+                const cachedTime = localStorage.getItem(CACHE_TIME);
+                if (cachedTime && (now - cachedTime < ONE_HOUR)) {
+                    const cachedRates = localStorage.getItem(CACHE_KEY);
+                    if (cachedRates) {
+                        const parsed = JSON.parse(cachedRates);
+                        factors.currency.units = parsed;
+                        if (currentCategory === 'currency') populateSelects();
+                        return;
+                    }
+                }
+
+                // Fetch real-time Fiat rates (USD base)
+                const fiatRes = await fetch('https://open.er-api.com/v6/latest/USD');
+                const fiatData = await fiatRes.json();
+
+                // Fetch real-time Crypto rates (USD base)
+                const cryptoRes = await fetch('https://api.coincap.io/v2/assets?limit=20');
+                const cryptoData = await cryptoRes.json();
+
+                if (fiatData && fiatData.rates && cryptoData && cryptoData.data) {
+                    const newRates = { ...factors.currency.units }; // Keep defaults as fallback base
+
+                    // Add Fiat
+                    Object.keys(fiatData.rates).forEach(currency => {
+                        newRates[currency] = fiatData.rates[currency];
+                    });
+
+                    // Add Crypto
+                    cryptoData.data.forEach(coin => {
+                        // Exchangerate-api gives us units per 1 USD (e.g. 1 USD = 0.9 EUR)
+                        // Coincap gives us USD per 1 unit (e.g. 1 BTC = 50000 USD)
+                        // So to get units per 1 USD, we invert it: 1 / priceUsd
+                        const priceUsd = parseFloat(coin.priceUsd);
+                        if (priceUsd > 0) {
+                            newRates[coin.symbol] = 1 / priceUsd;
+                        }
+                    });
+
+                    factors.currency.units = newRates;
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(newRates));
+                    localStorage.setItem(CACHE_TIME, now.toString());
+
+                    if (currentCategory === 'currency') {
+                        populateSelects();
+                        convert('from');
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch exchange rates. Using default fallbacks.", error);
+            }
+        }
 
         // --- 1. Logic ---
         function setCategory(cat) {
@@ -166,6 +248,7 @@
                 const isMatch = (cat === 'data' && btnText.includes('data')) || 
                                 (cat === 'speed' && btnText.includes('speed')) ||
                                 (cat === 'temp' && btnText.includes('temp')) ||
+                                (cat === 'currency' && btnText.includes('currency')) ||
                                 (btnText.startsWith(cat.substring(0,3)));
                                 
                 if(isMatch) {
@@ -202,6 +285,7 @@
                 if(currentCategory === 'weight') { unitFrom.value = 'kg'; unitTo.value = 'lb'; }
                 if(currentCategory === 'speed')  { unitFrom.value = 'km/h'; unitTo.value = 'mph'; }
                 if(currentCategory === 'data')   { unitFrom.value = 'MB'; unitTo.value = 'GB'; }
+                if(currentCategory === 'currency') { unitFrom.value = 'USD'; unitTo.value = 'EUR'; }
             }
         }
 
@@ -255,8 +339,16 @@
 
                 // Base unit conversion
                 const catData = factors[currentCategory];
-                const baseValue = val * catData.units[u1]; // Convert source to base
-                const result = baseValue / catData.units[u2]; // Convert base to target
+                let result;
+                if (currentCategory === 'currency') {
+                    // Currency rates are usually units per 1 USD (base = USD)
+                    // So to convert: divide by source rate to get USD, then multiply by target rate
+                    const baseValue = val / catData.units[u1];
+                    result = baseValue * catData.units[u2];
+                } else {
+                    const baseValue = val * catData.units[u1]; // Convert source to base
+                    result = baseValue / catData.units[u2]; // Convert base to target
+                }
                 
                 // Format appropriately for extreme and normal values
                 outputEl.value = formatNumber(result);
@@ -302,8 +394,117 @@
         // If right unit changes, re-calculate Right based on Left (keep input logic consistent)
         unitTo.addEventListener('change', () => convert('from'));
 
+        // --- 3. Natural Language Processing ---
+        const synonymDict = {
+            'm': ['m', 'meter', 'meters'],
+            'km': ['km', 'kilometer', 'kilometers'],
+            'mm': ['mm', 'millimeter', 'millimeters'],
+            'cm': ['cm', 'centimeter', 'centimeters'],
+            'in': ['in', 'inch', 'inches'],
+            'ft': ['ft', 'foot', 'feet'],
+            'yd': ['yd', 'yard', 'yards'],
+            'mi': ['mi', 'mile', 'miles'],
+
+            'g': ['g', 'gram', 'grams'],
+            'kg': ['kg', 'kilo', 'kilogram', 'kilograms'],
+            'mg': ['mg', 'milligram', 'milligrams'],
+            'oz': ['oz', 'ounce', 'ounces'],
+            'lb': ['lb', 'lbs', 'pound', 'pounds'],
+
+            'Celsius (°C)': ['c', 'celsius', '°c'],
+            'Fahrenheit (°F)': ['f', 'fahrenheit', '°f'],
+            'Kelvin (K)': ['k', 'kelvin'],
+
+            'm/s': ['m/s', 'mps', 'meters per second'],
+            'km/h': ['km/h', 'kph', 'kilometers per hour'],
+            'mph': ['mph', 'miles per hour'],
+            'knots': ['knots', 'knot'],
+            'ft/s': ['ft/s', 'fps', 'feet per second'],
+
+            'B': ['b', 'byte', 'bytes'],
+            'KB': ['kb', 'kilobyte', 'kilobytes'],
+            'MB': ['mb', 'megabyte', 'megabytes'],
+            'GB': ['gb', 'gigabyte', 'gigabytes'],
+            'TB': ['tb', 'terabyte', 'terabytes']
+        };
+
+        function parseNLP(inputStr) {
+            if (!inputStr) return;
+            // Match pattern like "5 km to miles" or "100.5 USD in EUR"
+            const match = inputStr.trim().match(/^([\d\.]+)\s+(.+?)\s+(?:in|to)\s+(.+)$/i);
+            if (!match) return;
+
+            const val = parseFloat(match[1]);
+            if (isNaN(val)) return;
+
+            let sourceStr = match[2].toLowerCase();
+            let targetStr = match[3].toLowerCase();
+
+            let foundCat = null;
+            let foundU1 = null;
+            let foundU2 = null;
+
+            // Search for matches in synonym dictionary and currency keys
+            const findUnitKey = (query) => {
+                // Check synonym dictionary
+                for (const [key, synonyms] of Object.entries(synonymDict)) {
+                    if (synonyms.includes(query)) return key;
+                }
+
+                // Fallback: check dynamic currency keys directly
+                const upperQuery = query.toUpperCase();
+                if (factors.currency.units[upperQuery]) {
+                    return upperQuery;
+                }
+
+                return null;
+            };
+
+            foundU1 = findUnitKey(sourceStr);
+            foundU2 = findUnitKey(targetStr);
+
+            if (foundU1 && foundU2) {
+                // Find category
+                for (const cat of Object.keys(factors)) {
+                    if (cat === 'temp') {
+                         if (foundU1.includes('Celsius') || foundU1.includes('Fahrenheit') || foundU1.includes('Kelvin')) {
+                             foundCat = 'temp'; break;
+                         }
+                    } else if (factors[cat].units[foundU1]) {
+                        foundCat = cat;
+                        break;
+                    }
+                }
+
+                // Apply update if both units are in the same category
+                if (foundCat && factors[foundCat]) {
+                    let u2IsValid = false;
+                    if (foundCat === 'temp') {
+                        u2IsValid = foundU2.includes('Celsius') || foundU2.includes('Fahrenheit') || foundU2.includes('Kelvin');
+                    } else {
+                        u2IsValid = !!factors[foundCat].units[foundU2];
+                    }
+
+                    if (u2IsValid) {
+                        if (currentCategory !== foundCat) {
+                            setCategory(foundCat);
+                        }
+                        inputFrom.value = val;
+                        unitFrom.value = foundU1;
+                        unitTo.value = foundU2;
+                        convert('from');
+                    }
+                }
+            }
+        }
+
+        nlpInput.addEventListener('input', (e) => {
+            parseNLP(e.target.value);
+        });
+
         // Init
         setCategory('length');
+        fetchExchangeRates(); // Start fetch in background
     </script>
 </body>
 </html>
