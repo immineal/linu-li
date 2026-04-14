@@ -269,7 +269,7 @@
             // Guess if seconds or milliseconds
             // If less than 100 billion, assume seconds. Else ms.
             let dayObj;
-            if (ts < 10000000000) {
+            if (Math.abs(ts) < 10000000000) {
                 dayObj = dayjs.unix(ts);
             } else {
                 dayObj = dayjs(ts);
