@@ -56,6 +56,14 @@
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
+                        <label>SHA-512 (Recommended)</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="outSHA512" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                            <button class="button sm secondary" onclick="copyId('outSHA512')">Copy</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
                         <label>MD5 (Legacy)</label>
                         <div style="display: flex; gap: 10px;">
                             <input type="text" id="outMD5" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
@@ -90,6 +98,7 @@
         const fileNameDisplay = document.getElementById('fileNameDisplay');
 
         const outSHA256 = document.getElementById('outSHA256');
+        const outSHA512 = document.getElementById('outSHA512');
         const outMD5 = document.getElementById('outMD5');
         const outSHA1 = document.getElementById('outSHA1');
 
@@ -111,7 +120,6 @@
         // --- Text Hashing ---
         textInput.addEventListener('input', async () => {
             const val = textInput.value;
-            if(!val) { clearOutputs(); return; }
 
             // Native Crypto for SHA
             const msgUint8 = new TextEncoder().encode(val);
@@ -119,6 +127,10 @@
             // SHA-256
             const hashBuffer256 = await crypto.subtle.digest('SHA-256', msgUint8);
             outSHA256.value = buf2hex(hashBuffer256);
+
+            // SHA-512
+            const hashBuffer512 = await crypto.subtle.digest('SHA-512', msgUint8);
+            outSHA512.value = buf2hex(hashBuffer512);
 
             // SHA-1
             const hashBuffer1 = await crypto.subtle.digest('SHA-1', msgUint8);
@@ -138,27 +150,70 @@
             fileNameDisplay.textContent = `Hashing: ${file.name} (${formatFileSize(file.size)})`;
             clearOutputs("Hashing...");
 
-            const arrayBuffer = await file.arrayBuffer();
+            const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+            const md5Algo = CryptoJS.algo.MD5.create();
+            const sha256Algo = CryptoJS.algo.SHA256.create();
+            const sha512Algo = CryptoJS.algo.SHA512.create();
+            const sha1Algo = CryptoJS.algo.SHA1.create();
 
-            // SHA-256 (Native)
-            const hash256 = await crypto.subtle.digest('SHA-256', arrayBuffer);
-            outSHA256.value = buf2hex(hash256);
+            let offset = 0;
 
-            // SHA-1 (Native)
-            const hash1 = await crypto.subtle.digest('SHA-1', arrayBuffer);
-            outSHA1.value = buf2hex(hash1);
+            function readNextChunk() {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    const slice = file.slice(offset, offset + chunkSize);
 
-            // MD5 (CryptoJS requires WordArray)
-            // For large files, this crashes. We'll try for small files only.
-            if (file.size < 50 * 1024 * 1024) { // 50MB limit for JS MD5
-                const wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
-                outMD5.value = CryptoJS.MD5(wordArray).toString();
-            } else {
-                outMD5.value = "File too large for browser-based MD5";
+                    reader.onload = (e) => {
+                        const arrayBuffer = e.target.result;
+                        const wordArray = arrayBufferToWordArray(arrayBuffer);
+
+                        md5Algo.update(wordArray);
+                        sha256Algo.update(wordArray);
+                        sha512Algo.update(wordArray);
+                        sha1Algo.update(wordArray);
+
+                        offset += chunkSize;
+                        if (offset < file.size) {
+                            // Yield to main thread to avoid freezing
+                            setTimeout(() => resolve(readNextChunk()), 0);
+                        } else {
+                            resolve();
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(slice);
+                });
+            }
+
+            try {
+                await readNextChunk();
+
+                outSHA256.value = sha256Algo.finalize().toString();
+                outSHA512.value = sha512Algo.finalize().toString();
+                outSHA1.value = sha1Algo.finalize().toString();
+                outMD5.value = md5Algo.finalize().toString();
+            } catch (err) {
+                console.error("Error reading file:", err);
+                clearOutputs("Error hashing file");
             }
         }
 
         // Helpers
+        function arrayBufferToWordArray(ab) {
+            const u8 = new Uint8Array(ab);
+            const len = u8.length;
+            const words = [];
+            for (let i = 0; i < len; i += 4) {
+                words.push(
+                    (u8[i] << 24) |
+                    ((u8[i + 1] || 0) << 16) |
+                    ((u8[i + 2] || 0) << 8) |
+                    (u8[i + 3] || 0)
+                );
+            }
+            return CryptoJS.lib.WordArray.create(words, len);
+        }
+
         function buf2hex(buffer) {
             return [...new Uint8Array(buffer)]
                 .map(x => x.toString(16).padStart(2, '0'))
@@ -167,6 +222,7 @@
 
         function clearOutputs(placeholder = "") {
             outSHA256.value = placeholder;
+            outSHA512.value = placeholder;
             outMD5.value = placeholder;
             outSHA1.value = placeholder;
         }
