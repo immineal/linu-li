@@ -102,9 +102,20 @@
                     return;
                 }
 
-                // If user pasted a massive encoded block, decode it first
-                if (raw.includes('%3A') || raw.includes('%2F')) {
-                    try { raw = decodeURIComponent(raw); } catch (e) {}
+                // If user pasted a massive encoded block, decode it recursively (up to 5 times for safety)
+                let prevRaw = '';
+                let decodeAttempts = 0;
+                while (raw !== prevRaw && decodeAttempts < 5) {
+                    prevRaw = raw;
+                    if (raw.includes('%')) {
+                        try { raw = decodeURIComponent(raw); } catch (e) { break; }
+                    }
+                    decodeAttempts++;
+                }
+
+                // Prepend protocol if missing so new URL() doesn't throw
+                if (!/^https?:\/\//i.test(raw)) {
+                    raw = 'https://' + raw;
                 }
 
                 try {
@@ -118,6 +129,7 @@
                         const asinMatch = url.pathname.match(/\/(?:dp|gp\/product|exec\/obidos\/asin)\/([A-Z0-9]{10})/);
                         if (asinMatch) {
                             finalUrl = `https://${hostname}/dp/${asinMatch[1]}`;
+                            if (url.hash) finalUrl += url.hash;
                             platformDetected = 'Amazon';
                         }
                     }
@@ -128,6 +140,7 @@
                         const itemMatch = url.pathname.match(/\/itm\/(?:.*\/)?(\d+)/);
                         if (itemMatch) {
                             finalUrl = `https://${hostname}/itm/${itemMatch[1]}`;
+                            if (url.hash) finalUrl += url.hash;
                             platformDetected = 'eBay';
                         }
                     }
@@ -147,6 +160,7 @@
                             if (url.searchParams.has('t')) {
                                 finalUrl += `?t=${url.searchParams.get('t')}`;
                             }
+                            if (url.hash) finalUrl += url.hash;
                             platformDetected = 'YouTube';
                         }
                     }
@@ -157,6 +171,7 @@
                         if (statusMatch) {
                             // Normalize to x.com as it's shorter/current
                             finalUrl = `https://x.com${url.pathname.split('/status/')[0]}/status/${statusMatch[1]}`;
+                            if (url.hash) finalUrl += url.hash;
                             platformDetected = 'X / Twitter';
                         }
                     }

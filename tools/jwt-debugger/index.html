@@ -113,7 +113,7 @@
             }
 
             const parts = token.split('.');
-            if (parts.length !== 3) {
+            if (parts.length < 2 || parts.length > 3) {
                 // Basic validation fail
                 outHeader.value = "Invalid Token Format";
                 outPayload.value = "";
@@ -142,7 +142,7 @@
                 checkForTimestamps(payloadObj);
 
                 // Signature (just show encoded part)
-                outSignature.textContent = parts[2];
+                outSignature.textContent = parts[2] || "No signature";
 
             } catch (e) {
                 outHeader.value = "Error decoding token.";
@@ -151,8 +151,8 @@
         }
 
         function base64UrlDecode(str) {
-            // Replace non-url compatible chars
-            let output = str.replace(/-/g, '+').replace(/_/g, '/');
+            // Replace non-url compatible chars and strip existing padding to avoid illegal string errors
+            let output = str.replace(/-/g, '+').replace(/_/g, '/').replace(/=+$/, '');
             // Pad with =
             switch (output.length % 4) {
                 case 0: break;
@@ -168,7 +168,12 @@
             // Helper to show toast for expiration
             if (obj.exp) {
                 const date = new Date(obj.exp * 1000);
-                showToast(`Expires: ${date.toLocaleString()}`, 'info');
+                const now = new Date();
+                if (date < now) {
+                    showToast(`Expired on: ${date.toLocaleString()}`, 'error');
+                } else {
+                    showToast(`Expires: ${date.toLocaleString()}`, 'info');
+                }
             }
         }
 
