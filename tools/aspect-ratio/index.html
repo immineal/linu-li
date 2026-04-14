@@ -21,8 +21,9 @@
             position: relative;
         }
         .preview-shape {
-            background: var(--accent);
-            opacity: 0.8;
+            background: rgba(196, 77, 60, 0.2);
+            border: 2px solid var(--accent);
+            outline: 9999px solid rgba(0, 0, 0, 0.5);
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
@@ -30,9 +31,36 @@
             color: white;
             font-weight: bold;
             font-family: var(--font-mono);
-            box-shadow: 0 10px 30px rgba(196, 77, 60, 0.3);
-            max-width: 90%;
-            max-height: 90%;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            max-width: 100%;
+            max-height: 100%;
+            position: relative;
+            z-index: 10;
+        }
+        .preview-shape.dragging {
+            transition: none;
+        }
+        .resize-handle {
+            position: absolute;
+            right: -6px;
+            bottom: -6px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            cursor: nwse-resize;
+            z-index: 20;
+        }
+        #bgImg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: contain;
+            opacity: 0.5;
+            z-index: 1;
+            pointer-events: none;
         }
         /* Grid lines for context */
         .preview-box-container::before {
@@ -57,21 +85,39 @@
             <div class="card">
                 
                 <!-- VISUAL PREVIEW -->
-                <div class="preview-box-container">
-                    <div id="shape" class="preview-shape" style="width: 160px; height: 90px;">16:9</div>
+                <div class="preview-box-container" id="previewContainer">
+                    <img id="bgImg" style="display: none;">
+                    <div id="shape" class="preview-shape" style="width: 160px; height: 90px;">
+                        <span id="shapeText">16:9</span>
+                        <div class="resize-handle" id="resizeHandle"></div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 2rem; text-align: center;">
+                    <input type="file" id="bgUpload" accept="image/*" style="display: none;">
+                    <button class="button sm" onclick="document.getElementById('bgUpload').click()">Upload Background Image</button>
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;">Upload an image to visualize the crop box over it.</p>
                 </div>
 
                 <!-- CONTROLS -->
                 <div class="split-view">
                     <!-- Ratio Selection -->
                     <div>
-                        <label>Common Presets</label>
-                        <div class="button-group" style="margin-bottom: 1.5rem;">
+                        <label>Displays & Video</label>
+                        <div class="button-group" style="margin-bottom: 1rem; flex-wrap: wrap;">
                             <button class="button sm outline" onclick="setRatio(16,9)">16:9</button>
+                            <button class="button sm outline" onclick="setRatio(16,10)">16:10</button>
+                            <button class="button sm outline" onclick="setRatio(21,9)">21:9</button>
+                            <button class="button sm outline" onclick="setRatio(32,9)">32:9</button>
+                        </div>
+
+                        <label>Photo & Social</label>
+                        <div class="button-group" style="margin-bottom: 1.5rem; flex-wrap: wrap;">
+                            <button class="button sm outline" onclick="setRatio(3,2)">3:2</button>
                             <button class="button sm outline" onclick="setRatio(4,3)">4:3</button>
                             <button class="button sm outline" onclick="setRatio(1,1)">1:1</button>
+                            <button class="button sm outline" onclick="setRatio(4,5)">4:5</button>
                             <button class="button sm outline" onclick="setRatio(9,16)">9:16</button>
-                            <button class="button sm outline" onclick="setRatio(21,9)">21:9</button>
                         </div>
                         
                         <label>Custom Ratio (W : H)</label>
@@ -115,10 +161,22 @@
         const widthInput = document.getElementById('widthInput');
         const heightInput = document.getElementById('heightInput');
         const shape = document.getElementById('shape');
+        const shapeText = document.getElementById('shapeText');
+        const bgUpload = document.getElementById('bgUpload');
+        const bgImg = document.getElementById('bgImg');
+        const resizeHandle = document.getElementById('resizeHandle');
+        const previewContainer = document.getElementById('previewContainer');
 
         // State
         let currentW = 16;
         let currentH = 9;
+        let isResizing = false;
+        let startX, startY, startWidth, startHeight;
+
+        // Math util
+        function gcd(a, b) {
+            return b === 0 ? a : gcd(b, a % b);
+        }
 
         // --- 1. Ratio Logic ---
         function setRatio(w, h) {
@@ -139,30 +197,33 @@
             const ratio = rW / rH;
 
             // Update Preview Shape text and size
-            shape.textContent = `${rW}:${rH}`;
+            if (shapeText) shapeText.textContent = `${rW}:${rH}`;
             
             // Visual Logic: Fit shape within 250px box while keeping ratio
-            if (ratio > 1) {
-                // Wider
-                shape.style.width = '250px';
-                shape.style.height = `${250 / ratio}px`;
-            } else {
-                // Taller
-                shape.style.height = '250px';
-                shape.style.width = `${250 * ratio}px`;
+            // Skip visual update if we are manually dragging the box
+            if (!isResizing) {
+                if (ratio > 1) {
+                    // Wider
+                    shape.style.width = '250px';
+                    shape.style.height = `${250 / ratio}px`;
+                } else {
+                    // Taller
+                    shape.style.height = '250px';
+                    shape.style.width = `${250 * ratio}px`;
+                }
             }
 
             // Update Inputs
             if (source === 'width') {
                 const w = Math.max(0, parseFloat(widthInput.value) || 0);
-                heightInput.value = Math.round(w / ratio);
+                heightInput.value = Math.round((w * rH) / rW);
             } else if (source === 'height') {
                 const h = Math.max(0, parseFloat(heightInput.value) || 0);
-                widthInput.value = Math.round(h * ratio);
+                widthInput.value = Math.round((h * rW) / rH);
             } else {
                 // Source is Ratio change, update Height based on current Width
                 const w = Math.max(0, parseFloat(widthInput.value) || 0);
-                heightInput.value = Math.round(w / ratio);
+                heightInput.value = Math.round((w * rH) / rW);
             }
         }
 
@@ -172,6 +233,83 @@
         
         widthInput.addEventListener('input', () => updateCalculations('width'));
         heightInput.addEventListener('input', () => updateCalculations('height'));
+
+        // Background Upload Logic
+        bgUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    bgImg.src = ev.target.result;
+                    bgImg.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Resize Logic
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            shape.classList.add('dragging');
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = parseInt(document.defaultView.getComputedStyle(shape).width, 10);
+            startHeight = parseInt(document.defaultView.getComputedStyle(shape).height, 10);
+            document.documentElement.style.cursor = 'nwse-resize';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const containerRect = previewContainer.getBoundingClientRect();
+
+            // Calculate new dimensions based on mouse movement
+            let newWidth = startWidth + (e.clientX - startX);
+            let newHeight = startHeight + (e.clientY - startY);
+
+            // Clamp minimum size to prevent collapsing
+            newWidth = Math.max(20, newWidth);
+            newHeight = Math.max(20, newHeight);
+
+            // Update shape visual size directly
+            shape.style.width = `${newWidth}px`;
+            shape.style.height = `${newHeight}px`;
+
+            // Calculate exact ratio, simplify, and update inputs without triggering visual jump
+            const divisor = gcd(Math.round(newWidth), Math.round(newHeight));
+            let rW = Math.round(newWidth) / divisor;
+            let rH = Math.round(newHeight) / divisor;
+
+            // Defend against massive unsimplified ratios (e.g., 241:199)
+            // If the ratio numbers are too large, fall back to rounding to 1 decimal place
+            if (rW > 100 || rH > 100) {
+               const rawRatio = newWidth / newHeight;
+               if (rawRatio > 1) {
+                   rW = Math.round(rawRatio * 10);
+                   rH = 10;
+               } else {
+                   rW = 10;
+                   rH = Math.round((1/rawRatio) * 10);
+               }
+               const d = gcd(rW, rH);
+               rW /= d;
+               rH /= d;
+            }
+
+            ratioW.value = rW;
+            ratioH.value = rH;
+            updateCalculations('ratio');
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                shape.classList.remove('dragging');
+                document.documentElement.style.cursor = 'default';
+                // Snap visual to normalized 250px box
+                updateCalculations('ratio');
+            }
+        });
 
         // Init
         setRatio(16, 9);
