@@ -30,3 +30,10 @@ const safePayload = "# Hello";
 const output2 = render(safePayload);
 assert.ok(output2.includes('<h1>Hello</h1>') || output2.includes('<h1 id="hello">Hello</h1>'), "Safe parsing failed");
 console.log("✅ Safe Parsing Test Passed");
+
+// 3. Test Mermaid Block Preservation
+const mermaidPayload = "```mermaid\ngraph TD;\n A-->B;\n```";
+const output3 = render(mermaidPayload);
+// DOMPurify should allow the language-mermaid class for extensibility
+assert.ok(output3.includes('class="language-mermaid"'), "Mermaid code block class stripped by DOMPurify");
+console.log("✅ Mermaid Extensibility Support Test Passed");
