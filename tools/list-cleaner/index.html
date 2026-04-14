@@ -35,6 +35,7 @@
                         <button class="button outline" onclick="processList('reverse')">Reverse Order</button>
                         <button class="button outline" onclick="processList('random')">Randomize</button>
                         <button class="button outline" onclick="processList('dedup')">Remove Duplicates</button>
+                        <button class="button outline" onclick="processList('dedupInsensitive')">Dedup (Case Insensitive)</button>
                         <button class="button outline" onclick="processList('trim')">Trim Whitespace</button>
                         <button class="button outline" onclick="processList('empty')">Remove Empty Lines</button>
                     </div>
@@ -74,14 +75,23 @@
         const suffixInput = document.getElementById('suffixInput');
 
         // Update line count on type
+        let inputTimeout;
         listInput.addEventListener('input', () => {
-            const lines = listInput.value.split('\n').length;
-            inputCount.textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
+            clearTimeout(inputTimeout);
+            inputTimeout = setTimeout(() => {
+                const val = listInput.value;
+                const lines = val === '' ? 0 : (val.match(/\n/g) || []).length + 1;
+                inputCount.textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
+            }, 100);
         });
 
         function processList(action) {
             let raw = listInput.value;
-            if (!raw) return;
+            if (!raw) {
+                listOutput.value = '';
+                outputCount.textContent = '0 lines';
+                return;
+            }
 
             // Split into array
             let items = raw.split('\n');
@@ -97,11 +107,23 @@
                     items.reverse();
                     break;
                 case 'random':
-                    items.sort(() => Math.random() - 0.5);
+                    for (let i = items.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [items[i], items[j]] = [items[j], items[i]];
+                    }
                     break;
                 case 'dedup':
                     // Use Set to remove duplicates, preserve order
                     items = [...new Set(items)];
+                    break;
+                case 'dedupInsensitive':
+                    const seen = new Set();
+                    items = items.filter(item => {
+                        const lower = item.toLowerCase();
+                        if (seen.has(lower)) return false;
+                        seen.add(lower);
+                        return true;
+                    });
                     break;
                 case 'trim':
                     items = items.map(item => item.trim());
@@ -119,7 +141,7 @@
             const result = items.join('\n');
             listOutput.value = result;
             
-            const outLines = items.length;
+            const outLines = result === '' ? 0 : items.length;
             outputCount.textContent = `${outLines} line${outLines !== 1 ? 's' : ''}`;
             
             // Highlight output
