@@ -190,23 +190,51 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                const svgData = e.target.result;
-                const img = new Image();
-                
-                img.onload = function() {
-                    renderToCanvas(img);
-                };
-                
-                img.onerror = function() {
-                    showToast('Error parsing SVG data.', 'error');
-                    resetButton();
-                };
+                try {
+                    const rawSvg = e.target.result;
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(rawSvg, 'image/svg+xml');
 
-                // Handle XML serializer for special characters/fonts if necessary, 
-                // but Data URL usually works for standalone SVGs
-                img.src = svgData;
+                    const svgEl = doc.documentElement;
+                    if (svgEl.tagName.toLowerCase() !== 'svg') {
+                        throw new Error('Invalid SVG file');
+                    }
+
+                    // Fallback to viewBox if width/height are missing
+                    if (!svgEl.hasAttribute('width') || !svgEl.hasAttribute('height')) {
+                        const viewBox = svgEl.getAttribute('viewBox');
+                        if (viewBox) {
+                            const [x, y, w, h] = viewBox.split(/[\s,]+/).map(parseFloat);
+                            if (!isNaN(w) && !isNaN(h)) {
+                                if (!svgEl.hasAttribute('width')) svgEl.setAttribute('width', w);
+                                if (!svgEl.hasAttribute('height')) svgEl.setAttribute('height', h);
+                            }
+                        }
+                    }
+
+                    const serializer = new XMLSerializer();
+                    let svgString = serializer.serializeToString(doc);
+
+                    // Convert back to Data URL
+                    const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+
+                    const img = new Image();
+                    img.onload = function() {
+                        renderToCanvas(img);
+                    };
+
+                    img.onerror = function() {
+                        showToast('Error parsing SVG data.', 'error');
+                        resetButton();
+                    };
+
+                    img.src = svgDataUrl;
+                } catch (err) {
+                    showToast('Error processing SVG: ' + err.message, 'error');
+                    resetButton();
+                }
             };
-            reader.readAsDataURL(currentFile);
+            reader.readAsText(currentFile);
         });
 
         function renderToCanvas(img) {
@@ -227,6 +255,15 @@
                 const scale = parseInt(scaleSelect.value);
                 targetWidth = originalWidth * scale;
                 targetHeight = originalHeight * scale;
+            }
+
+            // Prevent memory crashes from massive scale multipliers
+            const MAX_DIMENSION = 16384;
+            if (targetWidth > MAX_DIMENSION || targetHeight > MAX_DIMENSION) {
+                const scaleDown = Math.min(MAX_DIMENSION / targetWidth, MAX_DIMENSION / targetHeight);
+                targetWidth *= scaleDown;
+                targetHeight *= scaleDown;
+                showToast(`Dimensions clamped to max supported size (${Math.round(targetWidth)}x${Math.round(targetHeight)}) to prevent memory issues.`, 'info');
             }
 
             // Set canvas size (high res)
