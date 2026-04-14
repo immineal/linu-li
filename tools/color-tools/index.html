@@ -334,8 +334,9 @@
         // --- 5. Manual Input Handling ---
         function handleManualInput(val) {
             const c = tinycolor(val);
+            // Must be valid and not default to black for invalid inputs like "#12"
             if (c.isValid()) {
-                colorPicker.color.set(c.toHexString());
+                colorPicker.color.set(c.toRgbString());
             }
         }
 
@@ -343,24 +344,54 @@
             input.addEventListener('input', (e) => handleManualInput(e.target.value));
         });
 
-        // --- 6. Contrast Calculation ---
-        function updateContrast() {
-            const fg = tinycolor(colors.fg);
-            const bg = tinycolor(colors.bg);
+        // Helper: blend alpha color over solid background
+        function blendAlpha(fgColor, bgColor) {
+            const fgRgb = fgColor.toRgb();
+            const bgRgb = bgColor.toRgb();
 
-            // Update Preview
-            preview.style.color = fg.toHexString();
-            preview.style.backgroundColor = bg.toHexString();
+            // First blend background over white if it has transparency
+            let solidBgRgb = bgRgb;
+            if (bgRgb.a < 1) {
+                solidBgRgb = {
+                    r: Math.round((1 - bgRgb.a) * 255 + bgRgb.a * bgRgb.r),
+                    g: Math.round((1 - bgRgb.a) * 255 + bgRgb.a * bgRgb.g),
+                    b: Math.round((1 - bgRgb.a) * 255 + bgRgb.a * bgRgb.b),
+                    a: 1
+                };
+            }
 
-            const ratio = tinycolor.readability(fg, bg).toFixed(2);
-            ratioDisplay.textContent = ratio;
+            if (fgRgb.a === 1) return { fg: tinycolor(fgRgb), bg: tinycolor(solidBgRgb) };
 
-            updateBadges(ratio);
+            const r = Math.round((1 - fgRgb.a) * solidBgRgb.r + fgRgb.a * fgRgb.r);
+            const g = Math.round((1 - fgRgb.a) * solidBgRgb.g + fgRgb.a * fgRgb.g);
+            const b = Math.round((1 - fgRgb.a) * solidBgRgb.b + fgRgb.a * fgRgb.b);
+
+            return {
+                fg: tinycolor({r, g, b, a: 1}),
+                bg: tinycolor(solidBgRgb)
+            };
         }
 
-        function updateBadges(ratio) {
+        // --- 6. Contrast Calculation ---
+        function updateContrast() {
+            const fgOriginal = tinycolor(colors.fg);
+            const bgOriginal = tinycolor(colors.bg);
+
+            // Update Preview (show transparency if any)
+            preview.style.color = fgOriginal.toRgbString();
+            preview.style.backgroundColor = bgOriginal.toRgbString();
+
+            const { fg, bg } = blendAlpha(fgOriginal, bgOriginal);
+
+            const rawRatio = tinycolor.readability(fg, bg);
+            ratioDisplay.textContent = rawRatio.toFixed(2);
+
+            updateBadges(rawRatio);
+        }
+
+        function updateBadges(rawRatio) {
             // AA (4.5)
-            if (ratio >= 4.5) {
+            if (rawRatio >= 4.5) {
                 badgeAA.className = 'pass-tag pass';
                 badgeAA.textContent = 'Pass';
             } else {
@@ -368,7 +399,7 @@
                 badgeAA.textContent = 'Fail';
             }
             // AAA (7.0)
-            if (ratio >= 7) {
+            if (rawRatio >= 7) {
                 badgeAAA.className = 'pass-tag pass';
                 badgeAAA.textContent = 'Pass';
             } else {
