@@ -86,9 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
             input.value = savedValue;
         }
 
+        let debounceTimer;
         // Save on Input
         input.addEventListener('input', (e) => {
-            localStorage.setItem(storageKey, e.target.value);
+            clearTimeout(debounceTimer);
+            // ⚡ Bolt Performance Optimization:
+            // Debounce synchronous localStorage writes to prevent main-thread
+            // blocking and UI jank during rapid typing (especially in large textareas).
+            debounceTimer = setTimeout(() => {
+                localStorage.setItem(storageKey, e.target.value);
+            }, 300);
         });
         
         // Save on Change (for selects)
