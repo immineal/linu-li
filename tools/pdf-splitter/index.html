@@ -259,7 +259,7 @@
                 }
 
                 const zip = new JSZip();
-                const baseName = currentFile.name.replace('.pdf', '');
+                const baseName = currentFile.name.replace(/\.pdf$/i, '');
 
                 for (let i = 0; i < indicesToExtract.length; i++) {
                     const pageIndex = indicesToExtract[i];
@@ -296,12 +296,14 @@
                 showToast('Error: ' + error.message, 'error');
             } finally {
                 splitBtn.textContent = 'Split PDF';
+                splitBtn.disabled = false;
+                progressContainer.style.display = 'none';
             }
         });
 
         downloadBtn.addEventListener('click', () => {
             if (zipBlob && currentFile) {
-                const zipName = `${currentFile.name.replace('.pdf', '')}_split.zip`;
+                const zipName = `${currentFile.name.replace(/\.pdf$/i, '')}_split.zip`;
                 saveAs(zipBlob, zipName);
             }
         });

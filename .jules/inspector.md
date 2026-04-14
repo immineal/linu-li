@@ -1,4 +1,0 @@
-## SVG Rasterizer Edge Cases
-- When processing SVGs, `img.width` and `img.height` properties of a native `Image` object can silently fail or fallback to defaults (like 300x150) if the raw `<svg>` node does not explicitly define `width` and `height` attributes, even if a `viewBox` is present.
-- To safely parse an SVG into an image with exact dimensions, parse the SVG string as an XML document (`DOMParser`), extract the `viewBox` dimensions, and explicitly set `width` and `height` attributes on the root `<svg>` element before serializing it back to a Data URL.
-- Using `canvas.width` and `canvas.height` with extremely large values (e.g., multiplier > 50,000) causes browser tabs to crash due to memory exhaustion. Always clamp target dimensions to a safe maximum (e.g., `16384` for modern browsers).
