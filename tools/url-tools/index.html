@@ -39,6 +39,8 @@
                                 white-space: pre-wrap; 
                                 word-break: break-all; 
                                 overflow-wrap: anywhere;"></div>
+
+                    <div id="paramsContainer" class="hidden"></div>
                     
                     <div class="button-group" style="margin-top: 1rem;">
                         <button class="button sm secondary" id="copyBtn">Copy Result</button>
@@ -94,114 +96,284 @@
                 }
             }
 
+            // Aggressive parameter removal list (100+ params)
+            const paramsToRemove = new Set([
+                'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_cid', 'utm_reader', 'utm_referrer', 'utm_name', 'utm_social', 'utm_social-type', 'utm_id',
+                'fbclid', 'gclid', 'igshid', '_hsenc', '_hsmi', 'mc_cid', 'mc_eid', 'mkt_tok', 'yclid', '_openstat', 'wt_mc', 'twclid', 'msclkid', 'dclid', 'wbraid', 'gbraid',
+                'oly_anon_id', 'oly_enc_id', '__s', '_bta_tid', '_bta_c', 'trk_contact', 'trk_msg', 'trk_module', 'trk_sid',
+                'pd_rd_r', 'pd_rd_w', 'pd_rd_wg', 'pf_rd_p', 'pf_rd_r', 'pf_rd_s', 'pf_rd_t', 'pf_rd_i', 'pf_rd_m', 'ref', 'ref_', 'sr_share', 'si', 's', '_t', '_r', 'share_id', 'feature', 'context', 'smid', 'cmpid',
+                'cj1', 'rv1', 'nb', 'p', 'b', 'z', 'm', 'n', 'k', 'c', 'clid', 'qid', 'sr', 'dchild', 'keywords'
+            ]);
+
+            // Define UI rendering function for params editor
+            function renderParamsEditor(urlStr) {
+                const container = document.getElementById('paramsContainer');
+                if (!container) return;
+
+                try {
+                    const url = new URL(urlStr);
+                    const params = Array.from(url.searchParams.entries());
+
+                    if (params.length === 0) {
+                        container.innerHTML = '';
+                        container.classList.add('hidden');
+                        return;
+                    }
+
+                    container.classList.remove('hidden');
+                    let html = `<h3 style="margin-bottom: 0.5rem; font-size: 1rem; margin-top: 1rem;">Query Parameters</h3>
+                                <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-family: var(--font-mono); font-size: 0.85rem;">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid var(--border); text-align: left;">
+                                            <th style="padding: 0.5rem; width: 35%;">Key</th>
+                                            <th style="padding: 0.5rem; width: 55%;">Value</th>
+                                            <th style="padding: 0.5rem; width: 10%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="paramsTableBody">`;
+
+                    params.forEach(([key, val], index) => {
+                        html += `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 0.5rem;"><input type="text" class="param-key" data-index="${index}" value="${key}" style="width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid transparent; background: transparent;" /></td>
+                                <td style="padding: 0.5rem;"><input type="text" class="param-val" data-index="${index}" value="${val}" style="width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid transparent; background: transparent;" /></td>
+                                <td style="padding: 0.5rem; text-align: center;"><button class="delete-param" data-index="${index}" style="background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1.2rem;">&times;</button></td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                    </tbody>
+                                </table>
+                                <button id="addParamBtn" class="button sm outline" style="margin-bottom: 1rem;">+ Add Parameter</button>`;
+
+                    container.innerHTML = html;
+
+                    // Attach event listeners for inputs and deletes
+                    const inputs = container.querySelectorAll('input');
+                    inputs.forEach(input => {
+                        input.addEventListener('input', () => updateUrlFromParams(urlStr));
+                        input.addEventListener('focus', function() { this.style.border = '1px solid var(--border)'; this.style.background = 'var(--input-bg)'; });
+                        input.addEventListener('blur', function() { this.style.border = '1px solid transparent'; this.style.background = 'transparent'; });
+                    });
+
+                    const deletes = container.querySelectorAll('.delete-param');
+                    deletes.forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.target.closest('tr').remove();
+                            updateUrlFromParams(urlStr);
+                        });
+                    });
+
+                    const addBtn = container.querySelector('#addParamBtn');
+                    if(addBtn) {
+                        addBtn.addEventListener('click', () => {
+                            const tbody = container.querySelector('#paramsTableBody');
+                            const newIdx = tbody.children.length;
+                            const tr = document.createElement('tr');
+                            tr.style.borderBottom = '1px solid var(--border)';
+                            tr.innerHTML = `
+                                <td style="padding: 0.5rem;"><input type="text" class="param-key" data-index="${newIdx}" placeholder="key" style="width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid var(--border); background: var(--input-bg);" /></td>
+                                <td style="padding: 0.5rem;"><input type="text" class="param-val" data-index="${newIdx}" placeholder="value" style="width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid var(--border); background: var(--input-bg);" /></td>
+                                <td style="padding: 0.5rem; text-align: center;"><button class="delete-param" data-index="${newIdx}" style="background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1.2rem;">&times;</button></td>
+                            `;
+                            tbody.appendChild(tr);
+
+                            // Attach events to new elements
+                            const newInputs = tr.querySelectorAll('input');
+                            newInputs.forEach(input => {
+                                input.addEventListener('input', () => updateUrlFromParams(urlStr));
+                                input.addEventListener('focus', function() { this.style.border = '1px solid var(--border)'; this.style.background = 'var(--input-bg)'; });
+                                input.addEventListener('blur', function() { this.style.border = '1px solid transparent'; this.style.background = 'transparent'; });
+                            });
+                            tr.querySelector('.delete-param').addEventListener('click', (e) => {
+                                e.target.closest('tr').remove();
+                                updateUrlFromParams(urlStr);
+                            });
+
+                            // focus first input
+                            tr.querySelector('.param-key').focus();
+                        });
+                    }
+
+                } catch(e) {
+                    console.error("Error rendering params editor:", e);
+                    container.innerHTML = '';
+                    container.classList.add('hidden');
+                }
+            }
+
+            function updateUrlFromParams(originalUrlStr) {
+                try {
+                    const url = new URL(originalUrlStr);
+                    // Clear existing params
+                    url.search = '';
+
+                    const container = document.getElementById('paramsContainer');
+                    if (container) {
+                        const rows = container.querySelectorAll('tbody tr');
+                        rows.forEach(row => {
+                            const keyInput = row.querySelector('.param-key');
+                            const valInput = row.querySelector('.param-val');
+                            if (keyInput && valInput && keyInput.value.trim() !== '') {
+                                url.searchParams.append(keyInput.value.trim(), valInput.value);
+                            }
+                        });
+                    }
+
+                    // Update the display result without triggering a full re-render of the table
+                    const finalStr = url.toString();
+                    textOutput.textContent = finalStr;
+                    resultBox.classList.remove('hidden');
+
+                } catch(e) {
+                    console.error("Error updating URL:", e);
+                }
+            }
+
             // === ADVANCED CLEANING LOGIC ===
             cleanBtn.addEventListener('click', () => {
-                let raw = inputData.value.trim();
-                if (!raw) {
+                let rawLines = inputData.value.trim().split('\n').filter(line => line.trim() !== '');
+                if (rawLines.length === 0) {
                     showToast('Please enter a URL', 'info');
                     return;
                 }
 
-                // If user pasted a massive encoded block, decode it recursively (up to 5 times for safety)
-                let prevRaw = '';
-                let decodeAttempts = 0;
-                while (raw !== prevRaw && decodeAttempts < 5) {
-                    prevRaw = raw;
-                    if (raw.includes('%')) {
-                        try { raw = decodeURIComponent(raw); } catch (e) { break; }
-                    }
-                    decodeAttempts++;
-                }
+                let finalUrls = [];
+                let overallPlatformDetected = null;
+                let hasErrors = false;
 
-                // Prepend protocol if missing so new URL() doesn't throw
-                if (!/^https?:\/\//i.test(raw)) {
-                    raw = 'https://' + raw;
-                }
+                rawLines.forEach(raw => {
+                    raw = raw.trim();
 
-                try {
-                    const url = new URL(raw);
-                    const hostname = url.hostname.toLowerCase();
-                    let finalUrl = url.toString();
-                    let platformDetected = null;
-
-                    // 1. AMAZON (dp/ASIN)
-                    if (hostname.includes('amazon') || hostname.includes('amzn')) {
-                        const asinMatch = url.pathname.match(/\/(?:dp|gp\/product|exec\/obidos\/asin)\/([A-Z0-9]{10})/);
-                        if (asinMatch) {
-                            finalUrl = `https://${hostname}/dp/${asinMatch[1]}`;
-                            if (url.hash) finalUrl += url.hash;
-                            platformDetected = 'Amazon';
+                    // If user pasted a massive encoded block, decode it recursively (up to 5 times for safety)
+                    let prevRaw = '';
+                    let decodeAttempts = 0;
+                    while (raw !== prevRaw && decodeAttempts < 5) {
+                        prevRaw = raw;
+                        if (raw.includes('%')) {
+                            try { raw = decodeURIComponent(raw); } catch (e) { break; }
                         }
-                    }
-                    
-                    // 2. EBAY (itm/ID)
-                    else if (hostname.includes('ebay')) {
-                        // eBay URLs are usually ebay.com/itm/TITLE-SLUG/12345678
-                        const itemMatch = url.pathname.match(/\/itm\/(?:.*\/)?(\d+)/);
-                        if (itemMatch) {
-                            finalUrl = `https://${hostname}/itm/${itemMatch[1]}`;
-                            if (url.hash) finalUrl += url.hash;
-                            platformDetected = 'eBay';
-                        }
+                        decodeAttempts++;
                     }
 
-                    // 3. YOUTUBE (ConvertTo youtu.be/ID)
-                    else if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
-                        let videoId = null;
-                        if (hostname.includes('youtu.be')) {
-                            videoId = url.pathname.substring(1);
-                        } else if (url.searchParams.has('v')) {
-                            videoId = url.searchParams.get('v');
-                        }
-                        
-                        if (videoId) {
-                            finalUrl = `https://youtu.be/${videoId}`;
-                            // Preserve timestamp if present
-                            if (url.searchParams.has('t')) {
-                                finalUrl += `?t=${url.searchParams.get('t')}`;
+                    // Prepend protocol if missing so new URL() doesn't throw
+                    if (!/^https?:\/\//i.test(raw)) {
+                        raw = 'https://' + raw;
+                    }
+
+                    try {
+                        const url = new URL(raw);
+                        const hostname = url.hostname.toLowerCase();
+                        let finalUrl = url.toString();
+                        let platformDetected = null;
+
+                        // 1. AMAZON (dp/ASIN)
+                        if (hostname.includes('amazon') || hostname.includes('amzn')) {
+                            const asinMatch = url.pathname.match(/\/(?:dp|gp\/product|exec\/obidos\/asin)\/([A-Z0-9]{10})/);
+                            if (asinMatch) {
+                                finalUrl = `https://${hostname}/dp/${asinMatch[1]}`;
+                                if (url.hash) finalUrl += url.hash;
+                                platformDetected = 'Amazon';
                             }
-                            if (url.hash) finalUrl += url.hash;
-                            platformDetected = 'YouTube';
                         }
-                    }
 
-                    // 4. TWITTER / X (Status ID only)
-                    else if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
-                        const statusMatch = url.pathname.match(/\/status\/(\d+)/);
-                        if (statusMatch) {
-                            // Normalize to x.com as it's shorter/current
-                            finalUrl = `https://x.com${url.pathname.split('/status/')[0]}/status/${statusMatch[1]}`;
-                            if (url.hash) finalUrl += url.hash;
-                            platformDetected = 'X / Twitter';
+                        // 2. EBAY (itm/ID)
+                        else if (hostname.includes('ebay')) {
+                            // eBay URLs are usually ebay.com/itm/TITLE-SLUG/12345678
+                            const itemMatch = url.pathname.match(/\/itm\/(?:.*\/)?(\d+)/);
+                            if (itemMatch) {
+                                finalUrl = `https://${hostname}/itm/${itemMatch[1]}`;
+                                if (url.hash) finalUrl += url.hash;
+                                platformDetected = 'eBay';
+                            }
                         }
+
+                        // 3. YOUTUBE (ConvertTo youtu.be/ID)
+                        else if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
+                            let videoId = null;
+                            if (hostname.includes('youtu.be')) {
+                                videoId = url.pathname.substring(1);
+                            } else if (url.searchParams.has('v')) {
+                                videoId = url.searchParams.get('v');
+                            }
+
+                            if (videoId) {
+                                finalUrl = `https://youtu.be/${videoId}`;
+                                // Preserve timestamp if present
+                                if (url.searchParams.has('t')) {
+                                    finalUrl += `?t=${url.searchParams.get('t')}`;
+                                }
+                                if (url.hash) finalUrl += url.hash;
+                                platformDetected = 'YouTube';
+                            }
+                        }
+
+                        // 4. TWITTER / X (Status ID only)
+                        else if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
+                            const statusMatch = url.pathname.match(/\/status\/(\d+)/);
+                            if (statusMatch) {
+                                // Normalize to x.com as it's shorter/current
+                                finalUrl = `https://x.com${url.pathname.split('/status/')[0]}/status/${statusMatch[1]}`;
+                                if (url.hash) finalUrl += url.hash;
+                                platformDetected = 'X / Twitter';
+                            }
+                        }
+
+                        // 5. GENERIC CLEANER (If no specific platform matched, or to clean remaining params)
+                        if (!platformDetected) {
+                            // Create a temporary URL object to strip params
+                            const tempUrl = new URL(finalUrl);
+
+                            // Delete known tracking parameters
+                            const keysToDelete = [];
+                            for (const key of tempUrl.searchParams.keys()) {
+                                if (paramsToRemove.has(key.toLowerCase())) {
+                                    keysToDelete.push(key);
+                                }
+                            }
+                            keysToDelete.forEach(k => tempUrl.searchParams.delete(k));
+
+                            finalUrl = tempUrl.toString();
+                        }
+
+                        if (platformDetected) {
+                            overallPlatformDetected = platformDetected;
+                        }
+
+                        finalUrls.push(finalUrl);
+
+                    } catch (e) {
+                        hasErrors = true;
+                        finalUrls.push(raw + " (Invalid URL)");
                     }
+                });
 
-                    // 5. GENERIC CLEANER (If no specific platform matched, or to clean remaining params)
-                    if (!platformDetected) {
-                        // Aggressive parameter removal list
-                        const paramsToRemove = [
-                            'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_cid', 'utm_reader', 'utm_referrer',
-                            'fbclid', 'gclid', 'msclkid', 'dclid', 'twclid', 'igshid', // Ad Clicks
-                            'ref', 'ref_', 'qid', 'sr', 'dchild', 'keywords', 'pf_rd_p', 'pf_rd_r', 'pd_rd_w', 'pd_rd_r', // Store Junk
-                            'si', 'share_id', 'feature', 'context', 's', 't', '_t', '_r' // Social Junk
-                        ];
+                const finalStr = finalUrls.join('\n');
+                displayResult(finalStr);
 
-                        // Create a temporary URL object to strip params
-                        const tempUrl = new URL(finalUrl);
-                        paramsToRemove.forEach(p => tempUrl.searchParams.delete(p));
-                        finalUrl = tempUrl.toString();
-                    }
-
-                    displayResult(finalUrl);
+                // Hide params container by default on clean, we'll render it only for single URLs
+                const paramsContainer = document.getElementById('paramsContainer');
+                if (paramsContainer) {
+                    paramsContainer.innerHTML = '';
+                    paramsContainer.classList.add('hidden');
                     
-                    if (platformDetected) {
-                        showToast(`${platformDetected} link minified!`, 'success');
-                    } else {
-                        showToast('Tracking parameters removed', 'success');
+                    // Render editable params only if there's exactly 1 valid URL
+                    if (finalUrls.length === 1 && !hasErrors) {
+                        renderParamsEditor(finalUrls[0]);
                     }
+                }
 
-                } catch (e) {
+                if (hasErrors && finalUrls.length === 1) {
                     showToast('Input is not a valid URL', 'error');
+                } else if (hasErrors) {
+                    showToast('Processed with some errors', 'warning');
+                } else if (finalUrls.length > 1) {
+                    showToast(`Cleaned ${finalUrls.length} URLs!`, 'success');
+                } else if (overallPlatformDetected) {
+                    showToast(`${overallPlatformDetected} link minified!`, 'success');
+                } else {
+                    showToast('Tracking parameters removed', 'success');
                 }
             });
 
