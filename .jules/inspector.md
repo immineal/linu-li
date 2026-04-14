@@ -1,1 +1,4 @@
-- Refactored `resizeImage` in the Bulk Resizer to use `URL.createObjectURL` instead of `FileReader.readAsDataURL` to drastically lower memory usage and prevent browser crashes on huge batch jobs. Also learned that applying `Math.round()` to aspect ratio scaling avoids sub-pixel rendering bugs and prevents potential issues with canvas dimension assignment in some edge cases. Invalid image dimensions (0 width or height) must also be checked before canvas manipulation.
+## Learnings for Markdown Live
+1. `marked.parse` natively allows raw HTML which can easily be an XSS vector. Always combine it with `DOMPurify.sanitize`.
+2. When binding keyboard inputs to a heavy synchronous process like markdown parsing and DOM update, wrapping the logic in a debounce `setTimeout` prevents dropped frames and main thread blocking.
+3. Added a basic regression test `tools/markdown-editor/test.js` to ensure the XSS and parsing logic remains robust.
