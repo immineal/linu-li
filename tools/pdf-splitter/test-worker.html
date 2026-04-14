@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Worker Test</title>
+</head>
+<body>
+    <script>
+        const workerCode = `
+            importScripts('https://unpkg.com/pdf-lib/dist/pdf-lib.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+            self.onmessage = function(e) {
+                if (typeof PDFLib !== 'undefined' && typeof JSZip !== 'undefined') {
+                    self.postMessage('Loaded libraries successfully');
+                } else {
+                    self.postMessage('Failed to load libraries');
+                }
+            }
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const worker = new Worker(URL.createObjectURL(blob));
+        worker.onmessage = (e) => {
+            console.log(e.data);
+            document.body.innerHTML += e.data;
+        };
+        worker.postMessage('start');
+    </script>
+</body>
+</html>
