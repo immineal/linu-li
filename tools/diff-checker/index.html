@@ -238,6 +238,7 @@
 
         function renderDiff() {
             diffTable.innerHTML = '';
+            if (!currentDiff) return;
 
             if (activeView === 'side') {
                 renderSideBySide();
@@ -377,6 +378,7 @@
             inputChanged.value = '';
             resultBox.classList.add('hidden');
             diffTable.innerHTML = '';
+            currentDiff = null;
         });
     </script>
 </body>
