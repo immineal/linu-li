@@ -189,6 +189,10 @@
                 
                 console.log(`Detected ${totalSrcPages} pages in source file.`); // Debugging
                 
+                if (totalSrcPages === 0) {
+                    throw new Error('The uploaded PDF has no pages.');
+                }
+
                 progressBar.style.width = '40%';
 
                 // -- Determine Loop Count --
@@ -233,10 +237,11 @@
                         const contentH = pageObj.height;
 
                         // Calculate available space inside margins
-                        const availW = width - (marginPts * 2);
-                        const availH = height - (marginPts * 2);
+                        const availW = Math.max(0, width - (marginPts * 2));
+                        const availH = Math.max(0, height - (marginPts * 2));
 
                         // Calculate Scale to fit margins (while maintaining aspect ratio)
+                        // If availW or availH is 0, scale will be 0 to avoid negative scaling.
                         const scaleX = availW / contentW;
                         const scaleY = availH / contentH;
                         const scale = Math.min(scaleX, scaleY);
