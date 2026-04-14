@@ -52,8 +52,34 @@ try {
     assert.deepStrictEqual(getPagesToExtract("1-abc", 5), [], "Half malformed range failed");
     assert.deepStrictEqual(getPagesToExtract("1-3, abc", 5), [0, 1, 2], "Mixed valid and malformed failed");
 
-    console.log("All tests passed dynamically against index.html!");
+    console.log("getPagesToExtract tests passed!");
+
 } catch (error) {
     console.error("Test failed:", error.message);
     process.exit(1);
 }
+
+// ---------------------------------------------------------
+// Test Worker Message Construction (Static Check)
+// ---------------------------------------------------------
+try {
+    const workerContent = fs.readFileSync(__dirname + '/worker.js', 'utf8');
+
+    // Ensure worker imports the correct libraries
+    assert.ok(workerContent.includes("pdf-lib.min.js"), "Worker should import pdf-lib");
+    assert.ok(workerContent.includes("jszip.min.js"), "Worker should import jszip");
+
+    // Ensure worker handles postMessage properly
+    assert.ok(workerContent.includes("self.postMessage"), "Worker must use postMessage to communicate");
+    assert.ok(workerContent.includes("type: 'progress'"), "Worker must send progress messages");
+    assert.ok(workerContent.includes("type: 'done'"), "Worker must send done messages");
+    assert.ok(workerContent.includes("const zipBlob = await zip.generateAsync"), "Worker must generate zip asynchronously");
+
+    console.log("Worker static analysis passed!");
+
+} catch (error) {
+    console.error("Worker test failed:", error.message);
+    process.exit(1);
+}
+
+console.log("All tests passed dynamically against index.html & worker.js!");
