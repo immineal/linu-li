@@ -9,6 +9,8 @@
     
     <!-- Marked Library -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- DOMPurify Library for XSS protection -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 
     <style>
         /* Preview Styles (mimicking simple typography) */
@@ -92,23 +94,42 @@ console.log('Hello World');
 > "Privacy is the power to selectively reveal oneself to the world."`;
 
         // Render Logic
-        function render() {
-            const text = mdInput.value;
-            // Marked handles sanitization by default in newer versions, 
-            // but for a local tool, raw HTML is often desired.
-            preview.innerHTML = marked.parse(text);
+        let renderTimeout;
+        function render(immediate = false) {
+            clearTimeout(renderTimeout);
+
+            const process = () => {
+                const text = mdInput.value;
+                try {
+                    // Marked handles sanitization by default in newer versions,
+                    // but for a local tool, raw HTML is often desired.
+                    // Inspector Fix: We MUST sanitize to prevent XSS!
+                    const rawHtml = marked.parse(text);
+                    const cleanHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
+                    preview.innerHTML = cleanHtml;
+                } catch (err) {
+                    console.error("Markdown parsing error:", err);
+                    preview.innerHTML = "<p style='color: red;'>Error rendering Markdown.</p>";
+                }
+            };
+
+            if (immediate) {
+                process();
+            } else {
+                renderTimeout = setTimeout(process, 300);
+            }
         }
 
-        mdInput.addEventListener('input', render);
+        mdInput.addEventListener('input', () => render(false));
 
         // Init
         mdInput.value = defaultText;
-        render();
+        render(true);
 
         // Actions
         clearBtn.addEventListener('click', () => {
             mdInput.value = '';
-            render();
+            render(true);
             mdInput.focus();
         });
 

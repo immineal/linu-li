@@ -400,7 +400,6 @@
             // Objects & Arrays
             const isArray = Array.isArray(value);
             const details = document.createElement('details');
-            if (isOpen) details.open = true;
 
             const summary = document.createElement('summary');
             const size = isArray ? value.length : Object.keys(value).length;
@@ -422,17 +421,55 @@
 
             // Children Container
             const ul = document.createElement('ul');
+            details.appendChild(ul);
+
+            let isLoaded = false;
             
-            // Optimization: If huge, maybe limit rendering? 
-            // For now, standard recursion. Details element hides DOM layout cost when closed.
-            for (const k in value) {
-                const li = document.createElement('li');
-                const childKey = isArray ? null : k; // Arrays don't show index keys in standard trees usually, or index
-                li.appendChild(buildTreeElement(childKey, value[k]));
-                ul.appendChild(li);
+            const loadChildren = () => {
+                if (isLoaded) return;
+                isLoaded = true;
+
+                const keys = Object.keys(value);
+                const CHUNK_SIZE = 100;
+
+                const renderChunk = (start) => {
+                    const end = Math.min(start + CHUNK_SIZE, keys.length);
+                    for (let i = start; i < end; i++) {
+                        const k = keys[i];
+                        const li = document.createElement('li');
+                        const childKey = isArray ? null : k; // Arrays don't show index keys in standard trees usually, or index
+                        li.appendChild(buildTreeElement(childKey, value[k]));
+                        ul.appendChild(li);
+                    }
+                    if (end < keys.length) {
+                        const moreLi = document.createElement('li');
+                        const moreBtn = document.createElement('button');
+                        moreBtn.className = 'button sm outline';
+                        moreBtn.textContent = `Load more (${keys.length - end} left)...`;
+                        moreBtn.style.margin = '4px 0 4px 1.2em';
+                        moreBtn.style.padding = '2px 8px';
+                        moreBtn.style.fontSize = '0.8em';
+                        moreBtn.onclick = () => {
+                            moreLi.remove();
+                            renderChunk(end);
+                        };
+                        moreLi.appendChild(moreBtn);
+                        ul.appendChild(moreLi);
+                    }
+                };
+
+                renderChunk(0);
+            };
+
+            if (isOpen) {
+                details.open = true;
+                loadChildren();
+            } else {
+                details.addEventListener('toggle', () => {
+                    if (details.open) loadChildren();
+                });
             }
             
-            details.appendChild(ul);
             return details;
         }
 

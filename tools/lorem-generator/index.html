@@ -184,7 +184,10 @@
         }
 
         function generateText() {
-            const quantity = parseInt(quantityInput.value) || 1;
+            let quantity = parseInt(quantityInput.value);
+            if (isNaN(quantity) || quantity < 0) quantity = 0;
+            if (quantity > 10000) quantity = 10000;
+
             const type = typeSelect.value;
             const theme = themeSelect.value;
             const startPhrase = startingPhrases[theme];
@@ -193,6 +196,12 @@
 
             let output = "";
             let rawTextArray = [];
+
+            if (quantity === 0) {
+                textOutput.innerText = "";
+                resultBox.classList.add('hidden');
+                return;
+            }
 
             // 1. Generate Raw Data
             if (type === 'words') {
@@ -328,8 +337,45 @@
 
         copyBtn.addEventListener('click', () => {
             const text = textOutput.innerText;
-            if(text) copyToClipboard(text);
+            if (!text) return;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('Copied to clipboard!', 'success');
+                }).catch(err => {
+                    fallbackCopyTextToClipboard(text);
+                });
+            } else {
+                fallbackCopyTextToClipboard(text);
+            }
         });
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+
+            // Avoid scrolling to bottom
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('Copied to clipboard!', 'success');
+                } else {
+                    showToast('Failed to copy', 'error');
+                }
+            } catch (err) {
+                showToast('Failed to copy', 'error');
+            }
+
+            document.body.removeChild(textArea);
+        }
         
         // Initial run
         window.onload = generateText;
