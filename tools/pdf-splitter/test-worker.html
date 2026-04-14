@@ -6,7 +6,7 @@
 <body>
     <script>
         const workerCode = `
-            importScripts('https://unpkg.com/pdf-lib/dist/pdf-lib.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+            importScripts('../../assets/vendor/pdf-lib.min.js', '../../assets/vendor/jszip.min.js');
             self.onmessage = function(e) {
                 if (typeof PDFLib !== 'undefined' && typeof JSZip !== 'undefined') {
                     self.postMessage('Loaded libraries successfully');

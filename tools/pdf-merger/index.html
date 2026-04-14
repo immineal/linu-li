@@ -8,9 +8,9 @@
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
     <!-- External Libraries -->
-    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="../../assets/vendor/pdf-lib.min.js"></script>
+    <script src="../../assets/vendor/FileSaver.min.js"></script>
+    <script src="../../assets/vendor/pdf.min.js"></script>
     
     <style>
         /* Drag & Drop Reordering Styles */
@@ -89,7 +89,7 @@
     <!-- TOOL LOGIC -->
     <script>
         // Configure PDF.js worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
 
         // State
         let storedFiles = []; // Array to hold File objects
@@ -294,38 +294,26 @@
                 fileList.appendChild(placeholder);
             }
         }
+      
+            item.addEventListener('drop', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
 
-        function onPointerUp(e) {
-            if (!draggedItem) return;
+                if (dragStartIndex !== undefined) {
+                    const dragEndIndex = +item.getAttribute('data-index');
+                    swapItems(dragStartIndex, dragEndIndex);
+                    dragStartIndex = undefined;
+                }
 
-            // Find new index based on placeholder position
-            const children = Array.from(fileList.children).filter(c => c !== draggedItem && c.classList.contains('file-item'));
-            const endIndex = children.indexOf(placeholder);
-
-            // Cleanup
-            document.removeEventListener('pointermove', onPointerMove);
-            document.removeEventListener('pointerup', onPointerUp);
-
-            draggedItem.style.position = '';
-            draggedItem.style.top = '';
-            draggedItem.style.left = '';
-            draggedItem.style.width = '';
-            draggedItem.style.zIndex = '';
-            draggedItem.style.boxShadow = '';
-            draggedItem.classList.remove('dragging');
-
-            if (placeholder && placeholder.parentNode) {
-                placeholder.parentNode.removeChild(placeholder);
-            }
-
-            draggedItem = null;
-            placeholder = null;
-
-            if (startIndex !== endIndex && endIndex !== -1) {
-                swapItems(startIndex, endIndex);
-            } else {
-                renderFileList(); // Re-render to clear absolute positioning quirks
-            }
+                item.classList.remove('drag-over-target');
+                item.classList.remove('dragging');
+            });
+            
+            item.addEventListener('dragend', () => {
+                dragStartIndex = undefined;
+                item.classList.remove('dragging');
+                document.querySelectorAll('.file-item').forEach(i => i.classList.remove('drag-over-target'));
+            });
         }
 
         function swapItems(fromIndex, toIndex) {

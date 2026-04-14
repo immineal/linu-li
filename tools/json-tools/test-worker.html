@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+const worker = new Worker('./worker.js');
+worker.onmessage = (e) => {
+    console.log('WORKER MSG:', e.data);
+};
+worker.onerror = (e) => {
+    console.log('WORKER ERR:', e.message);
+};
+worker.postMessage({action: 'process', raw: '{"a": 1}', indent: 2, unescape: false, mode: 'format'});
+</script>
+</body>
+</html>

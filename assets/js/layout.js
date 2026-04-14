@@ -57,7 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggle = document.getElementById('theme-toggle');
     const savedTheme = localStorage.getItem('theme');
     
-    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    // Default to dark mode unless user has explicitly chosen light
+    if (savedTheme !== 'light') {
         document.body.classList.add('dark-mode');
     }
 

@@ -1,33 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Impressum / Legal Notice | Linus Linhof</title>
+    <title>Impressum / Legal Notice | linu.li</title>
     <link rel="stylesheet" href="./assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
-    <meta name="robots" content="noindex, follow"> <!-- Compliance Recommendation -->
+    <meta name="robots" content="noindex, follow">
     <style>
-        .lang-switch {
-            float: right;
-            font-size: 0.9rem;
-            cursor: pointer;
-            color: var(--accent);
-            text-decoration: underline;
-            margin-bottom: 1rem;
-        }
+        .lang-switch { float: right; font-size: 0.9rem; cursor: pointer; color: var(--accent); text-decoration: underline; margin-bottom: 1rem; }
         .legal-block { margin-bottom: 2rem; }
+        h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2.5rem; }
     </style>
 </head>
 <body>
     <main>
         <div class="container">
             <div class="lang-switch" onclick="toggleLang()">Switch Language (DE/EN)</div>
-            
-            <!-- GERMAN CONTENT (DDG Compliant) -->
-            <div id="lang-de" style="display: none;">
+
+            <!-- GERMAN -->
+            <div id="lang-de">
                 <h1>Impressum</h1>
-                
+
                 <div class="legal-block">
                     <h2>Angaben gemäß § 5 DDG</h2>
                     <p>
@@ -41,8 +35,10 @@
                 <div class="legal-block">
                     <h2>Kontakt</h2>
                     <p>
-                        E-Mail: immineal@immineal.com<br>
-                        Telefon: +49 170 5012475
+                        E-Mail: <a href="mailto:immineal@immineal.com">immineal@immineal.com</a>
+                    </p>
+                    <p style="font-size: 0.9rem; opacity: 0.7;">
+                        Eine Telefonnummer wird gemäß § 5 Abs. 1 Nr. 2 DDG nicht verpflichtend gefordert, wenn eine E-Mail-Adresse angegeben ist, über die der Anbieter unmittelbar erreichbar ist.
                     </p>
                 </div>
 
@@ -56,22 +52,32 @@
                 </div>
 
                 <div class="legal-block">
-                    <h2>Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2>
-                    <p>Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>
+                    <h2>Haftung für Inhalte</h2>
+                    <p>Als Diensteanbieter bin ich gemäß § 7 Abs. 1 DDG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8–10 DDG bin ich als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen. Eine Verpflichtung zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleibt hiervon unberührt.</p>
                 </div>
 
                 <div class="legal-block">
-                    <h2>Haftung und Urheberrecht</h2>
-                    <p>Die Inhalte unserer Seiten wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir jedoch keine Gewähr übernehmen. Als Diensteanbieter sind wir gemäß § 7 Abs.1 DDG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich.</p>
+                    <h2>Haftung für Links</h2>
+                    <p>Mein Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte ich keinen Einfluss habe. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich. Eine permanente inhaltliche Kontrolle der verlinkten Seiten ist ohne konkrete Anhaltspunkte einer Rechtsverletzung nicht zumutbar.</p>
+                </div>
+
+                <div class="legal-block">
+                    <h2>Urheberrecht</h2>
+                    <p>Die durch mich erstellten Inhalte und Werke auf diesen Seiten unterliegen der <a href="https://github.com/immineal/linu-li/blob/main/LICENSE" target="_blank" rel="noopener">GNU General Public License v3.0</a>. Der Quellcode ist vollständig auf GitHub einsehbar. Verwendete Open-Source-Bibliotheken unterliegen ihren jeweiligen Lizenzen (MIT, Apache 2.0 u. a.) — eine vollständige Übersicht findet sich im <a href="https://github.com/immineal/linu-li" target="_blank" rel="noopener">Repository</a>.</p>
+                </div>
+
+                <div class="legal-block">
+                    <h2>Streitbeilegung</h2>
+                    <p>Ich bin nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>
                 </div>
             </div>
 
-            <!-- ENGLISH CONTENT -->
+            <!-- ENGLISH -->
             <div id="lang-en" style="display: none;">
                 <h1>Legal Notice (Impressum)</h1>
-                
+
                 <div class="legal-block">
-                    <h2>Information pursuant to Sect. 5 DDG</h2>
+                    <h2>Information pursuant to § 5 DDG</h2>
                     <p>
                         <strong>Linus Linhof</strong><br>
                         Elisenhöhe 47<br>
@@ -83,13 +89,15 @@
                 <div class="legal-block">
                     <h2>Contact</h2>
                     <p>
-                        E-Mail: immineal@immineal.com<br>
-                        Telefon: +49 170 5012475
+                        Email: <a href="mailto:immineal@immineal.com">immineal@immineal.com</a>
+                    </p>
+                    <p style="font-size: 0.9rem; opacity: 0.7;">
+                        A phone number is not required under § 5 (1) No. 2 DDG when an email address is provided through which the operator can be reached directly.
                     </p>
                 </div>
 
                 <div class="legal-block">
-                    <h2>Person Responsible for Editorial Content</h2>
+                    <h2>Responsible for Content</h2>
                     <p>
                         Linus Linhof<br>
                         Elisenhöhe 47<br>
@@ -99,13 +107,23 @@
                 </div>
 
                 <div class="legal-block">
-                    <h2>Dispute Resolution</h2>
-                    <p>We are not willing or obliged to participate in dispute resolution proceedings before a consumer arbitration board.</p>
+                    <h2>Liability for Content</h2>
+                    <p>As a service provider, I am responsible for my own content on these pages in accordance with § 7 (1) DDG and general law. Under §§ 8–10 DDG, however, I am not obligated to monitor transmitted or stored third-party information. Obligations to remove or block the use of information under general law remain unaffected.</p>
                 </div>
 
                 <div class="legal-block">
-                    <h2>Disclaimer</h2>
-                    <p>The contents of our pages have been created with the utmost care. However, we cannot guarantee the contents' accuracy, completeness, or topicality. According to § 7 para. 1 DDG, we as a service provider are responsible for our own content on these pages according to general laws.</p>
+                    <h2>Liability for Links</h2>
+                    <p>This site contains links to external third-party websites. I have no influence over the content of those linked pages and accept no responsibility for them. The respective provider or operator of the linked pages is always responsible for their content.</p>
+                </div>
+
+                <div class="legal-block">
+                    <h2>Copyright</h2>
+                    <p>Content and works created by me on these pages are subject to the <a href="https://github.com/immineal/linu-li/blob/main/LICENSE" target="_blank" rel="noopener">GNU General Public License v3.0</a>. The full source code is available on GitHub. Third-party libraries used are subject to their respective licenses (MIT, Apache 2.0, etc.) — see the <a href="https://github.com/immineal/linu-li" target="_blank" rel="noopener">repository</a> for details.</p>
+                </div>
+
+                <div class="legal-block">
+                    <h2>Dispute Resolution</h2>
+                    <p>I am not willing or obliged to participate in dispute resolution proceedings before a consumer arbitration board.</p>
                 </div>
             </div>
         </div>
@@ -116,24 +134,19 @@
         function toggleLang() {
             const de = document.getElementById('lang-de');
             const en = document.getElementById('lang-en');
-            
             if (de.style.display === 'none') {
-                de.style.display = 'block';
-                en.style.display = 'none';
+                de.style.display = 'block'; en.style.display = 'none';
                 document.documentElement.lang = 'de';
             } else {
-                de.style.display = 'none';
-                en.style.display = 'block';
+                de.style.display = 'none'; en.style.display = 'block';
                 document.documentElement.lang = 'en';
             }
         }
-
         document.addEventListener('DOMContentLoaded', () => {
-            const userLang = navigator.language || navigator.userLanguage;
-            if (userLang.startsWith('de')) {
-                document.getElementById('lang-de').style.display = 'block';
+            if ((navigator.language || '').startsWith('de')) {
                 document.documentElement.lang = 'de';
             } else {
+                document.getElementById('lang-de').style.display = 'none';
                 document.getElementById('lang-en').style.display = 'block';
                 document.documentElement.lang = 'en';
             }

@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <link rel="stylesheet" href="../../assets/vendor/cropper.min.css">
+    <script src="../../assets/vendor/cropper.min.js"></script>
 
     <style>
         .cropper-wrapper {
@@ -88,7 +88,7 @@
                     <div class="button-group" style="margin-bottom: 1.5rem;">
                         <button class="button sm outline active-ratio" data-ratio="1">1:1 (Square)</button>
                         <button class="button sm outline" data-ratio="0.8">4:5 (Portrait)</button>
-                        <button class="button sm outline" data-ratio="1.7777">16:9 (Landscape)</button>
+                        <button class="button sm outline" data-ratio="1.7777777777777777">16:9 (Landscape)</button>
                         <button class="button sm outline" data-ratio="0.5625">9:16 (Story)</button>
                         <button class="button sm outline" data-ratio="NaN">Free</button>
                     </div>
@@ -194,18 +194,35 @@
         });
 
         // --- Feature: Circular Mask Visuals ---
+        let previousAspectRatio = 1;
+
         circleToggle.addEventListener('change', (e) => {
             if (!cropper) return;
             const viewBox = document.querySelector('.cropper-view-box');
             
             if (e.target.checked) {
+                // Save current aspect ratio visually selected
+                const activeBtn = document.querySelector('.button-group .active-ratio, .button-group .secondary');
+                if (activeBtn) {
+                    previousAspectRatio = parseFloat(activeBtn.getAttribute('data-ratio'));
+                } else {
+                    previousAspectRatio = NaN;
+                }
                 cropper.setAspectRatio(1); // Force square for circle
                 viewBox.classList.add('circle-crop');
                 // Disable aspect ratio buttons visually
                 ratioButtons.forEach(b => b.disabled = true);
+                updateRatioButtons(document.querySelector('[data-ratio="1"]'));
             } else {
                 viewBox.classList.remove('circle-crop');
                 ratioButtons.forEach(b => b.disabled = false);
+
+                // Restore previous aspect ratio
+                cropper.setAspectRatio(previousAspectRatio);
+                const prevBtn = Array.from(ratioButtons).find(b => parseFloat(b.getAttribute('data-ratio')) === previousAspectRatio || (isNaN(previousAspectRatio) && isNaN(parseFloat(b.getAttribute('data-ratio')))));
+                if (prevBtn) {
+                    updateRatioButtons(prevBtn);
+                }
             }
         });
 
@@ -260,7 +277,13 @@
                 maxHeight: 4096,
                 imageSmoothingEnabled: true,
                 imageSmoothingQuality: 'high',
+                fillColor: 'transparent',
             });
+
+            if (!canvas) {
+                showToast('Could not crop the image.', 'error');
+                return;
+            }
 
             if (circleToggle.checked) {
                 canvas = getRoundedCanvas(canvas);
@@ -290,6 +313,9 @@
                 cropper.destroy();
                 cropper = null;
             }
+            circleToggle.checked = false;
+            document.querySelector('.cropper-view-box')?.classList.remove('circle-crop');
+            ratioButtons.forEach(b => b.disabled = false);
             imageElement.src = '';
             fileInput.value = '';
             editorSection.classList.add('hidden');

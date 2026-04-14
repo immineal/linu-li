@@ -8,8 +8,8 @@
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
     <!-- External Libraries -->
-    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="../../assets/vendor/pdf-lib.min.js"></script>
+    <script src="../../assets/vendor/pdf.min.js"></script>
 
     <style>
         .preview-wrapper {
@@ -148,7 +148,7 @@
     <!-- TOOL LOGIC -->
     <script>
         // Setup PDF.js Worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
         
         // Import PDFLib primitives
         const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;

@@ -1,340 +1,493 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QR Code Generator | Linus Linhof</title>
-    <link rel="stylesheet" href="../../assets/css/style.css">
-    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
-    
+    <link rel="stylesheet" href="../../assets/css/style.css" />
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg" />
+
     <!-- QR Code Library -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="../../assets/vendor/qrcode.min.js"></script>
 
     <style>
-        /* Square Container for the QR Preview */
-        .qr-square-container {
-            width: 100%;
-            max-width: 400px; /* Reasonable max width */
-            aspect-ratio: 1 / 1; /* Force Square */
-            margin: 0 auto 1.5rem auto;
-            border: 1px solid var(--border);
-            background: var(--paper);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.02);
-        }
-        
-        .qr-square-container canvas {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-            border-radius: 4px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
+      /* Square Container for the QR Preview */
+      .qr-square-container {
+        width: 100%;
+        max-width: 400px; /* Reasonable max width */
+        aspect-ratio: 1 / 1; /* Force Square */
+        margin: 0 auto 1.5rem auto;
+        border: 1px solid var(--border);
+        background: var(--paper);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.02);
+      }
 
-        .qr-placeholder {
-            color: var(--ink-secondary);
-            text-align: center;
-            font-size: 0.9rem;
-            opacity: 0.7;
-            padding: 1rem;
-        }
+      .qr-square-container canvas,
+      .qr-square-container img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
 
-        /* Form toggling */
-        .input-group-wrapper { display: none; }
-        .input-group-wrapper.active { display: block; }
+      .qr-placeholder {
+        color: var(--ink-secondary);
+        text-align: center;
+        font-size: 0.9rem;
+        opacity: 0.7;
+        padding: 1rem;
+      }
+
+      .qr-warning-banner {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #fff3cd;
+        color: #856404;
+        text-align: center;
+        font-size: 0.75rem;
+        padding: 4px;
+        border-top: 1px solid #ffeeba;
+        display: none;
+      }
+
+      .qr-warning-banner.visible {
+        display: block;
+      }
+
+      /* Form toggling */
+      .input-group-wrapper {
+        display: none;
+      }
+      .input-group-wrapper.active {
+        display: block;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <main>
-        <div class="container">
-            <div class="tool-header">
-                <h1>QR Code Generator</h1>
-                <p>Create generic codes, auto-connect WiFi codes, or digital contact cards.</p>
-            </div>
-
-            <div class="split-view">
-                
-                <!-- CONFIGURATION -->
-                <div class="card">
-                    <label for="qrMode">QR Content Type</label>
-                    <select id="qrMode" style="margin-bottom: 1.5rem;">
-                        <option value="text">URL / Text</option>
-                        <option value="wifi">WiFi Network</option>
-                        <option value="contact">Contact (vCard)</option>
-                        <option value="email">Email</option>
-                    </select>
-
-                    <hr style="border: 0; border-top: 1px solid var(--border); margin-bottom: 1.5rem;">
-
-                    <!-- 1. URL / TEXT INPUT -->
-                    <div id="form-text" class="input-group-wrapper active">
-                        <label for="qrInput">Content</label>
-                        <textarea id="qrInput" class="code-editor" style="min-height: 100px;" placeholder="https://example.com"></textarea>
-                    </div>
-
-                    <!-- 2. WIFI INPUT -->
-                    <div id="form-wifi" class="input-group-wrapper">
-                        <label>Network Name (SSID)</label>
-                        <input type="text" id="wifiSSID" placeholder="MyHomeNetwork">
-                        
-                        <label>Password</label>
-                        <input type="text" id="wifiPass" placeholder="securepassword123">
-                        
-                        <div class="split-view" style="margin-bottom: 0;">
-                            <div>
-                                <label>Encryption</label>
-                                <select id="wifiType">
-                                    <option value="WPA">WPA/WPA2</option>
-                                    <option value="WEP">WEP</option>
-                                    <option value="nopass">None</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Hidden Network?</label>
-                                <select id="wifiHidden">
-                                    <option value="false">No</option>
-                                    <option value="true">Yes</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 3. CONTACT INPUT -->
-                    <div id="form-contact" class="input-group-wrapper">
-                        <div class="split-view">
-                            <div>
-                                <label>First Name</label>
-                                <input type="text" id="vName" placeholder="John">
-                            </div>
-                            <div>
-                                <label>Last Name</label>
-                                <input type="text" id="vLast" placeholder="Doe">
-                            </div>
-                        </div>
-                        <label>Phone Number</label>
-                        <input type="text" id="vPhone" placeholder="+1 555 0192">
-                        
-                        <label>Email</label>
-                        <input type="text" id="vEmail" placeholder="john@example.com">
-                        
-                        <label>Organization/Company</label>
-                        <input type="text" id="vOrg" placeholder="Acme Corp">
-                    </div>
-
-                    <!-- 4. EMAIL INPUT -->
-                    <div id="form-email" class="input-group-wrapper">
-                        <label>Email Address</label>
-                        <input type="text" id="mailTo" placeholder="recipient@example.com">
-                        
-                        <label>Subject</label>
-                        <input type="text" id="mailSub" placeholder="Inquiry...">
-                        
-                        <label>Body</label>
-                        <textarea id="mailBody" class="code-editor" style="min-height: 80px;" placeholder="Hello..."></textarea>
-                    </div>
-
-                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0;">
-
-                    <!-- STYLING -->
-                    <div class="split-view" style="margin-bottom: 0;">
-                        <div>
-                            <label for="colorDark">Dots Color</label>
-                            <input type="color" id="colorDark" value="#2a2621" style="width: 100%; height: 50px; cursor: pointer;">
-                        </div>
-                        <div>
-                            <label for="colorLight">Background</label>
-                            <input type="color" id="colorLight" value="#ffffff" style="width: 100%; height: 50px; cursor: pointer;">
-                        </div>
-                    </div>
-
-                    <label style="margin-top: 1rem;">Error Correction Level</label>
-                    <select id="errorLevel">
-                        <option value="L">Low (7%)</option>
-                        <option value="M" selected>Medium (15%)</option>
-                        <option value="Q">Quartile (25%)</option>
-                        <option value="H">High (30%)</option>
-                    </select>
-
-                    <button class="button" id="generateBtn" style="width: 100%; margin-top: 1rem;">Generate QR Code</button>
-                </div>
-
-                <!-- RESULT -->
-                <div class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <label style="align-self: flex-start;">Preview</label>
-                    
-                    <!-- Square Container -->
-                    <div class="qr-square-container" id="canvasContainer">
-                        <div class="qr-placeholder">
-                            Enter data and click Generate<br>to see preview
-                        </div>
-                    </div>
-                    
-                    <div class="button-group">
-                        <button class="button secondary" id="downloadPng" disabled>Download PNG</button>
-                    </div>
-                </div>
-
-            </div>
+      <div class="container">
+        <div class="tool-header">
+          <h1>QR Code Generator</h1>
+          <p>
+            Create generic codes, auto-connect WiFi codes, or digital contact
+            cards.
+          </p>
         </div>
+
+        <div class="split-view">
+          <!-- CONFIGURATION -->
+          <div class="card">
+            <label for="qrMode">QR Content Type</label>
+            <select id="qrMode" style="margin-bottom: 1.5rem">
+              <option value="text">URL / Text</option>
+              <option value="wifi">WiFi Network</option>
+              <option value="contact">Contact (vCard)</option>
+              <option value="email">Email</option>
+            </select>
+
+            <hr
+              style="
+                border: 0;
+                border-top: 1px solid var(--border);
+                margin-bottom: 1.5rem;
+              "
+            />
+
+            <!-- 1. URL / TEXT INPUT -->
+            <div id="form-text" class="input-group-wrapper active">
+              <label for="qrInput">Content</label>
+              <textarea
+                id="qrInput"
+                class="code-editor"
+                style="min-height: 100px"
+                placeholder="https://example.com"
+              ></textarea>
+            </div>
+
+            <!-- 2. WIFI INPUT -->
+            <div id="form-wifi" class="input-group-wrapper">
+              <label>Network Name (SSID)</label>
+              <input type="text" id="wifiSSID" placeholder="MyHomeNetwork" />
+
+              <label>Password</label>
+              <input
+                type="text"
+                id="wifiPass"
+                placeholder="securepassword123"
+              />
+
+              <div class="split-view" style="margin-bottom: 0">
+                <div>
+                  <label>Encryption</label>
+                  <select id="wifiType">
+                    <option value="WPA">WPA/WPA2</option>
+                    <option value="WEP">WEP</option>
+                    <option value="nopass">None</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Hidden Network?</label>
+                  <select id="wifiHidden">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. CONTACT INPUT -->
+            <div id="form-contact" class="input-group-wrapper">
+              <div class="split-view">
+                <div>
+                  <label>First Name</label>
+                  <input type="text" id="vName" placeholder="John" />
+                </div>
+                <div>
+                  <label>Last Name</label>
+                  <input type="text" id="vLast" placeholder="Doe" />
+                </div>
+              </div>
+              <label>Phone Number</label>
+              <input type="text" id="vPhone" placeholder="+1 555 0192" />
+
+              <label>Email</label>
+              <input type="text" id="vEmail" placeholder="john@example.com" />
+
+              <label>Organization/Company</label>
+              <input type="text" id="vOrg" placeholder="Acme Corp" />
+            </div>
+
+            <!-- 4. EMAIL INPUT -->
+            <div id="form-email" class="input-group-wrapper">
+              <label>Email Address</label>
+              <input
+                type="text"
+                id="mailTo"
+                placeholder="recipient@example.com"
+              />
+
+              <label>Subject</label>
+              <input type="text" id="mailSub" placeholder="Inquiry..." />
+
+              <label>Body</label>
+              <textarea
+                id="mailBody"
+                class="code-editor"
+                style="min-height: 80px"
+                placeholder="Hello..."
+              ></textarea>
+            </div>
+
+            <hr
+              style="
+                border: 0;
+                border-top: 1px solid var(--border);
+                margin: 1.5rem 0;
+              "
+            />
+
+            <!-- STYLING -->
+            <div class="split-view" style="margin-bottom: 0">
+              <div>
+                <label for="colorDark">Dots Color</label>
+                <input
+                  type="color"
+                  id="colorDark"
+                  value="#2a2621"
+                  style="width: 100%; height: 50px; cursor: pointer"
+                />
+              </div>
+              <div>
+                <label for="colorLight">Background</label>
+                <input
+                  type="color"
+                  id="colorLight"
+                  value="#ffffff"
+                  style="width: 100%; height: 50px; cursor: pointer"
+                />
+              </div>
+            </div>
+
+            <label style="margin-top: 1rem">Error Correction Level</label>
+            <select id="errorLevel">
+              <option value="L">Low (7%)</option>
+              <option value="M" selected>Medium (15%)</option>
+              <option value="Q">Quartile (25%)</option>
+              <option value="H">High (30%)</option>
+            </select>
+          </div>
+
+          <!-- RESULT -->
+          <div
+            class="card"
+            style="
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            "
+          >
+            <label style="align-self: flex-start">Preview</label>
+
+            <!-- Square Container -->
+            <div class="qr-square-container" id="canvasContainer">
+              <div class="qr-placeholder">Enter data to see preview</div>
+              <div class="qr-warning-banner" id="qrWarning"></div>
+            </div>
+
+            <div class="button-group">
+              <button class="button secondary" id="downloadPng" disabled>
+                Download Image
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
-    
+
     <script src="../../assets/js/layout.js"></script>
     <script>
-        // Global Elements
-        const qrMode = document.getElementById('qrMode');
-        const forms = {
-            text: document.getElementById('form-text'),
-            wifi: document.getElementById('form-wifi'),
-            contact: document.getElementById('form-contact'),
-            email: document.getElementById('form-email')
+      // Global Elements
+      const qrMode = document.getElementById("qrMode");
+      const forms = {
+        text: document.getElementById("form-text"),
+        wifi: document.getElementById("form-wifi"),
+        contact: document.getElementById("form-contact"),
+        email: document.getElementById("form-email"),
+      };
+
+      const colorDark = document.getElementById("colorDark");
+      const colorLight = document.getElementById("colorLight");
+      const errorLevel = document.getElementById("errorLevel");
+      const container = document.getElementById("canvasContainer");
+      const warningBanner = document.getElementById("qrWarning");
+      const downloadBtn = document.getElementById("downloadPng");
+
+      let currentDataUrl = null;
+
+      // --- Web Worker Setup ---
+      const workerCode = `
+            importScripts('https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js');
+
+            self.onmessage = async function(e) {
+                const { text, options, targetLevel, levelsToTry } = e.data;
+                
+                let success = false;
+                let dataUrl = null;
+                let finalLevel = targetLevel;
+                let errorMsg = null;
+
+                for (let i = 0; i < levelsToTry.length; i++) {
+                    finalLevel = levelsToTry[i];
+                    try {
+                        const opts = { ...options, errorCorrectionLevel: finalLevel };
+                        // qrcode library requires a canvas element or it falls back to creating one.
+                        // In a WebWorker, 'document' is undefined, so toDataURL fails.
+                        // We must use 'image/jpeg' or 'image/png' via Data URL by having it generate an SVG string first,
+                        // or generate a base64 encoded string using the pure JS implementation by asking for string type 'svg'.
+                        opts.type = 'svg';
+                        const svgString = await QRCode.toString(text, opts);
+                        // Convert SVG to Data URL
+                        dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+                        success = true;
+                        break;
+                    } catch (err) {
+                        errorMsg = err.message || 'Data too long';
+                        // Continue to next lower level
+                    }
+                }
+
+                if (success) {
+                    self.postMessage({ success: true, dataUrl, targetLevel, finalLevel });
+                } else {
+                    self.postMessage({ success: false, error: errorMsg });
+                }
+            };
+        `;
+      const blob = new Blob([workerCode], { type: "application/javascript" });
+      const workerUrl = URL.createObjectURL(blob);
+      const qrWorker = new Worker(workerUrl);
+
+      // --- 1. Mode Switching ---
+      qrMode.addEventListener("change", () => {
+        // Hide all forms
+        Object.values(forms).forEach((el) => el.classList.remove("active"));
+        // Show selected form
+        const selected = forms[qrMode.value];
+        if (selected) selected.classList.add("active");
+      });
+
+      // --- 2. Data Formatting Logic ---
+      function getQRData() {
+        const mode = qrMode.value;
+
+        if (mode === "wifi") {
+          const ssid = document.getElementById("wifiSSID").value.trim();
+          const pass = document.getElementById("wifiPass").value;
+          const type = document.getElementById("wifiType").value;
+          const hidden = document.getElementById("wifiHidden").value; // 'true' or 'false'
+
+          if (!ssid) return null;
+
+          // Standard WiFi String: WIFI:S:mynetwork;T:WPA;P:mypass;H:false;;
+          // Note: Escaping special characters in SSID and Password according to standard
+          const escapeStr = (str) => str.replace(/([\\;:])/g, "\\$1");
+
+          let wifiStr = `WIFI:S:${escapeStr(ssid)};T:${type};`;
+          if (type !== "nopass" && pass) wifiStr += `P:${escapeStr(pass)};`;
+          if (hidden === "true") wifiStr += `H:true;`;
+          wifiStr += `;`;
+          return wifiStr;
+        } else if (mode === "contact") {
+          const n = document.getElementById("vName").value.trim();
+          const l = document.getElementById("vLast").value.trim();
+          const p = document.getElementById("vPhone").value.trim();
+          const e = document.getElementById("vEmail").value.trim();
+          const o = document.getElementById("vOrg").value.trim();
+
+          if (!n && !l && !o) return null;
+
+          // Strict vCard 3.0
+          let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:${l};${n};;;\nFN:${(n + " " + l).trim()}`;
+          if (o) vcard += `\nORG:${o}`;
+          if (p) vcard += `\nTEL;TYPE=CELL:${p}`;
+          if (e) vcard += `\nEMAIL:${e}`;
+          vcard += `\nEND:VCARD`;
+          return vcard;
+        } else if (mode === "email") {
+          const to = document.getElementById("mailTo").value.trim();
+          const sub = document.getElementById("mailSub").value.trim();
+          const body = document.getElementById("mailBody").value.trim();
+
+          if (!to) return null;
+
+          let query = [];
+          if (sub) query.push(`subject=${encodeURIComponent(sub)}`);
+          if (body) query.push(`body=${encodeURIComponent(body)}`);
+
+          let url = `mailto:${to}`;
+          if (query.length > 0) url += `?${query.join("&")}`;
+          return url;
+        } else {
+          // Default: Text/URL
+          return document.getElementById("qrInput").value.trim();
+        }
+      }
+
+      // --- 3. Generation Logic ---
+      const ALL_LEVELS = ["H", "Q", "M", "L"];
+
+      qrWorker.onmessage = function (e) {
+        const { success, dataUrl, targetLevel, finalLevel, error } = e.data;
+
+        if (success) {
+          // Clear container and append new image
+          const img = document.createElement("img");
+          img.src = dataUrl;
+
+          // Preserve warning banner
+          container.innerHTML = "";
+          container.appendChild(img);
+          container.appendChild(warningBanner);
+
+          currentDataUrl = dataUrl;
+          downloadBtn.disabled = false;
+
+          if (targetLevel !== finalLevel) {
+            warningBanner.textContent = `Data too long. Automatically lowered error correction from ${targetLevel} to ${finalLevel}.`;
+            warningBanner.classList.add("visible");
+          } else {
+            warningBanner.classList.remove("visible");
+          }
+        } else {
+          console.error("Worker error:", error);
+          container.innerHTML =
+            '<div class="qr-placeholder" style="color: var(--danger);">Data too long for any Error Correction Level</div>';
+          container.appendChild(warningBanner);
+          warningBanner.classList.remove("visible");
+          downloadBtn.disabled = true;
+          currentDataUrl = null;
+        }
+      };
+
+      function generateQR() {
+        const text = getQRData();
+
+        if (!text) {
+          container.innerHTML =
+            '<div class="qr-placeholder">Enter data to see preview</div>';
+          container.appendChild(warningBanner);
+          warningBanner.classList.remove("visible");
+          downloadBtn.disabled = true;
+          currentDataUrl = null;
+          return;
+        }
+
+        // Determine fallback levels
+        const target = errorLevel.value;
+        const targetIndex = ALL_LEVELS.indexOf(target);
+        const levelsToTry = ALL_LEVELS.slice(targetIndex);
+
+        const options = {
+          width: 1000,
+          margin: 2,
+          color: {
+            dark: colorDark.value,
+            light: colorLight.value,
+          },
         };
-        
-        const colorDark = document.getElementById('colorDark');
-        const colorLight = document.getElementById('colorLight');
-        const errorLevel = document.getElementById('errorLevel');
-        const generateBtn = document.getElementById('generateBtn');
-        const container = document.getElementById('canvasContainer');
-        const downloadBtn = document.getElementById('downloadPng');
 
-        let currentDataUrl = null;
-
-        // --- 1. Mode Switching ---
-        qrMode.addEventListener('change', () => {
-            // Hide all forms
-            Object.values(forms).forEach(el => el.classList.remove('active'));
-            // Show selected form
-            const selected = forms[qrMode.value];
-            if (selected) selected.classList.add('active');
+        // Offload to worker
+        qrWorker.postMessage({
+          text,
+          options,
+          targetLevel: target,
+          levelsToTry,
         });
+      }
 
-        // --- 2. Data Formatting Logic ---
-        function getQRData() {
-            const mode = qrMode.value;
+      // Debounce generation for real-time typing
+      let debounceTimer;
+      function debouncedGenerateQR() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(generateQR, 300);
+      }
 
-            if (mode === 'wifi') {
-                const ssid = document.getElementById('wifiSSID').value.trim();
-                const pass = document.getElementById('wifiPass').value;
-                const type = document.getElementById('wifiType').value;
-                const hidden = document.getElementById('wifiHidden').value; // 'true' or 'false'
-                
-                if (!ssid) return null;
-
-                // Standard WiFi String: WIFI:T:WPA;S:mynetwork;P:mypass;H:false;;
-                let wifiStr = `WIFI:T:${type};S:${ssid};`;
-                if (type !== 'nopass' && pass) wifiStr += `P:${pass};`;
-                wifiStr += `H:${hidden};;`;
-                return wifiStr;
-            }
-            
-            else if (mode === 'contact') {
-                const n = document.getElementById('vName').value.trim();
-                const l = document.getElementById('vLast').value.trim();
-                const p = document.getElementById('vPhone').value.trim();
-                const e = document.getElementById('vEmail').value.trim();
-                const o = document.getElementById('vOrg').value.trim();
-                
-                if (!n && !l && !o) return null;
-
-                // Simple vCard 3.0
-                let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:${l};${n};;;\nFN:${(n + ' ' + l).trim()}`;
-                if (o) vcard += `\nORG:${o}`;
-                if (p) vcard += `\nTEL;TYPE=CELL:${p}`;
-                if (e) vcard += `\nEMAIL:${e}`;
-                vcard += `\nEND:VCARD`;
-                return vcard;
-            }
-            
-            else if (mode === 'email') {
-                const to = document.getElementById('mailTo').value.trim();
-                const sub = document.getElementById('mailSub').value.trim();
-                const body = document.getElementById('mailBody').value.trim();
-
-                if (!to) return null;
-
-                let query = [];
-                if (sub) query.push(`subject=${encodeURIComponent(sub)}`);
-                if (body) query.push(`body=${encodeURIComponent(body)}`);
-
-                let url = `mailto:${to}`;
-                if (query.length > 0) url += `?${query.join('&')}`;
-                return url;
-            }
-            
-            else {
-                // Default: Text/URL
-                return document.getElementById('qrInput').value.trim();
-            }
+      // Add input listeners for real-time updates
+      document.querySelectorAll("input, select, textarea").forEach((el) => {
+        if (el.id === "qrMode") {
+          el.addEventListener("change", generateQR);
+        } else {
+          el.addEventListener("input", debouncedGenerateQR);
         }
+      });
 
-        // --- 3. Generation Logic ---
-        async function generateQR() {
-            const text = getQRData();
-            
-            if (!text) {
-                showToast('Please enter required data fields.', 'error');
-                return;
-            }
+      downloadBtn.addEventListener("click", () => {
+        if (!currentDataUrl) return;
 
-            // Reset UI state before generation attempt
-            container.innerHTML = '<div class="qr-placeholder" style="opacity: 0.5;">Generating...</div>';
-            downloadBtn.disabled = true;
-            currentDataUrl = null;
+        const isSvg = currentDataUrl.startsWith("data:image/svg+xml");
+        const extension = isSvg ? "svg" : "png";
 
-            try {
-                // Create temporary canvas
-                const canvas = document.createElement('canvas');
-                
-                // Determine size based on error level to ensure crispness
-                // 1000px is generous for high DPI downloads
-                await QRCode.toCanvas(canvas, text, {
-                    width: 1000, 
-                    margin: 2,
-                    color: {
-                        dark: colorDark.value,
-                        light: colorLight.value
-                    },
-                    errorCorrectionLevel: errorLevel.value
-                });
+        const a = document.createElement("a");
+        a.href = currentDataUrl;
+        a.download = `qrcode-${qrMode.value}-${Date.now()}.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      });
 
-                // Clear container
-                container.innerHTML = '';
-                
-                // Append new canvas (CSS handles the display size of this high-res canvas)
-                container.appendChild(canvas);
-                
-                currentDataUrl = canvas.toDataURL('image/png');
-                downloadBtn.disabled = false;
-                
-            } catch (err) {
-                console.error(err);
-                container.innerHTML = '<div class="qr-placeholder" style="color: var(--danger);">Data too long for this Error Correction Level</div>';
-                downloadBtn.disabled = true;
-                currentDataUrl = null;
-                showToast('Error generating QR code (Data too long?)', 'error');
-            }
-        }
-
-        generateBtn.addEventListener('click', generateQR);
-
-        downloadBtn.addEventListener('click', () => {
-            if(!currentDataUrl) return;
-            const a = document.createElement('a');
-            a.href = currentDataUrl;
-            a.download = `qrcode-${qrMode.value}-${Date.now()}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        });
-
-        // Generate generic one on load for UX
-        document.getElementById('qrInput').value = "https://linu.li";
-        setTimeout(generateQR, 500);
-
+      // Generate generic one on load for UX
+      document.getElementById("qrInput").value = "https://linu.li";
+      setTimeout(generateQR, 500);
     </script>
-</body>
+  </body>
 </html>
