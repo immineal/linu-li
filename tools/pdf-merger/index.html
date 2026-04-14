@@ -189,14 +189,22 @@
                 item.classList.remove('drag-over-target');
             });
 
-            item.addEventListener('drop', () => {
-                const dragEndIndex = +item.getAttribute('data-index');
-                swapItems(dragStartIndex, dragEndIndex);
+            item.addEventListener('drop', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+
+                if (dragStartIndex !== undefined) {
+                    const dragEndIndex = +item.getAttribute('data-index');
+                    swapItems(dragStartIndex, dragEndIndex);
+                    dragStartIndex = undefined;
+                }
+
                 item.classList.remove('drag-over-target');
                 item.classList.remove('dragging');
             });
             
             item.addEventListener('dragend', () => {
+                dragStartIndex = undefined;
                 item.classList.remove('dragging');
                 document.querySelectorAll('.file-item').forEach(i => i.classList.remove('drag-over-target'));
             });
