@@ -59,12 +59,19 @@
         const copyBtn = document.getElementById('copyBtn');
 
         function formatQuery() {
+            if (!inputSql || !outputSql || !languageSelect) return false;
+
             const raw = inputSql.value;
             const lang = languageSelect.value;
 
             if (!raw.trim()) {
                 outputSql.value = "";
-                return;
+                return false;
+            }
+
+            if (typeof sqlFormatter === 'undefined') {
+                outputSql.value = "Error: SQL Formatter library failed to load.";
+                return false;
             }
 
             try {
@@ -76,17 +83,25 @@
                     linesBetweenQueries: 2
                 });
                 outputSql.value = formatted;
+                return true;
             } catch (err) {
                 console.error(err);
-                outputSql.value = "Error formatting SQL. Check syntax.";
+                outputSql.value = "Error formatting SQL: " + (err.message || "Check syntax.");
+                return false;
             }
         }
 
         // Event Listeners
-        formatBtn.addEventListener('click', () => {
-            formatQuery();
-            showToast('SQL Formatted', 'success');
-        });
+        if (formatBtn) {
+            formatBtn.addEventListener('click', () => {
+                const success = formatQuery();
+                if (success) {
+                    if (typeof showToast === 'function') showToast('SQL Formatted', 'success');
+                } else if (inputSql.value.trim() !== '') {
+                    if (typeof showToast === 'function') showToast('Failed to format SQL', 'error');
+                }
+            });
+        }
         
         // Optional: Auto-format on paste? 
         // Sometimes annoying if editing large files, better to leave manual or on blur.
