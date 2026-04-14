@@ -85,6 +85,54 @@ async function main() {
             }
         });
 
+        await runTest("Cross-multiplication prevents precision drift", (document, window) => {
+            const ratioW = document.getElementById('ratioW');
+            const ratioH = document.getElementById('ratioH');
+            const widthInput = document.getElementById('widthInput');
+            const heightInput = document.getElementById('heightInput');
+
+            // Float division of 16/9 is 1.7777777777777777
+            // Setting a very large number tests if cross-multiplication maintains perfect integers
+            ratioW.value = "16";
+            ratioH.value = "9";
+            ratioW.dispatchEvent(new window.Event('input'));
+
+            widthInput.value = "192000";
+            widthInput.dispatchEvent(new window.Event('input'));
+
+            if (heightInput.value !== "108000") {
+                throw new Error(`Expected height 108000 for 16:9 with w=192000, but got ${heightInput.value}`);
+            }
+        });
+
+        await runTest("GCD function correctly simplifies ratios", (document, window) => {
+            const gcd = window.gcd;
+            if (!gcd || typeof gcd !== 'function') {
+                 throw new Error("GCD function not exposed on window/script context");
+            }
+            if (gcd(1920, 1080) !== 120) {
+                 throw new Error("GCD failed for 1920, 1080");
+            }
+            if (gcd(200, 100) !== 100) {
+                 throw new Error("GCD failed for 200, 100");
+            }
+        });
+
+        await runTest("Presets execute setRatio successfully", (document, window) => {
+            const ratioW = document.getElementById('ratioW');
+            const ratioH = document.getElementById('ratioH');
+
+            // Try to click the 32:9 button
+            const btn329 = Array.from(document.querySelectorAll('button')).find(b => b.textContent === '32:9');
+            if (!btn329) throw new Error("Could not find 32:9 button");
+
+            btn329.click();
+
+            if (ratioW.value !== "32" || ratioH.value !== "9") {
+                throw new Error(`Expected ratio 32:9, got ${ratioW.value}:${ratioH.value}`);
+            }
+        });
+
         console.log("All tests passed.");
     } catch (e) {
         console.error("Test suite failed.", e);
