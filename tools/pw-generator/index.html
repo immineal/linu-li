@@ -132,7 +132,17 @@
         const ambiguous = "Il1O0";
 
         function generate() {
-            const length = parseInt(lengthRange.value);
+            let length = parseInt(lengthRange.value, 10);
+
+            if (isNaN(length) || length <= 0) {
+                output.textContent = "Length must be greater than 0.";
+                strengthMeter.className = "strength-fill";
+                return;
+            }
+            if (length > 2048) {
+                length = 2048; // Cap length to avoid browser freezing and quota issues
+            }
+
             let charset = "";
             
             if (chkUpper.checked) charset += charsUpper;
@@ -154,12 +164,29 @@
             }
 
             let password = "";
-            // Crypto secure random
-            const array = new Uint32Array(length);
-            window.crypto.getRandomValues(array);
-            
-            for (let i = 0; i < length; i++) {
-                password += charset[array[i] % charset.length];
+            try {
+                // Crypto secure random with rejection sampling to eliminate modulo bias
+                if (window.crypto && window.crypto.getRandomValues) {
+                    const maxValid = 4294967295 - (4294967295 % charset.length); // 2^32 - 1
+                    const array = new Uint32Array(1);
+                    for (let i = 0; i < length; i++) {
+                        let rand;
+                        do {
+                            window.crypto.getRandomValues(array);
+                            rand = array[0];
+                        } while (rand >= maxValid);
+                        password += charset[rand % charset.length];
+                    }
+                } else {
+                    // Fallback if crypto is unavailable
+                    for (let i = 0; i < length; i++) {
+                        password += charset[Math.floor(Math.random() * charset.length)];
+                    }
+                }
+            } catch (err) {
+                output.textContent = "Error generating password.";
+                strengthMeter.className = "strength-fill";
+                return;
             }
 
             output.textContent = password;
@@ -195,8 +222,13 @@
         generateBtn.addEventListener('click', generate);
         
         copyBtn.addEventListener('click', () => {
-            if (output.textContent && !output.textContent.includes('Please select')) {
-                copyToClipboard(output.textContent);
+            const text = output.textContent;
+            if (text &&
+                !text.includes('Please select') &&
+                text !== 'Length must be greater than 0.' &&
+                text !== 'Error generating password.' &&
+                text !== 'Generate to start...') {
+                copyToClipboard(text);
             }
         });
 
