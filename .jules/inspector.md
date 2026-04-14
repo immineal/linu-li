@@ -1,4 +1,2 @@
-## Word & Char Counter
-* The naïve text `.length` and `.split` logic fails heavily on Emojis, Zero-width spaces, and CJK text.
-* Used `Intl.Segmenter` for robust character (grapheme), word, and sentence splitting.
-* Wrote `tests/test-counter.js` to assert segmenter behaviour against edge cases.
+- For vanilla JS apps using implicit global state (like `currentDiff`), toggling views or actions without robust null checks often causes `TypeError: Cannot read properties of null`. Adding defensive checks (e.g., `if (!currentDiff) return;`) prevents crashes.
+- Clearing UI state should also correctly reset internal variables (`currentDiff = null`) to ensure consistency between DOM presentation and data model.
