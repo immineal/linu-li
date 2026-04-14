@@ -3,5 +3,6 @@ Thumbs.db
 .vscode/
 *.log
 project-export.md
+node_modules/
 project-export.mdnode_modules
 node_modules

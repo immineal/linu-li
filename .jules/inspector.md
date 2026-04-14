@@ -1,2 +1,0 @@
-- For vanilla JS apps using implicit global state (like `currentDiff`), toggling views or actions without robust null checks often causes `TypeError: Cannot read properties of null`. Adding defensive checks (e.g., `if (!currentDiff) return;`) prevents crashes.
-- Clearing UI state should also correctly reset internal variables (`currentDiff = null`) to ensure consistency between DOM presentation and data model.
