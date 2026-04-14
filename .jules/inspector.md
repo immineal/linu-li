@@ -1,3 +1,0 @@
-
-- **Base64 Decoding**: `window.atob` strictly fails on missing padding, unstripped whitespace, and data URI prefixes. To handle user input safely, manually clean whitespace (`str.replace(/\s+/g, '')`), fix padding (`while (str.length % 4 !== 0) str += '='`), and split off any `data:...;base64,` prefixes before calling `atob`.
-- **Base64 UTF-8 Support**: To securely encode and decode Unicode text without falling into deprecation warnings or binary conversion bugs (like `decodeURIComponent(escape(window.atob(str)))`), use `TextEncoder` and `TextDecoder`. The option `{ fatal: true }` in `TextDecoder` cleanly prevents silent fallbacks if binary (invalid UTF-8) data is pasted into a text-only decoder.
