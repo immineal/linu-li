@@ -90,6 +90,45 @@ setTimeout(() => {
         assert.strictEqual(window.__test_3b_badge, "Fail", "Test 3b Failed: 6.996 falsely passed AAA check.");
         console.log("✅ Test 3 Passed: Exact boundary ratio logic works correctly without rounding inflation.");
 
+        // --- Test 4: APCA Calculation ---
+        // Black on White should be ~106, White on White should be 0
+        window.eval(`
+            colors.fg = "#000000";
+            colors.bg = "#ffffff";
+            updateContrast();
+            window.__test_4a_apca = document.getElementById('apcaRatio').textContent;
+
+            colors.fg = "#ffffff";
+            colors.bg = "#ffffff";
+            updateContrast();
+            window.__test_4b_apca = document.getElementById('apcaRatio').textContent;
+        `);
+        assert.strictEqual(window.__test_4a_apca, "Lc 106", "Test 4a Failed: APCA calculation for Black/White incorrect.");
+        assert.strictEqual(window.__test_4b_apca, "Lc 0", "Test 4b Failed: APCA calculation for White/White incorrect.");
+        console.log("✅ Test 4 Passed: APCA math returns expected boundaries.");
+
+        // --- Test 5: Auto-Suggest Accessible Colors ---
+        // Red (#c44d3c) on Red (#c44d3c) should fail and provide suggestions
+        window.eval(`
+            colors.fg = "#c44d3c";
+            colors.bg = "#c44d3c";
+            updateContrast();
+            window.__test_5_display = document.getElementById('suggestBox').style.display;
+            window.__test_5_suggestions = Array.from(document.getElementById('suggestSwatches').children).map(el => el.textContent);
+        `);
+        assert.strictEqual(window.__test_5_display, "block", "Test 5 Failed: Suggest box should be visible when contrast fails.");
+        assert.ok(window.__test_5_suggestions.length > 0, "Test 5 Failed: Suggestions were not generated.");
+
+        // Let's verify the first suggestion actually passes 4.5 ratio
+        window.eval(`
+            const sug = tinycolor(window.__test_5_suggestions[0]);
+            const bg = tinycolor("#c44d3c");
+            window.__test_5_sug_ratio = tinycolor.readability(sug, bg);
+        `);
+        assert.ok(window.__test_5_sug_ratio >= 4.5, "Test 5 Failed: Suggested color does not pass WCAG 2.1 AA.");
+        console.log("✅ Test 5 Passed: Auto-suggest mechanism provides passing accessible alternatives.");
+
+
         console.log("🎉 All Tests Passed!");
 
     } catch(e) {
