@@ -1,1 +1,1 @@
-- For PDF Grayscale: When rendering PDFs to a canvas using pdf.js and exporting to JPEG (e.g., via jsPDF), pre-fill the canvas with a white background (`ctx.fillStyle = 'white'; ctx.fillRect(...)`) before rendering to prevent transparent areas from becoming solid black. Additionally, when manually manipulating RGBA pixel data on a canvas before exporting to JPEG, explicitly blend alpha values against a white background to avoid rendering artifacts.
+

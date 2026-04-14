@@ -91,27 +91,45 @@
         const elSentences = document.getElementById('sentenceCount');
         const elReadTime = document.getElementById('readTime');
 
-        function updateStats() {
-            const text = textInput.value;
-            
-            // Characters
-            elChar.textContent = text.length.toLocaleString();
-            elCharNoSpace.textContent = text.replace(/\s/g, '').length.toLocaleString();
+        // Segmenters for robust parsing (Emojis, CJK, Zero-width spaces)
+        const charSegmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+        const wordSegmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
+        const sentenceSegmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' });
+        const spaceRegex = /^[\s\u200B-\u200D\uFEFF]+$/;
 
-            // Words (Split by whitespace, filter empty)
-            const words = text.trim().split(/\s+/).filter(w => w.length > 0);
-            const wordCount = words.length;
+        function updateStats() {
+            const text = textInput.value || '';
+            
+            let charCount = 0;
+            let charNoSpaceCount = 0;
+            for (const s of charSegmenter.segment(text)) {
+                charCount++;
+                if (!spaceRegex.test(s.segment)) {
+                    charNoSpaceCount++;
+                }
+            }
+            elChar.textContent = charCount.toLocaleString();
+            elCharNoSpace.textContent = charNoSpaceCount.toLocaleString();
+
+            let wordCount = 0;
+            for (const s of wordSegmenter.segment(text)) {
+                if (s.isWordLike) wordCount++;
+            }
             elWord.textContent = wordCount.toLocaleString();
 
-            // Sentences (Split by . ! ? followed by space or end of string)
-            // Simple approximation
-            const sentences = text.split(/[.!?]+(\s|$)/).filter(s => s.trim().length > 0);
-            // The regex split creates artifacts, a cleaner way for basic counting:
-            const sentenceCount = (text.match(/[.!?]+(\s|$)/g) || []).length || (text.trim() ? 1 : 0);
+            let sentenceCount = 0;
+            for (const s of sentenceSegmenter.segment(text)) {
+                if (s.segment.replace(/[\s\u200B-\u200D\uFEFF]/g, '').length > 0) {
+                    sentenceCount++;
+                }
+            }
+            // Fallback for empty strings without punctuation but with content
+            if (sentenceCount === 0 && charNoSpaceCount > 0) sentenceCount = 1;
+
             elSentences.textContent = sentenceCount.toLocaleString();
 
             // Reading Time (Average 200 wpm)
-            const minutes = Math.ceil(wordCount / 200);
+            const minutes = Math.ceil(wordCount / 200) || 0;
             elReadTime.textContent = `Reading Time: ~${minutes} min`;
         }
 
