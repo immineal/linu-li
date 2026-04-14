@@ -127,7 +127,7 @@
             <div class="card" style="margin-bottom: 1.5rem; padding: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     
-                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                         <button class="button sm outline" id="uploadTrigger">📂 Upload File</button>
                         <input type="file" id="jsonFileInput" accept=".json,.txt,.csv" class="hidden">
                         
@@ -144,9 +144,9 @@
                             <span style="font-size:0.9rem;">Unescape Strings</span>
                         </label>
 
-                        <div style="display: flex; gap: 0.5rem; align-items: center; background: var(--card-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px;">
-                            <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-secondary);">JSONPath</span>
-                            <input type="text" id="jsonPathInput" placeholder="$.store.book[*].author" style="border: none; background: transparent; font-family: var(--font-mono); font-size: 0.8rem; padding: 4px; width: 200px; outline: none;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center; background: var(--card-bg); border: 1px solid var(--border); padding: 0 8px; border-radius: 4px; height: 36px;">
+                            <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-secondary); white-space: nowrap; line-height: 1; align-self: center;">JSONPath</span>
+                            <input type="text" id="jsonPathInput" placeholder="$.store.book[*].author" style="border: none; background: transparent; font-family: var(--font-mono); font-size: 0.8rem; padding: 0; width: 160px; min-width: 80px; outline: none; height: 100%; align-self: stretch; margin: 0;">
                         </div>
                     </div>
 
@@ -170,17 +170,17 @@
 
                 <!-- OUTPUT -->
                 <div class="card" style="display: flex; flex-direction: column; position: relative; padding: 1.5rem;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center;">
-                        <label>Result</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; min-height: 2rem;">
+                        <label style="margin: 0; flex-shrink: 0;">Result</label>
                         
-                        <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                             <!-- View Toggle -->
                             <div class="view-toggle-group">
                                 <button class="view-toggle-btn active" id="viewCodeBtn">Code</button>
                                 <button class="view-toggle-btn" id="viewTreeBtn">Tree</button>
                             </div>
 
-                            <div style="display: flex; gap: 5px;">
+                            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                                 <button class="button sm outline" id="toggleWrapBtn">Unwrap</button>
                                 <button class="button sm outline" id="downloadBtn">Download</button>
                                 <button class="button sm" id="copyBtn">Copy</button>

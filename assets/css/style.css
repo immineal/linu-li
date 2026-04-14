@@ -178,7 +178,7 @@ body.dark-mode {
 body.dark-mode .main-header { background: rgba(26, 25, 24, 0.95); }
 body.dark-mode::after { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 5px); }
 body.dark-mode .switch-track { background-color: #666666; }
-body.dark-mode .switch-thumb { left: 27px; }
+/* switch-thumb dark position is handled by transform below */
 body.dark-mode .drop-zone { background: rgba(255,255,255,0.02); }
 body.dark-mode .toggle-switch { background: #555; }
 
@@ -276,7 +276,7 @@ body.dark-mode .toggle-switch { background: #555; }
 
 /* Slide the thumb to the right */
 body.dark-mode .switch-thumb {
-    transform: translateX(0px);
+    transform: translateX(24px);
     background-color: #ffffff;
 }
 
@@ -311,4 +311,37 @@ body.dark-mode .switch-track {
 /* Dark Mode adjustment if you stick to specific brand colors */
 body.dark-mode .donate-btn {
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+/* === RESPONSIVE IMPROVEMENTS === */
+
+/* Prevent horizontal overflow on small screens */
+@media (max-width: 600px) {
+    /* Buttons should wrap and stretch on narrow screens */
+    .button-group { flex-direction: column; }
+    .button-group .button { width: 100%; }
+
+    /* Cards: reduce padding */
+    .card { padding: 1.25rem; }
+
+    /* Drop zones: reduce height */
+    .drop-zone { padding: 2rem 1rem; min-height: 140px; }
+
+    /* Big display (epoch clock) */
+    .big-display { font-size: 2rem; letter-spacing: -1px; }
+
+    /* File name truncation */
+    .file-name { max-width: 180px; }
+
+    /* Header nav: reduce gap */
+    .main-header nav { padding: 0 1rem; }
+}
+
+/* Prevent inputs/selects from overflowing their container */
+input, select, textarea { max-width: 100%; }
+
+/* Split view: already collapses at 768px via style.css,
+   but also handle any nested grid panels */
+@media (max-width: 768px) {
+    .split-view > * { min-width: 0; }
 }
