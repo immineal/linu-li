@@ -70,9 +70,9 @@
             </div>
 
             <div style="max-width: 500px; margin: 0 auto 3rem; position: relative;">
-                <input type="text" id="toolSearch" placeholder="Search tools (e.g. 'pdf', 'crop', 'hash')..." 
+                <input type="text" id="toolSearch" placeholder="Search tools (e.g. 'pdf', 'crop', 'hash')..." aria-label="Search tools"
                     style="padding-left: 2.5rem; border-radius: 50px; margin-bottom: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
-                <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
+                <span aria-hidden="true" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
             </div>
 
             <!-- 0. FAVORITES SECTION (Populated via JS) -->
@@ -354,9 +354,13 @@
                         if (faves.includes(parentId)) {
                             btn.classList.add('active');
                             btn.innerHTML = '&#9829;'; // Filled heart
+                            btn.setAttribute('aria-label', 'Remove from Favorites');
+                            btn.setAttribute('title', 'Remove from Favorites');
                         } else {
                             btn.classList.remove('active');
                             btn.innerHTML = '&#9825;'; // Empty heart
+                            btn.setAttribute('aria-label', 'Pin to Favorites');
+                            btn.setAttribute('title', 'Pin to Favorites');
                         }
                     }
                 });
@@ -394,6 +398,7 @@
                 btn.className = 'fav-btn';
                 btn.innerHTML = '&#9825;'; // Empty heart default
                 btn.title = 'Pin to Favorites';
+                btn.setAttribute('aria-label', 'Pin to Favorites');
                 
                 btn.addEventListener('click', (e) => {
                     e.preventDefault(); // Prevent link navigation
