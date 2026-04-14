@@ -42,6 +42,63 @@
             color: var(--ink-secondary);
             margin-top: -5px;
         }
+
+        .compare-wrapper {
+            position: relative;
+            width: 100%;
+            display: inline-block;
+            margin: 0 auto;
+        }
+        .compare-canvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 1px solid #ccc;
+            display: block;
+        }
+        #previewCanvasAfter {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Object-fit is not needed for absolute positioning if canvases match,
+               but helpful if we force width:100% and height:100% */
+            object-fit: contain;
+            clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
+        }
+        #compareSlider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            -webkit-appearance: none;
+            background: transparent;
+            outline: none;
+            cursor: ew-resize;
+            z-index: 10;
+        }
+        #compareSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 4px;
+            height: 100vh; /* Make it very tall to simulate a line */
+            max-height: 1000px;
+            background: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.8);
+            cursor: ew-resize;
+            border-radius: 0;
+        }
+        #compareSlider::-moz-range-thumb {
+            width: 4px;
+            height: 1000px;
+            background: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.8);
+            cursor: ew-resize;
+            border-radius: 0;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -67,7 +124,15 @@
                 <!-- SECTION: LIVE PREVIEW -->
                 <div id="previewSection" class="preview-container">
                     <label style="margin-bottom: 0.5rem; display: block; text-align: left;">Page 1 Preview (Live Adjustment)</label>
-                    <canvas id="previewCanvas"></canvas>
+                    <div class="compare-wrapper" id="compareWrapper">
+                        <canvas id="previewCanvasBefore" class="compare-canvas"></canvas>
+                        <canvas id="previewCanvasAfter" class="compare-canvas"></canvas>
+                        <input type="range" id="compareSlider" min="0" max="100" value="50">
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;">
+                        <span>&larr; Before (Original)</span>
+                        <span>After (Processed) &rarr;</span>
+                    </div>
                 </div>
 
                 <!-- SECTION: OPTIONS -->
@@ -94,6 +159,19 @@
                                 <span>Enable Background Removal</span>
                             </label>
                         </div>
+                    </div>
+
+                    <div class="split-view" style="margin-top: 1rem;">
+                        <!-- Deskew Settings -->
+                        <div style="flex: 1;">
+                            <label>Deskew Rotation (Degrees)</label>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                                <input type="range" id="deskewSlider" min="-5" max="5" step="0.1" value="0" style="flex: 1;">
+                                <span id="valDeskew" style="width: 40px; text-align: right; font-size: 0.9rem; color: var(--ink-secondary);">0.0°</span>
+                            </div>
+                            <button class="button secondary" id="autoDeskewBtn" style="width: 100%; padding: 0.5rem;">Auto-Deskew</button>
+                        </div>
+                        <div style="flex: 1;"></div>
                     </div>
 
                     <!-- CLEANER SLIDERS (Conditional) -->
@@ -184,16 +262,174 @@
         const valWhite = document.getElementById('valWhite');
         const valBlack = document.getElementById('valBlack');
 
+        const deskewSlider = document.getElementById('deskewSlider');
+        const valDeskew = document.getElementById('valDeskew');
+        const autoDeskewBtn = document.getElementById('autoDeskewBtn');
+
         // Preview Elements
         const previewSection = document.getElementById('previewSection');
-        const previewCanvas = document.getElementById('previewCanvas');
-        const previewCtx = previewCanvas.getContext('2d');
+        const previewCanvasBefore = document.getElementById('previewCanvasBefore');
+        const previewCtxBefore = previewCanvasBefore.getContext('2d', { willReadFrequently: true });
+        const previewCanvasAfter = document.getElementById('previewCanvasAfter');
+        const previewCtxAfter = previewCanvasAfter.getContext('2d', { willReadFrequently: true });
+        const compareSlider = document.getElementById('compareSlider');
 
         let currentFile = null;
         let outputBlob = null;
         let pdfDoc = null; // Loaded PDF document
         let page1Viewport = null; // To keep aspect ratio for preview
         let originalPreviewData = null; // Copy of page 1 raw pixels for live filtering
+        let deskewAngle = 0;
+        let workerResolvers = {};
+
+        // Web Worker Setup for Performance
+        const workerCode = `
+            function calculateDeskewAngle(data, width, height) {
+                // Downsample for performance (check every nth pixel)
+                const step = 4;
+                let maxVariance = 0;
+                let bestAngle = 0;
+
+                for (let angle = -5; angle <= 5; angle += 0.2) {
+                    if (Math.abs(angle) < 0.01) continue;
+                    const rad = angle * Math.PI / 180;
+                    const sin = Math.sin(rad);
+                    const cos = Math.cos(rad);
+
+                    const rowSums = new Float32Array(height);
+                    const cx = width / 2;
+                    const cy = height / 2;
+
+                    for (let y = 0; y < height; y += step) {
+                        for (let x = 0; x < width; x += step) {
+                            const i = (y * width + x) * 4;
+                            const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                            if (gray < 200) {
+                                const ry = Math.round((x - cx) * sin + (y - cy) * cos + cy);
+                                if (ry >= 0 && ry < height) {
+                                    rowSums[ry]++;
+                                }
+                            }
+                        }
+                    }
+
+                    let mean = 0;
+                    for (let i = 0; i < height; i++) mean += rowSums[i];
+                    mean /= height;
+
+                    let variance = 0;
+                    for (let i = 0; i < height; i++) {
+                        variance += (rowSums[i] - mean) * (rowSums[i] - mean);
+                    }
+
+                    if (variance > maxVariance) {
+                        maxVariance = variance;
+                        bestAngle = angle;
+                    }
+                }
+
+                return bestAngle;
+            }
+
+            self.onmessage = function(e) {
+                const { type, id, data, width, height, cleanEnabled, whitePoint, blackPoint } = e.data;
+
+                if (type === 'process') {
+                    for (let i = 0; i < data.length; i += 4) {
+                        let r = data[i];
+                        let g = data[i + 1];
+                        let b = data[i + 2];
+                        const a = data[i + 3];
+
+                        if (a < 255) {
+                            const alpha = a / 255;
+                            r = r * alpha + 255 * (1 - alpha);
+                            g = g * alpha + 255 * (1 - alpha);
+                            b = b * alpha + 255 * (1 - alpha);
+                        }
+
+                        let gray = (0.299 * r) + (0.587 * g) + (0.114 * b);
+
+                        if (cleanEnabled) {
+                            if (gray >= whitePoint) {
+                                gray = 255;
+                            } else if (gray <= blackPoint) {
+                                gray = 0;
+                            } else {
+                                gray = (gray - blackPoint) * (255 / (whitePoint - blackPoint));
+                            }
+                        }
+
+                        data[i] = gray;
+                        data[i + 1] = gray;
+                        data[i + 2] = gray;
+                        data[i + 3] = 255;
+                    }
+                    self.postMessage({ id, type: 'processed', data }, [data.buffer]);
+                } else if (type === 'deskew') {
+                    const angle = calculateDeskewAngle(data, width, height);
+                    self.postMessage({ id, type: 'deskewed', angle });
+                }
+            };
+        `;
+
+        const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(workerBlob);
+        const imageWorker = new Worker(workerUrl);
+
+        imageWorker.onmessage = function(e) {
+            const { id, type, data, angle } = e.data;
+            if (workerResolvers[id]) {
+                if (type === 'processed') workerResolvers[id](data);
+                if (type === 'deskewed') workerResolvers[id](angle);
+                delete workerResolvers[id];
+            }
+        };
+
+        function processImageDataAsync(data, cleanEnabled, whitePoint, blackPoint) {
+            return new Promise(resolve => {
+                const id = Math.random().toString(36).substring(2);
+                workerResolvers[id] = resolve;
+                const arrayCopy = new Uint8ClampedArray(data); // copy to avoid neutering original
+                imageWorker.postMessage({ type: 'process', id, data: arrayCopy, cleanEnabled, whitePoint, blackPoint }, [arrayCopy.buffer]);
+            });
+        }
+
+        function calculateDeskewAsync(data, width, height) {
+            return new Promise(resolve => {
+                const id = Math.random().toString(36).substring(2);
+                workerResolvers[id] = resolve;
+                imageWorker.postMessage({ type: 'deskew', id, data, width, height });
+            });
+        }
+
+        async function renderRotatedPage(page, scale, canvas, ctx, angle) {
+            const viewport = page.getViewport({ scale: scale });
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (angle === 0) {
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            } else {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = viewport.width;
+                tempCanvas.height = viewport.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.fillStyle = 'white';
+                tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                await page.render({ canvasContext: tempCtx, viewport: viewport }).promise;
+
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(angle * Math.PI / 180);
+                ctx.translate(-canvas.width / 2, -canvas.height / 2);
+                ctx.drawImage(tempCanvas, 0, 0);
+                ctx.restore();
+            }
+        }
 
         // 1. File Handling
         setupDropZone(dropZone, fileInput, handleFileSelect);
@@ -257,27 +493,9 @@
                 
                 const arrayBuffer = await file.arrayBuffer();
                 pdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
-                const page = await pdfDoc.getPage(1);
                 
-                // Render at low scale for preview performance
-                const viewport = page.getViewport({ scale: 1.0 }); 
-                previewCanvas.width = viewport.width;
-                previewCanvas.height = viewport.height;
-
-                // Pre-fill with white to avoid black background on transparent PDFs
-                previewCtx.fillStyle = 'white';
-                previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
-
-                await page.render({ canvasContext: previewCtx, viewport: viewport }).promise;
-
-                // Store original pixel data
-                originalPreviewData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
-                
+                await reRenderPreview();
                 previewSection.style.display = 'block';
-                statusText.style.display = 'none';
-                
-                // Initial Apply
-                updatePreview();
 
             } catch (err) {
                 console.error("CONVERT ERROR:", err);
@@ -285,66 +503,59 @@
             }
         }
 
+        async function reRenderPreview() {
+            if (!pdfDoc) return;
+            statusText.style.display = 'block';
+            statusText.textContent = "Rendering preview...";
+
+            const page = await pdfDoc.getPage(1);
+
+            await renderRotatedPage(page, 1.0, previewCanvasBefore, previewCtxBefore, deskewAngle);
+
+            // Sync canvas sizes
+            previewCanvasAfter.width = previewCanvasBefore.width;
+            previewCanvasAfter.height = previewCanvasBefore.height;
+
+            originalPreviewData = previewCtxBefore.getImageData(0, 0, previewCanvasBefore.width, previewCanvasBefore.height);
+            statusText.style.display = 'none';
+
+            updatePreview();
+        }
+
         // 3. Live Filter Updates
-        function updatePreview() {
+        let previewUpdateId = 0;
+        async function updatePreview() {
             if (!originalPreviewData) return;
 
-            // Get values
             const isCleaning = cleanerToggle.checked;
             const wPoint = parseInt(whitePointSlider.value);
             const bPoint = parseInt(blackPointSlider.value);
 
-            // Create a copy of data to manipulate
-            // Note: In a heavy app we'd use createImageBitmap, but for a small preview PutImageData is fine
+            const myUpdateId = ++previewUpdateId;
+            const processedArray = await processImageDataAsync(originalPreviewData.data, isCleaning, wPoint, bPoint);
+
+            if (myUpdateId !== previewUpdateId) return;
+
             const processed = new ImageData(
-                new Uint8ClampedArray(originalPreviewData.data), 
+                new Uint8ClampedArray(processedArray),
                 originalPreviewData.width, 
                 originalPreviewData.height
             );
 
-            processPixelData(processed.data, isCleaning, wPoint, bPoint);
-            
-            previewCtx.putImageData(processed, 0, 0);
+            previewCtxAfter.putImageData(processed, 0, 0);
         }
 
-        // The core algorithm (Shared by Preview and Main Processor)
-        function processPixelData(data, cleanEnabled, whitePoint, blackPoint) {
-            for (let i = 0; i < data.length; i += 4) {
-                let r = data[i];
-                let g = data[i + 1];
-                let b = data[i + 2];
-                const a = data[i + 3];
-
-                // Blend alpha channel over a white background
-                if (a < 255) {
-                    const alpha = a / 255;
-                    r = r * alpha + 255 * (1 - alpha);
-                    g = g * alpha + 255 * (1 - alpha);
-                    b = b * alpha + 255 * (1 - alpha);
-                }
-
-                // 1. Convert to Grayscale (Luminosity)
-                let gray = (0.299 * r) + (0.587 * g) + (0.114 * b);
-
-                // 2. Scan Cleaning (Levels / Histogram Stretch)
-                if (cleanEnabled) {
-                    if (gray >= whitePoint) {
-                        gray = 255; // Clip to White
-                    } else if (gray <= blackPoint) {
-                        gray = 0;   // Clip to Black
-                    } else {
-                        // Stretch contrast between blackPoint and whitePoint
-                        // Formula: (val - min) * (255 / (max - min))
-                        gray = (gray - blackPoint) * (255 / (whitePoint - blackPoint));
-                    }
-                }
-
-                data[i] = gray;     // R
-                data[i + 1] = gray; // G
-                data[i + 2] = gray; // B
-                data[i + 3] = 255;  // Force opaque alpha
-            }
-        }
+        // Slider Event
+        compareSlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            // The before canvas is fully visible.
+            // The after canvas is overlaid and clipped.
+            // 0% slider = 0% of AFTER visible (fully before).
+            // 100% slider = 100% of AFTER visible (fully after).
+            // Wait, let's make it intuitive: left side is AFTER, right side is BEFORE.
+            // polygon(0 0, val% 0, val% 100%, 0 100%) means from x=0 to x=val% is visible.
+            previewCanvasAfter.style.clipPath = `polygon(0 0, ${val}% 0, ${val}% 100%, 0 100%)`;
+        });
 
         // Event Listeners for Settings
         cleanerToggle.addEventListener('change', () => {
@@ -373,6 +584,40 @@
                 valWhite.textContent = whitePointSlider.value;
             }
             updatePreview();
+        });
+
+        deskewSlider.addEventListener('change', (e) => {
+            deskewAngle = parseFloat(e.target.value);
+            valDeskew.textContent = deskewAngle.toFixed(1) + '°';
+            reRenderPreview();
+        });
+
+        deskewSlider.addEventListener('input', (e) => {
+            valDeskew.textContent = parseFloat(e.target.value).toFixed(1) + '°';
+        });
+
+        autoDeskewBtn.addEventListener('click', async () => {
+            if (!originalPreviewData) return;
+            autoDeskewBtn.disabled = true;
+            statusText.style.display = 'block';
+            statusText.textContent = "Calculating deskew angle...";
+
+            // To calculate skew accurately, we pass the original data before rotation
+            // We temporarily render without rotation to get pure data
+            const page = await pdfDoc.getPage(1);
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            await renderRotatedPage(page, 1.0, tempCanvas, tempCtx, 0);
+            const tempData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+
+            const bestAngle = await calculateDeskewAsync(tempData.data, tempCanvas.width, tempCanvas.height);
+            deskewAngle = bestAngle;
+            deskewSlider.value = deskewAngle;
+            valDeskew.textContent = deskewAngle.toFixed(1) + '°';
+
+            await reRenderPreview();
+
+            autoDeskewBtn.disabled = false;
         });
 
 
@@ -409,28 +654,22 @@
                 for (let i = 1; i <= totalPages; i++) {
                     statusText.textContent = `Processing page ${i} of ${totalPages}...`;
 
-                    // 1. Render Page to Canvas at requested DPI
+                    // 1. Render Page to Canvas at requested DPI with rotation
                     const page = await pdfDoc.getPage(i);
                     const viewport = page.getViewport({ scale: scale });
 
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
 
-                    // Pre-fill with white to avoid black background on transparent PDFs
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    await renderRotatedPage(page, scale, canvas, ctx, deskewAngle);
 
-                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-
-                    // 2. Manipulate Pixel Data
+                    // 2. Manipulate Pixel Data asynchronously with Worker
                     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     
-                    // Apply same logic as preview
-                    processPixelData(imgData.data, isCleaning, wPoint, bPoint);
+                    const processedArray = await processImageDataAsync(imgData.data, isCleaning, wPoint, bPoint);
+                    const processedData = new ImageData(new Uint8ClampedArray(processedArray), canvas.width, canvas.height);
 
-                    ctx.putImageData(imgData, 0, 0);
+                    ctx.putImageData(processedData, 0, 0);
 
                     // 3. Add to new PDF
                     // Use JPEG with modest compression to keep file size down
