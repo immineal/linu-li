@@ -49,8 +49,8 @@
                 <!-- COMPARE HASH -->
                 <div id="compareSection" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
                     <label>Compare Hash</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="compareInput" placeholder="Paste a hash here to verify..." style="font-family: var(--font-mono); font-size: 0.9rem;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="compareInput" placeholder="Paste a hash here to verify..." style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
                         <button class="button sm secondary" id="clearCompareBtn">Clear</button>
                     </div>
                 </div>
@@ -60,56 +60,56 @@
                     
                     <div style="margin-bottom: 1.5rem;">
                         <label>SHA-256 (Recommended) <span id="matchSHA256" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="outSHA256" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="outSHA256" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
                             <button class="button sm secondary" onclick="copyId('outSHA256')">Copy</button>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
                         <label>SHA-512 (Recommended) <span id="matchSHA512" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="outSHA512" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="outSHA512" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
                             <button class="button sm secondary" onclick="copyId('outSHA512')">Copy</button>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
                         <label>MD5 (Legacy) <span id="matchMD5" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="outMD5" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="outMD5" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
                             <button class="button sm secondary" onclick="copyId('outMD5')">Copy</button>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
                         <label>SHA-1 (Legacy) <span id="matchSHA1" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="outSHA1" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="outSHA1" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
                             <button class="button sm secondary" onclick="copyId('outSHA1')">Copy</button>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
                         <label>SHA-3 (256-bit) <span id="matchSHA3_256" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="outSHA3_256" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="outSHA3_256" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
                             <button class="button sm secondary" onclick="copyId('outSHA3_256')">Copy</button>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
                         <label>SHA-3 (512-bit) <span id="matchSHA3_512" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="outSHA3_512" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="outSHA3_512" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
                             <button class="button sm secondary" onclick="copyId('outSHA3_512')">Copy</button>
                         </div>
                     </div>
 
                     <div>
                         <label>BLAKE2b (512-bit) <span id="matchBLAKE2b" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="outBLAKE2b" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="outBLAKE2b" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
                             <button class="button sm secondary" onclick="copyId('outBLAKE2b')">Copy</button>
                         </div>
                     </div>
