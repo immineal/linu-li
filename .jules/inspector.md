@@ -1,0 +1,4 @@
+# Aspect Ratio Calc Inspector Learnings
+- **Division by Zero:** Short-circuiting evaluation with `|| 1` maps falsy `0` values to `1`, but still allows evaluation of `NaN` or invalid inputs. We learned that explicitly evaluating `isNaN` alongside explicit zero-checks before dividing handles edge-cases defensively.
+- **Visual Clamping UX:** Aggressively clamping inputs visually (e.g. `input.value = Math.max(0, input.value)`) hurts usability because typing `0` to clear an input immediately locks it. A better pattern is to use clamped variables for the *math* and output fields, but leave the *source* input visual field alone during typing, or validate only on blur.
+- **Decimal Inputs:** Using `Math.max(1, Math.abs(x))` to clamp negative inputs mistakenly kills legitimate decimal ratios (like `0.5`). Simple `Math.abs(x)` is safer if zero-checks are already handled.

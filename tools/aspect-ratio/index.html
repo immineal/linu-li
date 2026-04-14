@@ -129,8 +129,13 @@
 
         // --- 2. Calculation Logic ---
         function updateCalculations(source) {
-            const rW = parseFloat(ratioW.value) || 1;
-            const rH = parseFloat(ratioH.value) || 1;
+            let pW = parseFloat(ratioW.value);
+            let pH = parseFloat(ratioH.value);
+            if (isNaN(pW) || pW === 0) pW = 1;
+            if (isNaN(pH) || pH === 0) pH = 1;
+
+            const rW = Math.abs(pW);
+            const rH = Math.abs(pH);
             const ratio = rW / rH;
 
             // Update Preview Shape text and size
@@ -149,14 +154,14 @@
 
             // Update Inputs
             if (source === 'width') {
-                const w = parseFloat(widthInput.value) || 0;
+                const w = Math.max(0, parseFloat(widthInput.value) || 0);
                 heightInput.value = Math.round(w / ratio);
             } else if (source === 'height') {
-                const h = parseFloat(heightInput.value) || 0;
+                const h = Math.max(0, parseFloat(heightInput.value) || 0);
                 widthInput.value = Math.round(h * ratio);
             } else {
                 // Source is Ratio change, update Height based on current Width
-                const w = parseFloat(widthInput.value) || 0;
+                const w = Math.max(0, parseFloat(widthInput.value) || 0);
                 heightInput.value = Math.round(w / ratio);
             }
         }
