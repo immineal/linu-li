@@ -356,7 +356,8 @@
                     
                     // PDF Y is inverted (0 at bottom)
                     // HTML y=0 is top. We saved posY as (TopOffset / CanvasHeight)
-                    const pdfY = height - (height * posY);
+                    const textHeight = helveticaFont.heightAtSize(fontSize);
+                    const pdfY = height - (height * posY) - textHeight;
 
                     page.drawText(text, {
                         x: pdfX,
