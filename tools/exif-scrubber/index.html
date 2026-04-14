@@ -382,26 +382,41 @@
             processedBlobs = [];
 
             const total = queue.length;
+            let errorCount = 0;
             
             try {
                 for (let i = 0; i < total; i++) {
                     const file = queue[i];
-                    const blob = await stripMetadataPiexif(file);
-                    
-                    processedBlobs.push({ name: `clean_${file.name}`, blob: blob });
+                    try {
+                        const blob = await stripMetadataPiexif(file);
+                        processedBlobs.push({ name: `clean_${file.name}`, blob: blob });
+                    } catch (err) {
+                        console.error(`Failed to scrub ${file.name}:`, err);
+                        // Omitting the file entirely for privacy
+                        errorCount++;
+                    }
 
                     const percent = Math.round(((i + 1) / total) * 100);
                     progressBar.style.width = `${percent}%`;
                 }
 
                 setTimeout(() => {
-                    showResult();
+                    if (errorCount > 0) {
+                        showToast(`${errorCount} file(s) failed and were omitted for privacy.`, 'error');
+                    }
+                    if (processedBlobs.length > 0) {
+                        showResult();
+                    } else {
+                        resultBox.classList.remove('hidden');
+                        resultMessage.textContent = 'Failed to scrub any files.';
+                        downloadBtn.style.display = 'none';
+                    }
                     processBtn.disabled = false;
                 }, 500);
 
             } catch (error) {
                 console.error(error);
-                showToast('Error processing images.', 'error');
+                showToast('Critical error processing images.', 'error');
                 processBtn.disabled = false;
             }
         }
@@ -426,6 +441,7 @@
                         reject(err);
                     }
                 };
+                reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
                 reader.readAsDataURL(file);
             });
         }
