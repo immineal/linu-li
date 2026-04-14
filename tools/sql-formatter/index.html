@@ -7,8 +7,7 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
-    <!-- SQL Formatter Library -->
-    <script src="https://unpkg.com/sql-formatter@4.0.2/dist/sql-formatter.min.js"></script>
+    <!-- Worker loads the formatter and schema parser -->
 </head>
 <body>
     <main>
@@ -25,10 +24,15 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <label for="inputSql" style="margin: 0;">Input SQL</label>
                         <select id="languageSelect" style="width: auto; margin: 0; padding: 0.4rem 1rem;">
+                            <option value="auto_detect">Auto-Detect Dialect</option>
                             <option value="sql">Standard SQL</option>
                             <option value="mysql">MySQL</option>
                             <option value="postgresql">PostgreSQL</option>
                             <option value="plsql">PL/SQL</option>
+                            <optgroup label="Schema Export">
+                                <option value="typescript">TypeScript Interfaces</option>
+                                <option value="prisma">Prisma Models</option>
+                            </optgroup>
                         </select>
                     </div>
                     <textarea id="inputSql" class="code-editor" style="flex-grow: 1; min-height: 400px;" placeholder="SELECT * FROM users WHERE id = 1..."></textarea>
@@ -58,7 +62,29 @@
         const formatBtn = document.getElementById('formatBtn');
         const copyBtn = document.getElementById('copyBtn');
 
-        function formatQuery() {
+        // Setup Web Worker
+        const worker = new Worker('worker.js');
+        let workerMessageId = 0;
+        const pendingResolvers = new Map();
+
+        worker.onmessage = function(e) {
+            const { id, success, result, error, guessedDialect } = e.data;
+            const resolver = pendingResolvers.get(id);
+            if (resolver) {
+                pendingResolvers.delete(id);
+                resolver({ success, result, error, guessedDialect });
+            }
+        };
+
+        function sendMessageToWorker(message) {
+            return new Promise((resolve) => {
+                const id = ++workerMessageId;
+                pendingResolvers.set(id, resolve);
+                worker.postMessage({ id, ...message });
+            });
+        }
+
+        async function formatQuery() {
             if (!inputSql || !outputSql || !languageSelect) return false;
 
             const raw = inputSql.value;
@@ -69,42 +95,107 @@
                 return false;
             }
 
-            if (typeof sqlFormatter === 'undefined') {
-                outputSql.value = "Error: SQL Formatter library failed to load.";
-                return false;
+            formatBtn.disabled = true;
+            formatBtn.textContent = 'Formatting...';
+
+            let action = 'format';
+            let workerLang = lang;
+
+            if (lang === 'auto_detect') {
+                action = 'auto_detect';
+            } else if (lang === 'typescript') {
+                action = 'typescript';
+            } else if (lang === 'prisma') {
+                action = 'prisma';
             }
 
             try {
-                // Note: The global variable exposed by the CDN might vary slightly by version.
-                // For sql-formatter v4, it's often exposed as `sqlFormatter`.
-                const formatted = sqlFormatter.format(raw, {
-                    language: lang,
-                    uppercase: true, // Auto uppercase keywords
-                    linesBetweenQueries: 2
+                const { success, result, error, guessedDialect } = await sendMessageToWorker({
+                    raw,
+                    action,
+                    lang: workerLang,
+                    uppercase: true
                 });
-                outputSql.value = formatted;
-                return true;
+
+                if (success) {
+                    outputSql.value = result;
+                    if (guessedDialect && typeof showToast === 'function') {
+                        showToast(`Formatted (Detected: ${guessedDialect.toUpperCase()})`, 'success');
+                    }
+                } else {
+                    console.error("Worker error:", error);
+                    outputSql.value = "Error processing SQL: " + (error || "Check syntax.");
+                }
+                return success;
             } catch (err) {
-                console.error(err);
-                outputSql.value = "Error formatting SQL: " + (err.message || "Check syntax.");
+                console.error("Main thread error:", err);
+                outputSql.value = "Error communicating with formatting worker.";
                 return false;
+            } finally {
+                formatBtn.disabled = false;
+                formatBtn.textContent = 'Format';
             }
         }
 
+        // Drag and Drop
+        const inputCard = inputSql.closest('.card');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            inputCard.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            inputCard.addEventListener(eventName, () => {
+                inputCard.style.borderColor = 'var(--primary-color)';
+                inputCard.style.backgroundColor = 'var(--bg-color-alt)';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            inputCard.addEventListener(eventName, () => {
+                inputCard.style.borderColor = '';
+                inputCard.style.backgroundColor = '';
+            }, false);
+        });
+
+        inputCard.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+
+            if (files && files.length > 0) {
+                const file = files[0];
+                if (file.name.endsWith('.sql') || file.name.endsWith('.txt') || file.type.startsWith('text/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        inputSql.value = e.target.result;
+                        formatQuery();
+                    };
+                    reader.onerror = () => {
+                        if (typeof showToast === 'function') showToast('Failed to read file', 'error');
+                    };
+                    reader.readAsText(file);
+                } else {
+                    if (typeof showToast === 'function') showToast('Please drop a .sql or text file', 'error');
+                }
+            }
+        }, false);
+
         // Event Listeners
         if (formatBtn) {
-            formatBtn.addEventListener('click', () => {
-                const success = formatQuery();
+            formatBtn.addEventListener('click', async () => {
+                const success = await formatQuery();
                 if (success) {
-                    if (typeof showToast === 'function') showToast('SQL Formatted', 'success');
+                    if (languageSelect.value !== 'auto_detect' && typeof showToast === 'function') showToast('Success', 'success');
                 } else if (inputSql.value.trim() !== '') {
-                    if (typeof showToast === 'function') showToast('Failed to format SQL', 'error');
+                    if (typeof showToast === 'function') showToast('Failed to process SQL', 'error');
                 }
             });
         }
-        
-        // Optional: Auto-format on paste? 
-        // Sometimes annoying if editing large files, better to leave manual or on blur.
         
         copyBtn.addEventListener('click', () => {
             if (outputSql.value) {
