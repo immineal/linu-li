@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+</head>
+<body>
+    <script>
+        async function runTests() {
+            const { PDFDocument } = PDFLib;
+            let passed = true;
+
+            // Test 1: Empty ArrayBuffer
+            try {
+                const arrayBuffer = new ArrayBuffer(0);
+
+                const dstDoc = await PDFDocument.create();
+                const srcDocParsed = await PDFDocument.load(arrayBuffer);
+
+                const pageIndices = srcDocParsed.getPageIndices();
+                const embeddedPages = await dstDoc.embedPdf(srcDocParsed, pageIndices);
+                const totalSrcPages = embeddedPages.length;
+
+                if (totalSrcPages === 0) {
+                    throw new Error('The uploaded PDF has no pages.');
+                }
+                passed = false;
+                console.error("Test 1 Failed: Should have thrown an error for empty PDF.");
+            } catch(e) {
+                if (e.message.includes('The uploaded PDF has no pages.') || e.message.includes('Failed to parse PDF document') || e.message.includes('No PDF header found')) {
+                    console.log("Test 1 Passed: Empty PDF/ArrayBuffer correctly throws error: ", e.message);
+                } else {
+                    passed = false;
+                    console.error("Test 1 Failed: Threw wrong error: ", e.message);
+                }
+            }
+
+            // Test 2: Huge Margin (Negative Space)
+            try {
+                const srcDoc = await PDFDocument.create();
+                const p1 = srcDoc.addPage([50, 100]);
+                p1.drawText("P1");
+                const srcBytes = await srcDoc.save();
+
+                const dstDoc = await PDFDocument.create();
+                const srcDocParsed = await PDFDocument.load(srcBytes);
+
+                const pageIndices = srcDocParsed.getPageIndices();
+                const embeddedPages = await dstDoc.embedPdf(srcDocParsed, pageIndices);
+
+                const leftPage = embeddedPages[0];
+                const { width, height } = leftPage;
+                const newPage = dstDoc.addPage([width * 2, height]);
+
+                const marginPts = 1000; // huge
+
+                const drawContent = (pageObj, xOffset) => {
+                    if (!pageObj) return;
+                    const contentW = pageObj.width;
+                    const contentH = pageObj.height;
+                    const availW = Math.max(0, width - (marginPts * 2));
+                    const availH = Math.max(0, height - (marginPts * 2));
+
+                    const scaleX = availW / contentW;
+                    const scaleY = availH / contentH;
+                    const scale = Math.min(scaleX, scaleY);
+
+                    const drawnW = contentW * scale;
+                    const drawnH = contentH * scale;
+                    const centerOffsetX = (availW - drawnW) / 2;
+                    const centerOffsetY = (availH - drawnH) / 2;
+
+                    if (drawnW < 0 || drawnH < 0 || isNaN(drawnW) || isNaN(drawnH)) {
+                        throw new Error("Invalid dimensions calculated.");
+                    }
+
+                    newPage.drawPage(pageObj, {
+                        x: xOffset + marginPts + centerOffsetX,
+                        y: marginPts + centerOffsetY,
+                        width: drawnW,
+                        height: drawnH,
+                    });
+                };
+
+                drawContent(leftPage, 0);
+                console.log("Test 2 Passed: Huge margin handled gracefully.");
+            } catch(e) {
+                passed = false;
+                console.error("Test 2 Failed:", e.message);
+            }
+
+            if (passed) {
+                console.log("All regression tests passed!");
+                document.body.innerHTML = "<h1>All regression tests passed!</h1>";
+            } else {
+                document.body.innerHTML = "<h1>Regression tests failed! Check console.</h1>";
+            }
+        }
+        runTests();
+    </script>
+</body>
+</html>

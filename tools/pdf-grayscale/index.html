@@ -264,6 +264,10 @@
                 previewCanvas.width = viewport.width;
                 previewCanvas.height = viewport.height;
 
+                // Pre-fill with white to avoid black background on transparent PDFs
+                previewCtx.fillStyle = 'white';
+                previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+
                 await page.render({ canvasContext: previewCtx, viewport: viewport }).promise;
 
                 // Store original pixel data
@@ -276,7 +280,7 @@
                 updatePreview();
 
             } catch (err) {
-                console.error(err);
+                console.error("CONVERT ERROR:", err);
                 showToast("Could not load PDF preview.", "error");
             }
         }
@@ -306,9 +310,18 @@
         // The core algorithm (Shared by Preview and Main Processor)
         function processPixelData(data, cleanEnabled, whitePoint, blackPoint) {
             for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+                const a = data[i + 3];
+
+                // Blend alpha channel over a white background
+                if (a < 255) {
+                    const alpha = a / 255;
+                    r = r * alpha + 255 * (1 - alpha);
+                    g = g * alpha + 255 * (1 - alpha);
+                    b = b * alpha + 255 * (1 - alpha);
+                }
 
                 // 1. Convert to Grayscale (Luminosity)
                 let gray = (0.299 * r) + (0.587 * g) + (0.114 * b);
@@ -329,7 +342,7 @@
                 data[i] = gray;     // R
                 data[i + 1] = gray; // G
                 data[i + 2] = gray; // B
-                // Alpha data[i+3] stays same
+                data[i + 3] = 255;  // Force opaque alpha
             }
         }
 
@@ -405,6 +418,10 @@
                     canvas.width = viewport.width;
                     canvas.height = viewport.height;
 
+                    // Pre-fill with white to avoid black background on transparent PDFs
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
                     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
                     // 2. Manipulate Pixel Data
@@ -444,7 +461,7 @@
                 }, 500);
 
             } catch (err) {
-                console.error(err);
+                console.error("CONVERT ERROR:", err);
                 showToast('Error processing PDF. Memory limit exceeded?', 'error');
                 convertBtn.disabled = false;
                 resetBtn.disabled = false;
