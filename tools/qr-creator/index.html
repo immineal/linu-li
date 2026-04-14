@@ -223,8 +223,12 @@
                 const hidden = document.getElementById('wifiHidden').value; // 'true' or 'false'
                 
                 if (!ssid) return null;
+
                 // Standard WiFi String: WIFI:T:WPA;S:mynetwork;P:mypass;H:false;;
-                return `WIFI:T:${type};S:${ssid};P:${pass};H:${hidden};;`;
+                let wifiStr = `WIFI:T:${type};S:${ssid};`;
+                if (type !== 'nopass' && pass) wifiStr += `P:${pass};`;
+                wifiStr += `H:${hidden};;`;
+                return wifiStr;
             }
             
             else if (mode === 'contact') {
@@ -237,7 +241,12 @@
                 if (!n && !l && !o) return null;
 
                 // Simple vCard 3.0
-                return `BEGIN:VCARD\nVERSION:3.0\nN:${l};${n}\nFN:${n} ${l}\nORG:${o}\nTEL;TYPE=CELL:${p}\nEMAIL:${e}\nEND:VCARD`;
+                let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:${l};${n};;;\nFN:${(n + ' ' + l).trim()}`;
+                if (o) vcard += `\nORG:${o}`;
+                if (p) vcard += `\nTEL;TYPE=CELL:${p}`;
+                if (e) vcard += `\nEMAIL:${e}`;
+                vcard += `\nEND:VCARD`;
+                return vcard;
             }
             
             else if (mode === 'email') {
@@ -246,7 +255,14 @@
                 const body = document.getElementById('mailBody').value.trim();
 
                 if (!to) return null;
-                return `mailto:${to}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;
+
+                let query = [];
+                if (sub) query.push(`subject=${encodeURIComponent(sub)}`);
+                if (body) query.push(`body=${encodeURIComponent(body)}`);
+
+                let url = `mailto:${to}`;
+                if (query.length > 0) url += `?${query.join('&')}`;
+                return url;
             }
             
             else {
@@ -263,6 +279,11 @@
                 showToast('Please enter required data fields.', 'error');
                 return;
             }
+
+            // Reset UI state before generation attempt
+            container.innerHTML = '<div class="qr-placeholder" style="opacity: 0.5;">Generating...</div>';
+            downloadBtn.disabled = true;
+            currentDataUrl = null;
 
             try {
                 // Create temporary canvas
@@ -291,6 +312,9 @@
                 
             } catch (err) {
                 console.error(err);
+                container.innerHTML = '<div class="qr-placeholder" style="color: var(--danger);">Data too long for this Error Correction Level</div>';
+                downloadBtn.disabled = true;
+                currentDataUrl = null;
                 showToast('Error generating QR code (Data too long?)', 'error');
             }
         }
