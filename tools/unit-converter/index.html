@@ -232,16 +232,43 @@
             }
 
             if (currentCategory === 'temp') {
-                outputEl.value = convertTemp(val, u1, u2);
+                const result = convertTemp(val, u1, u2);
+                outputEl.value = result;
+
+                // If clamped, reflect it back to input so user sees
+                // Check if val was less than absolute zero by comparing the inverse conversion
+                const originalClamped = convertTemp(result, u2, u1);
+                if (Math.abs(val - originalClamped) > 0.01 && val < originalClamped) {
+                     if (direction === 'to') {
+                         inputTo.value = originalClamped;
+                     } else {
+                         inputFrom.value = originalClamped;
+                     }
+                }
             } else {
+                // Non-temp categories cannot be negative
+                if (val < 0) {
+                    val = 0;
+                    if (direction === 'to') inputTo.value = 0;
+                    else inputFrom.value = 0;
+                }
+
                 // Base unit conversion
                 const catData = factors[currentCategory];
                 const baseValue = val * catData.units[u1]; // Convert source to base
                 const result = baseValue / catData.units[u2]; // Convert base to target
                 
-                // Format: max 6 decimals, strip trailing zeros
-                outputEl.value = parseFloat(result.toFixed(6));
+                // Format appropriately for extreme and normal values
+                outputEl.value = formatNumber(result);
             }
+        }
+
+        function formatNumber(num) {
+            if (num === 0) return 0;
+            if (Math.abs(num) < 1e-6 || Math.abs(num) >= 1e6) {
+                return parseFloat(num.toPrecision(7));
+            }
+            return parseFloat(num.toFixed(6));
         }
 
         function convertTemp(val, from, to) {
@@ -250,10 +277,15 @@
             if (from.includes('Fahrenheit')) c = (val - 32) * 5/9;
             if (from.includes('Kelvin')) c = val - 273.15;
 
+            // Enforce Absolute Zero Limit (-273.15 °C)
+            if (c < -273.15) {
+                c = -273.15;
+            }
+
             // 2. Convert Celsius to Target
-            if (to.includes('Celsius')) return parseFloat(c.toFixed(2));
-            if (to.includes('Fahrenheit')) return parseFloat((c * 9/5 + 32).toFixed(2));
-            if (to.includes('Kelvin')) return parseFloat((c + 273.15).toFixed(2));
+            if (to.includes('Celsius')) return formatNumber(c);
+            if (to.includes('Fahrenheit')) return formatNumber(c * 9/5 + 32);
+            if (to.includes('Kelvin')) return formatNumber(c + 273.15);
         }
 
         // --- 2. Event Listeners ---
