@@ -6,8 +6,9 @@ function runTests() {
     // Read the actual HTML file and extract the inline logic
     const html = fs.readFileSync('tools/url-tools/index.html', 'utf8');
     const match = html.match(/cleanBtn\.addEventListener\('click', \(\) => \{([\s\S]*?)\}\);\s*\/\/\s*Decode Logic/);
+    const paramsMatch = html.match(/const paramsToRemove = new Set\(\[([\s\S]*?)\]\);/);
 
-    if (!match) {
+    if (!match || !paramsMatch) {
         console.error("Failed to extract cleaning logic from index.html");
         process.exit(1);
     }
@@ -22,11 +23,22 @@ function runTests() {
         const context = {
             inputData: { value: inputStr },
             showToast: (msg, type) => { toast = msg; },
-            displayResult: (text) => { result = text; }
+            displayResult: (text) => { result = text; },
+            document: {
+                getElementById: () => null // mock to avoid failure when manipulating DOM
+            },
+            paramsToRemove: new Set(paramsMatch[1].replace(/['\n\r\s]/g, '').split(','))
         };
 
-        const func = new Function('inputData', 'showToast', 'displayResult', match[1]);
-        func(context.inputData, context.showToast, context.displayResult);
+        // Prepend paramsToRemove definition so it is available in scope
+        const scriptBody = `
+            const paramsToRemove = this.paramsToRemove;
+            const document = this.document;
+            ${match[1]}
+        `;
+
+        const func = new Function('inputData', 'showToast', 'displayResult', scriptBody);
+        func.call(context, context.inputData, context.showToast, context.displayResult);
 
         return { result, toast };
     }
@@ -78,6 +90,20 @@ function runTests() {
         "https://twitter.com/user/status/1234567890?s=20#reply",
         "https://x.com/user/status/1234567890#reply",
         "Twitter"
+    );
+
+    assertResult(
+        "Aggressive Tracking Removal",
+        "https://example.com/shop?fbclid=123&utm_source=test&gclid=456&_hsenc=789&valid_param=keepme",
+        "https://example.com/shop?valid_param=keepme",
+        "Tracking parameters removed"
+    );
+
+    assertResult(
+        "Bulk URL Processing",
+        "https://example.com/?utm_source=a\nhttps://example.com/?fbclid=b",
+        "https://example.com/\nhttps://example.com/",
+        "Cleaned 2 URLs!"
     );
 
     console.log(`\nTests completed: ${passed} passed, ${failed} failed.`);
