@@ -123,7 +123,13 @@
         // Helper: Unicode-safe Encode
         function utf8_to_b64(str) {
             try {
-                return window.btoa(unescape(encodeURIComponent(str)));
+                const bytes = new TextEncoder().encode(str);
+                let binString = '';
+                const chunkSize = 0x8000;
+                for (let i = 0; i < bytes.length; i += chunkSize) {
+                    binString += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+                }
+                return window.btoa(binString);
             } catch (e) {
                 throw new Error('Encoding failed.');
             }
@@ -132,7 +138,24 @@
         // Helper: Unicode-safe Decode
         function b64_to_utf8(str) {
             try {
-                return decodeURIComponent(escape(window.atob(str)));
+                // Strip Data URI prefix if present
+                if (str.includes('base64,')) {
+                    str = str.split('base64,')[1];
+                }
+                // Strip whitespace
+                str = str.replace(/\s+/g, '');
+                // Add padding
+                while (str.length % 4 !== 0) {
+                    str += '=';
+                }
+
+                const binString = window.atob(str);
+                const bytes = new Uint8Array(binString.length);
+                for (let i = 0; i < binString.length; i++) {
+                    bytes[i] = binString.charCodeAt(i);
+                }
+                // fatal: true ensures it throws if it's binary data and not valid text
+                return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
             } catch (e) {
                 throw new Error('Invalid Base64 string.');
             }
