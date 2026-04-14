@@ -455,52 +455,92 @@
 
             // === INSTANT SEARCH LOGIC ===
             const searchInput = document.getElementById('toolSearch');
-            const categories = document.querySelectorAll('h2:not(#favorites-container h2)'); // Select category headers
-            const searchGridWrappers = document.querySelectorAll('.grid-wrapper:not(#favorites-grid)'); // Select tool grids
+            const searchGridWrappers = document.querySelectorAll('.grid-wrapper:not(#favorites-grid)');
+
+            // Flat results container (injected once, lives right after the search bar)
+            const searchResultsGrid = document.createElement('div');
+            searchResultsGrid.id = 'search-results-grid';
+            searchResultsGrid.className = 'grid-wrapper';
+            searchResultsGrid.style.display = 'none';
+            searchResultsGrid.style.marginBottom = '3rem';
+            document.getElementById('toolSearch').closest('div').insertAdjacentElement('afterend', searchResultsGrid);
+
+            // Collect all real tool cards once (not clones, not favorites)
+            const allToolCards = Array.from(document.querySelectorAll('.card.interactive[data-id]:not(#favorites-grid .card)'));
+
+            // All category sections (h2 + p + grid) that should hide during search
+            const categorySections = Array.from(searchGridWrappers).map(grid => {
+                const desc = grid.previousElementSibling;
+                const title = desc && desc.tagName === 'P' ? desc.previousElementSibling : null;
+                return { grid, desc, title };
+            });
+
+            function showCategories() {
+                categorySections.forEach(({ grid, desc, title }) => {
+                    grid.style.display = 'grid';
+                    if (desc) desc.style.display = 'block';
+                    if (title) title.style.display = 'block';
+                    // Restore all cards inside
+                    Array.from(grid.children).forEach(c => c.style.display = '');
+                });
+            }
+
+            function hideCategories() {
+                categorySections.forEach(({ grid, desc, title }) => {
+                    grid.style.display = 'none';
+                    if (desc) desc.style.display = 'none';
+                    if (title) title.style.display = 'none';
+                });
+            }
 
             searchInput.addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase();
+                const term = e.target.value.trim().toLowerCase();
 
-                // 1. Filter Cards
-                document.querySelectorAll('.card.interactive:not(#favorites-grid .card)').forEach(card => {
-                    const text = card.textContent.toLowerCase();
-                    // Toggle visibility based on match
-                    card.style.display = text.includes(term) ? 'flex' : 'none';
-                });
-
-                // 2. Hide Empty Categories
-                searchGridWrappers.forEach((grid, index) => {
-                    // Check if this grid has any visible cards left
-                    const hasVisible = Array.from(grid.children).some(card => card.style.display !== 'none');
-                    
-                    // Toggle the grid and its preceding H2 and P description
-                    grid.style.display = hasVisible ? 'grid' : 'none';
-                    
-                    // Find the header associated with this grid
-                    // (Assumes DOM order: H2 -> P -> DIV.grid-wrapper)
-                    const desc = grid.previousElementSibling; // The <p>
-                    const title = desc.previousElementSibling; // The <h2>
-                    
-                    if (desc && desc.tagName === 'P') desc.style.display = hasVisible ? 'block' : 'none';
-                    if (title && title.tagName === 'H2') title.style.display = hasVisible ? 'block' : 'none';
-                });
-                
-                // 3. Hide Favorites when searching (optional, reduces clutter)
-                const favContainer = document.getElementById('favorites-container');
-                if (term.length > 0) {
-                    favContainer.classList.remove('visible');
-                    favContainer.style.display = 'none';
-                } else {
-                    // Restore favorites if search is cleared
-                    if (localStorage.getItem('ll_toolbox_favorites')) {
-                        // Re-run your existing renderFavorites() logic here or toggle simple display
-                        const hasItems = document.getElementById('favorites-grid').children.length > 0;
-                        if(hasItems) {
-                            favContainer.style.display = 'block';
-                            setTimeout(() => favContainer.classList.add('visible'), 10);
-                        }
+                if (!term) {
+                    // Clear search — back to normal layout
+                    searchResultsGrid.style.display = 'none';
+                    searchResultsGrid.innerHTML = '';
+                    showCategories();
+                    // Restore favorites
+                    const hasItems = document.getElementById('favorites-grid').children.length > 0;
+                    if (hasItems) {
+                        favContainer.style.display = 'block';
+                        setTimeout(() => favContainer.classList.add('visible'), 10);
                     }
+                    return;
                 }
+
+                // Hide the categorized layout and favorites
+                hideCategories();
+                favContainer.classList.remove('visible');
+                favContainer.style.display = 'none';
+
+                // Build flat results from matching cards (cloned so originals stay in DOM)
+                searchResultsGrid.innerHTML = '';
+                const matches = allToolCards.filter(card =>
+                    card.textContent.toLowerCase().includes(term)
+                );
+
+                if (matches.length === 0) {
+                    searchResultsGrid.innerHTML = '<p style="opacity:0.5; grid-column: 1/-1;">No tools found for \"' + term + '\".</p>';
+                } else {
+                    matches.forEach(card => {
+                        const clone = card.cloneNode(true);
+                        // Re-attach fav button listener on clone
+                        const btn = clone.querySelector('.fav-btn');
+                        const id = clone.getAttribute('data-id');
+                        if (btn && id) {
+                            btn.addEventListener('click', (ev) => {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                toggleFavorite(id);
+                            });
+                        }
+                        searchResultsGrid.appendChild(clone);
+                    });
+                }
+
+                searchResultsGrid.style.display = 'grid';
             });
         });
     </script>
