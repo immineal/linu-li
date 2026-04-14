@@ -8,9 +8,9 @@
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
     <!-- Libraries for Rasterization and PDF Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="../../assets/vendor/pdf.min.js"></script>
+    <script src="../../assets/vendor/jspdf.umd.min.js"></script>
+    <script src="../../assets/vendor/FileSaver.min.js"></script>
 
     <style>
         .preview-container {
@@ -235,7 +235,7 @@
     
     <script>
         // PDF.js Worker Setup
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
         const { jsPDF } = window.jspdf;
 
         // Elements

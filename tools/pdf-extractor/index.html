@@ -10,11 +10,11 @@
     
     <!-- External Libraries -->
     <!-- JSZip for bundling images -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="../../assets/vendor/jszip.min.js"></script>
     <!-- FileSaver for saving the zip -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="../../assets/vendor/FileSaver.min.js"></script>
     <!-- PDF.js for parsing -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="../../assets/vendor/pdf.min.js"></script>
     
     <style>
         /* Minimal custom styling for the image grid, reusing existing variables */
@@ -126,7 +126,7 @@
     <!-- TOOL LOGIC -->
     <script>
         // Configure PDF.js worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
 
         // DOM Elements
         const dropZone = document.getElementById('dropZone');

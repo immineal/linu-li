@@ -1,32 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy / Datenschutz | Linus Linhof</title>
+    <title>Datenschutzerklärung / Privacy Policy | linu.li</title>
     <link rel="stylesheet" href="./assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
     <meta name="robots" content="noindex, follow">
     <style>
-        .lang-switch {
-            float: right;
-            font-size: 0.9rem;
-            cursor: pointer;
-            color: var(--accent);
-            text-decoration: underline;
-            margin-bottom: 1rem;
-        }
-        h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2.5rem; color: var(--ink); }
-        h3 { margin-top: 1.5rem; font-size: 1.1rem; color: var(--accent-secondary); }
-        .highlight-box {
-            background: rgba(196, 77, 60, 0.1);
-            border: 1px solid var(--accent);
-            padding: 1.5rem;
+        .lang-switch { float: right; font-size: 0.9rem; cursor: pointer; color: var(--accent); text-decoration: underline; }
+        h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2.5rem; }
+        h3 { margin-top: 1.5rem; font-size: 1.05rem; }
+        .note-box {
+            background: rgba(107, 144, 128, 0.1);
+            border: 1px solid rgba(107, 144, 128, 0.4);
             border-radius: 4px;
-            margin: 1.5rem 0;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+            font-size: 0.95rem;
+        }
+        .warn-box {
+            background: rgba(196, 130, 60, 0.1);
+            border: 1px solid rgba(196, 130, 60, 0.4);
+            border-radius: 4px;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+            font-size: 0.95rem;
+        }
+        .objection-box {
+            background: rgba(196, 77, 60, 0.08);
+            border: 1px solid rgba(196, 77, 60, 0.35);
+            border-radius: 4px;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
             font-size: 0.9rem;
         }
-        .highlight-box strong { color: var(--accent); }
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+        th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+        th { opacity: 0.65; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -34,91 +45,194 @@
         <div class="container">
             <div class="lang-switch" onclick="toggleLang()">Switch Language (DE/EN)</div>
 
-            <!-- GERMAN CONTENT -->
-            <div id="lang-de" style="display: none;">
+            <!-- ==================== GERMAN ==================== -->
+            <div id="lang-de">
                 <h1>Datenschutzerklärung</h1>
-                
-                <h2>1. Datenschutz auf einen Blick</h2>
-                <h3>Allgemeine Hinweise</h3>
-                <p>Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren personenbezogenen Daten passiert, wenn Sie diese Website besuchen. <strong>Besonderheit dieser Toolbox:</strong> Die Verarbeitung Ihrer Dateien (PDFs, Bilder) erfolgt durch WebAssembly und JavaScript ausschließlich lokal im Arbeitsspeicher Ihres Endgeräts ("Client-Side Processing"). Es erfolgt kein Upload dieser Dateien auf unsere Server.</p>
+                <p style="opacity:0.6; font-size:0.9rem;">Stand: April 2026</p>
 
-                <h3>Datenerfassung auf dieser Website</h3>
+                <div class="note-box">
+                    <strong>Kurzzusammenfassung:</strong> Die Werkzeuge auf linu.li verarbeiten deine Dateien und Eingaben ausschließlich lokal im Browser — es werden keine Inhalte an einen Server übertragen. Bei bestimmten Werkzeugen werden Drittanbieter-Anfragen ausgelöst, die unten vollständig aufgeführt sind.
+                </div>
+
+                <h2>1. Verantwortliche Stelle</h2>
+                <p>
+                    Linus Linhof<br>
+                    Elisenhöhe 47, 55411 Bingen am Rhein<br>
+                    E-Mail: <a href="mailto:immineal@immineal.com">immineal@immineal.com</a>
+                </p>
+
+                <h2>2. Hosting und Server-Logs</h2>
+                <p>Diese Website wird bei <strong>All-Inkl.com</strong> (ALL-INKL.COM – Neue Medien Münnich, Hauptstraße 68, 02742 Friedersdorf) gehostet. Beim Aufruf der Website überträgt dein Browser automatisch folgende Daten an den Webserver:</p>
                 <ul>
-                    <li><strong>Wer ist verantwortlich?</strong> Die Datenverarbeitung erfolgt durch den Websitebetreiber (siehe Impressum).</li>
-                    <li><strong>Wie werden Daten erfasst?</strong> Daten werden automatisch beim Besuch der Website durch unsere IT-Systeme erfasst (z.B. technische Daten wie Browserversion, IP-Adresse). Andere Daten teilen Sie uns mit (z.B. Kontaktformular).</li>
-                    <li><strong>Wofür nutzen wir die Daten?</strong> Zur fehlerfreien Bereitstellung der Website (Server-Logs) und zur Beantwortung Ihrer Anfragen.</li>
+                    <li>IP-Adresse (gekürzt oder vollständig, je nach Servereinstellung)</li>
+                    <li>Datum und Uhrzeit der Anfrage</li>
+                    <li>Aufgerufene URL</li>
+                    <li>HTTP-Statuscode</li>
+                    <li>Browsertyp und -version, Betriebssystem</li>
+                    <li>Referrer-URL (die Seite, von der du gekommen bist)</li>
+                </ul>
+                <p>Diese Daten werden in Server-Log-Dateien gespeichert, sind technisch für den Betrieb notwendig und werden nicht mit anderen Daten zusammengeführt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an stabilem und sicherem Betrieb). Die Datenschutzerklärung von All-Inkl ist abrufbar unter <a href="https://all-inkl.com/datenschutzinformationen/" target="_blank" rel="noopener">all-inkl.com/datenschutzinformationen</a>.</p>
+
+                <h2>3. Lokale Verarbeitung (Client-Side Processing)</h2>
+                <p>Die Kernfunktionen dieser Toolbox — PDF-Bearbeitung, Bildkomprimierung, Textverarbeitung, Hash-Berechnung usw. — laufen vollständig im Arbeitsspeicher deines Browsers. Dateien, die du auswählst oder ziehst, verlassen dein Gerät zu keinem Zeitpunkt. Es findet keine Übertragung an unseren Server statt.</p>
+
+                <h2>4. Browser-Speicher (LocalStorage)</h2>
+                <p>Die Seite speichert kleine Datenmengen im <code>localStorage</code> deines Browsers:</p>
+                <table>
+                    <tr><th>Schlüssel</th><th>Inhalt</th><th>Zweck</th></tr>
+                    <tr><td><code>ll_toolbox_favorites</code></td><td>Liste von Tool-IDs</td><td>Angepinnte Favoriten</td></tr>
+                    <tr><td><code>darkMode</code></td><td>true / false</td><td>Farbschema-Einstellung</td></tr>
+                </table>
+                <p>Diese Daten verlassen dein Gerät nicht und werden nicht an den Server übertragen. Rechtsgrundlage: § 25 Abs. 2 Nr. 2 TDDDG (technisch erforderlich für die angeforderte Funktion). Du kannst den Speicher jederzeit über die Entwicklertools deines Browsers löschen.</p>
+
+                <h2>5. Drittanbieter-Anfragen</h2>
+                <p>Alle Bibliotheken (PDF.js, pdf-lib, Leaflet, Cropper.js usw.) sind <strong>lokal auf unserem Server gehostet</strong> und werden nicht von externen CDNs nachgeladen. Folgende Ausnahmen bestehen:</p>
+
+                <h3>5a. OpenStreetMap (nur: EXIF Metadata Remover)</h3>
+                <p>Das Werkzeug „EXIF Metadata Remover" zeigt bei Bildern mit GPS-Koordinaten eine Karte an. Kartenbilder (Kacheln) werden dabei von den Servern der OpenStreetMap Foundation geladen:</p>
+                <ul>
+                    <li>Server: <code>*.tile.openstreetmap.org</code></li>
+                    <li>Übertragene Daten: IP-Adresse, angefragte Kachel-Koordinaten (Ausschnitt der Karte, nicht die exakten GPS-Koordinaten des Bildes)</li>
+                    <li>Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Kartendarstellung)</li>
+                    <li>Datenschutzinformation OSM: <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener">osmfoundation.org/wiki/Privacy_Policy</a></li>
+                </ul>
+                <p>Die GPS-Koordinaten aus dem Bild selbst werden <strong>nicht</strong> an OSM übertragen. Kacheln werden nur geladen, wenn du aktiv ein Bild mit GPS-Daten analysierst. Du kannst die Kartenanzeige in der Benutzeroberfläche ausblenden.</p>
+
+                <div class="warn-box">
+                    Die Kartenanzeige im EXIF-Werkzeug löst Anfragen an OpenStreetMap-Server aus. Dabei wird deine IP-Adresse übertragen. Wenn du das vermeiden möchtest, wähle keine Bilder mit GPS-Daten, oder deaktiviere die Karte manuell.
+                </div>
+
+                <h3>5b. esm.sh / jsquash (nur: Image Compressor)</h3>
+                <p>Der „Image Compressor" lädt WebAssembly-Codec-Module (<code>@jsquash/webp</code>, <code>@jsquash/avif</code>, <code>@jsquash/jpeg</code>, <code>@jsquash/png</code>) über den Dienst <strong>esm.sh</strong> nach. Dies ist für die Komprimierungsfunktion technisch erforderlich, da diese Module ein Build-System benötigen und nicht als einfache Dateien gehostet werden können.</p>
+                <ul>
+                    <li>Server: <code>esm.sh</code> (Betreiber: Deno Land Inc.)</li>
+                    <li>Übertragene Daten: IP-Adresse, angefragte Modul-URL</li>
+                    <li>Zeitpunkt: nur beim ersten Aufruf des Image Compressor, dann gecacht</li>
+                    <li>Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (technisch notwendig für die Funktion)</li>
+                </ul>
+                <p>Die zu komprimierenden Bilddateien verlassen dein Gerät nicht — nur die Codec-Bibliothek selbst wird geladen.</p>
+
+                <h3>5c. Formspree (nur: Kontaktformular)</h3>
+                <p>Das Kontaktformular auf der Startseite verwendet den Dienst <strong>Formspree</strong> (Formspree Inc., San Francisco, USA). Wenn du das Formular absendest, werden deine eingegebenen Daten (E-Mail-Adresse, Nachricht) an Formspree übertragen und von dort an meine E-Mail-Adresse weitergeleitet.</p>
+                <ul>
+                    <li>Verarbeitete Daten: E-Mail-Adresse, Nachrichtentext, IP-Adresse, Zeitstempel</li>
+                    <li>Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Bearbeitung deiner Anfrage)</li>
+                    <li>Datenschutzerklärung Formspree: <a href="https://formspree.io/legal/privacy-policy" target="_blank" rel="noopener">formspree.io/legal/privacy-policy</a></li>
                 </ul>
 
-                <h2>2. Hosting</h2>
-                <p>Wir hosten unsere Website bei <strong>All-Inkl.com</strong> (ALL-INKL.COM - Neue Medien Münnich, Hauptstraße 68, 02742 Friedersdorf).<br>
-                Der Provider erhebt automatisch Informationen in sogenannten Server-Log-Dateien (IP-Adresse, Browser, Referrer URL, Zeitstempel), die Ihr Browser automatisch übermittelt. Dies erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der sicheren und stabilen Bereitstellung der Website).</p>
-                
-                <h2>3. Allgemeine Hinweise und Pflichtinformationen</h2>
-                <h3>Rechte der betroffenen Person</h3>
-                <p>Sie haben jederzeit das Recht auf unentgeltliche Auskunft über Ihre gespeicherten personenbezogenen Daten, deren Herkunft und Empfänger und den Zweck der Datenverarbeitung sowie ein Recht auf Berichtigung, Sperrung oder Löschung dieser Daten.</p>
+                <h2>6. Deine Rechte</h2>
+                <p>Du hast gegenüber dem Verantwortlichen folgende Rechte hinsichtlich der dich betreffenden personenbezogenen Daten:</p>
+                <ul>
+                    <li>Recht auf Auskunft (Art. 15 DSGVO)</li>
+                    <li>Recht auf Berichtigung (Art. 16 DSGVO)</li>
+                    <li>Recht auf Löschung (Art. 17 DSGVO)</li>
+                    <li>Recht auf Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
+                    <li>Recht auf Datenübertragbarkeit (Art. 20 DSGVO)</li>
+                    <li>Beschwerderecht bei der zuständigen Aufsichtsbehörde</li>
+                </ul>
+                <p>Zuständige Aufsichtsbehörde für Rheinland-Pfalz: <a href="https://www.datenschutz.rlp.de" target="_blank" rel="noopener">Landesbeauftragter für den Datenschutz und die Informationsfreiheit Rheinland-Pfalz</a>.</p>
 
-                <div class="highlight-box">
-                    <strong>WIDERSPRUCHSRECHT (ART. 21 DSGVO)</strong><br>
-                    WENN DIE DATENVERARBEITUNG AUF GRUNDLAGE VON ART. 6 ABS. 1 LIT. E ODER F DSGVO ERFOLGT (BERECHTIGTES INTERESSE), HABEN SIE JEDERZEIT DAS RECHT, GEGEN DIE VERARBEITUNG IHRER PERSONENBEZOGENEN DATEN WIDERSPRUCH EINZULEGEN.
+                <div class="objection-box">
+                    <strong>Widerspruchsrecht (Art. 21 DSGVO):</strong> Soweit die Verarbeitung auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO erfolgt (berechtigtes Interesse), hast du das Recht, jederzeit Widerspruch einzulegen. Wende dich dafür an: <a href="mailto:immineal@immineal.com">immineal@immineal.com</a>
                 </div>
 
-                <h3>Beschwerderecht</h3>
-                <p>Im Falle von Verstößen gegen die DSGVO steht Ihnen ein Beschwerderecht bei einer Aufsichtsbehörde zu.</p>
-
-                <h2>4. Datenerfassung und Tools</h2>
-                
-                <h3>Lokale Verarbeitung (TDDDG/DSGVO)</h3>
-                <p>Die Kernfunktionen dieser Website (Konverter, Generatoren) laufen lokal in Ihrem Browser. Es findet keine Übermittlung der verarbeiteten Inhalte an den Server statt. Da keine Speicherung auf dem Server erfolgt, entfällt hierfür eine weitergehende datenschutzrechtliche Einwilligung.</p>
-
-                <h3>LocalStorage</h3>
-                <p>Wir nutzen den lokalen Speicher Ihres Browsers (LocalStorage), um Einstellungen (z.B. Dark Mode, Favoriten) zu speichern. Diese Daten verlassen Ihr Gerät nicht. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG (unbedingt erforderlich).</p>
-
-                <h3>Google Fonts (Lokales Hosting)</h3>
-                <p>Diese Seite nutzt zur einheitlichen Darstellung von Schriftarten so genannte Google Fonts. Diese sind lokal auf unserem Server installiert. Eine Verbindung zu Servern von Google findet dabei nicht statt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO.</p>
-
-                <h3>Content Delivery Networks (CDN)</h3>
-                <p>Wir nutzen externe CDNs (cdnjs.com, unpkg.com), um Programmbibliotheken (z.B. PDF-Lib, FFmpeg) bereitzustellen. Dies stellt ein berechtigtes Interesse dar (Art. 6 Abs. 1 lit. f DSGVO), um die Ladezeiten zu optimieren und die Funktionalität sicherzustellen.</p>
-
-                <h3>Kontaktformular (Formspree)</h3>
-                <p>Wenn Sie uns per Kontaktformular Anfragen zukommen lassen, werden Ihre Angaben zwecks Bearbeitung über den Dienstleister Formspree Inc. verarbeitet. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung/vorvertragliche Maßnahmen).</p>
+                <h2>7. Keine Analyse, kein Tracking</h2>
+                <p>Diese Website verwendet keine Analyse-Dienste (kein Google Analytics, kein Matomo, keine Heatmaps), keine Werbe-Cookies und keine Social-Media-Plugins, die ohne dein Zutun Daten übertragen.</p>
             </div>
 
-            <!-- ENGLISH CONTENT -->
+            <!-- ==================== ENGLISH ==================== -->
             <div id="lang-en" style="display: none;">
                 <h1>Privacy Policy</h1>
-                
-                <h2>1. Privacy at a Glance</h2>
-                <h3>General Information</h3>
-                <p>The following notes provide a simple overview of what happens to your personal data when you visit this website. <strong>Special Feature:</strong> All file processing (PDFs, Images) occurs exclusively locally in your device's RAM ("Client-Side Processing") via WebAssembly/JS. No files are uploaded to our servers.</p>
+                <p style="opacity:0.6; font-size:0.9rem;">Last updated: April 2026</p>
 
-                <h2>2. Hosting</h2>
-                <p>We host our website with <strong>All-Inkl.com</strong> (Germany). The provider automatically collects and stores information in so-called server log files (IP address, browser, referrer, timestamp). The legal basis is Art. 6 (1) (f) GDPR (legitimate interest in secure and stable website operation).</p>
-                
-                <h2>3. General Information & Rights</h2>
-                <h3>Rights of the Data Subject</h3>
-                <p>You have the right to request information about your stored personal data, its origin, recipients, and the purpose of data processing at any time. You also have the right to request the correction or deletion of this data.</p>
-
-                <div class="highlight-box">
-                    <strong>RIGHT TO OBJECT (ART. 21 GDPR)</strong><br>
-                    IF DATA PROCESSING IS BASED ON ART. 6 (1) (E) OR (F) GDPR (LEGITIMATE INTEREST), YOU HAVE THE RIGHT TO OBJECT TO THE PROCESSING OF YOUR PERSONAL DATA AT ANY TIME.
+                <div class="note-box">
+                    <strong>Short version:</strong> The tools on linu.li process your files and inputs entirely in your browser — nothing is sent to a server. Certain tools trigger third-party network requests, which are fully documented below.
                 </div>
 
-                <h2>4. Data Collection & Tools</h2>
-                
-                <h3>Local Processing</h3>
-                <p>The core tools function locally in your browser. Processed files are not transmitted to the server.</p>
+                <h2>1. Controller</h2>
+                <p>
+                    Linus Linhof<br>
+                    Elisenhöhe 47, 55411 Bingen am Rhein, Germany<br>
+                    Email: <a href="mailto:immineal@immineal.com">immineal@immineal.com</a>
+                </p>
 
-                <h3>LocalStorage</h3>
-                <p>We use your browser's LocalStorage to save preferences (Dark Mode, Favorites). This data remains on your device. Legal basis: § 25 (2) No. 2 TDDDG (strictly necessary).</p>
+                <h2>2. Hosting and Server Logs</h2>
+                <p>This website is hosted by <strong>All-Inkl.com</strong> (ALL-INKL.COM – Neue Medien Münnich, Hauptstraße 68, 02742 Friedersdorf, Germany). When you visit the site, your browser automatically sends the following data to the web server:</p>
+                <ul>
+                    <li>IP address</li>
+                    <li>Date and time of the request</li>
+                    <li>Requested URL</li>
+                    <li>HTTP status code</li>
+                    <li>Browser type and version, operating system</li>
+                    <li>Referrer URL</li>
+                </ul>
+                <p>This data is stored in server log files, is technically necessary for operation, and is not combined with other data sources. Legal basis: Art. 6 (1) (f) GDPR (legitimate interest in stable and secure operation). All-Inkl's privacy policy: <a href="https://all-inkl.com/datenschutzinformationen/" target="_blank" rel="noopener">all-inkl.com/datenschutzinformationen</a>.</p>
 
-                <h3>Google Fonts (Local Hosting)</h3>
-                <p>This site uses Google Fonts, which are installed locally on our server. No connection to Google servers is established. Legal basis: Art. 6 (1) (f) GDPR.</p>
+                <h2>3. Local Processing (Client-Side)</h2>
+                <p>The core tools — PDF editing, image compression, text processing, hash generation, etc. — run entirely in your browser's memory. Files you select or drag in never leave your device. Nothing is transmitted to our server.</p>
 
-                <h3>Content Delivery Networks (CDN)</h3>
-                <p>We use CDNs (cdnjs.com, unpkg.com) to load libraries. This is based on legitimate interest (Art. 6 (1) (f) GDPR) to ensure fast loading speeds and functionality.</p>
+                <h2>4. Browser Storage (LocalStorage)</h2>
+                <p>The site stores small amounts of data in your browser's <code>localStorage</code>:</p>
+                <table>
+                    <tr><th>Key</th><th>Content</th><th>Purpose</th></tr>
+                    <tr><td><code>ll_toolbox_favorites</code></td><td>List of tool IDs</td><td>Pinned favorites</td></tr>
+                    <tr><td><code>darkMode</code></td><td>true / false</td><td>Color scheme preference</td></tr>
+                </table>
+                <p>This data stays on your device and is never sent to a server. Legal basis: § 25 (2) No. 2 TDDDG (technically required for the requested functionality). You can clear this data at any time through your browser's developer tools.</p>
 
-                <h3>Contact Form (Formspree)</h3>
-                <p>Inquiries via the contact form are processed via Formspree Inc. Legal basis: Art. 6 (1) (b) GDPR.</p>
+                <h2>5. Third-Party Requests</h2>
+                <p>All libraries (PDF.js, pdf-lib, Leaflet, Cropper.js, etc.) are <strong>self-hosted on our server</strong> and are not loaded from external CDNs. The following exceptions apply:</p>
+
+                <h3>5a. OpenStreetMap (only: EXIF Metadata Remover)</h3>
+                <p>The EXIF Metadata Remover tool displays a map when an image contains GPS coordinates. Map tiles are loaded from the OpenStreetMap Foundation's servers:</p>
+                <ul>
+                    <li>Server: <code>*.tile.openstreetmap.org</code></li>
+                    <li>Data transmitted: IP address, requested tile coordinates (a map region, not the exact GPS coordinates from the image)</li>
+                    <li>Legal basis: Art. 6 (1) (f) GDPR (legitimate interest in providing the map display)</li>
+                    <li>OSM privacy policy: <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener">osmfoundation.org/wiki/Privacy_Policy</a></li>
+                </ul>
+                <p>The GPS coordinates from the image are <strong>not</strong> transmitted to OSM. Tiles are only fetched when you actively inspect an image that contains GPS data. The map can be hidden from the UI.</p>
+
+                <div class="warn-box">
+                    The map display in the EXIF tool triggers requests to OpenStreetMap servers, transmitting your IP address. To avoid this, don't analyse images with GPS data, or dismiss the map manually.
+                </div>
+
+                <h3>5b. esm.sh / jsquash (only: Image Compressor)</h3>
+                <p>The Image Compressor loads WebAssembly codec modules (<code>@jsquash/webp</code>, <code>@jsquash/avif</code>, <code>@jsquash/jpeg</code>, <code>@jsquash/png</code>) via the <strong>esm.sh</strong> service. This is technically required because these modules depend on a build system and cannot be served as plain files.</p>
+                <ul>
+                    <li>Server: <code>esm.sh</code> (operated by Deno Land Inc.)</li>
+                    <li>Data transmitted: IP address, requested module URL</li>
+                    <li>Timing: only on first use of the Image Compressor, then browser-cached</li>
+                    <li>Legal basis: Art. 6 (1) (f) GDPR (technically necessary for the tool's function)</li>
+                </ul>
+                <p>Your image files are not transmitted — only the codec library itself is fetched.</p>
+
+                <h3>5c. Formspree (only: Contact Form)</h3>
+                <p>The contact form on the homepage uses <strong>Formspree</strong> (Formspree Inc., San Francisco, USA). When you submit the form, your input (email address, message) is sent to Formspree and forwarded to my email address.</p>
+                <ul>
+                    <li>Data processed: email address, message text, IP address, timestamp</li>
+                    <li>Legal basis: Art. 6 (1) (b) GDPR (processing your request)</li>
+                    <li>Formspree privacy policy: <a href="https://formspree.io/legal/privacy-policy" target="_blank" rel="noopener">formspree.io/legal/privacy-policy</a></li>
+                </ul>
+
+                <h2>6. Your Rights</h2>
+                <p>You have the following rights regarding your personal data:</p>
+                <ul>
+                    <li>Right of access (Art. 15 GDPR)</li>
+                    <li>Right to rectification (Art. 16 GDPR)</li>
+                    <li>Right to erasure (Art. 17 GDPR)</li>
+                    <li>Right to restriction of processing (Art. 18 GDPR)</li>
+                    <li>Right to data portability (Art. 20 GDPR)</li>
+                    <li>Right to lodge a complaint with the supervisory authority</li>
+                </ul>
+                <p>Competent supervisory authority: <a href="https://www.datenschutz.rlp.de" target="_blank" rel="noopener">Landesbeauftragter für den Datenschutz und die Informationsfreiheit Rheinland-Pfalz</a>.</p>
+
+                <div class="objection-box">
+                    <strong>Right to object (Art. 21 GDPR):</strong> Where processing is based on Art. 6 (1) (f) GDPR (legitimate interest), you have the right to object at any time. Contact: <a href="mailto:immineal@immineal.com">immineal@immineal.com</a>
+                </div>
+
+                <h2>7. No Analytics, No Tracking</h2>
+                <p>This website uses no analytics services (no Google Analytics, no Matomo, no heatmaps), no advertising cookies, and no social media plugins that transmit data without your action.</p>
             </div>
         </div>
     </main>
@@ -128,24 +242,19 @@
         function toggleLang() {
             const de = document.getElementById('lang-de');
             const en = document.getElementById('lang-en');
-            
             if (de.style.display === 'none') {
-                de.style.display = 'block';
-                en.style.display = 'none';
+                de.style.display = 'block'; en.style.display = 'none';
                 document.documentElement.lang = 'de';
             } else {
-                de.style.display = 'none';
-                en.style.display = 'block';
+                de.style.display = 'none'; en.style.display = 'block';
                 document.documentElement.lang = 'en';
             }
         }
-
         document.addEventListener('DOMContentLoaded', () => {
-            const userLang = navigator.language || navigator.userLanguage;
-            if (userLang.startsWith('de')) {
-                document.getElementById('lang-de').style.display = 'block';
+            if ((navigator.language || '').startsWith('de')) {
                 document.documentElement.lang = 'de';
             } else {
+                document.getElementById('lang-de').style.display = 'none';
                 document.getElementById('lang-en').style.display = 'block';
                 document.documentElement.lang = 'en';
             }

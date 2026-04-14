@@ -8,9 +8,9 @@
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
     <!-- External Libraries -->
-    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="../../assets/vendor/pdf-lib.min.js"></script>
+    <script src="../../assets/vendor/FileSaver.min.js"></script>
+    <script src="../../assets/vendor/pdf.min.js"></script>
     
     <style>
         /* Drag & Drop Reordering Styles */
@@ -89,7 +89,7 @@
     <!-- TOOL LOGIC -->
     <script>
         // Configure PDF.js worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
 
         // State
         let storedFiles = []; // Array to hold File objects
