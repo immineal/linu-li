@@ -65,13 +65,24 @@
 
                 <!-- SETTINGS -->
                 <div style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
-                    
-                    <label for="lengthRange">Length: <span id="lengthValue" style="color: var(--accent);">16</span></label>
-                    <input type="range" id="lengthRange" min="6" max="64" value="16">
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; justify-content: center;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="mode" value="characters" checked id="modeChars">
+                            Random Characters
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="mode" value="passphrase" id="modePassphrase">
+                            Memorable Passphrase
+                        </label>
+                    </div>
 
-                    <div class="split-view" style="margin-top: 1.5rem;">
-                        <div>
-                            <label class="toggle-wrapper">
+                    <div id="settingsChars">
+                        <label for="lengthRange">Length: <span id="lengthValue" style="color: var(--accent);">16</span></label>
+                        <input type="range" id="lengthRange" min="6" max="64" value="16">
+
+                        <div class="split-view" style="margin-top: 1.5rem;">
+                            <div>
+                                <label class="toggle-wrapper">
                                 <input type="checkbox" id="chkUppercase" class="toggle-checkbox" checked>
                                 <div class="toggle-switch"></div>
                                 <span>Uppercase (A-Z)</span>
@@ -87,17 +98,33 @@
                                 <span>Numbers (0-9)</span>
                             </label>
                         </div>
-                        <div>
-                            <label class="toggle-wrapper">
-                                <input type="checkbox" id="chkSymbols" class="toggle-checkbox" checked>
-                                <div class="toggle-switch"></div>
-                                <span>Symbols (!@#$)</span>
-                            </label>
-                            <label class="toggle-wrapper">
-                                <input type="checkbox" id="chkAmbiguous" class="toggle-checkbox">
-                                <div class="toggle-switch"></div>
-                                <span>No Ambiguous (l, 1, O, 0)</span>
-                            </label>
+                            <div>
+                                <label class="toggle-wrapper">
+                                    <input type="checkbox" id="chkSymbols" class="toggle-checkbox" checked>
+                                    <div class="toggle-switch"></div>
+                                    <span>Symbols (!@#$)</span>
+                                </label>
+                                <label class="toggle-wrapper">
+                                    <input type="checkbox" id="chkAmbiguous" class="toggle-checkbox">
+                                    <div class="toggle-switch"></div>
+                                    <span>No Ambiguous (l, 1, O, 0)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="settingsPassphrase" style="display: none;">
+                        <label for="wordsRange">Words: <span id="wordsValue" style="color: var(--accent);">4</span></label>
+                        <input type="range" id="wordsRange" min="3" max="12" value="4">
+
+                        <div style="margin-top: 1.5rem;">
+                            <label for="separatorSelect" style="display: block; margin-bottom: 0.5rem;">Separator:</label>
+                            <select id="separatorSelect" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-family: var(--font-body); background: var(--input-bg); color: var(--input-text);">
+                                <option value="-">Hyphen (-)</option>
+                                <option value="_">Underscore (_)</option>
+                                <option value=".">Period (.)</option>
+                                <option value=" ">Space</option>
+                            </select>
                         </div>
                     </div>
 
@@ -108,12 +135,20 @@
     </main>
     
     <script src="../../assets/js/layout.js"></script>
+    <script src="words.js"></script>
     <script>
         // Elements
         const output = document.getElementById('passwordOutput');
         const strengthMeter = document.getElementById('strengthMeter');
         const lengthRange = document.getElementById('lengthRange');
         const lengthValue = document.getElementById('lengthValue');
+        const wordsRange = document.getElementById('wordsRange');
+        const wordsValue = document.getElementById('wordsValue');
+        const separatorSelect = document.getElementById('separatorSelect');
+        const modeChars = document.getElementById('modeChars');
+        const modePassphrase = document.getElementById('modePassphrase');
+        const settingsChars = document.getElementById('settingsChars');
+        const settingsPassphrase = document.getElementById('settingsPassphrase');
         const generateBtn = document.getElementById('generateBtn');
         const copyBtn = document.getElementById('copyBtn');
 
@@ -131,49 +166,119 @@
         const charsSym = "!@#$%^&*()_+~`|}{[]:;?><,./-=";
         const ambiguous = "Il1O0";
 
+        function getSecureRandomWord(wordlist) {
+            const maxValid = 4294967295 - (4294967295 % wordlist.length);
+            const array = new Uint32Array(1);
+            let rand;
+            do {
+                window.crypto.getRandomValues(array);
+                rand = array[0];
+            } while (rand >= maxValid);
+            return wordlist[rand % wordlist.length];
+        }
+
         function generate() {
-            const length = parseInt(lengthRange.value);
-            let charset = "";
-            
-            if (chkUpper.checked) charset += charsUpper;
-            if (chkLower.checked) charset += charsLower;
-            if (chkNum.checked) charset += charsNum;
-            if (chkSym.checked) charset += charsSym;
-
-            // Remove ambiguous if requested
-            if (chkAmbiguous.checked) {
-                for (let char of ambiguous) {
-                    charset = charset.split(char).join('');
-                }
-            }
-
-            if (charset === "") {
-                output.textContent = "Please select at least one option.";
-                strengthMeter.className = "strength-fill";
+            if (!window.crypto || !window.crypto.getRandomValues) {
+                output.textContent = "Cryptographic randomness unavailable.";
+                strengthMeter.className = "strength-fill weak";
                 return;
             }
 
+            const isPassphrase = modePassphrase.checked;
             let password = "";
-            // Crypto secure random
-            const array = new Uint32Array(length);
-            window.crypto.getRandomValues(array);
-            
-            for (let i = 0; i < length; i++) {
-                password += charset[array[i] % charset.length];
+
+            if (isPassphrase) {
+                let wordCount = parseInt(wordsRange.value, 10);
+                if (isNaN(wordCount) || wordCount < 1) {
+                    output.textContent = "Word count must be at least 1.";
+                    strengthMeter.className = "strength-fill";
+                    return;
+                }
+                const separator = separatorSelect.value;
+                const words = [];
+                try {
+                    for (let i = 0; i < wordCount; i++) {
+                        words.push(getSecureRandomWord(bip39Words));
+                    }
+                    password = words.join(separator);
+                } catch (err) {
+                    output.textContent = "Error generating passphrase.";
+                    strengthMeter.className = "strength-fill weak";
+                    return;
+                }
+            } else {
+                let length = parseInt(lengthRange.value, 10);
+
+                if (isNaN(length) || length <= 0) {
+                    output.textContent = "Length must be greater than 0.";
+                    strengthMeter.className = "strength-fill";
+                    return;
+                }
+                if (length > 2048) {
+                    length = 2048; // Cap length to avoid browser freezing and quota issues
+                }
+
+                let charset = "";
+
+                if (chkUpper.checked) charset += charsUpper;
+                if (chkLower.checked) charset += charsLower;
+                if (chkNum.checked) charset += charsNum;
+                if (chkSym.checked) charset += charsSym;
+
+                // Remove ambiguous if requested
+                if (chkAmbiguous.checked) {
+                    for (let char of ambiguous) {
+                        charset = charset.split(char).join('');
+                    }
+                }
+
+                if (charset === "") {
+                    output.textContent = "Please select at least one option.";
+                    strengthMeter.className = "strength-fill";
+                    return;
+                }
+
+                try {
+                    const maxValid = 4294967295 - (4294967295 % charset.length); // 2^32 - 1
+                    const array = new Uint32Array(1);
+                    for (let i = 0; i < length; i++) {
+                        let rand;
+                        do {
+                            window.crypto.getRandomValues(array);
+                            rand = array[0];
+                        } while (rand >= maxValid);
+                        password += charset[rand % charset.length];
+                    }
+                } catch (err) {
+                    output.textContent = "Error generating password.";
+                    strengthMeter.className = "strength-fill weak";
+                    return;
+                }
             }
 
             output.textContent = password;
-            calcStrength(password);
+            calcStrength(password, isPassphrase);
         }
 
-        function calcStrength(pw) {
-            // Simple heuristic
+        function calcStrength(pw, isPassphrase) {
             let score = 0;
-            if (pw.length > 8) score++;
-            if (pw.length > 12) score++;
-            if (/[A-Z]/.test(pw)) score++;
-            if (/[0-9]/.test(pw)) score++;
-            if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+            if (isPassphrase) {
+                // Passphrase strength based on bits of entropy (each word is 11 bits in BIP39)
+                const wordCount = parseInt(wordsRange.value, 10);
+                const entropy = wordCount * 11;
+
+                if (entropy >= 44) score += 3; // Strong (e.g. 4+ words)
+                else if (entropy >= 33) score += 2; // Medium (e.g. 3 words)
+                else score += 1; // Weak
+            } else {
+                // Simple heuristic for characters
+                if (pw.length > 8) score++;
+                if (pw.length > 12) score++;
+                if (/[A-Z]/.test(pw)) score++;
+                if (/[0-9]/.test(pw)) score++;
+                if (/[^A-Za-z0-9]/.test(pw)) score++;
+            }
 
             strengthMeter.className = "strength-fill";
             
@@ -183,10 +288,30 @@
         }
 
         // Event Listeners
+        [modeChars, modePassphrase].forEach(el => {
+            el.addEventListener('change', () => {
+                if (modeChars.checked) {
+                    settingsChars.style.display = 'block';
+                    settingsPassphrase.style.display = 'none';
+                } else {
+                    settingsChars.style.display = 'none';
+                    settingsPassphrase.style.display = 'block';
+                }
+                generate();
+            });
+        });
+
         lengthRange.addEventListener('input', (e) => {
             lengthValue.textContent = e.target.value;
             generate();
         });
+
+        wordsRange.addEventListener('input', (e) => {
+            wordsValue.textContent = e.target.value;
+            generate();
+        });
+
+        separatorSelect.addEventListener('change', generate);
 
         [chkUpper, chkLower, chkNum, chkSym, chkAmbiguous].forEach(el => {
             el.addEventListener('change', generate);
@@ -195,8 +320,13 @@
         generateBtn.addEventListener('click', generate);
         
         copyBtn.addEventListener('click', () => {
-            if (output.textContent && !output.textContent.includes('Please select')) {
-                copyToClipboard(output.textContent);
+            const text = output.textContent;
+            if (text &&
+                !text.includes('Please select') &&
+                text !== 'Length must be greater than 0.' &&
+                text !== 'Error generating password.' &&
+                text !== 'Generate to start...') {
+                copyToClipboard(text);
             }
         });
 

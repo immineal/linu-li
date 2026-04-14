@@ -13,6 +13,37 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
     <style>
+        /* Page Grid */
+        .page-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+        .page-grid-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .page-grid-item:hover {
+            border-color: var(--accent);
+        }
+        .page-grid-item.selected {
+            background-color: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
         /* Badge for page count */
         .page-count-badge {
             display: inline-block;
@@ -79,6 +110,7 @@
                         Leave empty to extract all pages. <span id="rangeHint"></span>
                     </p>
                     <input type="text" id="pageRange" placeholder="e.g. 1-5, 8">
+                    <div class="page-grid" id="pageGrid"></div>
                 </div>
 
                 <!-- SECTION: CONTROLS -->
@@ -124,6 +156,7 @@
         const optionsPanel = document.getElementById('optionsPanel');
         const pageRangeInput = document.getElementById('pageRange');
         const rangeHint = document.getElementById('rangeHint');
+        const pageGrid = document.getElementById('pageGrid');
         
         const splitBtn = document.getElementById('splitBtn');
         const resetBtn = document.getElementById('resetBtn');
@@ -176,6 +209,9 @@
                 rangeHint.textContent = `Valid range: 1 - ${totalPages}`;
                 pageRangeInput.placeholder = `e.g. 1-${Math.min(5, totalPages)}, ${Math.min(8, totalPages)}`;
                 
+                // Generate Page Grid
+                renderPageGrid(totalPages);
+
                 // Enable Controls
                 optionsPanel.classList.remove('hidden');
                 splitBtn.disabled = false;
@@ -198,6 +234,7 @@
             zipBlob = null;
             fileInput.value = '';
             pageRangeInput.value = '';
+            pageGrid.innerHTML = '';
             
             dropZone.classList.remove('hidden');
             fileListContainer.classList.add('hidden');
@@ -208,6 +245,77 @@
             resultBox.classList.add('hidden');
             pageCountBadge.classList.add('hidden');
         }
+
+        // --- Helper: Render Page Grid ---
+        function renderPageGrid(maxPages) {
+            pageGrid.innerHTML = '';
+            // Only render up to 1000 pages to prevent DOM overload
+            const limit = Math.min(maxPages, 1000);
+            for (let i = 1; i <= limit; i++) {
+                const item = document.createElement('div');
+                item.className = 'page-grid-item';
+                item.textContent = i;
+                item.dataset.page = i;
+                item.addEventListener('click', () => {
+                    item.classList.toggle('selected');
+                    updateRangeInputFromGrid();
+                });
+                pageGrid.appendChild(item);
+            }
+            if (maxPages > 1000) {
+                const msg = document.createElement('div');
+                msg.style.gridColumn = '1 / -1';
+                msg.style.fontSize = '0.85rem';
+                msg.style.color = 'var(--ink-secondary)';
+                msg.textContent = `Showing first 1000 pages. Use the text input for higher pages.`;
+                pageGrid.appendChild(msg);
+            }
+        }
+
+        // --- Helper: Sync Grid to Input ---
+        function updateRangeInputFromGrid() {
+            const selected = Array.from(pageGrid.querySelectorAll('.page-grid-item.selected'))
+                                  .map(el => parseInt(el.dataset.page))
+                                  .sort((a, b) => a - b);
+
+            if (selected.length === 0) {
+                pageRangeInput.value = '';
+                return;
+            }
+
+            // Group into ranges
+            const ranges = [];
+            let start = selected[0];
+            let end = start;
+
+            for (let i = 1; i < selected.length; i++) {
+                if (selected[i] === end + 1) {
+                    end = selected[i];
+                } else {
+                    ranges.push(start === end ? `${start}` : `${start}-${end}`);
+                    start = selected[i];
+                    end = start;
+                }
+            }
+            ranges.push(start === end ? `${start}` : `${start}-${end}`);
+
+            pageRangeInput.value = ranges.join(', ');
+        }
+
+        // Listen to input changes to sync back to grid
+        pageRangeInput.addEventListener('input', () => {
+            if (totalPages === 0) return;
+            const toSelect = getPagesToExtract(pageRangeInput.value, totalPages);
+            const items = pageGrid.querySelectorAll('.page-grid-item');
+            items.forEach(item => {
+                const p = parseInt(item.dataset.page) - 1;
+                if (toSelect.includes(p)) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        });
 
         // --- Helper: Parse Page Ranges ---
         function getPagesToExtract(rangeStr, maxPages) {
@@ -243,7 +351,7 @@
 
         // --- Split Logic ---
         splitBtn.addEventListener('click', async () => {
-            if (!currentFile || !loadedPdfDoc) return;
+            if (!currentFile) return;
 
             try {
                 splitBtn.disabled = true;
@@ -258,50 +366,64 @@
                     throw new Error("No valid pages selected.");
                 }
 
-                const zip = new JSZip();
-                const baseName = currentFile.name.replace('.pdf', '');
+                const fileBuffer = await currentFile.arrayBuffer();
 
-                for (let i = 0; i < indicesToExtract.length; i++) {
-                    const pageIndex = indicesToExtract[i];
-                    
-                    // Create new PDF for single page
-                    const newPdf = await PDFLib.PDFDocument.create();
-                    const [copiedPage] = await newPdf.copyPages(loadedPdfDoc, [pageIndex]);
-                    newPdf.addPage(copiedPage);
-                    
-                    const pdfBytes = await newPdf.save();
-                    const pageNum = pageIndex + 1;
-                    
-                    // Filename padding (e.g., page_01.pdf) for correct sorting
-                    const pad = totalPages > 99 ? 3 : (totalPages > 9 ? 2 : 1);
-                    const numStr = String(pageNum).padStart(pad, '0');
-                    
-                    const newFileName = `${baseName}_page_${numStr}.pdf`;
-                    zip.file(newFileName, pdfBytes);
+                const worker = new Worker('worker.js');
 
-                    const percentage = Math.round(((i + 1) / indicesToExtract.length) * 90);
-                    progressBar.style.width = `${percentage}%`;
-                }
+                worker.onmessage = (e) => {
+                    const data = e.data;
+                    
+                    if (data.type === 'progress') {
+                        progressBar.style.width = `${data.percentage}%`;
+                    } else if (data.type === 'done') {
+                        zipBlob = data.zipBlob;
+                        progressBar.style.width = '100%';
+                        resultMessage.textContent = `Successfully extracted ${indicesToExtract.length} pages.`;
+                        resultBox.classList.remove('hidden');
+                        showToast('PDF split successfully!', 'success');
 
-                progressBar.style.width = '95%';
-                zipBlob = await zip.generateAsync({ type: "blob" });
-                progressBar.style.width = '100%';
+                        splitBtn.textContent = 'Split PDF';
+                        splitBtn.disabled = false;
+                        progressContainer.style.display = 'none';
+                        worker.terminate();
+                    } else if (data.type === 'error') {
+                        console.error("Worker error:", data.message);
+                        showToast('Error: ' + data.message, 'error');
+                        splitBtn.textContent = 'Split PDF';
+                        splitBtn.disabled = false;
+                        progressContainer.style.display = 'none';
+                        worker.terminate();
+                    }
+                };
                 
-                resultMessage.textContent = `Successfully extracted ${indicesToExtract.length} pages.`;
-                resultBox.classList.remove('hidden');
-                showToast('PDF split successfully!', 'success');
+                worker.onerror = (err) => {
+                    console.error("Worker generic error:", err);
+                    showToast('Error processing file in worker.', 'error');
+                    splitBtn.textContent = 'Split PDF';
+                    splitBtn.disabled = false;
+                    progressContainer.style.display = 'none';
+                    worker.terminate();
+                };
+
+                worker.postMessage({
+                    fileBuffer: fileBuffer,
+                    fileName: currentFile.name,
+                    indicesToExtract: indicesToExtract,
+                    totalPages: totalPages
+                }, [fileBuffer]);
 
             } catch (error) {
                 console.error(error);
                 showToast('Error: ' + error.message, 'error');
-            } finally {
                 splitBtn.textContent = 'Split PDF';
+                splitBtn.disabled = false;
+                progressContainer.style.display = 'none';
             }
         });
 
         downloadBtn.addEventListener('click', () => {
             if (zipBlob && currentFile) {
-                const zipName = `${currentFile.name.replace('.pdf', '')}_split.zip`;
+                const zipName = `${currentFile.name.replace(/\.pdf$/i, '')}_split.zip`;
                 saveAs(zipBlob, zipName);
             }
         });

@@ -173,6 +173,9 @@
                             <button class="button" id="downloadPng">Download PNG</button>
                             <button class="button secondary" id="downloadIco">Download ICO</button>
                         </div>
+                        <div class="button-group" style="justify-content: center; margin-top: 0.5rem;">
+                            <button class="button outline" id="downloadZip" style="width: 100%;">Download Full Set (ZIP)</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -180,6 +183,7 @@
     </main>
     
     <script src="../../assets/js/layout.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     
     <script>
         // --- DOM Elements ---
@@ -208,6 +212,7 @@
         // Download
         const downloadPng = document.getElementById('downloadPng');
         const downloadIco = document.getElementById('downloadIco');
+        const downloadZip = document.getElementById('downloadZip');
         const tabIcon = document.getElementById('dynamic-favicon');
 
         // State
@@ -265,12 +270,40 @@
             if (files.length === 0) return;
             const file = files[0];
             const reader = new FileReader();
-            reader.onload = (e) => {
-                uploadedImage = new Image();
-                uploadedImage.onload = draw;
-                uploadedImage.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+
+            if (file.type === 'image/svg+xml') {
+                reader.onload = (e) => {
+                    let svgContent = e.target.result;
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(svgContent, "image/svg+xml");
+                    const svg = doc.querySelector('svg');
+
+                    if (svg) {
+                        if (!svg.hasAttribute('width')) svg.setAttribute('width', '512');
+                        if (!svg.hasAttribute('height')) svg.setAttribute('height', '512');
+                        const serializer = new XMLSerializer();
+                        svgContent = serializer.serializeToString(svg);
+                    }
+
+                    const blob = new Blob([svgContent], {type: 'image/svg+xml;charset=utf-8'});
+                    const url = URL.createObjectURL(blob);
+
+                    uploadedImage = new Image();
+                    uploadedImage.onload = () => {
+                        draw();
+                        URL.revokeObjectURL(url);
+                    };
+                    uploadedImage.src = url;
+                };
+                reader.readAsText(file);
+            } else {
+                reader.onload = (e) => {
+                    uploadedImage = new Image();
+                    uploadedImage.onload = draw;
+                    uploadedImage.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
         }
 
         // --- Core Drawing Logic ---
@@ -323,11 +356,15 @@
             } 
             else if (currentMode === 'image' && uploadedImage) {
                 const scale = imgScale.value / 100;
-                const drawW = size * scale;
-                const drawH = (uploadedImage.height / uploadedImage.width) * drawW;
+                const drawSize = size * scale;
                 
-                const x = (size - drawW) / 2;
-                const y = (size - drawH) / 2;
+                // Calculate square crop from center of uploaded image
+                const srcSize = Math.min(uploadedImage.width, uploadedImage.height);
+                const srcX = (uploadedImage.width - srcSize) / 2;
+                const srcY = (uploadedImage.height - srcSize) / 2;
+
+                const x = (size - drawSize) / 2;
+                const y = (size - drawSize) / 2;
                 
                 ctx.save();
                 // Clip to shape if needed, to ensure image doesn't bleed out of rounded corners
@@ -336,7 +373,7 @@
                     // without clipping, or clipping *to* the shape.
                     // Standard behavior: Image floats above background.
                 }
-                ctx.drawImage(uploadedImage, x, y, drawW, drawH);
+                ctx.drawImage(uploadedImage, srcX, srcY, srcSize, srcSize, x, y, drawSize, drawSize);
                 ctx.restore();
             }
 
@@ -361,7 +398,6 @@
 
         downloadIco.addEventListener('click', () => {
             try {
-                const canvasData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const icoBlob = generateIco(canvas);
                 
                 const link = document.createElement('a');
@@ -372,6 +408,83 @@
             } catch(e) {
                 console.error(e);
                 showToast('Error generating ICO', 'error');
+            }
+        });
+
+        downloadZip.addEventListener('click', async () => {
+            if (typeof JSZip === 'undefined') {
+                showToast('Zip library not loaded yet.', 'error');
+                return;
+            }
+
+            try {
+                downloadZip.disabled = true;
+                downloadZip.textContent = 'Generating...';
+
+                const zip = new JSZip();
+
+                // Generate sizes
+                const sizes = {
+                    'apple-touch-icon.png': 180,
+                    'favicon-32x32.png': 32,
+                    'favicon-16x16.png': 16,
+                    'android-chrome-192x192.png': 192,
+                    'android-chrome-512x512.png': 512
+                };
+
+                const resizeCanvas = document.createElement('canvas');
+                const rCtx = resizeCanvas.getContext('2d');
+
+                for (const [filename, size] of Object.entries(sizes)) {
+                    resizeCanvas.width = size;
+                    resizeCanvas.height = size;
+                    rCtx.clearRect(0, 0, size, size);
+                    rCtx.drawImage(canvas, 0, 0, size, size);
+
+                    const dataUrl = resizeCanvas.toDataURL('image/png');
+                    const base64Data = dataUrl.split(',')[1];
+                    zip.file(filename, base64Data, {base64: true});
+                }
+
+                // Add favicon.ico
+                const icoBlob = generateIco(canvas);
+                zip.file('favicon.ico', icoBlob);
+
+                // Add manifest
+                const manifest = {
+                    "name": "My Web App",
+                    "short_name": "App",
+                    "icons": [
+                        {
+                            "src": "/android-chrome-192x192.png",
+                            "sizes": "192x192",
+                            "type": "image/png"
+                        },
+                        {
+                            "src": "/android-chrome-512x512.png",
+                            "sizes": "512x512",
+                            "type": "image/png"
+                        }
+                    ],
+                    "theme_color": "#ffffff",
+                    "background_color": "#ffffff",
+                    "display": "standalone"
+                };
+                zip.file('site.webmanifest', JSON.stringify(manifest, null, 2));
+
+                const content = await zip.generateAsync({type: 'blob'});
+                const link = document.createElement('a');
+                link.download = 'favicon_set.zip';
+                link.href = URL.createObjectURL(content);
+                link.click();
+
+                showToast('ZIP Downloaded', 'success');
+            } catch(e) {
+                console.error(e);
+                showToast('Error generating ZIP', 'error');
+            } finally {
+                downloadZip.disabled = false;
+                downloadZip.textContent = 'Download Full Set (ZIP)';
             }
         });
 

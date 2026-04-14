@@ -40,6 +40,14 @@
 
                         <label style="margin-top: 1.2rem;">Options</label>
                         
+                        <label for="format">Format</label>
+                        <select id="format">
+                            <option value="text">Plain Text</option>
+                            <option value="json">JSON</option>
+                            <option value="csv">CSV</option>
+                            <option value="sql">SQL Insert</option>
+                        </select>
+
                         <label class="toggle-wrapper" for="startWithLorem" id="loremToggleWrapper">
                             <!-- Added ID to span for dynamic text updates -->
                             <span id="startWithLabel" style="flex-grow:1; cursor:pointer;">Start with "Lorem ipsum..."</span>
@@ -58,6 +66,13 @@
                 <div class="button-group">
                     <button class="button" id="generateBtn">Generate Text</button>
                     <button class="button outline" id="clearBtn">Clear</button>
+                </div>
+
+                <div class="button-group" style="margin-top: 1rem;">
+                    <span style="font-size: 0.9rem; color: var(--text-muted); align-self: center; margin-right: 0.5rem;">Quick Copy:</span>
+                    <button class="button sm outline" id="quick1ParBtn">1 Paragraph</button>
+                    <button class="button sm outline" id="quick5ParBtn">5 Paragraphs</button>
+                    <button class="button sm outline" id="quick10ParBtn">10 Paragraphs</button>
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
@@ -86,6 +101,10 @@
         const themeSelect = document.getElementById('theme');
         const quantityInput = document.getElementById('quantity');
         const typeSelect = document.getElementById('type');
+        const formatSelect = document.getElementById('format');
+        const quick1ParBtn = document.getElementById('quick1ParBtn');
+        const quick5ParBtn = document.getElementById('quick5ParBtn');
+        const quick10ParBtn = document.getElementById('quick10ParBtn');
         const startWithLoremCheck = document.getElementById('startWithLorem');
         const loremToggleWrapper = document.getElementById('loremToggleWrapper');
         const startWithLabel = document.getElementById('startWithLabel');
@@ -150,9 +169,31 @@
             startWithLoremCheck.checked = true;
         });
 
-        function getRandomWord(theme) {
+        // Generator for true random distribution
+        function* createRandomWordGenerator(theme) {
             const list = vocabs[theme];
-            return list[Math.floor(Math.random() * list.length)];
+            let remainingWords = [];
+            while (true) {
+                if (remainingWords.length === 0) {
+                    // Refill and shuffle using Fisher-Yates
+                    remainingWords = [...list];
+                    for (let i = remainingWords.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [remainingWords[i], remainingWords[j]] = [remainingWords[j], remainingWords[i]];
+                    }
+                }
+                yield remainingWords.pop();
+            }
+        }
+
+        const generators = {
+            latin: createRandomWordGenerator('latin'),
+            tech: createRandomWordGenerator('tech'),
+            corporate: createRandomWordGenerator('corporate')
+        };
+
+        function getRandomWord(theme) {
+            return generators[theme].next().value;
         }
 
         function capitalize(str) {
@@ -184,15 +225,25 @@
         }
 
         function generateText() {
-            const quantity = parseInt(quantityInput.value) || 1;
+            let quantity = parseInt(quantityInput.value);
+            if (isNaN(quantity) || quantity < 0) quantity = 0;
+            if (quantity > 10000) quantity = 10000;
+
             const type = typeSelect.value;
             const theme = themeSelect.value;
             const startPhrase = startingPhrases[theme];
             const startEnabled = startWithLoremCheck.checked;
             const useHtml = htmlTagsCheck.checked;
+            const format = formatSelect.value;
 
             let output = "";
             let rawTextArray = [];
+
+            if (quantity === 0) {
+                textOutput.innerText = "";
+                resultBox.classList.add('hidden');
+                return;
+            }
 
             // 1. Generate Raw Data
             if (type === 'words') {
@@ -293,12 +344,61 @@
                  }
             }
 
+            // 4. Handle Formatting
+            if (format === 'json') {
+                if (type === 'paragraphs') {
+                     output = JSON.stringify({ paragraphs: output.split('\n\n') }, null, 2);
+                } else if (type === 'sentences') {
+                     output = JSON.stringify({ sentences: output.split('. ').filter(s => s.trim().length > 0).map(s => s.replace(/\.$/, '') + '.') }, null, 2);
+                } else {
+                     output = JSON.stringify({ words: output.split(' ') }, null, 2);
+                }
+            } else if (format === 'csv') {
+                if (type === 'paragraphs') {
+                    output = "id,paragraph\n" + output.split('\n\n').map((p, i) => `${i + 1},"${p.replace(/"/g, '""')}"`).join('\n');
+                } else if (type === 'sentences') {
+                    let sentences = output.split('. ').filter(s => s.trim().length > 0).map(s => s.replace(/\.$/, '') + '.');
+                    output = "id,sentence\n" + sentences.map((s, i) => `${i + 1},"${s.replace(/"/g, '""')}"`).join('\n');
+                } else {
+                    output = "id,word\n" + output.split(' ').map((w, i) => `${i + 1},${w}`).join('\n');
+                }
+            } else if (format === 'sql') {
+                const tableName = `mock_${type}`;
+                const colName = type === 'paragraphs' ? 'paragraph' : (type === 'sentences' ? 'sentence' : 'word');
+                let items = [];
+                if (type === 'paragraphs') {
+                    items = output.split('\n\n');
+                } else if (type === 'sentences') {
+                    items = output.split('. ').filter(s => s.trim().length > 0).map(s => s.replace(/\.$/, '') + '.');
+                } else {
+                    items = output.split(' ');
+                }
+                output = `INSERT INTO ${tableName} (${colName}) VALUES\n` + items.map(item => `  ('${item.replace(/'/g, "''")}')`).join(',\n') + ';';
+            }
+
             textOutput.innerText = output;
             resultBox.classList.remove('hidden');
             resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         // === EVENT LISTENERS ===
+
+        function triggerQuickCopy(paragraphs) {
+            quantityInput.value = paragraphs;
+            typeSelect.value = 'paragraphs';
+            formatSelect.value = 'text';
+            try {
+                generateText();
+                copyBtn.click();
+            } catch (e) {
+                console.error(e);
+                showToast('Error generating text', 'error');
+            }
+        }
+
+        quick1ParBtn.addEventListener('click', () => triggerQuickCopy(1));
+        quick5ParBtn.addEventListener('click', () => triggerQuickCopy(5));
+        quick10ParBtn.addEventListener('click', () => triggerQuickCopy(10));
 
         generateBtn.addEventListener('click', () => {
             try {
@@ -328,8 +428,45 @@
 
         copyBtn.addEventListener('click', () => {
             const text = textOutput.innerText;
-            if(text) copyToClipboard(text);
+            if (!text) return;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('Copied to clipboard!', 'success');
+                }).catch(err => {
+                    fallbackCopyTextToClipboard(text);
+                });
+            } else {
+                fallbackCopyTextToClipboard(text);
+            }
         });
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+
+            // Avoid scrolling to bottom
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('Copied to clipboard!', 'success');
+                } else {
+                    showToast('Failed to copy', 'error');
+                }
+            } catch (err) {
+                showToast('Failed to copy', 'error');
+            }
+
+            document.body.removeChild(textArea);
+        }
         
         // Initial run
         window.onload = generateText;

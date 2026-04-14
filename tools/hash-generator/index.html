@@ -9,6 +9,8 @@
     
     <!-- CryptoJS for MD5 support (Native API doesn't support insecure MD5) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.9.3/sha3.min.js"></script>
+    <script src="blake2.min.js"></script>
 </head>
 <body>
     <main>
@@ -44,11 +46,20 @@
                     <div id="fileNameDisplay" style="margin-top: 1rem; font-weight: bold; color: var(--accent);"></div>
                 </div>
 
+                <!-- COMPARE HASH -->
+                <div id="compareSection" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    <label>Compare Hash</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="compareInput" placeholder="Paste a hash here to verify..." style="font-family: var(--font-mono); font-size: 0.9rem;">
+                        <button class="button sm secondary" id="clearCompareBtn">Clear</button>
+                    </div>
+                </div>
+
                 <!-- OUTPUTS -->
                 <div id="outputSection" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
                     
                     <div style="margin-bottom: 1.5rem;">
-                        <label>SHA-256 (Recommended)</label>
+                        <label>SHA-256 (Recommended) <span id="matchSHA256" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
                         <div style="display: flex; gap: 10px;">
                             <input type="text" id="outSHA256" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
                             <button class="button sm secondary" onclick="copyId('outSHA256')">Copy</button>
@@ -56,18 +67,50 @@
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
-                        <label>MD5 (Legacy)</label>
+                        <label>SHA-512 (Recommended) <span id="matchSHA512" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="outSHA512" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                            <button class="button sm secondary" onclick="copyId('outSHA512')">Copy</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label>MD5 (Legacy) <span id="matchMD5" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
                         <div style="display: flex; gap: 10px;">
                             <input type="text" id="outMD5" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
                             <button class="button sm secondary" onclick="copyId('outMD5')">Copy</button>
                         </div>
                     </div>
 
-                    <div>
-                        <label>SHA-1 (Legacy)</label>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label>SHA-1 (Legacy) <span id="matchSHA1" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
                         <div style="display: flex; gap: 10px;">
                             <input type="text" id="outSHA1" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
                             <button class="button sm secondary" onclick="copyId('outSHA1')">Copy</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label>SHA-3 (256-bit) <span id="matchSHA3_256" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="outSHA3_256" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                            <button class="button sm secondary" onclick="copyId('outSHA3_256')">Copy</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label>SHA-3 (512-bit) <span id="matchSHA3_512" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="outSHA3_512" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                            <button class="button sm secondary" onclick="copyId('outSHA3_512')">Copy</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label>BLAKE2b (512-bit) <span id="matchBLAKE2b" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match!</span></label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="outBLAKE2b" readonly style="font-family: var(--font-mono); font-size: 0.9rem;">
+                            <button class="button sm secondary" onclick="copyId('outBLAKE2b')">Copy</button>
                         </div>
                     </div>
 
@@ -90,8 +133,65 @@
         const fileNameDisplay = document.getElementById('fileNameDisplay');
 
         const outSHA256 = document.getElementById('outSHA256');
+        const outSHA512 = document.getElementById('outSHA512');
         const outMD5 = document.getElementById('outMD5');
         const outSHA1 = document.getElementById('outSHA1');
+        const outSHA3_256 = document.getElementById('outSHA3_256');
+        const outSHA3_512 = document.getElementById('outSHA3_512');
+        const outBLAKE2b = document.getElementById('outBLAKE2b');
+
+        const compareInput = document.getElementById('compareInput');
+        const clearCompareBtn = document.getElementById('clearCompareBtn');
+
+        const matchLabels = {
+            outSHA256: document.getElementById('matchSHA256'),
+            outSHA512: document.getElementById('matchSHA512'),
+            outMD5: document.getElementById('matchMD5'),
+            outSHA1: document.getElementById('matchSHA1'),
+            outSHA3_256: document.getElementById('matchSHA3_256'),
+            outSHA3_512: document.getElementById('matchSHA3_512'),
+            outBLAKE2b: document.getElementById('matchBLAKE2b')
+        };
+
+        // --- Compare Logic ---
+        function checkCompare() {
+            const compareVal = compareInput.value.trim().toLowerCase();
+
+            // Hide all matches first
+            Object.values(matchLabels).forEach(el => el.classList.add('hidden'));
+
+            if (!compareVal) return;
+
+            // Check against current outputs
+            const outputs = {
+                outSHA256: outSHA256.value.toLowerCase(),
+                outSHA512: outSHA512.value.toLowerCase(),
+                outMD5: outMD5.value.toLowerCase(),
+                outSHA1: outSHA1.value.toLowerCase(),
+                outSHA3_256: outSHA3_256.value.toLowerCase(),
+                outSHA3_512: outSHA3_512.value.toLowerCase(),
+                outBLAKE2b: outBLAKE2b.value.toLowerCase()
+            };
+
+            for (const [key, val] of Object.entries(outputs)) {
+                if (val && val === compareVal) {
+                    matchLabels[key].classList.remove('hidden');
+                    compareInput.style.borderColor = 'var(--success)';
+                    return;
+                }
+            }
+
+            // If we have a value but no match
+            compareInput.style.borderColor = 'var(--error)';
+        }
+
+        compareInput.addEventListener('input', checkCompare);
+
+        clearCompareBtn.addEventListener('click', () => {
+            compareInput.value = '';
+            compareInput.style.borderColor = '';
+            checkCompare();
+        });
 
         // --- Mode Switching ---
         modeText.addEventListener('click', () => {
@@ -111,7 +211,6 @@
         // --- Text Hashing ---
         textInput.addEventListener('input', async () => {
             const val = textInput.value;
-            if(!val) { clearOutputs(); return; }
 
             // Native Crypto for SHA
             const msgUint8 = new TextEncoder().encode(val);
@@ -120,42 +219,91 @@
             const hashBuffer256 = await crypto.subtle.digest('SHA-256', msgUint8);
             outSHA256.value = buf2hex(hashBuffer256);
 
+            // SHA-512
+            const hashBuffer512 = await crypto.subtle.digest('SHA-512', msgUint8);
+            outSHA512.value = buf2hex(hashBuffer512);
+
             // SHA-1
             const hashBuffer1 = await crypto.subtle.digest('SHA-1', msgUint8);
             outSHA1.value = buf2hex(hashBuffer1);
 
             // MD5 (via CryptoJS)
             outMD5.value = CryptoJS.MD5(val).toString();
+
+            // SHA-3
+            outSHA3_256.value = sha3_256(val);
+            outSHA3_512.value = sha3_512(val);
+
+            // BLAKE2b
+            outBLAKE2b.value = blakejs.blake2bHex(val);
+
+            checkCompare();
         });
 
         // --- File Hashing ---
         setupDropZone(dropZone, fileInput, handleFile);
 
+        let hashWorker = null;
+
         async function handleFile(files) {
             if(files.length === 0) return;
             const file = files[0];
             
-            fileNameDisplay.textContent = `Hashing: ${file.name} (${formatFileSize(file.size)})`;
+            fileNameDisplay.textContent = `Hashing: ${file.name} (${formatFileSize(file.size)}) - 0%`;
             clearOutputs("Hashing...");
 
-            const arrayBuffer = await file.arrayBuffer();
-
-            // SHA-256 (Native)
-            const hash256 = await crypto.subtle.digest('SHA-256', arrayBuffer);
-            outSHA256.value = buf2hex(hash256);
-
-            // SHA-1 (Native)
-            const hash1 = await crypto.subtle.digest('SHA-1', arrayBuffer);
-            outSHA1.value = buf2hex(hash1);
-
-            // MD5 (CryptoJS requires WordArray)
-            // For large files, this crashes. We'll try for small files only.
-            if (file.size < 50 * 1024 * 1024) { // 50MB limit for JS MD5
-                const wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
-                outMD5.value = CryptoJS.MD5(wordArray).toString();
-            } else {
-                outMD5.value = "File too large for browser-based MD5";
+            if (hashWorker) {
+                hashWorker.terminate();
             }
+
+            hashWorker = new Worker('worker.js');
+
+            hashWorker.onmessage = function(e) {
+                const data = e.data;
+                if (data.type === 'progress') {
+                    fileNameDisplay.textContent = `Hashing: ${file.name} (${formatFileSize(file.size)}) - ${data.progress}%`;
+                } else if (data.type === 'done') {
+                    fileNameDisplay.textContent = `Hashed: ${file.name} (${formatFileSize(file.size)})`;
+                    outSHA256.value = data.hashes.sha256;
+                    outSHA512.value = data.hashes.sha512;
+                    outSHA1.value = data.hashes.sha1;
+                    outMD5.value = data.hashes.md5;
+                    outSHA3_256.value = data.hashes.sha3_256;
+                    outSHA3_512.value = data.hashes.sha3_512;
+                    outBLAKE2b.value = data.hashes.blake2b;
+
+                    checkCompare();
+
+                    hashWorker.terminate();
+                    hashWorker = null;
+                } else if (data.type === 'error') {
+                    console.error("Worker error:", data.message);
+                    fileNameDisplay.textContent = `Error hashing ${file.name}`;
+                    clearOutputs("Error");
+                    hashWorker.terminate();
+                    hashWorker = null;
+                }
+            };
+
+            hashWorker.onerror = function(err) {
+                console.error("Worker generic error:", err);
+                fileNameDisplay.textContent = `Error hashing ${file.name}`;
+                clearOutputs("Error");
+                hashWorker.terminate();
+                hashWorker = null;
+            };
+
+            hashWorker.postMessage({ file: file });
+        }
+
+        function clearOutputs(placeholder = "") {
+            outSHA256.value = placeholder;
+            outSHA512.value = placeholder;
+            outMD5.value = placeholder;
+            outSHA1.value = placeholder;
+            outSHA3_256.value = placeholder;
+            outSHA3_512.value = placeholder;
+            outBLAKE2b.value = placeholder;
         }
 
         // Helpers
@@ -163,12 +311,6 @@
             return [...new Uint8Array(buffer)]
                 .map(x => x.toString(16).padStart(2, '0'))
                 .join('');
-        }
-
-        function clearOutputs(placeholder = "") {
-            outSHA256.value = placeholder;
-            outMD5.value = placeholder;
-            outSHA1.value = placeholder;
         }
 
         window.copyId = function(id) {

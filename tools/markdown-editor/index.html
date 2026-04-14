@@ -9,6 +9,10 @@
     
     <!-- Marked Library -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- DOMPurify Library for XSS protection -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <!-- Mermaid Library for flowcharts -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
 
     <style>
         /* Preview Styles (mimicking simple typography) */
@@ -85,30 +89,104 @@ Type on the left to see the preview here.
 - **Bold** and *Italic* text
 - [Links](https://immineal.com)
 - Code blocks:
-\`\`\`
+\`\`\`javascript
 console.log('Hello World');
+\`\`\`
+
+- Mermaid Flowcharts:
+\`\`\`mermaid
+graph TD;
+    A[Markdown] --> B{Parse};
+    B --> C[HTML Preview];
+    B --> D[Mermaid Graph];
 \`\`\`
 
 > "Privacy is the power to selectively reveal oneself to the world."`;
 
-        // Render Logic
-        function render() {
-            const text = mdInput.value;
-            // Marked handles sanitization by default in newer versions, 
-            // but for a local tool, raw HTML is often desired.
-            preview.innerHTML = marked.parse(text);
+        // Initialize Mermaid
+        if (typeof mermaid !== 'undefined') {
+            mermaid.initialize({ startOnLoad: false, theme: 'default' });
         }
 
-        mdInput.addEventListener('input', render);
+        // Render Logic
+        let renderTimeout;
+        function render(immediate = false) {
+            clearTimeout(renderTimeout);
+
+            const process = async () => {
+                const text = mdInput.value;
+                try {
+                    // Marked handles sanitization by default in newer versions,
+                    // but for a local tool, raw HTML is often desired.
+                    // Inspector Fix: We MUST sanitize to prevent XSS!
+                    const rawHtml = marked.parse(text);
+                    const cleanHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
+                    preview.innerHTML = cleanHtml;
+
+                    // Extensibility: Process Mermaid diagrams
+                    if (typeof mermaid !== 'undefined') {
+                        const mermaidBlocks = preview.querySelectorAll('code.language-mermaid');
+                        mermaidBlocks.forEach(block => {
+                            const pre = block.parentElement;
+                            if (pre && pre.tagName === 'PRE') {
+                                const div = document.createElement('div');
+                                div.className = 'mermaid';
+                                div.textContent = block.textContent;
+                                pre.replaceWith(div);
+                            }
+                        });
+
+                        try {
+                            await mermaid.run({ querySelector: '.mermaid' });
+                        } catch (mermaidErr) {
+                            console.error("Mermaid rendering error:", mermaidErr);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Markdown parsing error:", err);
+                    preview.innerHTML = "<p style='color: red;'>Error rendering Markdown.</p>";
+                }
+            };
+
+            if (immediate) {
+                process();
+            } else {
+                renderTimeout = setTimeout(process, 300);
+            }
+        }
+
+        mdInput.addEventListener('input', () => render(false));
+
+        // Synchronized Scrolling
+        let isSyncingLeftScroll = false;
+        let isSyncingRightScroll = false;
+
+        mdInput.addEventListener('scroll', function(e) {
+            if (!isSyncingLeftScroll) {
+                isSyncingRightScroll = true;
+                const percentage = this.scrollTop / (this.scrollHeight - this.clientHeight);
+                preview.scrollTop = percentage * (preview.scrollHeight - preview.clientHeight);
+            }
+            isSyncingLeftScroll = false;
+        });
+
+        preview.addEventListener('scroll', function(e) {
+            if (!isSyncingRightScroll) {
+                isSyncingLeftScroll = true;
+                const percentage = this.scrollTop / (this.scrollHeight - this.clientHeight);
+                mdInput.scrollTop = percentage * (mdInput.scrollHeight - mdInput.clientHeight);
+            }
+            isSyncingRightScroll = false;
+        });
 
         // Init
         mdInput.value = defaultText;
-        render();
+        render(true);
 
         // Actions
         clearBtn.addEventListener('click', () => {
             mdInput.value = '';
-            render();
+            render(true);
             mdInput.focus();
         });
 
