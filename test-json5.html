@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://unpkg.com/json5@2/dist/index.min.js"></script>
+</head>
+<body>
+<script>
+try {
+  JSON5.parse('{\n"a": 1,\n"b": 2\n"c": 3\n}');
+} catch (e) {
+  console.log(e.message);
+  console.log(e.lineNumber, e.columnNumber);
+}
+</script>
+</body>
+</html>
