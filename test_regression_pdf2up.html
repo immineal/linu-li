@@ -88,6 +88,55 @@
                 console.error("Test 2 Failed:", e.message);
             }
 
+            // Test 3: Booklet mode logic verification
+            try {
+                // Mock an array of embedded pages (e.g., 3 pages, needs 1 padding)
+                const mockEmbeddedPages = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
+                let paddedPages = [...mockEmbeddedPages];
+                while (paddedPages.length % 4 !== 0) {
+                    paddedPages.push(null);
+                }
+
+                if (paddedPages.length !== 4) {
+                    throw new Error(`Expected 4 pages after padding, got ${paddedPages.length}`);
+                }
+
+                let outputPageCount = paddedPages.length / 2;
+                let bookletPairs = [];
+                for (let i = 0; i < outputPageCount; i++) {
+                    let lPage, rPage;
+                    const isFront = (i % 2 === 0);
+                    if (isFront) {
+                        lPage = paddedPages[paddedPages.length - 1 - i];
+                        rPage = paddedPages[i];
+                    } else {
+                        lPage = paddedPages[i];
+                        rPage = paddedPages[paddedPages.length - 1 - i];
+                    }
+                    bookletPairs.push({ left: lPage, right: rPage });
+                }
+
+                if (bookletPairs.length !== 2) {
+                    throw new Error(`Expected 2 output pages, got ${bookletPairs.length}`);
+                }
+
+                // Front sheet (Page 4, Page 1) -> 4 is null because 3 page source
+                if (bookletPairs[0].left !== null || bookletPairs[0].right.id !== 1) {
+                     throw new Error(`Sheet 1 incorrect: L:${bookletPairs[0].left?.id} R:${bookletPairs[0].right?.id}`);
+                }
+
+                // Back sheet (Page 2, Page 3)
+                if (bookletPairs[1].left.id !== 2 || bookletPairs[1].right.id !== 3) {
+                     throw new Error(`Sheet 2 incorrect: L:${bookletPairs[1].left?.id} R:${bookletPairs[1].right?.id}`);
+                }
+
+                console.log("Test 3 Passed: Booklet mode pagination logic works correctly.");
+            } catch(e) {
+                passed = false;
+                console.error("Test 3 Failed:", e.message);
+            }
+
             if (passed) {
                 console.log("All regression tests passed!");
                 document.body.innerHTML = "<h1>All regression tests passed!</h1>";
