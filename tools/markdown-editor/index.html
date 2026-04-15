@@ -118,9 +118,9 @@ graph TD;
                 try {
                     // Marked handles sanitization by default in newer versions,
                     // but for a local tool, raw HTML is often desired.
-                    // Inspector Fix: We MUST sanitize to prevent XSS!
+                    // Inspector note: We MUST sanitize to prevent XSS!
                     const rawHtml = marked.parse(text);
-                    const cleanHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
+                    const cleanHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : "Error: DOMPurify not loaded. Sanitization required to prevent XSS.";
                     preview.innerHTML = cleanHtml;
 
                     // Extensibility: Process Mermaid diagrams
