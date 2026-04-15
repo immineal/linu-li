@@ -126,6 +126,10 @@
                             <label>Image Scale</label>
                             <input type="range" id="imgScale" min="10" max="100" value="70">
                         </div>
+                        <div style="margin-top: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="autoRemoveBg" style="width: auto;">
+                            <label for="autoRemoveBg" style="margin: 0; cursor: pointer;">🪄 Auto-Remove Background</label>
+                        </div>
                     </div>
 
                     <hr style="border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0;">
@@ -208,6 +212,7 @@
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const imgScale = document.getElementById('imgScale');
+        const autoRemoveBg = document.getElementById('autoRemoveBg');
 
         // Download
         const downloadPng = document.getElementById('downloadPng');
@@ -218,6 +223,24 @@
         // State
         let currentMode = 'text';
         let uploadedImage = null;
+        let originalUploadedImageSrc = null;
+        const bgWorker = new Worker('bg-worker.js');
+
+        bgWorker.onmessage = (e) => {
+            if (e.data.action === 'removeBackground' && e.data.success) {
+                const processedImageData = e.data.imageData;
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = processedImageData.width;
+                tempCanvas.height = processedImageData.height;
+                tempCanvas.getContext('2d').putImageData(processedImageData, 0, 0);
+
+                uploadedImage = new Image();
+                uploadedImage.onload = () => {
+                    draw();
+                };
+                uploadedImage.src = tempCanvas.toDataURL();
+            }
+        };
 
         // --- Initialization ---
         window.addEventListener('DOMContentLoaded', () => {
@@ -230,6 +253,12 @@
         [inputText, fontSize, fontFamily, bgColor, fgColor, imgScale].forEach(el => {
             el.addEventListener('input', draw);
             el.addEventListener('change', draw);
+        });
+
+        autoRemoveBg.addEventListener('change', () => {
+            if (originalUploadedImageSrc) {
+                processUploadedImage(originalUploadedImageSrc);
+            }
         });
 
         // Special handling for shape to toggle background color visibility
@@ -288,22 +317,43 @@
                     const blob = new Blob([svgContent], {type: 'image/svg+xml;charset=utf-8'});
                     const url = URL.createObjectURL(blob);
 
-                    uploadedImage = new Image();
-                    uploadedImage.onload = () => {
-                        draw();
-                        URL.revokeObjectURL(url);
-                    };
-                    uploadedImage.src = url;
+                    originalUploadedImageSrc = url;
+                    processUploadedImage(url);
                 };
                 reader.readAsText(file);
             } else {
                 reader.onload = (e) => {
-                    uploadedImage = new Image();
-                    uploadedImage.onload = draw;
-                    uploadedImage.src = e.target.result;
+                    originalUploadedImageSrc = e.target.result;
+                    processUploadedImage(e.target.result);
                 };
                 reader.readAsDataURL(file);
             }
+        }
+
+        function processUploadedImage(src) {
+            const tempImg = new Image();
+            tempImg.onload = () => {
+                if (autoRemoveBg.checked) {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = tempImg.width;
+                    tempCanvas.height = tempImg.height;
+                    const tCtx = tempCanvas.getContext('2d');
+                    tCtx.drawImage(tempImg, 0, 0);
+
+                    const imageData = tCtx.getImageData(0, 0, tempImg.width, tempImg.height);
+                    bgWorker.postMessage({
+                        action: 'removeBackground',
+                        imageData: imageData,
+                        width: tempImg.width,
+                        height: tempImg.height,
+                        tolerance: 40
+                    });
+                } else {
+                    uploadedImage = tempImg;
+                    draw();
+                }
+            };
+            tempImg.src = src;
         }
 
         // --- Core Drawing Logic ---
@@ -466,11 +516,14 @@
                             "type": "image/png"
                         }
                     ],
-                    "theme_color": "#ffffff",
-                    "background_color": "#ffffff",
-                    "display": "standalone"
+                    "theme_color": bgColor.value,
+                    "background_color": bgColor.value,
+                    "display": "standalone",
+                    "start_url": "/"
                 };
-                zip.file('site.webmanifest', JSON.stringify(manifest, null, 2));
+                const manifestJsonStr = JSON.stringify(manifest, null, 2);
+                zip.file('site.webmanifest', manifestJsonStr);
+                zip.file('manifest.json', manifestJsonStr);
 
                 const content = await zip.generateAsync({type: 'blob'});
                 const link = document.createElement('a');
