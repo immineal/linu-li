@@ -1,0 +1,28 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "A bunch of browser-based tools for everyday stuff — PDF editing, image processing, dev utilities, etc. Everything runs locally in your browser, no uploads, no tracking.",
+  "main": "start_server.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/immineal/linu-li.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/immineal/linu-li/issues"
+  },
+  "homepage": "https://github.com/immineal/linu-li#readme",
+  "dependencies": {
+    "jsdom": "^29.0.2",
+    "piexifjs": "^1.0.6"
+  }
+}
