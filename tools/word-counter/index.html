@@ -12,6 +12,14 @@
             grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 1rem;
             margin-bottom: 1.5rem;
+            position: sticky;
+            top: var(--header-height);
+            z-index: 10;
+            background: var(--card-bg);
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            margin-top: -1rem;
+            border-bottom: 1px solid var(--border);
         }
         .stat-card {
             background: var(--input-bg);
@@ -32,6 +40,63 @@
             color: var(--ink-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+        .analysis-section {
+            margin-top: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        @media (max-width: 768px) {
+            .analysis-section { grid-template-columns: 1fr; }
+        }
+        .analysis-card {
+            background: var(--paper);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            border-radius: 4px;
+        }
+        .analysis-card h3 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .keyword-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .keyword-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed var(--border);
+        }
+        .keyword-item:last-child {
+            border-bottom: none;
+        }
+        .keyword-word {
+            font-weight: 500;
+        }
+        .keyword-count {
+            color: var(--ink-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+        }
+        .readability-stat {
+            margin-bottom: 1rem;
+        }
+        .readability-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: var(--font-heading);
+        }
+        .readability-label {
+            font-size: 0.9rem;
+            color: var(--ink-secondary);
         }
     </style>
 </head>
@@ -75,6 +140,26 @@
                 </div>
 
             </div>
+
+            <div class="analysis-section">
+                <div class="analysis-card">
+                    <h3>Keyword Density</h3>
+                    <ul class="keyword-list" id="keywordList">
+                        <li class="keyword-item"><span class="keyword-word" style="color: var(--ink-secondary);">No keywords yet...</span></li>
+                    </ul>
+                </div>
+                <div class="analysis-card">
+                    <h3>Readability (Flesch-Kincaid)</h3>
+                    <div class="readability-stat">
+                        <div class="readability-label">Reading Ease Score</div>
+                        <div class="readability-value" id="fleschScore">0</div>
+                    </div>
+                    <div class="readability-stat">
+                        <div class="readability-label">Estimated Reading Level</div>
+                        <div class="readability-value" style="font-size: 1.2rem;" id="fleschLevel">N/A</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
     
@@ -90,47 +175,133 @@
         const elCharNoSpace = document.getElementById('charNoSpaceCount');
         const elSentences = document.getElementById('sentenceCount');
         const elReadTime = document.getElementById('readTime');
+        const elKeywordList = document.getElementById('keywordList');
+        const elFleschScore = document.getElementById('fleschScore');
+        const elFleschLevel = document.getElementById('fleschLevel');
 
-        // Segmenters for robust parsing (Emojis, CJK, Zero-width spaces)
-        const charSegmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
-        const wordSegmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
-        const sentenceSegmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' });
-        const spaceRegex = /^[\s\u200B-\u200D\uFEFF]+$/;
+        // Web Worker Setup
+        const workerCode = `
+            const charSegmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+            const wordSegmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
+            const sentenceSegmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' });
+            const spaceRegex = /^[\\s\\u200B-\\u200D\\uFEFF]+$/;
 
+            const stopWords = new Set(["a","about","above","after","again","against","all","am","an","and","any","are","aren't","as","at","be","because","been","before","being","below","between","both","but","by","can't","cannot","could","couldn't","did","didn't","do","does","doesn't","doing","don't","down","during","each","few","for","from","further","had","hadn't","has","hasn't","have","haven't","having","he","he'd","he'll","he's","her","here","here's","hers","herself","him","himself","his","how","how's","i","i'd","i'll","i'm","i've","if","in","into","is","isn't","it","it's","its","itself","let's","me","more","most","mustn't","my","myself","no","nor","not","of","off","on","once","only","or","other","ought","our","ours","ourselves","out","over","own","same","shan't","she","she'd","she'll","she's","should","shouldn't","so","some","such","than","that","that's","the","their","theirs","them","themselves","then","there","there's","these","they","they'd","they'll","they're","they've","this","those","through","to","too","under","until","up","very","was","wasn't","we","we'd","we'll","we're","we've","were","weren't","what","what's","when","when's","where","where's","which","while","who","who's","whom","why","why's","with","won't","would","wouldn't","you","you'd","you'll","you're","you've","your","yours","yourself","yourselves"]);
+
+            function countSyllables(word) {
+                word = word.toLowerCase();
+                word = word.replace(/[^a-z]/g, '');
+                if (!word) return 0;
+                if (word.length <= 3) return 1;
+                word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
+                word = word.replace(/^y/, '');
+                const syllables = word.match(/[aeiouy]{1,2}/g);
+                return syllables ? syllables.length : 1;
+            }
+
+            self.onmessage = function(e) {
+                const text = e.data || '';
+
+                let charCount = 0;
+                let charNoSpaceCount = 0;
+                for (const s of charSegmenter.segment(text)) {
+                    charCount++;
+                    if (!spaceRegex.test(s.segment)) {
+                        charNoSpaceCount++;
+                    }
+                }
+
+                let wordCount = 0;
+                let syllableCount = 0;
+                let wordFreq = {};
+                for (const s of wordSegmenter.segment(text)) {
+                    if (s.isWordLike) {
+                        wordCount++;
+                        const wordLower = s.segment.toLowerCase();
+
+                        syllableCount += countSyllables(wordLower);
+
+                        if (!stopWords.has(wordLower) && wordLower.length > 1 && /^[a-z]+$/.test(wordLower)) {
+                            wordFreq[wordLower] = (wordFreq[wordLower] || 0) + 1;
+                        }
+                    }
+                }
+
+                let sentenceCount = 0;
+                for (const s of sentenceSegmenter.segment(text)) {
+                    if (s.segment.replace(/[\\s\\u200B-\\u200D\\uFEFF]/g, '').length > 0) {
+                        sentenceCount++;
+                    }
+                }
+                if (sentenceCount === 0 && charNoSpaceCount > 0) sentenceCount = 1;
+
+                let fleschScore = 0;
+                let fleschLevel = 'N/A';
+                if (wordCount > 0 && sentenceCount > 0) {
+                    fleschScore = 206.835 - 1.015 * (wordCount / sentenceCount) - 84.6 * (syllableCount / wordCount);
+                    fleschScore = Math.max(0, Math.min(100, Math.round(fleschScore * 10) / 10));
+
+                    if (fleschScore >= 90) fleschLevel = 'Very Easy (5th Grade)';
+                    else if (fleschScore >= 80) fleschLevel = 'Easy (6th Grade)';
+                    else if (fleschScore >= 70) fleschLevel = 'Fairly Easy (7th Grade)';
+                    else if (fleschScore >= 60) fleschLevel = 'Plain English (8th-9th Grade)';
+                    else if (fleschScore >= 50) fleschLevel = 'Fairly Difficult (10th-12th Grade)';
+                    else if (fleschScore >= 30) fleschLevel = 'Difficult (College)';
+                    else fleschLevel = 'Very Difficult (College Graduate)';
+                }
+
+                const topKeywords = Object.entries(wordFreq)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 10);
+
+                const minutes = Math.ceil(wordCount / 200) || 0;
+
+                self.postMessage({
+                    charCount,
+                    charNoSpaceCount,
+                    wordCount,
+                    sentenceCount,
+                    readTime: minutes,
+                    fleschScore,
+                    fleschLevel,
+                    topKeywords
+                });
+            };
+        `;
+
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(blob);
+        const worker = new Worker(workerUrl);
+
+        worker.onmessage = function(e) {
+            const data = e.data;
+            elWord.textContent = data.wordCount.toLocaleString();
+            elChar.textContent = data.charCount.toLocaleString();
+            elCharNoSpace.textContent = data.charNoSpaceCount.toLocaleString();
+            elSentences.textContent = data.sentenceCount.toLocaleString();
+            elReadTime.textContent = `Reading Time: ~${data.readTime} min`;
+
+            elFleschScore.textContent = data.wordCount > 0 ? data.fleschScore : '0';
+            elFleschLevel.textContent = data.fleschLevel;
+
+            if (data.topKeywords.length > 0) {
+                elKeywordList.innerHTML = data.topKeywords.map(([word, count]) =>
+                    `<li class="keyword-item">
+                        <span class="keyword-word">${word}</span>
+                        <span class="keyword-count">${count}</span>
+                    </li>`
+                ).join('');
+            } else {
+                elKeywordList.innerHTML = '<li class="keyword-item"><span class="keyword-word" style="color: var(--ink-secondary);">No keywords yet...</span></li>';
+            }
+        };
+
+        let debounceTimeout;
         function updateStats() {
-            const text = textInput.value || '';
-            
-            let charCount = 0;
-            let charNoSpaceCount = 0;
-            for (const s of charSegmenter.segment(text)) {
-                charCount++;
-                if (!spaceRegex.test(s.segment)) {
-                    charNoSpaceCount++;
-                }
-            }
-            elChar.textContent = charCount.toLocaleString();
-            elCharNoSpace.textContent = charNoSpaceCount.toLocaleString();
-
-            let wordCount = 0;
-            for (const s of wordSegmenter.segment(text)) {
-                if (s.isWordLike) wordCount++;
-            }
-            elWord.textContent = wordCount.toLocaleString();
-
-            let sentenceCount = 0;
-            for (const s of sentenceSegmenter.segment(text)) {
-                if (s.segment.replace(/[\s\u200B-\u200D\uFEFF]/g, '').length > 0) {
-                    sentenceCount++;
-                }
-            }
-            // Fallback for empty strings without punctuation but with content
-            if (sentenceCount === 0 && charNoSpaceCount > 0) sentenceCount = 1;
-
-            elSentences.textContent = sentenceCount.toLocaleString();
-
-            // Reading Time (Average 200 wpm)
-            const minutes = Math.ceil(wordCount / 200) || 0;
-            elReadTime.textContent = `Reading Time: ~${minutes} min`;
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                worker.postMessage(textInput.value);
+            }, 300);
         }
 
         textInput.addEventListener('input', updateStats);
