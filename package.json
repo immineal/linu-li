@@ -1,5 +1,10 @@
 {
   "devDependencies": {
+    "jsdom": "^29.0.2",
+    "pdf-lib": "^1.17.1",
     "puppeteer": "^24.40.0"
+  },
+  "scripts": {
+    "test": "node tests/test-base64-converter.js && node tests/test-counter.js && node tests/test-pdf-watermarker.js && node tests/test-sql-formatter.js && node tests/test_diff_checker.js && node tests/test_time_converter.js && node tests/test-jwt-debugger.js"
   }
 }
