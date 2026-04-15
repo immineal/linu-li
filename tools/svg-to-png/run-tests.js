@@ -63,8 +63,15 @@ server.listen(8080, async () => {
             document.getElementById('scaleSelect').value = 'custom';
             document.getElementById('scaleSelect').dispatchEvent(new Event('change'));
             document.getElementById('customWidth').value = '50000'; // Huge width
-            document.getElementById('convertBtn').click();
+            document.getElementById('customWidth').dispatchEvent(new Event('input'));
+
+            // Wait for debounce in test
+            setTimeout(() => {
+                document.getElementById('convertBtn').disabled = false;
+                document.getElementById('convertBtn').click();
+            }, 500);
         });
+        await new Promise(r => setTimeout(r, 1000));
 
         await new Promise(r => setTimeout(r, 3000));
 
@@ -72,7 +79,50 @@ server.listen(8080, async () => {
         console.log('Final dimensions (Clamped):', dims2);
         if (!dims2.includes('8192') && !dims2.includes('16384')) throw new Error('Expected clamped dimensions, got ' + dims2);
 
+
+        // 3. Test interactive batch coloring logic
+        console.log('Testing color extraction and modification...');
+        const svgColor = `<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="red"/></svg>`;
+
+        await page.evaluate(async (svgString) => {
+            const blob = new Blob([svgString], { type: 'image/svg+xml' });
+            const file = new File([blob], 'color_test.svg', { type: 'image/svg+xml' });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            document.getElementById('fileInput').files = dataTransfer.files;
+            document.getElementById('fileInput').dispatchEvent(new Event('change'));
+        }, svgColor);
+
+        await new Promise(r => setTimeout(r, 500));
+
+        // Check color palette population
+        const hasRed = await page.evaluate(() => {
+            const labels = Array.from(document.querySelectorAll('.color-label'));
+            return labels.some(l => l.textContent === '#ff0000');
+        });
+
+        console.log('Detected #ff0000:', hasRed);
+        if (!hasRed) throw new Error('Expected #ff0000 to be extracted into color palette');
+
+        // Swap color
+        await page.evaluate(() => {
+            const inputs = document.querySelectorAll('.color-picker-input');
+            const targetInput = inputs[0];
+            targetInput.value = '#0000ff';
+            targetInput.dispatchEvent(new Event('input'));
+
+            document.getElementById('scaleSelect').value = '1';
+            document.getElementById('convertBtn').disabled = false;
+            document.getElementById('convertBtn').click();
+        });
+
+        await new Promise(r => setTimeout(r, 1000));
+
+        const newSrc = await page.evaluate(() => document.getElementById('previewImg').src);
+        if (!newSrc || !newSrc.startsWith('blob:')) throw new Error('Expected preview image to use a Blob URL');
+
         console.log('ALL TESTS PASSED');
+
     } catch (e) {
         console.error('TEST FAILED:', e);
         process.exitCode = 1;
