@@ -1,129 +1,112 @@
-# Linus Linhof Toolbox
+# linu-li
 
-A curated suite of **privacy-first** web utilities for developers, creatives, and everyday users.
+A bunch of browser-based tools for everyday stuff — PDF editing, image processing, dev utilities, etc. Everything runs locally in your browser, no uploads, no tracking.
 
-**Live Site:** [linu.li](https://linu.li)
+**Live:** [linu.li](https://linu.li)
 
 ![Privacy](https://img.shields.io/badge/Privacy-100%25%20Client--Side-green)
 ![PWA](https://img.shields.io/badge/PWA-Offline%20Ready-blue)
 ![License](https://img.shields.io/badge/license-%20%20GNU%20GPLv3%20-lightgray)
 
-## Philosophy
+## Why
 
-Most online tools (PDF mergers, image compressors) require you to upload your files to a remote server. This creates privacy risks and data compliance issues.
+Most online tools for things like PDF merging or image compression work by uploading your files to some server. I didn't really want that, so this is all client-side — WebAssembly and vanilla JS, nothing leaves your machine.
 
-**This Toolbox is different.**
-*   **No Server Uploads:** All processing happens locally in your browser using WebAssembly and JavaScript.
-*   **No Tracking:** No analytics, no ads, no cookies.
-*   **Offline Capable:** Installs as a PWA and works without an internet connection.
+No analytics, no ads, no cookies. Also works offline as a PWA.
 
-## The Tools
+## Tools
 
-### PDF Tools
-*   **PDF Merger:** Combine multiple documents with drag-and-drop reordering.
-*   **PDF Splitter:** Explode documents or extract specific page ranges.
-*   **Asset Extractor:** Scrape high-res images embedded inside PDFs.
-*   **PDF 2-Up:** Arrange pages side-by-side (booklet mode).
-*   **Grayscale Converter:** Rasterize pages to black & white for printing.
-*   **Watermarker:** Stamp text overlays on documents.
+### PDF
+- **PDF Merger** — drag-and-drop, reorder pages, combine
+- **PDF Splitter** — split by page ranges or explode into single pages
+- **Asset Extractor** — pull embedded images out of PDFs
+- **2-Up** — put two pages side by side (booklet-style)
+- **Grayscale** — rasterize to B&W for printing
+- **Watermarker** — stamp text onto pages
 
-### Image Tools
-*   **Smart Compressor:** Intelligent WebP/AVIF compression via WebAssembly.
-*   **Bulk Resizer:** Resize batches of images while maintaining aspect ratio.
-*   **Social Cropper:** Crop and mask for social media (16:9, 4:5, Circle).
-*   **EXIF Scrubber:** View and strip hidden metadata (GPS, Camera settings).
-*   **Favicon Creator:** Generate `.ico` and `.png` icons from text or images.
-*   **SVG Rasterizer:** Convert vector files to high-res PNGs.
+### Images
+- **Smart Compressor** — WebP/AVIF compression via WASM
+- **Bulk Resizer** — batch resize, keeps aspect ratio
+- **Social Cropper** — crop for 16:9, 4:5, circle masks, etc.
+- **EXIF Scrubber** — view and strip metadata (GPS, camera info)
+- **Favicon Creator** — generate `.ico`/`.png` from text or image
+- **SVG Rasterizer** — SVG to high-res PNG
 
-### Text & Writing
-*   **Word Counter:** Deep analysis with reading time estimation.
-*   **Diff Checker:** Compare text/code to find changes.
-*   **Markdown Live:** Editor with instant preview and HTML export.
-*   **List Cleaner:** Deduplicate, sort, randomize, and trim lists.
-*   **Case Converter:** Title Case, camelCase, snake_case, etc.
-*   **Lorem Generator:** Generate text in Latin, Tech-babble, or Corporate-speak.
+### Text
+- **Word Counter** — character/word/reading time stats
+- **Diff Checker** — side-by-side or inline text diff
+- **Markdown Live** — editor with live preview and HTML export
+- **List Cleaner** — dedup, sort, shuffle, trim
+- **Case Converter** — camelCase, snake_case, Title Case, etc.
+- **Lorem Generator** — Latin, tech-babble, corporate-speak
 
-###  Developer Tools
-*   **JSON Workbench:** Validate, repair, minify, and view JSON as a tree.
-*   **SQL Prettifier:** Format messy SQL queries.
-*   **JWT Debugger:** Decode tokens to inspect headers/payloads.
-*   **URL Tools:** Encode/Decode and strip tracking parameters (UTM, fbclid).
-*   **Base64 Converter:** File-to-Base64 and Text-to-Base64.
-*   **Epoch Converter:** Unix timestamp translation.
+### Dev
+- **JSON Workbench** — validate, repair, minify, tree view
+- **SQL Prettifier** — format messy queries
+- **JWT Debugger** — decode headers/payloads, checks expiry
+- **URL Tools** — encode/decode, strip tracking params (UTM, fbclid)
+- **Base64** — file-to-base64, text-to-base64
+- **Epoch Converter** — unix timestamp ↔ human readable
 
-### Daily Utilities
-*   **Password Gen:** Cryptographically strong, client-side generation.
-*   **QR Creator:** WiFi, vCard, and URL codes.
-*   **Unit Converter:** Length, Weight, Temp, Speed, and Data storage.
-*   **Hash Generator:** Calculate SHA-256, MD5, and SHA-512.
-*   **Aspect Ratio:** Calculate dimensions for video/images.
-*   **Color Tools:** Picker, converter, and WCAG contrast checker.
+### Misc
+- **Password Gen** — uses Web Crypto API, no bias
+- **QR Creator** — WiFi, vCard, URL
+- **Unit Converter** — length, weight, temp, speed, data
+- **Hash Generator** — SHA-256, MD-5, SHA-512
+- **Aspect Ratio** — calc dimensions for video/images
+- **Color Tools** — picker, converter, WCAG contrast checker
 
 ---
 
-## Technical Stack
+## Stack
 
-This project is built with **Vanilla HTML, CSS, and JavaScript**. No build steps (like Webpack or Vite) are required to run it, making it extremely lightweight and easy to host.
+Plain HTML, CSS, JS. No build step, no bundler, no framework. Just open it.
 
-**Key Libraries:**
-*   **PDF Manipulation:** `pdf-lib`, `pdf.js`, `jspdf`
-*   **Image Processing:** `cropperjs`, `piexifjs`
-*   **Time/Date:** `dayjs`
-*   **Code/Text:** `marked` (Markdown), `sql-formatter`, `json5`, `jsdiff`
-*   **Crypto:** Native Web Crypto API + `crypto-js` (legacy support)
+Libraries used:
+- `pdf-lib`, `pdf.js`, `jspdf` — PDF stuff
+- `cropperjs`, `piexifjs` — image handling
+- `dayjs` — dates
+- `marked` — Markdown parsing
+- `sql-formatter`, `json5`, `jsdiff` — text/code tools
+- Web Crypto API + `crypto-js` — hashing/crypto
 
-## Local Development
+## Running locally
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/linuslinhof/toolbox.git
-    cd toolbox
-    ```
+Needs to be served over HTTP (ES modules + service worker don't work on `file://`).
 
-2.  **Run a local server:**
-    Because the project uses ES Modules and Service Workers, it must be served over HTTP, not `file://`.
-    ```bash
-    # Python 3
-    python -m http.server 8000
+```bash
+git clone https://github.com/immineal/linu-li.git
+cd linu-li
 
-    # OR Node.js
-    npx serve .
-    ```
+# python
+python -m http.server 8000
 
-3.  **Open in browser:**
-    Go to `http://localhost:8000`
+# or node
+npx serve .
+```
+
+Then open `http://localhost:8000`.
 
 ## Deployment
 
-This project uses **GitHub Actions** to automatically deploy to **All-Inkl** hosting via FTP/FTPS.
+GitHub Actions deploys to All-Inkl via FTP on every push to `main`. Config is in `.github/workflows/deploy.yml`.
 
-### How it works:
-1.  The workflow is defined in `.github/workflows/deploy.yml`.
-2.  On every `push` to the `main` branch, the action triggers.
-3.  It uses `SamKirkland/FTP-Deploy-Action` to sync only changed files to the server.
+If you want to use your own server: add an `FTP_PASSWORD` secret in the repo settings and update the `server`/`username` fields in the workflow file.
 
-### Setup for Forkers:
-If you want to deploy this to your own FTP server:
-1.  Go to repository **Settings** > **Secrets and variables** > **Actions**.
-2.  Add a new secret named `FTP_PASSWORD`.
-3.  Update the `server` and `username` fields in `.github/workflows/deploy.yml`.
-
----
-
-## Project Structure
+## Project structure
 
 ```
 /
 ├── assets/
-│   ├── css/        # Global styles and variables
-│   ├── js/         # Layout logic, PWA registration
-│   └── fonts/      # Self-hosted fonts
-├── tools/          # One folder per tool (index.html within each)
-├── index.html      # Main dashboard
-├── sw.js           # Service Worker for offline support
-└── manifest.json   # PWA Manifest
+│   ├── css/        # global styles
+│   ├── js/         # layout, PWA registration
+│   └── fonts/      # self-hosted
+├── tools/          # one folder per tool, each with its own index.html
+├── index.html      # main dashboard
+├── sw.js           # service worker
+└── manifest.json   # PWA manifest
 ```
 
 ## License
 
-This project is open source and available under the [GNU GPL v3 License](LICENSE).
+[GNU GPL v3](LICENSE)

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Linus Linhof — Toolbox</title>
-    <meta name="description" content="A curated set of privacy-first utilities for developers and creatives. PDF tools, image converters, and dev helpers. No server uploads.">
+    <meta name="description" content="Free browser-based tools for PDF, images, text, and code. Everything runs locally — no uploads, no tracking. Merge PDFs, compress images, generate QR codes, and more.">
     <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
     <link rel="stylesheet" href="./assets/css/style.css">
     <link rel="manifest" href="./assets/manifest.json">
@@ -47,6 +47,20 @@
             border: 1px solid rgba(107, 144, 128, 0.3);
         }
         body.dark-mode .privacy-badge { color: #88a899; background: rgba(107, 144, 128, 0.2); }
+
+        /* Hidden keyword tags for search */
+        .keywords { display: none; }
+        /* Search highlight */
+        mark {
+            background: rgba(255, 200, 0, 0.35);
+            color: inherit;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+        body.dark-mode mark {
+            background: rgba(255, 200, 0, 0.2);
+        }
+
     </style>
 </head>
 <body>
@@ -54,7 +68,7 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Toolbox</h1>
-                <p>A curated suite of privacy-first utilities.</p>
+                <p>Free tools that run in your browser. No uploads, no accounts, no tracking.</p>
                 <div>                       
                     <a href="./privacy.html" class="privacy-badge" style="text-decoration: none; transition: all 0.2s;">
                         🔒 100% Client-Side &bull; GDPR Compliant &bull; Offline Ready
@@ -89,32 +103,38 @@
             <div class="grid-wrapper">
                 <a href="./tools/pdf-merger" class="card interactive" data-id="pdf-merger">
                     <h3>PDF Merger</h3>
-                    <p class="small-text">Combine multiple PDF documents into a single file with drag-and-drop reordering.</p>
+                    <p class="small-text">Combine multiple PDF files into one. Drag to reorder pages before merging.</p>
+                    <span class="keywords">merge join combine append concatenate documents pages files split unite pdf</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/pdf-splitter" class="card interactive" data-id="pdf-splitter">
                     <h3>PDF Splitter</h3>
-                    <p class="small-text">Extract specific page ranges or explode a document into separate files.</p>
+                    <p class="small-text">Split a PDF by page range, or extract individual pages into separate files.</p>
+                    <span class="keywords">split separate extract cut pages range divide chunk break apart pdf</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/pdf-extractor" class="card interactive" data-id="pdf-extractor">
-                    <h3>Asset Extractor</h3>
-                    <p class="small-text">Scrape and download high-resolution images embedded inside PDFs.</p>
+                    <h3>PDF Image Extractor</h3>
+                    <p class="small-text">Pull out all images embedded inside a PDF and download them.</p>
+                    <span class="keywords">extract images photos pictures assets embedded download save jpg png pdf scrape</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/pdf-grayscale" class="card interactive" data-id="pdf-grayscale">
                     <h3>PDF Grayscale & Scan Cleaner</h3>
-                    <p class="small-text">Convert color PDFs to black & white and clean up scans for printing..</p>
+                    <p class="small-text">Convert a color PDF to black & white. Good for printing or cleaning up scanned docs.</p>
+                    <span class="keywords">grayscale black white bw monochrome print scan clean ink save toner pdf convert</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/pdf-watermarker" class="card interactive" data-id="pdf-watermarker">
                     <h3>PDF Watermarker</h3>
-                    <p class="small-text">Stamp text, confidential labels, or copyright notices onto pages.</p>
+                    <p class="small-text">Add a text watermark to every page — for confidential labels, copyright, drafts.</p>
+                    <span class="keywords">watermark stamp text overlay confidential draft copyright brand label pdf</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/pdf-2up" class="card interactive" data-id="pdf-2up">
-                    <h3>PDF 2-Up Maker</h3>
-                    <p class="small-text">Duplicate or sequence pages side-by-side for booklet printing.</p>
+                    <h3>PDF 2-Up (Booklet Layout)</h3>
+                    <p class="small-text">Put two PDF pages side by side on one sheet — for booklet or double-sided printing.</p>
+                    <span class="keywords">2up two booklet duplex double sided pages side by side print layout nup pdf</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
             </div>
@@ -124,33 +144,39 @@
             <p class="category-intro">Compress, convert, and resize visual assets.</p>
             <div class="grid-wrapper">
                 <a href="./tools/image-compressor" class="card interactive" data-id="image-compressor">
-                    <h3>Smart Compressor</h3>
-                    <p class="small-text">Intelligent WebP/AVIF compression with before-and-after comparison.</p>
+                    <h3>Image Compressor</h3>
+                    <p class="small-text">Shrink photos to WebP or AVIF with a quality slider. Before/after comparison built in.</p>
+                    <span class="keywords">compress optimize shrink reduce size photo image webp avif jpg jpeg png quality file size web upload</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/image-resizer" class="card interactive" data-id="image-resizer">
-                    <h3>Bulk Resizer</h3>
-                    <p class="small-text">Batch resize dimensions for web/email without losing quality.</p>
+                    <h3>Bulk Image Resizer</h3>
+                    <p class="small-text">Resize a batch of images to exact dimensions. Keeps aspect ratio.</p>
+                    <span class="keywords">resize scale batch multiple bulk dimensions width height pixels images photos thumbnail</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/social-cropper" class="card interactive" data-id="social-cropper">
-                    <h3>Social Cropper</h3>
-                    <p class="small-text">Crop, rotate, and mask images for profiles (4:5, 16:9, Circle).</p>
+                    <h3>Social Media Cropper</h3>
+                    <p class="small-text">Crop images to exact ratios for Instagram, Twitter, LinkedIn, profile pictures.</p>
+                    <span class="keywords">crop instagram twitter linkedin facebook profile picture avatar thumbnail ratio 16:9 4:5 1:1 circle square social media</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/exif-scrubber" class="card interactive" data-id="exif-scrubber">
-                    <h3>EXIF Scrubber</h3>
-                    <p class="small-text">View hidden GPS data and strip metadata for privacy.</p>
+                    <h3>EXIF Metadata Remover</h3>
+                    <p class="small-text">See what location and camera data is hidden in a photo, then strip it out.</p>
+                    <span class="keywords">exif metadata gps location strip remove privacy camera settings hidden data photo jpg jpeg</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/favicon-maker" class="card interactive" data-id="favicon-maker">
-                    <h3>Favicon Creator</h3>
-                    <p class="small-text">Generate .ico and .png icons from text, emojis, or logos.</p>
+                    <h3>Favicon Generator</h3>
+                    <p class="small-text">Create .ico and .png browser tab icons from text, emoji, or an image.</p>
+                    <span class="keywords">favicon icon ico png browser tab website logo generate create emoji text shortcut</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/svg-to-png" class="card interactive" data-id="svg-to-png">
-                    <h3>SVG Rasterizer</h3>
-                    <p class="small-text">Convert vector files to high-resolution PNGs at any scale.</p>
+                    <h3>SVG to PNG Converter</h3>
+                    <p class="small-text">Render a vector SVG file as a raster PNG at any resolution.</p>
+                    <span class="keywords">svg png convert rasterize vector bitmap export resolution scale image render</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
             </div>
@@ -160,33 +186,39 @@
             <p class="category-intro">Clean, format, and analyze text.</p>
             <div class="grid-wrapper">
                 <a href="./tools/word-counter" class="card interactive" data-id="word-counter">
-                    <h3>Word & Char Counter</h3>
-                    <p class="small-text">Real-time text analysis with reading time estimation.</p>
+                    <h3>Word & Character Counter</h3>
+                    <p class="small-text">Count words, characters, sentences, and get an estimated reading time.</p>
+                    <span class="keywords">word count character letter sentence paragraph reading time estimate text length limit</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/case-converter" class="card interactive" data-id="case-converter">
-                    <h3>Case Converter</h3>
-                    <p class="small-text">Switch between Title Case, camelCase, snake_case, and SCREAMING.</p>
+                    <h3>Text Case Converter</h3>
+                    <p class="small-text">Convert text between camelCase, snake_case, Title Case, UPPER, lower, kebab-case.</p>
+                    <span class="keywords">case camelcase snake_case title case upper lower kebab-case pascal convert text format programming</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/list-cleaner" class="card interactive" data-id="list-cleaner">
-                    <h3>List Sanitizer</h3>
-                    <p class="small-text">Deduplicate, randomize, sort, and clean messy text lists.</p>
+                    <h3>List Cleaner & Sorter</h3>
+                    <p class="small-text">Remove duplicates, sort, shuffle, or trim a list of lines. Handles huge lists.</p>
+                    <span class="keywords">list deduplicate duplicate remove sort shuffle randomize trim clean lines text sort alphabetical</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/markdown-editor" class="card interactive" data-id="markdown-editor">
-                    <h3>Markdown Live</h3>
-                    <p class="small-text">Write Markdown with instant preview and HTML export.</p>
+                    <h3>Markdown Editor & Preview</h3>
+                    <p class="small-text">Write Markdown and see the rendered output side by side. Export to HTML.</p>
+                    <span class="keywords">markdown editor preview render html export write md github readme documentation</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/diff-checker" class="card interactive" data-id="diff-checker">
-                    <h3>Diff Checker</h3>
-                    <p class="small-text">Compare text or code to highlight additions and removals.</p>
+                    <h3>Text / Code Diff Checker</h3>
+                    <p class="small-text">Paste two texts and highlight what changed — additions, deletions, line by line.</p>
+                    <span class="keywords">diff compare difference text code changes added removed highlight inline side by side version</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/lorem-generator" class="card interactive" data-id="lorem-generator">
                     <h3>Lorem Ipsum Generator</h3>
-                    <p class="small-text">Generate placeholder text in "Latin", Tech-babble, or Corporate-speak.</p>
+                    <p class="small-text">Generate filler text for mockups. Latin, tech jargon, or corporate speak.</p>
+                    <span class="keywords">lorem ipsum placeholder dummy filler text mockup design prototype paragraph sentence latin</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
             </div>
@@ -196,33 +228,39 @@
             <p class="category-intro">Encoders, decoders, and debuggers.</p>
             <div class="grid-wrapper">
                 <a href="./tools/json-tools" class="card interactive" data-id="json-tools">
-                    <h3>JSON Workbench</h3>
-                    <p class="small-text">Validate, auto-repair, minify, and explore JSON data.</p>
+                    <h3>JSON Formatter & Validator</h3>
+                    <p class="small-text">Validate, fix, minify, prettify, and explore JSON as a collapsible tree.</p>
+                    <span class="keywords">json format validate repair fix minify prettify beautify tree view explore api response parse</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/sql-formatter" class="card interactive" data-id="sql-formatter">
-                    <h3>SQL Prettifier</h3>
-                    <p class="small-text">Format messy SQL queries for MySQL, PostgreSQL, and Standard SQL.</p>
+                    <h3>SQL Formatter</h3>
+                    <p class="small-text">Paste messy SQL and get it formatted cleanly. Supports MySQL, PostgreSQL, SQL.</p>
+                    <span class="keywords">sql format prettify beautify query mysql postgresql database indent clean code</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/jwt-debugger" class="card interactive" data-id="jwt-debugger">
-                    <h3>JWT Debugger</h3>
-                    <p class="small-text">Inspect JSON Web Token headers and payloads without server calls.</p>
+                    <h3>JWT Decoder & Inspector</h3>
+                    <p class="small-text">Decode a JSON Web Token to read its header and payload. Shows expiry status.</p>
+                    <span class="keywords">jwt json web token decode inspect header payload expiry auth bearer authentication debug</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/url-tools" class="card interactive" data-id="url-tools">
-                    <h3>URL Cleaner & Encoder</h3>
-                    <p class="small-text">Strip tracking parameters (UTM, fbclid) and encode strings.</p>
+                    <h3>URL Encoder / Tracker Stripper</h3>
+                    <p class="small-text">Encode or decode URLs, and remove tracking junk like UTM, fbclid, gclid params.</p>
+                    <span class="keywords">url encode decode clean strip tracking utm fbclid gclid parameters link query string percent encoding</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/base64-converter" class="card interactive" data-id="base64-converter">
-                    <h3>Base64 Converter</h3>
-                    <p class="small-text">Convert files to Data URIs or text to Base64 strings.</p>
+                    <h3>Base64 Encoder / Decoder</h3>
+                    <p class="small-text">Encode text or files to Base64, or decode Base64 strings back. Data URI support.</p>
+                    <span class="keywords">base64 encode decode text file data uri string binary convert atob btoa</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
-                <a href="./tools/epoch-converter" class="card interactive" data-id="epoch-converter">
-                    <h3>Epoch Converter</h3>
-                    <p class="small-text">Convert Unix timestamps to human time and vice versa.</p>
+                <a href="./tools/time-converter" class="card interactive" data-id="time-converter">
+                    <h3>Unix Timestamp Converter</h3>
+                    <p class="small-text">Convert Unix/epoch timestamps to readable dates and back. Supports timezones.</p>
+                    <span class="keywords">unix timestamp epoch convert date time seconds milliseconds timezone utc posix</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
             </div>
@@ -231,34 +269,40 @@
             <h2>Daily Utilities</h2>
             <p class="category-intro">Calculators and helpers for everyday tasks.</p>
             <div class="grid-wrapper">
-                <a href="./tools/password-generator" class="card interactive" data-id="password-generator">
-                    <h3>Password Gen</h3>
-                    <p class="small-text">Generate cryptographically strong, random passwords locally.</p>
+                <a href="./tools/pw-generator" class="card interactive" data-id="pw-generator">
+                    <h3>Password Generator</h3>
+                    <p class="small-text">Generate a strong random password locally. Adjustable length, symbols, numbers.</p>
+                    <span class="keywords">password generate random strong secure cryptographic symbols numbers letters length passphrase</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/qr-creator" class="card interactive" data-id="qr-creator">
-                    <h3>QR Code Creator</h3>
-                    <p class="small-text">Generate custom QR codes for WiFi, Contacts (vCard), and URLs.</p>
+                    <h3>QR Code Generator</h3>
+                    <p class="small-text">Create QR codes for links, WiFi passwords, or contact cards (vCard). Download as PNG.</p>
+                    <span class="keywords">qr code generate wifi password vcard contact url link download png scan barcode</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/color-tools" class="card interactive" data-id="color-tools">
-                    <h3>Color & Contrast</h3>
-                    <p class="small-text">Pick colors, convert formats, and check WCAG accessibility.</p>
+                    <h3>Color Picker & Contrast Checker</h3>
+                    <p class="small-text">Pick colors, convert HEX/RGB/HSL, and check WCAG accessibility contrast ratios.</p>
+                    <span class="keywords">color picker hex rgb hsl hsv convert contrast wcag accessibility a11y palette css</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/aspect-ratio" class="card interactive" data-id="aspect-ratio">
-                    <h3>Aspect Ratio Calc</h3>
-                    <p class="small-text">Calculate dimensions for video and images (16:9, 4:3).</p>
+                    <h3>Aspect Ratio Calculator</h3>
+                    <p class="small-text">Calculate width or height from a given ratio. Useful for video, images, UI design.</p>
+                    <span class="keywords">aspect ratio 16:9 4:3 1:1 calculate width height video image screen resolution dimensions</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/unit-converter" class="card interactive" data-id="unit-converter">
                     <h3>Unit Converter</h3>
-                    <p class="small-text">Convert between metric/imperial, digital storage, and temperature.</p>
+                    <p class="small-text">Convert length, weight, temperature, speed, and digital storage units.</p>
+                    <span class="keywords">unit convert length weight temperature speed storage km miles celsius fahrenheit gb mb metric imperial</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/hash-generator" class="card interactive" data-id="hash-generator">
                     <h3>Hash Generator</h3>
-                    <p class="small-text">Calculate SHA-256, MD5, and SHA-512 hashes for text or files.</p>
+                    <p class="small-text">Get the SHA-256, MD5, or SHA-512 hash of any text or file.</p>
+                    <span class="keywords">hash sha256 md5 sha512 checksum file text integrity verify fingerprint crypto</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
             </div>
@@ -421,52 +465,113 @@
 
             // === INSTANT SEARCH LOGIC ===
             const searchInput = document.getElementById('toolSearch');
-            const categories = document.querySelectorAll('h2:not(#favorites-container h2)'); // Select category headers
-            const searchGridWrappers = document.querySelectorAll('.grid-wrapper:not(#favorites-grid)'); // Select tool grids
+            const searchGridWrappers = document.querySelectorAll('.grid-wrapper:not(#favorites-grid)');
+
+            // Flat results container (injected once, lives right after the search bar)
+            const searchResultsGrid = document.createElement('div');
+            searchResultsGrid.id = 'search-results-grid';
+            searchResultsGrid.className = 'grid-wrapper';
+            searchResultsGrid.style.display = 'none';
+            searchResultsGrid.style.marginBottom = '3rem';
+            document.getElementById('toolSearch').closest('div').insertAdjacentElement('afterend', searchResultsGrid);
+
+            // Collect all real tool cards once (not clones, not favorites)
+            const allToolCards = Array.from(document.querySelectorAll('.card.interactive[data-id]:not(#favorites-grid .card)'));
+
+            // All category sections (h2 + p + grid) that should hide during search
+            const categorySections = Array.from(searchGridWrappers).map(grid => {
+                const desc = grid.previousElementSibling;
+                const title = desc && desc.tagName === 'P' ? desc.previousElementSibling : null;
+                return { grid, desc, title };
+            });
+
+            function showCategories() {
+                categorySections.forEach(({ grid, desc, title }) => {
+                    grid.style.display = 'grid';
+                    if (desc) desc.style.display = 'block';
+                    if (title) title.style.display = 'block';
+                    // Restore all cards inside
+                    Array.from(grid.children).forEach(c => c.style.display = '');
+                });
+            }
+
+            function hideCategories() {
+                categorySections.forEach(({ grid, desc, title }) => {
+                    grid.style.display = 'none';
+                    if (desc) desc.style.display = 'none';
+                    if (title) title.style.display = 'none';
+                });
+            }
 
             searchInput.addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase();
+                const term = e.target.value.trim().toLowerCase();
 
-                // 1. Filter Cards
-                document.querySelectorAll('.card.interactive:not(#favorites-grid .card)').forEach(card => {
-                    const text = card.textContent.toLowerCase();
-                    // Toggle visibility based on match
-                    card.style.display = text.includes(term) ? 'flex' : 'none';
-                });
-
-                // 2. Hide Empty Categories
-                searchGridWrappers.forEach((grid, index) => {
-                    // Check if this grid has any visible cards left
-                    const hasVisible = Array.from(grid.children).some(card => card.style.display !== 'none');
-                    
-                    // Toggle the grid and its preceding H2 and P description
-                    grid.style.display = hasVisible ? 'grid' : 'none';
-                    
-                    // Find the header associated with this grid
-                    // (Assumes DOM order: H2 -> P -> DIV.grid-wrapper)
-                    const desc = grid.previousElementSibling; // The <p>
-                    const title = desc.previousElementSibling; // The <h2>
-                    
-                    if (desc && desc.tagName === 'P') desc.style.display = hasVisible ? 'block' : 'none';
-                    if (title && title.tagName === 'H2') title.style.display = hasVisible ? 'block' : 'none';
-                });
-                
-                // 3. Hide Favorites when searching (optional, reduces clutter)
-                const favContainer = document.getElementById('favorites-container');
-                if (term.length > 0) {
-                    favContainer.classList.remove('visible');
-                    favContainer.style.display = 'none';
-                } else {
-                    // Restore favorites if search is cleared
-                    if (localStorage.getItem('ll_toolbox_favorites')) {
-                        // Re-run your existing renderFavorites() logic here or toggle simple display
-                        const hasItems = document.getElementById('favorites-grid').children.length > 0;
-                        if(hasItems) {
-                            favContainer.style.display = 'block';
-                            setTimeout(() => favContainer.classList.add('visible'), 10);
-                        }
+                if (!term) {
+                    // Clear search — back to normal layout
+                    searchResultsGrid.style.display = 'none';
+                    searchResultsGrid.innerHTML = '';
+                    showCategories();
+                    // Restore favorites
+                    const hasItems = document.getElementById('favorites-grid').children.length > 0;
+                    if (hasItems) {
+                        favContainer.style.display = 'block';
+                        setTimeout(() => favContainer.classList.add('visible'), 10);
                     }
+                    return;
                 }
+
+                // Hide the categorized layout and favorites
+                hideCategories();
+                favContainer.classList.remove('visible');
+                favContainer.style.display = 'none';
+
+                // Build flat results from matching cards (cloned so originals stay in DOM)
+                searchResultsGrid.innerHTML = '';
+                const matches = allToolCards.filter(card =>
+                    card.textContent.toLowerCase().includes(term)
+                );
+
+                // Highlight: wrap matched text in <mark> inside h3 and .small-text
+                function highlightNode(el, term) {
+                    if (!el) return;
+                    el.childNodes.forEach(node => {
+                        if (node.nodeType === Node.TEXT_NODE) {
+                            const idx = node.textContent.toLowerCase().indexOf(term);
+                            if (idx === -1) return;
+                            const before = document.createTextNode(node.textContent.slice(0, idx));
+                            const mark = document.createElement('mark');
+                            mark.textContent = node.textContent.slice(idx, idx + term.length);
+                            const after = document.createTextNode(node.textContent.slice(idx + term.length));
+                            node.replaceWith(before, mark, after);
+                        } else if (node.nodeType === Node.ELEMENT_NODE) {
+                            highlightNode(node, term);
+                        }
+                    });
+                }
+
+                if (matches.length === 0) {
+                    searchResultsGrid.innerHTML = '<p style="opacity:0.5; grid-column: 1/-1;">No tools found for \"' + term + '\".</p>';
+                } else {
+                    matches.forEach(card => {
+                        const clone = card.cloneNode(true);
+                        // Highlight in title and description only (not keywords span)
+                        highlightNode(clone.querySelector('h3'), term);
+                        highlightNode(clone.querySelector('.small-text'), term);
+                        // Re-attach fav button listener on clone
+                        const btn = clone.querySelector('.fav-btn');
+                        const id = clone.getAttribute('data-id');
+                        if (btn && id) {
+                            btn.addEventListener('click', (ev) => {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                toggleFavorite(id);
+                            });
+                        }
+                        searchResultsGrid.appendChild(clone);
+                    });
+                }
+
+                searchResultsGrid.style.display = 'grid';
             });
         });
     </script>

@@ -8,14 +8,14 @@
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
     <!-- Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="../../assets/vendor/jszip.min.js"></script>
+    <script src="../../assets/vendor/FileSaver.min.js"></script>
     <!-- Piexifjs for Non-Destructive Editing -->
-    <script src="https://unpkg.com/piexifjs@1.0.6/piexif.js"></script>
+    <script src="../../assets/vendor/piexif.js"></script>
     
     <!-- Leaflet for Maps -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="../../assets/vendor/leaflet.css"/>
+    <script src="../../assets/vendor/leaflet.js"></script>
 
     <style>
         .preview-section {
@@ -345,9 +345,17 @@
             
             // Initialize map if not exists
             if (!mapInstance) {
+                // Fix Leaflet default marker icons (vendored locally)
+                delete L.Icon.Default.prototype._getIconUrl;
+                L.Icon.Default.mergeOptions({
+                    iconUrl:       '../../assets/vendor/images/marker-icon.png',
+                    iconRetinaUrl: '../../assets/vendor/images/marker-icon-2x.png',
+                    shadowUrl:     '../../assets/vendor/images/marker-shadow.png',
+                });
                 mapInstance = L.map('mapContainer').setView([lat, lng], 13);
+                // Note: tile images are fetched from OpenStreetMap servers on demand
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OSM'
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }).addTo(mapInstance);
             } else {
                 mapInstance.setView([lat, lng], 13);
@@ -382,26 +390,41 @@
             processedBlobs = [];
 
             const total = queue.length;
+            let errorCount = 0;
             
             try {
                 for (let i = 0; i < total; i++) {
                     const file = queue[i];
-                    const blob = await stripMetadataPiexif(file);
-                    
-                    processedBlobs.push({ name: `clean_${file.name}`, blob: blob });
+                    try {
+                        const blob = await stripMetadataPiexif(file);
+                        processedBlobs.push({ name: `clean_${file.name}`, blob: blob });
+                    } catch (err) {
+                        console.error(`Failed to scrub ${file.name}:`, err);
+                        // Omitting the file entirely for privacy
+                        errorCount++;
+                    }
 
                     const percent = Math.round(((i + 1) / total) * 100);
                     progressBar.style.width = `${percent}%`;
                 }
 
                 setTimeout(() => {
-                    showResult();
+                    if (errorCount > 0) {
+                        showToast(`${errorCount} file(s) failed and were omitted for privacy.`, 'error');
+                    }
+                    if (processedBlobs.length > 0) {
+                        showResult();
+                    } else {
+                        resultBox.classList.remove('hidden');
+                        resultMessage.textContent = 'Failed to scrub any files.';
+                        downloadBtn.style.display = 'none';
+                    }
                     processBtn.disabled = false;
                 }, 500);
 
             } catch (error) {
                 console.error(error);
-                showToast('Error processing images.', 'error');
+                showToast('Critical error processing images.', 'error');
                 processBtn.disabled = false;
             }
         }
@@ -426,6 +449,7 @@
                         reject(err);
                     }
                 };
+                reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
                 reader.readAsDataURL(file);
             });
         }

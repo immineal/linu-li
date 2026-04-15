@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
-    <script src="https://unpkg.com/json5@2/dist/index.min.js"></script>
+    <script src="../../assets/vendor/jsonpath.min.js"></script>
 
     <style>
         /* Override to fix the "Infinity" scroll issue */
@@ -127,7 +127,7 @@
             <div class="card" style="margin-bottom: 1.5rem; padding: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     
-                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                         <button class="button sm outline" id="uploadTrigger">📂 Upload File</button>
                         <input type="file" id="jsonFileInput" accept=".json,.txt,.csv" class="hidden">
                         
@@ -143,6 +143,11 @@
                             <div class="toggle-switch" style="transform:scale(0.8);"></div>
                             <span style="font-size:0.9rem;">Unescape Strings</span>
                         </label>
+
+                        <div style="display: flex; gap: 0.5rem; align-items: center; background: var(--card-bg); border: 1px solid var(--border); padding: 0 8px; border-radius: 4px; height: 36px;">
+                            <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-secondary); white-space: nowrap; line-height: 1; align-self: center;">JSONPath</span>
+                            <input type="text" id="jsonPathInput" placeholder="$.store.book[*].author" style="border: none; background: transparent; font-family: var(--font-mono); font-size: 0.8rem; padding: 0; width: 160px; min-width: 80px; outline: none; height: 100%; align-self: stretch; margin: 0;">
+                        </div>
                     </div>
 
                     <div class="button-group" style="margin: 0;">
@@ -165,17 +170,17 @@
 
                 <!-- OUTPUT -->
                 <div class="card" style="display: flex; flex-direction: column; position: relative; padding: 1.5rem;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center;">
-                        <label>Result</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; min-height: 2rem;">
+                        <label style="margin: 0; flex-shrink: 0;">Result</label>
                         
-                        <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                             <!-- View Toggle -->
                             <div class="view-toggle-group">
                                 <button class="view-toggle-btn active" id="viewCodeBtn">Code</button>
                                 <button class="view-toggle-btn" id="viewTreeBtn">Tree</button>
                             </div>
 
-                            <div style="display: flex; gap: 5px;">
+                            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                                 <button class="button sm outline" id="toggleWrapBtn">Unwrap</button>
                                 <button class="button sm outline" id="downloadBtn">Download</button>
                                 <button class="button sm" id="copyBtn">Copy</button>
@@ -219,6 +224,7 @@
         
         const indentSelect = document.getElementById('indentSelect');
         const unescapeToggle = document.getElementById('unescapeToggle');
+        const jsonPathInput = document.getElementById('jsonPathInput');
 
         // View Toggles
         const viewCodeBtn = document.getElementById('viewCodeBtn');
@@ -226,8 +232,16 @@
 
         // State
         let currentData = null; // Store parsed object
+        let originalData = null; // Store original unfiltered parsed object
         let isWrapped = true; 
         let currentView = 'code'; // 'code' or 'tree'
+
+        // Worker Setup
+        let jsonWorker = null;
+        if (window.Worker) {
+            jsonWorker = new Worker('./worker.js');
+            jsonWorker.onmessage = handleWorkerMessage;
+        }
 
         // --- Event Listeners ---
 
@@ -236,10 +250,53 @@
         
         clearBtn.addEventListener('click', () => {
             jsonInput.value = '';
+            jsonPathInput.value = '';
             resultBox.innerHTML = '';
             treeBox.innerHTML = '';
             currentData = null;
+            originalData = null;
             statusText.textContent = 'Cleared.';
+        });
+
+        // JSONPath logic
+        let debounceTimer;
+        jsonPathInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (!originalData) return;
+
+                const query = jsonPathInput.value.trim();
+                if (!query) {
+                    currentData = originalData;
+                    // Trigger full worker re-process to avoid main thread lock on formatting
+                    runProcessor('format');
+                    statusText.textContent = 'JSONPath cleared.';
+                    return;
+                }
+
+                try {
+                    if (window.jsonpath) {
+                        statusText.textContent = 'Applying JSONPath...';
+                        // Offloading just the stringify/highlight back to worker is best
+                        // But we still have to do jsonpath query here unless we put that in worker too.
+                        // Let's at least debounce it, and use worker for the format step.
+                        const result = window.jsonpath.query(originalData, query);
+                        currentData = result;
+
+                        // Send back to worker just for formatting to save main thread
+                        if (jsonWorker) {
+                            jsonWorker.postMessage({
+                                action: 'formatOnly',
+                                parsedData: result,
+                                indent: indentSelect.value,
+                                mode: currentMode
+                            });
+                        }
+                    }
+                } catch (err) {
+                    statusText.textContent = `JSONPath syntax error`;
+                }
+            }, 300); // 300ms debounce
         });
 
         copyBtn.addEventListener('click', () => {
@@ -317,6 +374,8 @@
 
         // --- Core Processing Logic ---
 
+        let currentMode = 'format';
+
         function runProcessor(mode) {
             let raw = jsonInput.value.trim();
             if (!raw) {
@@ -324,61 +383,89 @@
                 return;
             }
 
-            try {
-                // 1. Unescape if requested
-                if (unescapeToggle.checked) {
-                    try {
-                        const temp = JSON.parse(raw);
-                        if (typeof temp === 'string') raw = temp;
-                    } catch (e) { /* Ignore */ }
-                }
+            currentMode = mode;
+            statusText.textContent = 'Processing...';
 
-                // 2. Aggressive Repair (Regex)
-                raw = raw.replace(/:\s*"([^"]*?)(,\s*[\r\n]|\s*[\r\n])/g, ': "$1"$2');
-                raw = raw.replace(/:\s*"([^"]*?)\s*}/g, ': "$1"}');
-
-                // 3. Parsing
-                let parsed;
-                try {
-                    parsed = JSON5.parse(raw);
-                } catch (e) { throw e; }
-
-                currentData = parsed; // Cache parsed data
-
-                // 4. Render based on Mode
-                if (mode === 'csv') {
-                    renderCSV(parsed);
-                    // Force code view for CSV output
-                    switchView('code');
-                } else {
-                    // Update both views (lazily)
-                    renderCode(parsed);
-                    treeBox.innerHTML = ''; // Clear old tree
-                    if (currentView === 'tree') {
-                        renderTree(parsed);
-                    }
-                    
-                    // Stats
-                    const size = formatFileSize(new Blob([JSON.stringify(parsed)]).size);
-                    const type = Array.isArray(parsed) ? `Array(${parsed.length})` : typeof parsed;
-                    statusText.textContent = `Valid JSON | Type: ${type} | Size: ${size}`;
-                    showToast('Processed successfully', 'success');
-                }
-
-            } catch (err) {
-                showError(err);
+            if (jsonWorker) {
+                jsonWorker.postMessage({
+                    action: 'process',
+                    raw: raw,
+                    indent: indentSelect.value,
+                    unescape: unescapeToggle.checked,
+                    mode: mode
+                });
+            } else {
+                showError({message: "Web Workers are not supported in this browser."});
             }
         }
 
-        function renderCode(obj) {
-            const indentVal = indentSelect.value;
-            const space = indentVal === 'tab' ? '\t' : (indentVal === 'min' ? 0 : parseInt(indentVal));
-            const jsonString = JSON.stringify(obj, null, space);
+        function handleWorkerMessage(e) {
+            const data = e.data;
+            if (data.success) {
+                // If it was a full process or just format
+                if (data.action === 'process') {
+                    originalData = data.parsed;
+                    currentData = originalData;
 
-            if (indentVal === 'min') {
-                resultBox.innerHTML = escapeHtml(jsonString);
+                    const query = jsonPathInput.value.trim();
+                    if (query && window.jsonpath) {
+                        try {
+                            currentData = window.jsonpath.query(originalData, query);
+                            // We need to re-format this new data
+                            jsonWorker.postMessage({
+                                action: 'formatOnly',
+                                parsedData: currentData,
+                                indent: indentSelect.value,
+                                mode: currentMode
+                            });
+                            return; // Wait for the formatOnly response
+                        } catch (err) {}
+                    }
+                } else if (data.action === 'formatOnly') {
+                    // Update only views
+                }
+
+                if (currentMode === 'csv') {
+                    resultBox.textContent = data.resultText;
+                    statusText.textContent = `CSV Generated | ${currentData.length} rows`;
+                    switchView('code');
+                    showToast('Converted to CSV', 'success');
+                } else {
+                    // Code view
+                    if (indentSelect.value === 'min') {
+                        resultBox.innerHTML = escapeHtml(data.resultText);
+                    } else {
+                        // We do the highlight here still? No, actually highlighting in main thread is slow.
+                        // Let's at least use the resultText to avoid stringify.
+                        // Regex highlight is still main thread, but stringify is saved.
+                        // Wait, we can't easily move syntaxHighlight into worker because it might return HTML?
+                        // Actually we CAN return HTML from worker.
+                        // Let's use worker's HTML if provided, otherwise fallback.
+                        if (data.highlightedHtml) {
+                            resultBox.innerHTML = data.highlightedHtml;
+                        } else {
+                            resultBox.innerHTML = escapeHtml(data.resultText); // Fallback to avoid locking on 50MB regex if not provided
+                        }
+                    }
+
+                    // Tree view
+                    treeBox.innerHTML = '';
+                    if (currentView === 'tree') {
+                        renderTree(currentData);
+                    }
+                    
+                    const size = formatFileSize(new Blob([data.resultText]).size);
+                    const type = Array.isArray(currentData) ? `Array(${currentData.length})` : typeof currentData;
+                    const modeText = jsonPathInput.value.trim() ? "Filtered JSON" : "Valid JSON";
+                    statusText.textContent = `${modeText} | Type: ${type} | Size: ${size}`;
+                    showToast('Processed successfully', 'success');
+                }
             } else {
-                resultBox.innerHTML = syntaxHighlight(jsonString);
+                showError({
+                    message: data.error,
+                    lineNumber: data.lineNumber,
+                    columnNumber: data.columnNumber
+                });
             }
         }
 
@@ -400,7 +487,6 @@
             // Objects & Arrays
             const isArray = Array.isArray(value);
             const details = document.createElement('details');
-            if (isOpen) details.open = true;
 
             const summary = document.createElement('summary');
             const size = isArray ? value.length : Object.keys(value).length;
@@ -422,17 +508,55 @@
 
             // Children Container
             const ul = document.createElement('ul');
+            details.appendChild(ul);
+
+            let isLoaded = false;
             
-            // Optimization: If huge, maybe limit rendering? 
-            // For now, standard recursion. Details element hides DOM layout cost when closed.
-            for (const k in value) {
-                const li = document.createElement('li');
-                const childKey = isArray ? null : k; // Arrays don't show index keys in standard trees usually, or index
-                li.appendChild(buildTreeElement(childKey, value[k]));
-                ul.appendChild(li);
+            const loadChildren = () => {
+                if (isLoaded) return;
+                isLoaded = true;
+
+                const keys = Object.keys(value);
+                const CHUNK_SIZE = 100;
+
+                const renderChunk = (start) => {
+                    const end = Math.min(start + CHUNK_SIZE, keys.length);
+                    for (let i = start; i < end; i++) {
+                        const k = keys[i];
+                        const li = document.createElement('li');
+                        const childKey = isArray ? null : k; // Arrays don't show index keys in standard trees usually, or index
+                        li.appendChild(buildTreeElement(childKey, value[k]));
+                        ul.appendChild(li);
+                    }
+                    if (end < keys.length) {
+                        const moreLi = document.createElement('li');
+                        const moreBtn = document.createElement('button');
+                        moreBtn.className = 'button sm outline';
+                        moreBtn.textContent = `Load more (${keys.length - end} left)...`;
+                        moreBtn.style.margin = '4px 0 4px 1.2em';
+                        moreBtn.style.padding = '2px 8px';
+                        moreBtn.style.fontSize = '0.8em';
+                        moreBtn.onclick = () => {
+                            moreLi.remove();
+                            renderChunk(end);
+                        };
+                        moreLi.appendChild(moreBtn);
+                        ul.appendChild(moreLi);
+                    }
+                };
+
+                renderChunk(0);
+            };
+
+            if (isOpen) {
+                details.open = true;
+                loadChildren();
+            } else {
+                details.addEventListener('toggle', () => {
+                    if (details.open) loadChildren();
+                });
             }
             
-            details.appendChild(ul);
             return details;
         }
 
@@ -482,7 +606,18 @@
 
         // --- Helpers ---
         function showError(err) {
-            resultBox.innerHTML = `<div style="color: var(--accent); font-weight: bold;">❌ Parsing Error</div><div style="opacity: 0.8; margin-top: 10px;">${err.message}</div>`;
+            let errorHtml = `<div style="color: var(--accent); font-weight: bold;">❌ Parsing Error</div>`;
+            errorHtml += `<div style="opacity: 0.8; margin-top: 10px;">${err.message}</div>`;
+
+            if (err.lineNumber !== undefined && err.lineNumber !== null) {
+                errorHtml += `<div style="margin-top: 10px; font-size: 0.9em;">Error at line <strong>${err.lineNumber}</strong>`;
+                if (err.columnNumber !== undefined && err.columnNumber !== null) {
+                    errorHtml += `, column <strong>${err.columnNumber}</strong>`;
+                }
+                errorHtml += `</div>`;
+            }
+
+            resultBox.innerHTML = errorHtml;
             statusText.textContent = 'Status: Invalid JSON';
             showToast('Fix failed', 'error');
         }

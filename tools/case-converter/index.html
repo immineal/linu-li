@@ -67,10 +67,10 @@
                     result = text.toLowerCase();
                     break;
                 case 'title':
-                    result = text.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+                    result = text.toLowerCase().replace(/(?<!['’\p{L}])\p{L}/gu, s => s.toUpperCase());
                     break;
                 case 'sentence':
-                    result = text.toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g, c => c.toUpperCase());
+                    result = text.toLowerCase().replace(/(^\s*|[.!?]\s*)([^a-z0-9\p{L}\p{N}]*)([a-z0-9\p{L}\p{N}])/gu, (match, p1, p2, p3) => p1 + p2 + p3.toUpperCase());
                     break;
                 case 'alternating':
                     result = text.split('').map((c, i) => i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()).join('');
@@ -99,7 +99,10 @@
             // Split by space, punctuation, or CamelCase boundary
             return text
                 .replace(/([a-z])([A-Z])/g, '$1 $2') // split camelCase
-                .replace(/[_-]/g, ' ') // split snake/kebab
+                .replace(/([a-zA-Z])(\d)/g, '$1 $2') // split letter and number
+                .replace(/(\d)([a-zA-Z])/g, '$1 $2') // split number and letter
+                .replace(/[^\p{L}\p{N}\p{Emoji_Presentation}\p{Extended_Pictographic}]+/gu, ' ')
+                .trim()
                 .split(/\s+/)
                 .filter(w => w.length > 0);
         }

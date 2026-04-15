@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="../../assets/vendor/jszip.min.js"></script>
 </head>
 <body>
     <main>
@@ -237,42 +237,45 @@
         // Core Resize Function using Canvas
         function resizeImage(file, targetWidth, format, quality) {
             return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
+                const objectUrl = URL.createObjectURL(file);
+                const img = new Image();
+                img.src = objectUrl;
                 
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target.result;
+                img.onload = () => {
+                    URL.revokeObjectURL(objectUrl);
                     
-                    img.onload = () => {
-                        // Calculate aspect ratio
-                        const scaleFactor = targetWidth / img.width;
-                        const targetHeight = img.height * scaleFactor;
+                    if (img.width === 0 || img.height === 0) {
+                        return reject(new Error('Invalid image dimensions'));
+                    }
 
-                        const canvas = document.createElement('canvas');
-                        canvas.width = targetWidth;
-                        canvas.height = targetHeight;
-                        
-                        const ctx = canvas.getContext('2d');
-                        
-                        // Better quality smoothing
-                        ctx.imageSmoothingEnabled = true;
-                        ctx.imageSmoothingQuality = 'high';
-                        
-                        // Draw
-                        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-                        
-                        // Export
-                        canvas.toBlob((blob) => {
-                            if (blob) resolve(blob);
-                            else reject(new Error('Canvas conversion failed'));
-                        }, format, quality);
-                    };
+                    // Calculate aspect ratio
+                    const scaleFactor = targetWidth / img.width;
+                    const targetHeight = Math.round(img.height * scaleFactor);
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+
+                    const ctx = canvas.getContext('2d');
+
+                    // Better quality smoothing
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
                     
-                    img.onerror = (err) => reject(err);
+                    // Draw
+                    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+                    // Export
+                    canvas.toBlob((blob) => {
+                        if (blob) resolve(blob);
+                        else reject(new Error('Canvas conversion failed'));
+                    }, format, quality);
                 };
                 
-                reader.onerror = (err) => reject(err);
+                img.onerror = (err) => {
+                    URL.revokeObjectURL(objectUrl);
+                    reject(err);
+                };
             });
         }
 

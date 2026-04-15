@@ -7,7 +7,29 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+    <script src="../../assets/vendor/diff.min.js"></script>
+
+    <!-- highlight.js -->
+    <link rel="stylesheet" id="hljs-light" href="../../assets/vendor/github.min.css">
+    <link rel="stylesheet" id="hljs-dark" href="../../assets/vendor/github-dark.min.css" disabled>
+    <script src="../../assets/vendor/highlight.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const hljsLight = document.getElementById('hljs-light');
+            const hljsDark = document.getElementById('hljs-dark');
+            const updateTheme = () => {
+                if (document.body.classList.contains('dark-mode')) {
+                    hljsLight.disabled = true;
+                    hljsDark.disabled = false;
+                } else {
+                    hljsLight.disabled = false;
+                    hljsDark.disabled = true;
+                }
+            };
+            updateTheme();
+            new MutationObserver(updateTheme).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        });
+    </script>
 
     <style>
         /* --- View Toggles --- */
@@ -37,16 +59,61 @@
             border: 1px solid var(--border);
             border-radius: 4px;
             background: var(--code-bg);
-            overflow-x: auto;
             font-family: var(--font-mono);
             font-size: 13px;
-            line-height: 1.5;
+            position: relative;
+        }
+
+        .diff-viewport {
+            overflow: auto;
+            max-height: 70vh;
+            height: 70vh; /* Ensure container has height for virtual scrolling */
+            position: relative;
+            will-change: transform;
+        }
+
+        .diff-spacer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1px;
+            z-index: -1;
+        }
+
+        .diff-table-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            min-width: 100%;
         }
 
         table.diff-table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed; /* Forces equal width columns in side-by-side */
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            font-weight: bold;
+            color: var(--accent);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        body.dark-mode .loading-overlay {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        .diff-wrapper.is-loading .loading-overlay {
+            opacity: 1;
+            pointer-events: all;
         }
 
         .diff-table td, .diff-table th {
@@ -59,22 +126,26 @@
             width: 40px;
             min-width: 40px;
             text-align: right;
-            padding: 2px 8px;
+            padding: 0 8px;
             color: var(--ink-secondary);
             background: rgba(0,0,0,0.03);
             border-right: 1px solid var(--border);
             user-select: none;
             font-size: 11px;
             opacity: 0.7;
+            height: 20px;
+            line-height: 20px;
         }
 
         /* Code Content */
         .diff-code {
             width: 100%;
-            padding: 2px 8px;
-            white-space: pre-wrap; /* Preserves spaces/tabs but wraps long lines */
-            word-break: break-all;
+            padding: 0 8px;
+            white-space: pre;
             tab-size: 4;
+            height: 20px;
+            line-height: 20px;
+            overflow: hidden;
         }
         
         /* Colors */
@@ -151,9 +222,16 @@
                     </div>
 
                     <div class="diff-wrapper">
-                        <table id="diffTable" class="diff-table">
-                            <!-- Diff Generated Here -->
-                        </table>
+                        <div class="diff-viewport" id="diffViewport">
+                            <div class="diff-spacer" id="diffSpacer"></div>
+                            <div class="diff-table-container" id="diffTableContainer">
+                                <table id="diffTable" class="diff-table">
+                                    <tbody id="diffTableBody">
+                                        <!-- Diff Generated Here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -178,8 +256,12 @@
         const viewSideBtn = document.getElementById('viewSide');
 
         // State
-        let currentDiff = null;
+        let currentInlineRows = null;
+        let currentSideRows = null;
         let activeView = 'inline'; // 'inline' or 'side'
+
+        // Web Worker Setup
+        let diffWorker = null;
 
         // --- Switch View Logic ---
         window.switchView = function(view) {
@@ -192,7 +274,7 @@
                 viewSideBtn.classList.add('active');
             }
             
-            if (currentDiff) renderDiff();
+            if (currentInlineRows && currentSideRows) renderDiff();
         };
 
         // --- Compare Logic ---
@@ -207,176 +289,143 @@
                 return;
             }
 
-            // Generate Diff Object
-            try {
-                if (mode === 'json') {
-                    const j1 = text1 ? JSON.stringify(JSON.parse(text1), null, 4) : '';
-                    const j2 = text2 ? JSON.stringify(JSON.parse(text2), null, 4) : '';
-                    currentDiff = Diff.diffLines(j1, j2);
-                } 
-                else if (mode === 'lines') {
-                    currentDiff = ignoreSpace ? Diff.diffTrimmedLines(text1, text2) : Diff.diffLines(text1, text2);
-                } 
-                else if (mode === 'words') {
-                    currentDiff = ignoreSpace ? Diff.diffWords(text1, text2) : Diff.diffWordsWithSpace(text1, text2);
-                } 
-                else {
-                    currentDiff = Diff.diffChars(text1, text2);
-                }
+            // Set UI to loading state
+            compareBtn.textContent = 'Comparing...';
+            compareBtn.disabled = true;
+            document.querySelector('.diff-wrapper').classList.add('is-loading');
 
-                renderDiff();
-                resultBox.classList.remove('hidden');
-                resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            // Initialize or reuse Worker
+            if (!diffWorker) {
+                diffWorker = new Worker('worker.js');
 
-            } catch (e) {
-                showToast('Error generating diff (check JSON syntax if using JSON mode).', 'error');
-                console.error(e);
+                diffWorker.onmessage = function(e) {
+                    // Reset UI
+                    compareBtn.textContent = 'Compare';
+                    compareBtn.disabled = false;
+                    document.querySelector('.diff-wrapper').classList.remove('is-loading');
+
+                    if (e.data.error) {
+                        showToast('Error: ' + e.data.error, 'error');
+                        return;
+                    }
+
+                    currentInlineRows = e.data.inlineRows;
+                    currentSideRows = e.data.sideRows;
+
+                    renderDiff();
+                    resultBox.classList.remove('hidden');
+                    resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                };
+
+                diffWorker.onerror = function(e) {
+                    compareBtn.textContent = 'Compare';
+                    compareBtn.disabled = false;
+                    document.querySelector('.diff-wrapper').classList.remove('is-loading');
+                    showToast('Fatal error generating diff.', 'error');
+                    console.error("Worker error:", e);
+                };
             }
+
+            // Pass work to Web Worker
+            diffWorker.postMessage({
+                text1, text2, mode, ignoreSpace
+            });
         });
 
-        // --- Rendering Logic ---
+        // --- Rendering Logic (Virtual Scrolling) ---
+        const ROW_HEIGHT = 20; // Matches our CSS height
+        const BUFFER_ROWS = 20;
+        let lastScrollTop = 0;
+
+        const diffViewport = document.getElementById('diffViewport');
+        const diffSpacer = document.getElementById('diffSpacer');
+        const diffTableContainer = document.getElementById('diffTableContainer');
+        const diffTableBody = document.getElementById('diffTableBody');
 
         function renderDiff() {
-            diffTable.innerHTML = '';
+            if (!currentInlineRows || !currentSideRows) return;
 
-            if (activeView === 'side') {
-                renderSideBySide();
-            } else {
-                renderInline();
-            }
+            const rows = activeView === 'side' ? currentSideRows : currentInlineRows;
+
+            // Set Total Height
+            const totalHeight = rows.length * ROW_HEIGHT;
+            diffSpacer.style.height = `${totalHeight}px`;
+
+            // Draw Initial View
+            renderVisibleRows(0);
         }
 
-        // 1. Inline Render (Unified View)
-        function renderInline() {
-            let lineNumLeft = 1;
-            let lineNumRight = 1;
+        function renderVisibleRows(scrollTop) {
+            const rows = activeView === 'side' ? currentSideRows : currentInlineRows;
+            if (!rows || rows.length === 0) return;
 
-            currentDiff.forEach(part => {
-                const lines = part.value.split('\n');
-                // Handle trailing newline artifact from split
-                if (lines.length > 1 && lines[lines.length-1] === '') lines.pop();
-
-                const typeClass = part.added ? 'diff-row-add' : (part.removed ? 'diff-row-del' : 'diff-row-neutral');
-                
-                lines.forEach(line => {
-                    const tr = document.createElement('tr');
-                    
-                    // Left Num
-                    const tdNumL = document.createElement('td');
-                    tdNumL.className = 'diff-num';
-                    tdNumL.textContent = part.added ? '' : lineNumLeft++;
-
-                    // Right Num
-                    const tdNumR = document.createElement('td');
-                    tdNumR.className = 'diff-num';
-                    tdNumR.textContent = part.removed ? '' : lineNumRight++;
-
-                    // Code
-                    const tdCode = document.createElement('td');
-                    tdCode.className = `diff-code ${typeClass}`;
-                    tdCode.textContent = line || ' '; // preserve empty lines
-
-                    tr.appendChild(tdNumL);
-                    tr.appendChild(tdNumR);
-                    tr.appendChild(tdCode);
-                    diffTable.appendChild(tr);
-                });
-            });
-        }
-
-        // 2. Side-by-Side Render (Split View)
-        function renderSideBySide() {
-            // Note: For Side-by-Side, 'diffLines' is usually best. 
-            // If users selected 'chars' or 'words', splitting it side-by-side is tricky.
-            // We will process the diff parts into line buckets.
-
-            let rows = [];
-            let leftBuffer = [];
-            let rightBuffer = [];
-
-            currentDiff.forEach(part => {
-                const lines = part.value.split('\n');
-                if (lines.length > 1 && lines[lines.length-1] === '') lines.pop();
-
-                if (part.removed) {
-                    leftBuffer.push(...lines);
-                } else if (part.added) {
-                    rightBuffer.push(...lines);
-                } else {
-                    // Neutral: Flush buffers first
-                    flushBuffers(rows, leftBuffer, rightBuffer);
-                    // Add neutral lines to both
-                    lines.forEach(l => rows.push({ type: 'neutral', left: l, right: l }));
-                }
-            });
+            const viewportHeight = diffViewport.clientHeight || 500; // fallback if hidden
             
-            // Flush remaining
-            flushBuffers(rows, leftBuffer, rightBuffer);
+            // Calculate indices
+            let startIndex = Math.floor(scrollTop / ROW_HEIGHT);
+            let endIndex = Math.min(
+                rows.length - 1,
+                startIndex + Math.ceil(viewportHeight / ROW_HEIGHT)
+            );
 
-            // Build HTML
-            let lineL = 1;
-            let lineR = 1;
+            // Apply buffer
+            startIndex = Math.max(0, startIndex - BUFFER_ROWS);
+            endIndex = Math.min(rows.length - 1, endIndex + BUFFER_ROWS);
 
-            rows.forEach(row => {
-                const tr = document.createElement('tr');
+            // Position the container
+            const offsetY = startIndex * ROW_HEIGHT;
+            diffTableContainer.style.transform = `translateY(${offsetY}px)`;
 
-                // LEFT COLUMN
-                const numL = document.createElement('td');
-                numL.className = 'diff-num';
-                const codeL = document.createElement('td');
+            // Build DOM string
+            let htmlStr = '';
 
-                if (row.left !== null) {
-                    numL.textContent = lineL++;
-                    codeL.className = `diff-code ${row.type === 'change' || row.type === 'del' ? 'diff-row-del' : ''}`;
-                    codeL.textContent = row.left || ' ';
+            for (let i = startIndex; i <= endIndex; i++) {
+                const row = rows[i];
+                if (activeView === 'inline') {
+                    htmlStr += `
+                        <tr>
+                            <td class="diff-num">${row.numL}</td>
+                            <td class="diff-num">${row.numR}</td>
+                            <td class="diff-code ${row.typeClass}">${row.codeHtml}</td>
+                        </tr>
+                    `;
                 } else {
-                    numL.textContent = '';
-                    codeL.className = 'diff-code diff-empty';
+                    const lClass = row.type === 'change' || row.type === 'del' ? 'diff-row-del' : '';
+                    const rClass = row.type === 'change' || row.type === 'add' ? 'diff-row-add' : '';
+
+                    const lCode = row.left !== null ? `<td class="diff-code ${lClass}">${row.left}</td>` : `<td class="diff-code diff-empty"></td>`;
+                    const rCode = row.right !== null ? `<td class="diff-code ${rClass}">${row.right}</td>` : `<td class="diff-code diff-empty"></td>`;
+
+                    htmlStr += `
+                        <tr>
+                            <td class="diff-num">${row.numL}</td>
+                            ${lCode}
+                            <td class="diff-num">${row.numR}</td>
+                            ${rCode}
+                        </tr>
+                    `;
                 }
-
-                // RIGHT COLUMN
-                const numR = document.createElement('td');
-                numR.className = 'diff-num';
-                const codeR = document.createElement('td');
-
-                if (row.right !== null) {
-                    numR.textContent = lineR++;
-                    codeR.className = `diff-code ${row.type === 'change' || row.type === 'add' ? 'diff-row-add' : ''}`;
-                    codeR.textContent = row.right || ' ';
-                } else {
-                    numR.textContent = '';
-                    codeR.className = 'diff-code diff-empty';
-                }
-
-                tr.appendChild(numL);
-                tr.appendChild(codeL);
-                tr.appendChild(numR);
-                tr.appendChild(codeR);
-                diffTable.appendChild(tr);
-            });
-        }
-
-        // Helper to align added/removed blocks
-        function flushBuffers(rows, leftBuf, rightBuf) {
-            const max = Math.max(leftBuf.length, rightBuf.length);
-            for (let i = 0; i < max; i++) {
-                rows.push({
-                    type: (leftBuf[i] !== undefined && rightBuf[i] !== undefined) ? 'change' : (leftBuf[i] !== undefined ? 'del' : 'add'),
-                    left: leftBuf[i] !== undefined ? leftBuf[i] : null,
-                    right: rightBuf[i] !== undefined ? rightBuf[i] : null
-                });
             }
-            // Clear arrays
-            leftBuf.length = 0;
-            rightBuf.length = 0;
+
+            diffTableBody.innerHTML = htmlStr;
         }
+
+        diffViewport.addEventListener('scroll', () => {
+            const currentScrollTop = diffViewport.scrollTop;
+            if (Math.abs(currentScrollTop - lastScrollTop) > ROW_HEIGHT) {
+                requestAnimationFrame(() => renderVisibleRows(currentScrollTop));
+                lastScrollTop = currentScrollTop;
+            }
+        });
 
         // --- Actions ---
         clearBtn.addEventListener('click', () => {
             inputOriginal.value = '';
             inputChanged.value = '';
             resultBox.classList.add('hidden');
-            diffTable.innerHTML = '';
+            diffTableBody.innerHTML = '';
+            currentInlineRows = null;
+            currentSideRows = null;
         });
     </script>
 </body>

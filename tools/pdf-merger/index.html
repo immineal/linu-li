@@ -8,8 +8,9 @@
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
     <!-- External Libraries -->
-    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="../../assets/vendor/pdf-lib.min.js"></script>
+    <script src="../../assets/vendor/FileSaver.min.js"></script>
+    <script src="../../assets/vendor/pdf.min.js"></script>
     
     <style>
         /* Drag & Drop Reordering Styles */
@@ -87,6 +88,9 @@
     
     <!-- TOOL LOGIC -->
     <script>
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
+
         // State
         let storedFiles = []; // Array to hold File objects
         const { PDFDocument } = PDFLib;
@@ -144,10 +148,13 @@
                 li.setAttribute('data-index', index);
                 
                 li.innerHTML = `
-                    <div class="file-info" style="pointer-events: none;"> <!-- pointer-events none prevents text selection while dragging -->
+                    <div class="file-info" style="pointer-events: none; align-items: center; display: flex; gap: 10px;">
                         <span class="handle" style="pointer-events: auto;">☰</span>
+                        <div class="thumb-container" id="thumb-container-${index}" style="width: 40px; height: 50px; background: #f0f0f0; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 4px;">
+                            <span style="font-size: 0.8rem; color: #888;">...</span>
+                        </div>
                         <div>
-                            <div class="file-name" title="${file.name}">${file.name}</div>
+                            <div class="file-name" title="${file.name}" style="margin-bottom: 2px;">${file.name}</div>
                             <div class="file-size">${formatFileSize(file.size)}</div>
                         </div>
                     </div>
@@ -158,6 +165,9 @@
                 addDragListeners(li);
                 
                 fileList.appendChild(li);
+
+                // Render Thumbnail
+                renderThumbnail(file, index);
             });
 
             // Add remove listeners
@@ -166,37 +176,141 @@
             });
         }
 
+        async function renderThumbnail(file, index) {
+            const container = document.getElementById(`thumb-container-${index}`);
+            if (!container) return;
+
+            try {
+                const url = URL.createObjectURL(file);
+                const loadingTask = pdfjsLib.getDocument(url);
+                const pdf = await loadingTask.promise;
+                const page = await pdf.getPage(1);
+
+                const viewport = page.getViewport({ scale: 1 });
+                // Target width 40px
+                const scale = 40 / viewport.width;
+                const scaledViewport = page.getViewport({ scale });
+
+                const canvas = document.createElement('canvas');
+                canvas.width = scaledViewport.width;
+                canvas.height = scaledViewport.height;
+                const ctx = canvas.getContext('2d');
+
+                // White background to prevent transparent black issue
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                await page.render({
+                    canvasContext: ctx,
+                    viewport: scaledViewport
+                }).promise;
+
+                container.innerHTML = '';
+                container.appendChild(canvas);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error("Thumbnail error:", err);
+                container.innerHTML = '<span title="Encrypted file or read error. Merging user-password files might fail." style="font-size: 1.2rem; cursor: help;">🔒</span>';
+
+                // Show a gentle warning about encryption
+                if (err.name === 'PasswordException') {
+                    showToast(`"${file.name}" is encrypted. Merging may fail if it requires a user password.`, 'warning');
+                }
+            }
+        }
+
         // --- Drag & Drop Sorting Logic ---
-        let dragStartIndex;
+        let draggedItem = null;
+        let startIndex = -1;
+        let originalY = 0;
+        let currentY = 0;
+        let placeholder = null;
 
         function addDragListeners(item) {
-            item.addEventListener('dragstart', () => {
-                dragStartIndex = +item.getAttribute('data-index');
+            item.removeAttribute('draggable'); // Remove default HTML5 drag
+
+            const handle = item.querySelector('.handle');
+            if (!handle) return;
+
+            handle.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); // Prevent text selection
+
+                // Initialize drag state
+                draggedItem = item;
+                startIndex = +item.getAttribute('data-index');
+                originalY = item.offsetTop;
+                currentY = e.clientY;
+
+                // Create a placeholder to keep spacing
+                placeholder = document.createElement('li');
+                placeholder.className = 'file-item placeholder';
+                placeholder.style.height = `${item.offsetHeight}px`;
+                placeholder.style.background = 'transparent';
+                placeholder.style.border = '2px dashed var(--accent)';
+                placeholder.style.visibility = 'visible';
+
+                item.parentNode.insertBefore(placeholder, item);
+
+                // Style the dragged item for absolute positioning
+                const rect = item.getBoundingClientRect();
+                item.style.position = 'absolute';
+                item.style.top = `${originalY}px`;
+                item.style.left = `${item.offsetLeft}px`;
+                item.style.width = `${rect.width}px`;
+                item.style.zIndex = '1000';
+                item.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
                 item.classList.add('dragging');
-            });
 
-            item.addEventListener('dragenter', (e) => {
-                // remove highlight from others
-                document.querySelectorAll('.file-item').forEach(i => i.classList.remove('drag-over-target'));
-                item.classList.add('drag-over-target');
+                document.addEventListener('pointermove', onPointerMove);
+                document.addEventListener('pointerup', onPointerUp);
             });
+        }
 
-            item.addEventListener('dragover', (e) => {
-                e.preventDefault(); // Necessary to allow dropping
-            });
+        function onPointerMove(e) {
+            if (!draggedItem) return;
 
-            item.addEventListener('dragleave', () => {
-                item.classList.remove('drag-over-target');
-            });
+            const dy = e.clientY - currentY;
+            const newTop = originalY + dy;
+            draggedItem.style.top = `${newTop}px`;
 
-            item.addEventListener('drop', () => {
-                const dragEndIndex = +item.getAttribute('data-index');
-                swapItems(dragStartIndex, dragEndIndex);
+            // Find where to place the placeholder
+            const listItems = Array.from(fileList.children).filter(child => child !== draggedItem && child !== placeholder && child.classList.contains('file-item'));
+
+            let targetIndex = listItems.length; // Default to end
+            for (let i = 0; i < listItems.length; i++) {
+                const child = listItems[i];
+                const childRect = child.getBoundingClientRect();
+                const childCenterY = childRect.top + childRect.height / 2;
+
+                if (e.clientY < childCenterY) {
+                    targetIndex = i;
+                    break;
+                }
+            }
+
+            if (targetIndex < listItems.length) {
+                fileList.insertBefore(placeholder, listItems[targetIndex]);
+            } else {
+                fileList.appendChild(placeholder);
+            }
+        }
+
+            item.addEventListener('drop', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+
+                if (dragStartIndex !== undefined) {
+                    const dragEndIndex = +item.getAttribute('data-index');
+                    swapItems(dragStartIndex, dragEndIndex);
+                    dragStartIndex = undefined;
+                }
+
                 item.classList.remove('drag-over-target');
                 item.classList.remove('dragging');
             });
             
             item.addEventListener('dragend', () => {
+                dragStartIndex = undefined;
                 item.classList.remove('dragging');
                 document.querySelectorAll('.file-item').forEach(i => i.classList.remove('drag-over-target'));
             });
@@ -223,70 +337,65 @@
         }
 
         // 5. Merge Logic
-        mergeBtn.addEventListener('click', async () => {
+        mergeBtn.addEventListener('click', () => {
             if (storedFiles.length < 2) {
                 showToast('Please select at least 2 PDFs to merge.', 'error');
                 return;
             }
 
-            try {
-                // UI Updates
-                mergeBtn.disabled = true;
-                progressContainer.style.display = 'block';
-                progressBar.style.width = '10%';
-                resultBox.classList.add('hidden');
+            // UI Updates
+            mergeBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '5%';
+            resultBox.classList.add('hidden');
 
-                // Create a new PDFDocument
-                const mergedPdf = await PDFDocument.create();
-                
-                const totalFiles = storedFiles.length;
+            const worker = new Worker('worker.js');
 
-                for (let i = 0; i < totalFiles; i++) {
-                    const file = storedFiles[i];
-                    const fileArrayBuffer = await file.arrayBuffer();
-                    
-                    // Load the source PDF
-                    const pdf = await PDFDocument.load(fileArrayBuffer);
-                    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-                    
-                    // Add each page to the new document
-                    copiedPages.forEach((page) => mergedPdf.addPage(page));
-                    
-                    // Update Progress
-                    const percent = Math.round(((i + 1) / totalFiles) * 90);
+            worker.onmessage = (e) => {
+                const { type, percent, data, message } = e.data;
+
+                if (type === 'progress') {
                     progressBar.style.width = `${percent}%`;
-                }
+                } else if (type === 'done') {
+                    // Create Blob and Link
+                    const blob = new Blob([data], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
 
-                // Serialize the PDFDocument to bytes (a Uint8Array)
-                const mergedPdfBytes = await mergedPdf.save();
+                    downloadBtn.href = url;
+                    downloadBtn.download = `merged-pdf-${new Date().toISOString().slice(0,10)}.pdf`;
 
-                // Create Blob and Link
-                const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
+                    progressBar.style.width = '100%';
+                    setTimeout(() => {
+                        progressContainer.style.display = 'none';
+                        progressBar.style.width = '0%';
+                        resultBox.classList.remove('hidden');
+                        mergeBtn.disabled = false;
+                        showToast('PDFs merged successfully!', 'success');
 
-                downloadBtn.href = url;
-                // Generate filename with timestamp
-                downloadBtn.download = `merged-pdf-${new Date().toISOString().slice(0,10)}.pdf`;
+                        // Scroll to result
+                        resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 500);
 
-                // Final UI Updates
-                progressBar.style.width = '100%';
-                setTimeout(() => {
+                    worker.terminate();
+                } else if (type === 'error') {
+                    console.error('Worker Error:', message);
+                    showToast('Error merging PDFs. Please check file integrity.', 'error');
                     progressContainer.style.display = 'none';
-                    progressBar.style.width = '0%';
-                    resultBox.classList.remove('hidden');
                     mergeBtn.disabled = false;
-                    showToast('PDFs merged successfully!', 'success');
-                    
-                    // Scroll to result
-                    resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }, 500);
+                    worker.terminate();
+                }
+            };
 
-            } catch (error) {
-                console.error(error);
-                showToast('Error merging PDFs. Please check file integrity.', 'error');
+            worker.onerror = (err) => {
+                console.error('Worker failed:', err);
+                showToast('Error processing PDFs in background.', 'error');
                 progressContainer.style.display = 'none';
                 mergeBtn.disabled = false;
-            }
+                worker.terminate();
+            };
+
+            // Start the worker
+            worker.postMessage({ files: storedFiles });
         });
 
         // 6. Reset / Clear Listeners

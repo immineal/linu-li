@@ -8,8 +8,8 @@
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
     <!-- Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="../../assets/vendor/jszip.min.js"></script>
+    <script src="../../assets/vendor/FileSaver.min.js"></script>
 
     <style>
         /* --- MODE TABS --- */
@@ -243,6 +243,7 @@
         let currentMode = 'single';
         let singleFile = null;
         let singleResultBlob = null;
+        let singleProcessId = 0;
         let bulkQueue = [];
         let debounceTimer;
 
@@ -290,8 +291,13 @@
 
         // --- File Handling ---
         function handleFiles(files) {
-            const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-            if (validFiles.length === 0) return;
+            const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') && f.size > 0);
+            if (validFiles.length === 0) {
+                if (typeof showToast === 'function') {
+                    showToast('No valid image files selected. Files might be empty or unsupported.', 'error');
+                }
+                return;
+            }
 
             if (currentMode === 'single') {
                 loadSingleFile(validFiles[0]);
@@ -344,16 +350,25 @@
                 syncComparisonImages();
                 processSingleImage();
             };
+            imgOrg.onerror = () => {
+                if (typeof showToast === 'function') {
+                    showToast('Failed to load image. It may be corrupt or unsupported.', 'error');
+                }
+                document.getElementById('singleResetBtn').click();
+            };
             imgOrg.src = url;
         }
 
         async function processSingleImage() {
             if (!singleFile) return;
             
+            const currentProcessId = ++singleProcessId;
             const elComp = document.getElementById('singleStatCompressed');
             const elDiff = document.getElementById('singleStatDiff');
+            const dlBtn = document.getElementById('singleDownloadBtn');
             elComp.textContent = "Processing...";
             elDiff.textContent = "";
+            if (dlBtn) dlBtn.disabled = true;
             
             const fmt = singleFormat.value;
             const q = parseInt(singleQuality.value);
@@ -361,6 +376,8 @@
 
             try {
                 const blob = await processImagePipeline(singleFile, fmt, q, w);
+                if (currentProcessId !== singleProcessId) return;
+
                 singleResultBlob = blob;
 
                 const saved = singleFile.size - blob.size;
@@ -373,10 +390,16 @@
                 const imgMod = document.getElementById('imgMod');
                 imgMod.onload = () => syncComparisonImages();
                 imgMod.src = url;
+                if (dlBtn) dlBtn.disabled = false;
 
             } catch (e) {
+                if (currentProcessId !== singleProcessId) return;
                 console.error(e);
-                showToast('Compression failed: ' + e.message, 'error');
+                elComp.textContent = "Error";
+                elDiff.textContent = "";
+                if (typeof showToast === 'function') {
+                    showToast('Compression failed: ' + e.message, 'error');
+                }
             }
         }
 
