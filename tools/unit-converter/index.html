@@ -356,11 +356,11 @@
         }
 
         function formatNumber(num) {
-            if (num === 0) return 0;
-            if (Math.abs(num) < 1e-6 || Math.abs(num) >= 1e6) {
-                return parseFloat(num.toPrecision(7));
-            }
-            return parseFloat(num.toFixed(6));
+            // Fix floating point issues for display (e.g. 0.1 + 0.2)
+            if (Math.abs(num) < 1e-10) return "0";
+
+            let str = num.toPrecision(10);
+            return parseFloat(str).toString();
         }
 
         function convertTemp(val, from, to) {
