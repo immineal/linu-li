@@ -1,6 +1,0 @@
-{
-  "devDependencies": {
-    "jsdom": "^29.0.2",
-    "puppeteer": "^24.40.0"
-  }
-}
