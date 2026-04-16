@@ -34,6 +34,7 @@
                     <select id="layoutStyle">
                         <option value="duplicate">Duplicate Each Page (e.g., 1-1, 2-2, 3-3)</option>
                         <option value="sequential">Arrange Sequentially (e.g., 1-2, 3-4, 5-6)</option>
+                        <option value="booklet">Booklet / Saddle Stitch (e.g., 4-1, 2-3)</option>
                     </select>
 
                     <div class="split-view">
@@ -42,11 +43,16 @@
                             <input type="number" id="pageMargin" value="0" min="0" step="1" placeholder="0">
                         </div>
                         <div>
-                            <label for="cutLine">Cut Line Style</label>
+                            <label for="bleedArea">Bleed Area (mm)</label>
+                            <input type="number" id="bleedArea" value="0" min="0" step="1" placeholder="0">
+                        </div>
+                        <div>
+                            <label for="cutLine">Cut Line / Crop Marks</label>
                             <select id="cutLine">
-                                <option value="dashed">Dashed Line</option>
-                                <option value="solid">Solid Line</option>
-                                <option value="none">No Line</option>
+                                <option value="none">None</option>
+                                <option value="dashed">Center Dashed Line</option>
+                                <option value="solid">Center Solid Line</option>
+                                <option value="cropmarks">Corner Crop Marks (requires bleed)</option>
                             </select>
                         </div>
                     </div>
@@ -91,6 +97,7 @@
         // Inputs
         const layoutStyleInput = document.getElementById('layoutStyle');
         const pageMarginInput = document.getElementById('pageMargin');
+        const bleedAreaInput = document.getElementById('bleedArea');
         const cutLineInput = document.getElementById('cutLine');
 
         // State
@@ -166,12 +173,14 @@
                 progressBar.style.width = '10%';
 
                 // -- Read Options --
-                const layoutMode = layoutStyleInput.value; // 'duplicate' or 'sequential'
+                const layoutMode = layoutStyleInput.value; // 'duplicate', 'sequential', or 'booklet'
                 const marginMm = parseFloat(pageMarginInput.value) || 0;
+                const bleedMm = parseFloat(bleedAreaInput.value) || 0;
                 const cutStyle = cutLineInput.value;
 
                 // Convert mm to points (1mm = 2.835pt)
                 const marginPts = marginMm * 2.83465;
+                const bleedPts = bleedMm * 2.83465;
 
                 const arrayBuffer = await currentFile.arrayBuffer();
                 progressBar.style.width = '25%';
@@ -195,10 +204,44 @@
 
                 progressBar.style.width = '40%';
 
-                // -- Determine Loop Count --
+                // -- Analyze Max Dimensions for Uniform Canvas --
+                let maxW = 0;
+                let maxH = 0;
+                for (const p of embeddedPages) {
+                    if (p.width > maxW) maxW = p.width;
+                    if (p.height > maxH) maxH = p.height;
+                }
+
+                if (maxW === 0 || maxH === 0) {
+                    throw new Error('Could not determine valid page dimensions.');
+                }
+
+                // -- Determine Loop Count & Setup Booklet Array --
                 let outputPageCount = 0;
+                let bookletPairs = [];
+
                 if (layoutMode === 'duplicate') {
                     outputPageCount = totalSrcPages; 
+                } else if (layoutMode === 'booklet') {
+                    // Saddle stitch requires a multiple of 4 pages
+                    let paddedPages = [...embeddedPages];
+                    while (paddedPages.length % 4 !== 0) {
+                        paddedPages.push(null); // Blank page placeholder
+                    }
+                    outputPageCount = paddedPages.length / 2;
+
+                    for (let i = 0; i < outputPageCount; i++) {
+                        let lPage, rPage;
+                        const isFront = (i % 2 === 0);
+                        if (isFront) {
+                            lPage = paddedPages[paddedPages.length - 1 - i];
+                            rPage = paddedPages[i];
+                        } else {
+                            lPage = paddedPages[i];
+                            rPage = paddedPages[paddedPages.length - 1 - i];
+                        }
+                        bookletPairs.push({ left: lPage, right: rPage });
+                    }
                 } else {
                     // Sequential: 2 source pages = 1 output page
                     outputPageCount = Math.ceil(totalSrcPages / 2);
@@ -214,6 +257,10 @@
                         // Case: Duplicate (1,1), (2,2)
                         leftPage = embeddedPages[i];
                         rightPage = embeddedPages[i];
+                    } else if (layoutMode === 'booklet') {
+                        // Case: Booklet (n, 1), (2, n-1)
+                        leftPage = bookletPairs[i].left;
+                        rightPage = bookletPairs[i].right;
                     } else {
                         // Case: Sequential (1,2), (3,4)
                         leftPage = embeddedPages[i * 2];
@@ -221,14 +268,16 @@
                         rightPage = (nextIndex < totalSrcPages) ? embeddedPages[nextIndex] : null;
                     }
 
-                    // Dimensions (based on the left page)
-                    // Using the left page dimensions to set the canvas size
-                    const { width, height } = leftPage; 
+                    // Uniform dimensions base (before bleed)
+                    const width = maxW;
+                    const height = maxH;
                     
-                    // Create new Landscape Page (2x Width)
-                    const newPage = dstDoc.addPage([width * 2, height]);
+                    // Create new Landscape Page (2x Width) + Bleed
+                    const outWidth = width * 2 + bleedPts * 2;
+                    const outHeight = height + bleedPts * 2;
+                    const newPage = dstDoc.addPage([outWidth, outHeight]);
 
-                    // -- Helper: Draw Page with Scaling for Margins --
+                    // -- Helper: Draw Page with Scaling for Margins & Bleed --
                     const drawContent = (pageObj, xOffset) => {
                         if (!pageObj) return;
 
@@ -236,14 +285,14 @@
                         const contentW = pageObj.width;
                         const contentH = pageObj.height;
 
-                        // Calculate available space inside margins
+                        // Calculate available space inside margins on half of the page
                         const availW = Math.max(0, width - (marginPts * 2));
                         const availH = Math.max(0, height - (marginPts * 2));
 
                         // Calculate Scale to fit margins (while maintaining aspect ratio)
                         // If availW or availH is 0, scale will be 0 to avoid negative scaling.
-                        const scaleX = availW / contentW;
-                        const scaleY = availH / contentH;
+                        const scaleX = contentW > 0 ? availW / contentW : 0;
+                        const scaleY = contentH > 0 ? availH / contentH : 0;
                         const scale = Math.min(scaleX, scaleY);
 
                         // Calculate Centering Adjustments (if margins create extra space)
@@ -253,8 +302,8 @@
                         const centerOffsetY = (availH - drawnH) / 2;
 
                         newPage.drawPage(pageObj, {
-                            x: xOffset + marginPts + centerOffsetX,
-                            y: marginPts + centerOffsetY,
+                            x: xOffset + bleedPts + marginPts + centerOffsetX,
+                            y: bleedPts + marginPts + centerOffsetY,
                             width: drawnW,
                             height: drawnH,
                         });
@@ -268,32 +317,77 @@
                         // In duplicate mode, we always draw the same page on the right
                         drawContent(rightPage, width);
                     } else {
-                        // In sequential mode, we only draw if there is a next page
+                        // In sequential/booklet mode, we only draw if there is a next page
                         if (rightPage) {
                             drawContent(rightPage, width);
                         }
                     }
 
-                    // -- Draw Cut Line --
+                    // -- Draw Cut Line / Crop Marks --
                     if (cutStyle !== 'none') {
-                        const lineConfig = {
-                            start: { x: width, y: 0 },
-                            end: { x: width, y: height },
-                            thickness: 1,
-                            color: grayscale(0.5), // Medium Grey
-                            opacity: 0.5
-                        };
+                        const drawColor = grayscale(0.5); // Medium Grey
 
-                        if (cutStyle === 'dashed') {
-                            lineConfig.dashArray = [5, 5];
+                        if (cutStyle === 'cropmarks' && bleedPts > 0) {
+                            // Professional corner crop marks showing where to cut the bleed
+                            const markLen = 15;
+                            const markOff = 5; // offset from corner to avoid printing inside bleed
+                            const t = 1; // thickness
+
+                            const drawMark = (sx, sy, ex, ey) => {
+                                newPage.drawLine({
+                                    start: { x: sx, y: sy },
+                                    end: { x: ex, y: ey },
+                                    thickness: t,
+                                    color: drawColor
+                                });
+                            };
+
+                            // Top-Left corner
+                            drawMark(bleedPts, outHeight - bleedPts + markOff, bleedPts, outHeight); // Up
+                            drawMark(bleedPts - markOff, outHeight - bleedPts, 0, outHeight - bleedPts); // Left
+
+                            // Top-Right corner
+                            drawMark(outWidth - bleedPts, outHeight - bleedPts + markOff, outWidth - bleedPts, outHeight); // Up
+                            drawMark(outWidth - bleedPts + markOff, outHeight - bleedPts, outWidth, outHeight - bleedPts); // Right
+
+                            // Bottom-Left corner
+                            drawMark(bleedPts, bleedPts - markOff, bleedPts, 0); // Down
+                            drawMark(bleedPts - markOff, bleedPts, 0, bleedPts); // Left
+
+                            // Bottom-Right corner
+                            drawMark(outWidth - bleedPts, bleedPts - markOff, outWidth - bleedPts, 0); // Down
+                            drawMark(outWidth - bleedPts + markOff, bleedPts, outWidth, bleedPts); // Right
+
+                            // Center Top & Bottom (Fold Line marks)
+                            drawMark(outWidth / 2, outHeight - bleedPts + markOff, outWidth / 2, outHeight); // Top
+                            drawMark(outWidth / 2, bleedPts - markOff, outWidth / 2, 0); // Bottom
                         }
+                        else if (cutStyle === 'dashed' || cutStyle === 'solid') {
+                            // Center spine line
+                            const lineConfig = {
+                                start: { x: width + bleedPts, y: 0 },
+                                end: { x: width + bleedPts, y: outHeight },
+                                thickness: 1,
+                                color: drawColor,
+                                opacity: 0.5
+                            };
 
-                        newPage.drawLine(lineConfig);
+                            if (cutStyle === 'dashed') {
+                                lineConfig.dashArray = [5, 5];
+                            }
+
+                            newPage.drawLine(lineConfig);
+                        }
                     }
 
                     // Visual Progress Update
                     const percent = 40 + Math.round(((i + 1) / outputPageCount) * 50);
                     progressBar.style.width = `${percent}%`;
+
+                    // Yield to main thread to prevent UI freezing on massive documents
+                    if (i % 5 === 0) {
+                        await new Promise(r => setTimeout(r, 0));
+                    }
                 }
 
                 // -- Save & Download --
