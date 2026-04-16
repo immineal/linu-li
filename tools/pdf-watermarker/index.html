@@ -10,6 +10,7 @@
     <!-- External Libraries -->
     <script src="../../assets/vendor/pdf-lib.min.js"></script>
     <script src="../../assets/vendor/pdf.min.js"></script>
+    <script src="../../assets/vendor/jszip.min.js"></script>
 
     <style>
         .preview-wrapper {
@@ -75,8 +76,8 @@
                 <!-- SECTION: FILE UPLOAD -->
                 <div class="drop-zone" id="dropZone">
                     <span class="drop-icon">📄</span>
-                    <p>Drag & Drop PDF file here</p>
-                    <input type="file" id="fileInput" class="hidden" accept="application/pdf">
+                    <p>Drag & Drop PDF files here</p>
+                    <input type="file" id="fileInput" class="hidden" accept="application/pdf" multiple>
                 </div>
 
                 <!-- SECTION: PREVIEW & EDITOR (Hidden initially) -->
@@ -178,7 +179,7 @@
         const rotVal = document.getElementById('rotValue');
 
         // State
-        let currentFile = null;
+        let currentFiles = [];
         let generatedPdfUrl = null;
         
         // Position State (Relative Percentage 0.0 - 1.0)
@@ -226,18 +227,23 @@
 
         async function handleFiles(files) {
             if (files.length === 0) return;
-            const file = files[0];
-            if (file.type !== 'application/pdf') {
-                showToast('Please upload a PDF.', 'error');
+            const validFiles = Array.from(files).filter(f => f.type === 'application/pdf');
+
+            if (validFiles.length === 0) {
+                showToast('Please upload PDF files.', 'error');
                 return;
             }
 
-            currentFile = file;
+            currentFiles = validFiles;
             dropZone.classList.add('hidden');
             editorArea.classList.remove('hidden');
             processBtn.disabled = false;
 
-            await renderPreview(file);
+            if (currentFiles.length > 1) {
+                showToast(`Loaded ${currentFiles.length} PDFs. Previewing first file.`, 'info');
+            }
+
+            await renderPreview(currentFiles[0]);
             initDraggable(); 
         }
 
@@ -328,16 +334,43 @@
         }
 
         // --- 4. PDF Generation Logic ---
+        async function processPdf(file, text, fontSize, opacity, angle, color) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await PDFDocument.load(arrayBuffer);
+            const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+            const pages = pdfDoc.getPages();
+
+            pages.forEach(page => {
+                const { width, height } = page.getSize();
+
+                // Convert percentage position to PDF coordinates
+                const pdfX = width * posX;
+
+                // PDF Y is inverted (0 at bottom)
+                // HTML y=0 is top. We saved posY as (TopOffset / CanvasHeight)
+                const pdfY = height - (height * posY);
+
+                page.drawText(text, {
+                    x: pdfX,
+                    y: pdfY,
+                    size: fontSize,
+                    font: helveticaFont,
+                    color: color,
+                    opacity: opacity,
+                    rotate: degrees(angle),
+                });
+            });
+
+            return await pdfDoc.save();
+        }
+
         processBtn.addEventListener('click', async () => {
-            if (!currentFile) return;
+            if (currentFiles.length === 0) return;
             processBtn.disabled = true;
             processBtn.textContent = 'Processing...';
 
             try {
-                const arrayBuffer = await currentFile.arrayBuffer();
-                const pdfDoc = await PDFDocument.load(arrayBuffer);
-                const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
                 const text = txtInput.value || 'CONFIDENTIAL';
                 const fontSize = parseInt(szRange.value); // Use Raw Point Size
                 const opacity = parseFloat(opRange.value);
@@ -346,37 +379,30 @@
                 const colorVals = colInput.value.split(',').map(Number);
                 const color = rgb(colorVals[0], colorVals[1], colorVals[2]);
 
-                const pages = pdfDoc.getPages();
-
-                pages.forEach(page => {
-                    const { width, height } = page.getSize();
+                if (currentFiles.length === 1) {
+                    const pdfBytes = await processPdf(currentFiles[0], text, fontSize, opacity, angle, color);
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                     
-                    // Convert percentage position to PDF coordinates
-                    const pdfX = width * posX;
+                    if (generatedPdfUrl) URL.revokeObjectURL(generatedPdfUrl);
+                    generatedPdfUrl = URL.createObjectURL(blob);
                     
-                    // PDF Y is inverted (0 at bottom)
-                    // HTML y=0 is top. We saved posY as (TopOffset / CanvasHeight)
-                    const pdfY = height - (height * posY);
+                    downloadLink.href = generatedPdfUrl;
+                    downloadLink.download = `watermarked-${currentFiles[0].name}`;
+                } else {
+                    const zip = new JSZip();
+                    for (let i = 0; i < currentFiles.length; i++) {
+                        const file = currentFiles[i];
+                        const pdfBytes = await processPdf(file, text, fontSize, opacity, angle, color);
+                        zip.file(`watermarked-${file.name}`, pdfBytes);
+                    }
+                    const zipBlob = await zip.generateAsync({ type: 'blob' });
 
-                    page.drawText(text, {
-                        x: pdfX,
-                        y: pdfY,
-                        size: fontSize,
-                        font: helveticaFont,
-                        color: color,
-                        opacity: opacity,
-                        rotate: degrees(angle),
-                    });
-                });
+                    if (generatedPdfUrl) URL.revokeObjectURL(generatedPdfUrl);
+                    generatedPdfUrl = URL.createObjectURL(zipBlob);
 
-                const pdfBytes = await pdfDoc.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                
-                if (generatedPdfUrl) URL.revokeObjectURL(generatedPdfUrl);
-                generatedPdfUrl = URL.createObjectURL(blob);
-                
-                downloadLink.href = generatedPdfUrl;
-                downloadLink.download = `watermarked-${currentFile.name}`;
+                    downloadLink.href = generatedPdfUrl;
+                    downloadLink.download = 'watermarked-pdfs.zip';
+                }
                 
                 resultBox.classList.remove('hidden');
                 resultBox.scrollIntoView({ behavior: 'smooth' });
@@ -392,7 +418,7 @@
 
         // --- 5. Reset ---
         clearBtn.addEventListener('click', () => {
-            currentFile = null;
+            currentFiles = [];
             fileInput.value = '';
             editorArea.classList.add('hidden');
             resultBox.classList.add('hidden');

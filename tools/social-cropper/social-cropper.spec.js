@@ -78,6 +78,49 @@ const assert = require('assert');
     assert.strictEqual(circleCheckedAfterClear, false, 'Circle toggle should be reset after clearing');
     console.log('Test 4 Passed: States reset correctly on "Upload New".');
 
+    // Restore cropper for subsequent tests
+    const fileInputRestored = await page.$('#fileInput');
+    await fileInputRestored.uploadFile('test_spec_image.png');
+    await page.waitForSelector('.cropper-container');
+
+    // --- TEST 5: Platform Selector updates aspect ratios ---
+    await page.evaluate(() => {
+        const platformSelect = document.querySelector('#platformSelect');
+        platformSelect.value = 'ig';
+        platformSelect.dispatchEvent(new Event('change'));
+    });
+
+    const igRatiosCount = await page.evaluate(() => document.querySelectorAll('#ratioButtonsContainer button').length);
+    assert.strictEqual(igRatiosCount, 4, 'Instagram platform should have 4 ratio templates');
+
+    // Test Twitter ratio update (e.g. Header 3:1)
+    await page.evaluate(() => {
+        const platformSelect = document.querySelector('#platformSelect');
+        platformSelect.value = 'twitter';
+        platformSelect.dispatchEvent(new Event('change'));
+        // Click second button (Header 3:1)
+        document.querySelectorAll('#ratioButtonsContainer button')[1].click();
+    });
+
+    const twitterRatio = await page.evaluate(() => cropper.options.aspectRatio);
+    assert.strictEqual(twitterRatio, 3, 'Aspect ratio should be exactly 3 for Twitter Header');
+    console.log('Test 5 Passed: Platform selector updates UI and aspect ratios correctly.');
+
+    // --- TEST 6: WebP format export extension ---
+    await page.evaluate(() => {
+        const formatSelect = document.querySelector('#formatSelect');
+        formatSelect.value = 'webp';
+        formatSelect.dispatchEvent(new Event('change'));
+        document.querySelector('#btnCrop').click();
+    });
+
+    const downloadFileName = await page.evaluate(() => document.querySelector('#btnDownload').download);
+    assert.strictEqual(downloadFileName, 'cropped-image.webp', 'Download file name should have .webp extension');
+
+    const downloadHref = await page.evaluate(() => document.querySelector('#btnDownload').href);
+    assert.strictEqual(downloadHref.startsWith('data:image/webp'), true, 'Download link should contain image/webp data URI');
+    console.log('Test 6 Passed: Export format properly updates file extension and data URI.');
+
     console.log('All tests passed successfully!');
 
     await browser.close();

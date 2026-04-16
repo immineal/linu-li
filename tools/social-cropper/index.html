@@ -84,8 +84,28 @@
                         </div>
                     </div>
 
-                    <label>Aspect Ratio</label>
-                    <div class="button-group" style="margin-bottom: 1.5rem;">
+                    <div class="toolbar" style="margin-bottom: 1.5rem;">
+                        <div class="tool-control" style="flex: 1;">
+                            <label for="platformSelect" style="display: block; margin-bottom: 0.5rem;">Platform Template</label>
+                            <select id="platformSelect" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;">
+                                <option value="general">General</option>
+                                <option value="ig">Instagram</option>
+                                <option value="twitter">Twitter / X</option>
+                                <option value="linkedin">LinkedIn</option>
+                            </select>
+                        </div>
+                        <div class="tool-control" style="flex: 1;">
+                            <label for="formatSelect" style="display: block; margin-bottom: 0.5rem;">Export Format</label>
+                            <select id="formatSelect" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;">
+                                <option value="png">PNG (Transparency)</option>
+                                <option value="webp">WebP (Optimized)</option>
+                                <option value="jpeg">JPEG (White Background)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <label id="aspectRatioLabel">Aspect Ratio</label>
+                    <div class="button-group" id="ratioButtonsContainer" style="margin-bottom: 1.5rem;">
                         <button class="button sm outline active-ratio" data-ratio="1">1:1 (Square)</button>
                         <button class="button sm outline" data-ratio="0.8">4:5 (Portrait)</button>
                         <button class="button sm outline" data-ratio="1.7777777777777777">16:9 (Landscape)</button>
@@ -131,13 +151,42 @@
         const btnCrop = document.getElementById('btnCrop');
         const btnReset = document.getElementById('btnReset');
         const btnClear = document.getElementById('btnClear');
-        const ratioButtons = document.querySelectorAll('[data-ratio]');
+        const ratioButtonsContainer = document.getElementById('ratioButtonsContainer');
+        let ratioButtons = document.querySelectorAll('[data-ratio]');
         
         const rotateRange = document.getElementById('rotateRange');
         const rotateVal = document.getElementById('rotateVal');
         const circleToggle = document.getElementById('circleToggle');
+        const platformSelect = document.getElementById('platformSelect');
+        const formatSelect = document.getElementById('formatSelect');
 
         let cropper = null;
+
+        const PLATFORM_TEMPLATES = {
+            general: [
+                { label: '1:1 (Square)', ratio: 1 },
+                { label: '4:5 (Portrait)', ratio: 0.8 },
+                { label: '16:9 (Landscape)', ratio: 1.7777777777777777 },
+                { label: '9:16 (Story)', ratio: 0.5625 },
+                { label: 'Free', ratio: NaN }
+            ],
+            ig: [
+                { label: 'Profile (1:1)', ratio: 1 },
+                { label: 'Post (Square 1:1)', ratio: 1 },
+                { label: 'Post (Portrait 4:5)', ratio: 0.8 },
+                { label: 'Story / Reel (9:16)', ratio: 0.5625 }
+            ],
+            twitter: [
+                { label: 'Profile (1:1)', ratio: 1 },
+                { label: 'Header (3:1)', ratio: 3 },
+                { label: 'Post (16:9)', ratio: 1.7777777777777777 }
+            ],
+            linkedin: [
+                { label: 'Profile (1:1)', ratio: 1 },
+                { label: 'Background (4:1)', ratio: 4 },
+                { label: 'Post (1.91:1)', ratio: 1.91 }
+            ]
+        };
 
         document.addEventListener('DOMContentLoaded', () => {
             setupDropZone(dropZone, fileInput, handleFiles);
@@ -226,14 +275,19 @@
             }
         });
 
-        ratioButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (!cropper || circleToggle.checked) return;
-                const ratio = parseFloat(btn.getAttribute('data-ratio'));
-                cropper.setAspectRatio(ratio);
-                updateRatioButtons(btn);
+        function attachRatioListeners() {
+            ratioButtons = document.querySelectorAll('[data-ratio]');
+            ratioButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!cropper || circleToggle.checked) return;
+                    const ratio = parseFloat(btn.getAttribute('data-ratio'));
+                    cropper.setAspectRatio(ratio);
+                    updateRatioButtons(btn);
+                });
             });
-        });
+        }
+
+        attachRatioListeners();
 
         function updateRatioButtons(activeBtn) {
             ratioButtons.forEach(b => {
@@ -248,8 +302,40 @@
             });
         }
 
+        platformSelect.addEventListener('change', (e) => {
+            const platform = e.target.value;
+            const templates = PLATFORM_TEMPLATES[platform] || PLATFORM_TEMPLATES.general;
+
+            ratioButtonsContainer.innerHTML = '';
+
+            templates.forEach((template, index) => {
+                const btn = document.createElement('button');
+                btn.className = `button sm outline ${index === 0 ? 'active-ratio' : ''}`;
+                btn.setAttribute('data-ratio', template.ratio);
+                btn.textContent = template.label;
+                ratioButtonsContainer.appendChild(btn);
+            });
+
+            attachRatioListeners();
+
+            if (circleToggle.checked) {
+                ratioButtons.forEach(b => b.disabled = true);
+                if (cropper) {
+                    cropper.setAspectRatio(1);
+                    updateRatioButtons(document.querySelector('[data-ratio="1"]'));
+                }
+            } else {
+                if (cropper) {
+                    const firstRatio = templates[0].ratio;
+                    cropper.setAspectRatio(firstRatio);
+                    const firstBtn = ratioButtons[0];
+                    updateRatioButtons(firstBtn);
+                }
+            }
+        });
+
         // --- Feature: Round Export Logic ---
-        function getRoundedCanvas(sourceCanvas) {
+        function getRoundedCanvas(sourceCanvas, format) {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             const width = sourceCanvas.width;
@@ -265,6 +351,12 @@
             context.beginPath();
             context.arc(width / 2, height / 2, Math.min(width, height) / 2, 0, 2 * Math.PI, true);
             context.fill();
+
+            if (format === 'jpeg') {
+                context.globalCompositeOperation = 'destination-over';
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, width, height);
+            }
             
             return canvas;
         }
@@ -272,12 +364,15 @@
         btnCrop.addEventListener('click', () => {
             if (!cropper) return;
 
+            const format = formatSelect.value;
+            const fillColor = format === 'jpeg' ? '#ffffff' : 'transparent';
+
             let canvas = cropper.getCroppedCanvas({
                 maxWidth: 4096,
                 maxHeight: 4096,
                 imageSmoothingEnabled: true,
                 imageSmoothingQuality: 'high',
-                fillColor: 'transparent',
+                fillColor: fillColor,
             });
 
             if (!canvas) {
@@ -286,14 +381,17 @@
             }
 
             if (circleToggle.checked) {
-                canvas = getRoundedCanvas(canvas);
+                canvas = getRoundedCanvas(canvas, format);
             }
 
-            const croppedDataUrl = canvas.toDataURL('image/png');
+            const mimeType = format === 'jpeg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
+            const croppedDataUrl = canvas.toDataURL(mimeType, 0.9);
 
             resultImage.src = croppedDataUrl;
             resultBox.classList.remove('hidden');
             btnDownload.href = croppedDataUrl;
+            btnDownload.download = `cropped-image.${format}`;
+            btnDownload.textContent = `Download ${format.toUpperCase()}`;
             
             resultBox.scrollIntoView({ behavior: 'smooth' });
             showToast('Image cropped!', 'success');

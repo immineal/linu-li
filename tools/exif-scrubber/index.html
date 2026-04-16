@@ -80,6 +80,22 @@
             font-size: 0.75rem;
             margin-left: 0.5rem;
         }
+
+        .massive-drop-zone {
+            padding: 4rem 2rem !important;
+            font-size: 1.2rem;
+            border-width: 2px;
+            border-style: dashed;
+            transition: all 0.2s ease;
+        }
+
+        .copyright-panel {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -92,10 +108,10 @@
 
             <div class="card">
                 
-                <div class="drop-zone" id="dropZone">
-                    <span class="drop-icon">📷</span>
+                <div class="drop-zone massive-drop-zone" id="dropZone">
+                    <span class="drop-icon" style="font-size: 3rem; display: block; margin-bottom: 1rem;">📷</span>
                     <p>Drag & Drop images here (JPG only)</p>
-                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;">Currently supports standard JPEG/JPG files.</p>
+                    <p style="font-size: 0.9rem; color: var(--ink-secondary); margin-top: 0.5rem;">Massive files supported. Deep scan removes all metadata.</p>
                     <input type="file" id="fileInput" class="hidden" multiple accept="image/jpeg, image/jpg">
                 </div>
 
@@ -117,9 +133,17 @@
                     </div>
                 </div>
 
-                <div class="button-group hidden" id="controlPanel" style="margin-top: 2rem;">
-                    <button class="button" id="processBtn">Remove All Metadata</button>
-                    <button class="button outline" id="clearBtn">Clear</button>
+                <div id="controlPanel" class="hidden">
+                    <div class="copyright-panel">
+                        <label for="copyrightInput" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Copyright Injection (Optional)</label>
+                        <p style="font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 1rem;">Inject a clean copyright notice after scrubbing all other metadata.</p>
+                        <input type="text" id="copyrightInput" class="input" placeholder="e.g. © 2024 Jane Doe">
+                    </div>
+
+                    <div class="button-group" style="margin-top: 2rem;">
+                        <button class="button" id="processBtn">Scrub All & Download</button>
+                        <button class="button outline" id="clearBtn">Clear</button>
+                    </div>
                 </div>
 
                 <div class="progress-container" id="progressContainer">
@@ -380,6 +404,118 @@
 
         // --- REMOVAL LOGIC ---
 
+        window.stripAllMetadataAndInject = function(file, copyrightText) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const arrayBuffer = e.target.result;
+                        const bytes = new Uint8Array(arrayBuffer);
+                        let segments = [];
+                        let i = 0;
+
+                        if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) {
+                            reject(new Error("Not a valid JPEG"));
+                            return;
+                        }
+
+                        segments.push(bytes.slice(0, 2));
+                        i = 2;
+
+                        while (i < bytes.length) {
+                            if (bytes[i] === 0xFF) {
+                                let marker = bytes[i + 1];
+
+                                if (marker === 0xFF) {
+                                    i++;
+                                    continue;
+                                }
+
+                                if ((marker >= 0xD0 && marker <= 0xD9) || marker === 0x01) {
+                                    segments.push(bytes.slice(i, i + 2));
+                                    i += 2;
+                                    if (marker === 0xD9) break; // EOI
+                                    continue;
+                                }
+
+                                if (marker === 0xDA) { // SOS
+                                    segments.push(bytes.slice(i));
+                                    break;
+                                }
+
+                                let length = (bytes[i + 2] << 8) | bytes[i + 3];
+
+                                let keep = true;
+                                if (marker === 0xE1) { // APP1 (EXIF, XMP)
+                                    keep = false;
+                                } else if (marker === 0xED) { // APP13 (IPTC / Photoshop)
+                                    keep = false;
+                                } else if (marker === 0xFE) { // COM (Comment)
+                                    keep = false;
+                                } else if (marker === 0xE2) { // APP2 (ICC Profile, etc - usually safe to remove for pure scrub, but we keep it or strip it. Let's strip to be paranoid about hidden data)
+                                    keep = false;
+                                }
+
+                                if (keep) {
+                                    segments.push(bytes.slice(i, i + 2 + length));
+                                }
+
+                                i += 2 + length;
+                            } else {
+                                segments.push(bytes.slice(i));
+                                break;
+                            }
+                        }
+
+                        let totalLen = segments.reduce((sum, seg) => sum + seg.length, 0);
+                        let cleanBytes = new Uint8Array(totalLen);
+                        let offset = 0;
+                        for (let seg of segments) {
+                            cleanBytes.set(seg, offset);
+                            offset += seg.length;
+                        }
+
+                        let finalBlob = new Blob([cleanBytes], { type: 'image/jpeg' });
+
+                        if (copyrightText && copyrightText.trim() !== '') {
+                            // Inject via piexif
+                            const reader2 = new FileReader();
+                            reader2.onload = function(e2) {
+                                try {
+                                    const zeroth = {};
+                                    zeroth[piexif.ImageIFD.Copyright] = copyrightText.trim();
+                                    const exifObj = {"0th": zeroth, "Exif": {}, "GPS": {}};
+                                    const exifbytes = piexif.dump(exifObj);
+
+                                    const newBase64 = piexif.insert(exifbytes, e2.target.result);
+
+                                    // Convert back to blob
+                                    const byteString = atob(newBase64.split(',')[1]);
+                                    const ab = new ArrayBuffer(byteString.length);
+                                    const ia = new Uint8Array(ab);
+                                    for (let j = 0; j < byteString.length; j++) {
+                                        ia[j] = byteString.charCodeAt(j);
+                                    }
+                                    resolve(new Blob([ab], { type: 'image/jpeg' }));
+                                } catch (err) {
+                                    reject(err);
+                                }
+                            };
+                            reader2.onerror = () => reject(reader2.error);
+                            reader2.readAsDataURL(finalBlob);
+                        } else {
+                            resolve(finalBlob);
+                        }
+
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
+                reader.readAsArrayBuffer(file);
+            });
+        };
+
         async function processImages() {
             if (queue.length === 0) return;
 
@@ -391,12 +527,14 @@
 
             const total = queue.length;
             let errorCount = 0;
+            const copyrightInput = document.getElementById('copyrightInput');
+            const copyrightText = copyrightInput ? copyrightInput.value : '';
             
             try {
                 for (let i = 0; i < total; i++) {
                     const file = queue[i];
                     try {
-                        const blob = await stripMetadataPiexif(file);
+                        const blob = await window.stripAllMetadataAndInject(file, copyrightText);
                         processedBlobs.push({ name: `clean_${file.name}`, blob: blob });
                     } catch (err) {
                         console.error(`Failed to scrub ${file.name}:`, err);
@@ -406,6 +544,9 @@
 
                     const percent = Math.round(((i + 1) / total) * 100);
                     progressBar.style.width = `${percent}%`;
+
+                    // Yield to prevent UI blocking on massive batches
+                    if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
                 }
 
                 setTimeout(() => {
@@ -427,31 +568,6 @@
                 showToast('Critical error processing images.', 'error');
                 processBtn.disabled = false;
             }
-        }
-
-        function stripMetadataPiexif(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const originalData = e.target.result;
-                        // strip
-                        const cleanData = piexif.remove(originalData);
-                        // convert back to blob
-                        const byteString = atob(cleanData.split(',')[1]);
-                        const ab = new ArrayBuffer(byteString.length);
-                        const ia = new Uint8Array(ab);
-                        for (let i = 0; i < byteString.length; i++) {
-                            ia[i] = byteString.charCodeAt(i);
-                        }
-                        resolve(new Blob([ab], { type: 'image/jpeg' }));
-                    } catch (err) {
-                        reject(err);
-                    }
-                };
-                reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
-                reader.readAsDataURL(file);
-            });
         }
 
         function showResult() {
