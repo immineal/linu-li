@@ -55,11 +55,12 @@ const unitTo = window.document.getElementById('unitTo');
 let passed = true;
 
 
-function assertApprox(actual, expected, message, tolerance = 1e-6) {
+function assertApprox(actual, expected, message, tolerance) {
+    tolerance = tolerance || 1e-6;
     if (Math.abs(actual - expected) <= tolerance) {
-        console.log(\`✅ PASS: \${message}\`);
+        console.log('✅ PASS: ' + message);
     } else {
-        console.error(\`❌ FAIL: \${message} (Expected: ~\${expected}, Actual: \${actual})\`);
+        console.error('❌ FAIL: ' + message + ' (Expected: ~' + expected + ', Actual: ' + actual + ')');
         passed = false;
     }
 }
