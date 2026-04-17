@@ -25,18 +25,21 @@ function parseSqlToSchema(sql, targetFormat) {
             if (!inString && (char === "'" || char === '"' || char === '`')) {
                 inString = true;
                 stringChar = char;
-            } else if (inString && char === stringChar) {
-                inString = false;
+                continue;
             }
 
-            if (!inString) {
-                if (char === '(') parenDepth++;
-                else if (char === ')') {
-                    parenDepth--;
-                    if (parenDepth === 0) {
-                        bodyEnd = i;
-                        break;
-                    }
+            if (inString) {
+                if (char === stringChar) inString = false;
+                continue;
+            }
+
+            if (char === '(') {
+                parenDepth++;
+            } else if (char === ')') {
+                parenDepth--;
+                if (parenDepth === 0) {
+                    bodyEnd = i;
+                    break;
                 }
             }
         }
@@ -59,19 +62,26 @@ function parseSqlToSchema(sql, targetFormat) {
             if (!inString && (char === "'" || char === '"' || char === '`')) {
                 inString = true;
                 stringChar = char;
-            } else if (inString && char === stringChar) {
-                inString = false;
+                currentLine += char;
+                continue;
             }
 
-            if (!inString) {
-                if (char === '(') parenDepth++;
-                else if (char === ')') parenDepth--;
-                else if (char === ',' && parenDepth === 0) {
-                    columnLines.push(currentLine.trim());
-                    currentLine = "";
-                    continue;
-                }
+            if (inString) {
+                if (char === stringChar) inString = false;
+                currentLine += char;
+                continue;
             }
+
+            if (char === '(') {
+                parenDepth++;
+            } else if (char === ')') {
+                parenDepth--;
+            } else if (char === ',' && parenDepth === 0) {
+                columnLines.push(currentLine.trim());
+                currentLine = "";
+                continue;
+            }
+
             currentLine += char;
         }
         if (currentLine.trim()) columnLines.push(currentLine.trim());
