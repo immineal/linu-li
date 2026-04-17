@@ -1,0 +1,16 @@
+{
+  "name": "linu-li",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "jsdom": "^29.0.2"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.0.0",
+    "serve": "^14.0.0",
+    "wait-on": "^9.0.0"
+  }
+}
