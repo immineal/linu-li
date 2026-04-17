@@ -96,41 +96,33 @@ function parseSqlToSchema(sql, targetFormat) {
             }
 
             const colMatch = line.match(/^[`"']?([a-zA-Z0-9_]+)[`"']?\s+([a-zA-Z0-9_]+)/);
-            if (colMatch) {
-                const colName = colMatch[1];
-                let colType = colMatch[2].toLowerCase();
+            if (!colMatch) {
+                continue;
+            }
 
-                if (colType === 'serial' || colType === 'bigserial' || colType === 'smallserial') {
-                    colType = 'int';
-                }
+            const colName = colMatch[1];
+            let colType = colMatch[2].toLowerCase();
 
-                const isNotNull = /NOT\s+NULL/i.test(line) || /PRIMARY\s+KEY/i.test(line);
-                const isOptional = !isNotNull;
+            if (colType === 'serial' || colType === 'bigserial' || colType === 'smallserial') {
+                colType = 'int';
+            }
 
-                if (targetFormat === 'typescript') {
-                    let tsType = "string";
-                    if (['int', 'integer', 'tinyint', 'smallint', 'mediumint', 'bigint', 'float', 'double', 'decimal', 'numeric', 'real'].includes(colType)) tsType = "number";
-                    else if (['bool', 'boolean', 'bit'].includes(colType)) tsType = "boolean";
-                    else if (['date', 'datetime', 'timestamp', 'time', 'year'].includes(colType)) tsType = "Date";
-                    else if (['json', 'jsonb'].includes(colType)) tsType = "any";
+            const isNotNull = /NOT\s+NULL/i.test(line) || /PRIMARY\s+KEY/i.test(line);
+            const isOptional = !isNotNull;
 
-                    outputCode += `  ${colName}${isOptional ? "?" : ""}: ${tsType};\n`;
-                } else if (targetFormat === 'prisma') {
-                    let prismaType = "String";
-                    if (['int', 'integer', 'tinyint', 'smallint', 'mediumint', 'bigint'].includes(colType)) prismaType = "Int";
-                    else if (['float', 'double', 'decimal', 'numeric', 'real'].includes(colType)) prismaType = "Float";
-                    else if (['bool', 'boolean', 'bit'].includes(colType)) prismaType = "Boolean";
-                    else if (['date', 'datetime', 'timestamp', 'time', 'year'].includes(colType)) prismaType = "DateTime";
-                    else if (['json', 'jsonb'].includes(colType)) prismaType = "Json";
+            if (targetFormat === 'typescript') {
+                const tsType = getTypeScriptType(colType);
+                outputCode += `  ${colName}${isOptional ? "?" : ""}: ${tsType};\n`;
+            } else if (targetFormat === 'prisma') {
+                const prismaType = getPrismaType(colType);
 
-                    let attrs = [];
-                    if (/PRIMARY\s+KEY/i.test(line) || primaryKeys.includes(colName)) attrs.push("@id");
-                    if (/AUTO_INCREMENT/i.test(line) || /SERIAL/i.test(colMatch[2])) attrs.push("@default(autoincrement())");
-                    if (/DEFAULT\s+(gen_random_uuid\(\)|uuid_generate_v4\(\))/i.test(line)) attrs.push("@default(uuid())");
-                    if (/UNIQUE/i.test(line)) attrs.push("@unique");
+                let attrs = [];
+                if (/PRIMARY\s+KEY/i.test(line) || primaryKeys.includes(colName)) attrs.push("@id");
+                if (/AUTO_INCREMENT/i.test(line) || /SERIAL/i.test(colMatch[2])) attrs.push("@default(autoincrement())");
+                if (/DEFAULT\s+(gen_random_uuid\(\)|uuid_generate_v4\(\))/i.test(line)) attrs.push("@default(uuid())");
+                if (/UNIQUE/i.test(line)) attrs.push("@unique");
 
-                    outputCode += `  ${colName} ${prismaType}${isOptional ? "?" : ""} ${attrs.join(' ')}\n`.trimEnd() + '\n';
-                }
+                outputCode += `  ${colName} ${prismaType}${isOptional ? "?" : ""} ${attrs.join(' ')}\n`.trimEnd() + '\n';
             }
         }
 
@@ -150,4 +142,21 @@ function parseSqlToSchema(sql, targetFormat) {
     }
 
     return outputCode.trim();
+}
+
+function getTypeScriptType(colType) {
+    if (['int', 'integer', 'tinyint', 'smallint', 'mediumint', 'bigint', 'float', 'double', 'decimal', 'numeric', 'real'].includes(colType)) return "number";
+    if (['bool', 'boolean', 'bit'].includes(colType)) return "boolean";
+    if (['date', 'datetime', 'timestamp', 'time', 'year'].includes(colType)) return "Date";
+    if (['json', 'jsonb'].includes(colType)) return "any";
+    return "string";
+}
+
+function getPrismaType(colType) {
+    if (['int', 'integer', 'tinyint', 'smallint', 'mediumint', 'bigint'].includes(colType)) return "Int";
+    if (['float', 'double', 'decimal', 'numeric', 'real'].includes(colType)) return "Float";
+    if (['bool', 'boolean', 'bit'].includes(colType)) return "Boolean";
+    if (['date', 'datetime', 'timestamp', 'time', 'year'].includes(colType)) return "DateTime";
+    if (['json', 'jsonb'].includes(colType)) return "Json";
+    return "String";
 }
