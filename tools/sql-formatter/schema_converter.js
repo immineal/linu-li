@@ -22,21 +22,24 @@ function parseSqlToSchema(sql, targetFormat) {
         for (let i = bodyStart; i < sql.length; i++) {
             const char = sql[i];
 
-            if (!inString && (char === "'" || char === '"' || char === '`')) {
-                inString = true;
-                stringChar = char;
-            } else if (inString && char === stringChar) {
-                inString = false;
+            if (inString) {
+                if (char === stringChar) inString = false;
+                continue;
             }
 
-            if (!inString) {
-                if (char === '(') parenDepth++;
-                else if (char === ')') {
-                    parenDepth--;
-                    if (parenDepth === 0) {
-                        bodyEnd = i;
-                        break;
-                    }
+            if (char === "'" || char === '"' || char === '`') {
+                inString = true;
+                stringChar = char;
+                continue;
+            }
+
+            if (char === '(') {
+                parenDepth++;
+            } else if (char === ')') {
+                parenDepth--;
+                if (parenDepth === 0) {
+                    bodyEnd = i;
+                    break;
                 }
             }
         }
@@ -56,22 +59,27 @@ function parseSqlToSchema(sql, targetFormat) {
         for (let i = 0; i < columnsStr.length; i++) {
             const char = columnsStr[i];
 
-            if (!inString && (char === "'" || char === '"' || char === '`')) {
-                inString = true;
-                stringChar = char;
-            } else if (inString && char === stringChar) {
-                inString = false;
+            if (inString) {
+                if (char === stringChar) inString = false;
+                currentLine += char;
+                continue;
             }
 
-            if (!inString) {
-                if (char === '(') parenDepth++;
-                else if (char === ')') parenDepth--;
-                else if (char === ',' && parenDepth === 0) {
-                    columnLines.push(currentLine.trim());
-                    currentLine = "";
-                    continue;
-                }
+            if (char === "'" || char === '"' || char === '`') {
+                inString = true;
+                stringChar = char;
+                currentLine += char;
+                continue;
             }
+
+            if (char === '(') parenDepth++;
+            else if (char === ')') parenDepth--;
+            else if (char === ',' && parenDepth === 0) {
+                columnLines.push(currentLine.trim());
+                currentLine = "";
+                continue;
+            }
+
             currentLine += char;
         }
         if (currentLine.trim()) columnLines.push(currentLine.trim());
