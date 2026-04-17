@@ -58,7 +58,7 @@ a:hover { opacity: 0.7; text-decoration: underline; }
 .tool-header p { margin: 0 auto; color: var(--ink-secondary); }
 
 /* Split View (for Diff Checker, Markdown, Converters) */
-.split-view { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+.split-view { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
 @media (max-width: 768px) { .split-view { grid-template-columns: 1fr; } }
 
 /* === HEADER & NAV === */
@@ -344,4 +344,54 @@ input, select, textarea { max-width: 100%; }
    but also handle any nested grid panels */
 @media (max-width: 768px) {
     .split-view > * { min-width: 0; }
+}
+
+/* === SVG RASTERIZER: COLOR PALETTE === */
+.color-palette-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--code-bg);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+}
+.color-item-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    background: var(--card-bg);
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.color-picker-input {
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px var(--border);
+}
+.color-picker-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+.color-picker-input::-webkit-color-swatch {
+    border: none;
+    border-radius: 50%;
+}
+.color-label {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

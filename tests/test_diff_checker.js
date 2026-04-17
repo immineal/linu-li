@@ -11,6 +11,10 @@ const document = window.document;
 window.Diff = Diff;
 window.showToast = (msg, type) => { console.log('Toast:', msg); };
 window.HTMLElement.prototype.scrollIntoView = function() {};
+window.Worker = class {
+  postMessage() {}
+  terminate() {}
+};
 
 const scriptContent = Array.from(document.querySelectorAll('script')).find(s => !s.src).textContent;
 

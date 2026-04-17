@@ -1,6 +1,22 @@
 importScripts('https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js');
 importScripts('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js');
 
+// Helper for Highlighting
+function formatCode(code, language) {
+    if (!code || code.trim() === '') return code || ' ';
+    try {
+        if (language !== 'plaintext' && typeof hljs !== 'undefined') {
+            return hljs.highlight(code, { language }).value;
+        }
+    } catch (e) { }
+    // Fallback: simple escape
+    return code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { formatCode };
+}
+
 self.onmessage = function(e) {
     const { text1, text2, mode, ignoreSpace } = e.data;
 
@@ -37,17 +53,6 @@ self.onmessage = function(e) {
         return;
     }
 
-    // Helper for Highlighting
-    const formatCode = (code) => {
-        if (!code || code.trim() === '') return code || ' ';
-        try {
-            if (language !== 'plaintext') {
-                return hljs.highlight(code, { language }).value;
-            }
-        } catch (e) { }
-        // Fallback: simple escape
-        return code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    };
 
     // Calculate Inline Rows
     const inlineRows = [];
@@ -65,7 +70,7 @@ self.onmessage = function(e) {
                 typeClass,
                 numL: part.added ? '' : lineNumLeft++,
                 numR: part.removed ? '' : lineNumRight++,
-                codeHtml: formatCode(line)
+                codeHtml: formatCode(line, language)
             });
         });
     });
@@ -80,8 +85,8 @@ self.onmessage = function(e) {
         for (let i = 0; i < max; i++) {
             sideRows.push({
                 type: (leftBuffer[i] !== undefined && rightBuffer[i] !== undefined) ? 'change' : (leftBuffer[i] !== undefined ? 'del' : 'add'),
-                left: leftBuffer[i] !== undefined ? formatCode(leftBuffer[i]) : null,
-                right: rightBuffer[i] !== undefined ? formatCode(rightBuffer[i]) : null
+                left: leftBuffer[i] !== undefined ? formatCode(leftBuffer[i], language) : null,
+                right: rightBuffer[i] !== undefined ? formatCode(rightBuffer[i], language) : null
             });
         }
         leftBuffer.length = 0;
@@ -98,7 +103,7 @@ self.onmessage = function(e) {
             rightBuffer.push(...lines);
         } else {
             flushBuffers();
-            lines.forEach(l => sideRows.push({ type: 'neutral', left: formatCode(l), right: formatCode(l) }));
+            lines.forEach(l => sideRows.push({ type: 'neutral', left: formatCode(l, language), right: formatCode(l, language) }));
         }
     });
     flushBuffers();

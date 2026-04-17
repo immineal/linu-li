@@ -17,17 +17,22 @@
 
             <div class="card">
                 <label for="textInput">Input Text</label>
+                <div id="dropZone" class="drop-zone" style="margin-bottom: 1rem; border: 2px dashed var(--border); border-radius: 8px; padding: 1rem; text-align: center; cursor: pointer;">
+                    <p style="margin: 0; pointer-events: none;">Drag and drop a .txt file here, or paste below</p>
+                    <input type="file" id="fileInput" accept=".txt" style="display: none;">
+                </div>
                 <textarea id="textInput" class="code-editor" style="min-height: 200px;" placeholder="Type or paste your text here..."></textarea>
 
-                <div class="button-group" style="margin-bottom: 1.5rem; justify-content: center;">
-                    <button class="button outline" onclick="convert('upper')">UPPERCASE</button>
-                    <button class="button outline" onclick="convert('lower')">lowercase</button>
-                    <button class="button outline" onclick="convert('title')">Title Case</button>
-                    <button class="button outline" onclick="convert('sentence')">Sentence case</button>
-                    <button class="button outline" onclick="convert('camel')">camelCase</button>
-                    <button class="button outline" onclick="convert('snake')">snake_case</button>
-                    <button class="button outline" onclick="convert('kebab')">kebab-case</button>
-                    <button class="button outline" onclick="convert('alternating')">aLtErNaTiNg</button>
+                <div class="button-group" style="margin-bottom: 1.5rem; justify-content: center;" id="modeButtons">
+                    <button class="button outline" data-mode="upper" onclick="setMode('upper')">UPPERCASE</button>
+                    <button class="button outline" data-mode="lower" onclick="setMode('lower')">lowercase</button>
+                    <button class="button outline" data-mode="smart-title" onclick="setMode('smart-title')">Smart Title</button>
+                    <button class="button outline" data-mode="title" onclick="setMode('title')">Title Case</button>
+                    <button class="button outline" data-mode="sentence" onclick="setMode('sentence')">Sentence case</button>
+                    <button class="button outline" data-mode="camel" onclick="setMode('camel')">camelCase</button>
+                    <button class="button outline" data-mode="snake" onclick="setMode('snake')">snake_case</button>
+                    <button class="button outline" data-mode="kebab" onclick="setMode('kebab')">kebab-case</button>
+                    <button class="button outline" data-mode="alternating" onclick="setMode('alternating')">aLtErNaTiNg</button>
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
@@ -52,69 +57,92 @@
         const resultBox = document.getElementById('resultBox');
         const copyBtn = document.getElementById('copyBtn');
         const clearBtn = document.getElementById('clearBtn');
+        const modeButtons = document.querySelectorAll('#modeButtons button');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
 
-        function convert(type) {
-            let text = textInput.value;
-            if (!text) return;
+        let activeMode = null;
+        let worker = null;
 
-            let result = '';
+        // Initialize Web Worker
+        if (window.Worker) {
+            worker = new Worker('worker.js');
+            worker.onmessage = function(e) {
+                outputBox.value = e.data.result;
+                if (e.data.result) {
+                    resultBox.classList.remove('hidden');
+                } else {
+                    resultBox.classList.add('hidden');
+                }
+            };
+        }
 
-            switch(type) {
-                case 'upper':
-                    result = text.toUpperCase();
-                    break;
-                case 'lower':
-                    result = text.toLowerCase();
-                    break;
-                case 'title':
-                    result = text.toLowerCase().replace(/(?<!['’\p{L}])\p{L}/gu, s => s.toUpperCase());
-                    break;
-                case 'sentence':
-                    result = text.toLowerCase().replace(/(^\s*|[.!?]\s*)([^a-z0-9\p{L}\p{N}]*)([a-z0-9\p{L}\p{N}])/gu, (match, p1, p2, p3) => p1 + p2 + p3.toUpperCase());
-                    break;
-                case 'alternating':
-                    result = text.split('').map((c, i) => i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()).join('');
-                    break;
-                case 'camel':
-                    // Convert to plain words first, then camel
-                    result = toWords(text)
-                        .map((w, i) => i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-                        .join('');
-                    break;
-                case 'snake':
-                    result = toWords(text).map(w => w.toLowerCase()).join('_');
-                    break;
-                case 'kebab':
-                    result = toWords(text).map(w => w.toLowerCase()).join('-');
-                    break;
+        function setMode(type) {
+            activeMode = type;
+            // Update button visual states
+            modeButtons.forEach(btn => {
+                if (btn.getAttribute('data-mode') === type) {
+                    btn.classList.add('primary');
+                    btn.classList.remove('outline');
+                } else {
+                    btn.classList.remove('primary');
+                    btn.classList.add('outline');
+                }
+            });
+            convert();
+        }
+
+        function convert() {
+            if (!activeMode) return;
+            const text = textInput.value;
+            if (!text) {
+                outputBox.value = '';
+                resultBox.classList.add('hidden');
+                return;
             }
-
-            outputBox.value = result;
-            resultBox.classList.remove('hidden');
-            resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (worker) {
+                worker.postMessage({ type: activeMode, text: text });
+            }
         }
 
-        // Helper to split text into words regardless of current casing
-        function toWords(text) {
-            // Split by space, punctuation, or CamelCase boundary
-            return text
-                .replace(/([a-z])([A-Z])/g, '$1 $2') // split camelCase
-                .replace(/([a-zA-Z])(\d)/g, '$1 $2') // split letter and number
-                .replace(/(\d)([a-zA-Z])/g, '$1 $2') // split number and letter
-                .replace(/[^\p{L}\p{N}\p{Emoji_Presentation}\p{Extended_Pictographic}]+/gu, ' ')
-                .trim()
-                .split(/\s+/)
-                .filter(w => w.length > 0);
-        }
+        // Real-time feedback
+        textInput.addEventListener('input', convert);
 
-        copyBtn.addEventListener('click', () => copyToClipboard(outputBox.value));
+        copyBtn.addEventListener('click', () => {
+            copyToClipboard(outputBox.value);
+            const originalText = copyBtn.innerText;
+            copyBtn.innerText = 'Copied!';
+            setTimeout(() => {
+                copyBtn.innerText = originalText;
+            }, 2000);
+        });
         
         clearBtn.addEventListener('click', () => {
             textInput.value = '';
             outputBox.value = '';
             resultBox.classList.add('hidden');
+            activeMode = null;
+            modeButtons.forEach(btn => {
+                btn.classList.remove('primary');
+                btn.classList.add('outline');
+            });
             textInput.focus();
         });
+
+        // Setup Drag and Drop Zone if utility is available
+        if (typeof setupDropZone === 'function') {
+            setupDropZone(dropZone, fileInput, (files) => {
+                const file = files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        textInput.value = e.target.result;
+                        convert();
+                    };
+                    reader.readAsText(file);
+                }
+            });
+        }
     </script>
 </body>
 </html>

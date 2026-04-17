@@ -207,7 +207,7 @@
             overlay.style.opacity = opRange.value;
             
             // Update Overlay Size
-            // Fix: Multiply PDF Point Size by the Render Scale Ratio
+            // Multiply PDF Point Size by the Render Scale Ratio
             // This ensures 60pt on PDF looks like 60pt * scale on screen.
             const visualSize = parseInt(szRange.value) * renderScaleRatio;
             overlay.style.fontSize = `${visualSize}px`;

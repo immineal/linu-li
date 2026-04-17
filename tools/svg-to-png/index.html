@@ -48,10 +48,17 @@
 
                 <ul class="file-list" id="fileList"></ul>
 
+
                 <div id="settingsArea" class="hidden" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    <div id="colorPaletteSection" class="hidden" style="margin-bottom: 1.5rem;">
+                        <h3 style="font-size: 1.1rem; margin-bottom: 0.8rem;">Batch Coloring</h3>
+                        <p style="font-size: 0.9rem; color: var(--ink-secondary); margin-bottom: 1rem;">Swap colors before converting. Changes apply instantly.</p>
+                        <div id="colorPalette" class="color-palette-grid"></div>
+                    </div>
+
                     <div class="split-view">
                         <div>
-                            <label for="scaleSelect">Output Scale</label>
+                            <label for="scaleSelect">Output Scale <span id="liveDimsPreview" style="font-size:0.8em; font-weight:normal; color:var(--ink-secondary); float:right;"></span></label>
                             <select id="scaleSelect">
                                 <option value="1">1x (Original Size)</option>
                                 <option value="2" selected>2x (High Res)</option>
@@ -113,11 +120,155 @@
         const finalDims = document.getElementById('finalDims');
         const finalSize = document.getElementById('finalSize');
 
-        // State
+                // State
         let currentFile = null;
         let generatedBlob = null;
+        let currentSvgDoc = null;
+        let originalColors = new Map(); // original raw string -> normalized hex
+        let currentColorsMap = new Map(); // normalized hex -> user selected hex
+        let liveOriginalWidth = 300;
+        let liveOriginalHeight = 150;
+        let activeObjectURL = null;
 
-        // 1. Setup Drag & Drop
+        // Color extraction helper
+        const colorCtx = document.createElement('canvas').getContext('2d');
+        function normalizeColor(colorStr) {
+            colorCtx.fillStyle = '#000000'; // reset
+            colorCtx.fillStyle = colorStr;
+            return colorCtx.fillStyle; // returns #rrggbb or rgba(...)
+        }
+
+        function extractColorsFromSVG(doc) {
+            originalColors.clear();
+            currentColorsMap.clear();
+            const elements = doc.querySelectorAll('*');
+            elements.forEach(el => {
+                ['fill', 'stroke'].forEach(attr => {
+                    if (el.hasAttribute(attr)) {
+                        const val = el.getAttribute(attr);
+                        if (val && val !== 'none' && !val.startsWith('url(')) {
+                            const norm = normalizeColor(val);
+                            if (norm) {
+                                originalColors.set(val, norm);
+                                currentColorsMap.set(norm, norm);
+                            }
+                        }
+                    }
+                });
+                ['fill', 'stroke'].forEach(prop => {
+                    const val = el.style[prop];
+                    if (val && val !== 'none' && !val.startsWith('url(')) {
+                        const norm = normalizeColor(val);
+                        if (norm) {
+                            originalColors.set(val, norm);
+                            currentColorsMap.set(norm, norm);
+                        }
+                    }
+                });
+            });
+        }
+
+        function buildColorPalette() {
+            const paletteContainer = document.getElementById('colorPalette');
+            const section = document.getElementById('colorPaletteSection');
+            paletteContainer.innerHTML = '';
+
+            if (currentColorsMap.size === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            currentColorsMap.forEach((currentColor, normalizedOriginal) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'color-item-wrapper';
+
+                const input = document.createElement('input');
+                input.type = 'color';
+                // Only use hex for input type color
+                input.value = currentColor.length === 7 ? currentColor : '#000000';
+                input.className = 'color-picker-input';
+
+                input.addEventListener('input', (e) => {
+                    currentColorsMap.set(normalizedOriginal, e.target.value);
+                    updateSVGElements();
+                });
+
+                const label = document.createElement('span');
+                label.textContent = normalizedOriginal;
+                label.className = 'color-label';
+
+                wrapper.appendChild(input);
+                wrapper.appendChild(label);
+                paletteContainer.appendChild(wrapper);
+            });
+        }
+
+        function updateSVGElements() {
+            if (!currentSvgDoc) return;
+            const elements = currentSvgDoc.querySelectorAll('*');
+            elements.forEach(el => {
+                ['fill', 'stroke'].forEach(attr => {
+                    if (el.hasAttribute(attr)) {
+                        const val = el.getAttribute(attr);
+                        if (originalColors.has(val)) {
+                            const norm = originalColors.get(val);
+                            if (currentColorsMap.has(norm)) {
+                                el.setAttribute(attr, currentColorsMap.get(norm));
+                            }
+                        }
+                    }
+                });
+                ['fill', 'stroke'].forEach(prop => {
+                    const val = el.style[prop];
+                    if (originalColors.has(val)) {
+                        const norm = originalColors.get(val);
+                        if (currentColorsMap.has(norm)) {
+                            el.style[prop] = currentColorsMap.get(norm);
+                        }
+                    }
+                });
+            });
+
+            // Automatically re-render if we already converted once
+            if (generatedBlob) {
+                generatePNG();
+            }
+        }
+
+        function updateLiveDimsPreview() {
+            if (!currentFile || !currentSvgDoc) {
+                document.getElementById('liveDimsPreview').textContent = '';
+                return;
+            }
+            const aspectRatio = liveOriginalWidth / liveOriginalHeight;
+            let tw, th;
+            if (scaleSelect.value === 'custom') {
+                tw = parseInt(customWidthInput.value) || liveOriginalWidth;
+                th = tw / aspectRatio;
+            } else {
+                const scale = parseInt(scaleSelect.value);
+                tw = liveOriginalWidth * scale;
+                th = liveOriginalHeight * scale;
+            }
+
+            const MAX_DIMENSION = 16384;
+            if (tw > MAX_DIMENSION || th > MAX_DIMENSION) {
+                const scaleDown = Math.min(MAX_DIMENSION / tw, MAX_DIMENSION / th);
+                tw *= scaleDown;
+                th *= scaleDown;
+            }
+
+            document.getElementById('liveDimsPreview').textContent = `(Output: ~${Math.round(tw)}x${Math.round(th)} px)`;
+
+            // Auto re-render if it was already converted
+            if (generatedBlob && resultBox && !resultBox.classList.contains('hidden')) {
+                 // small debounce to prevent lag on typing
+                 clearTimeout(window.previewDebounce);
+                 window.previewDebounce = setTimeout(() => generatePNG(true), 300);
+            }
+        }
+// 1. Setup Drag & Drop
         setupDropZone(dropZone, fileInput, handleFileSelect);
 
         function handleFileSelect(files) {
@@ -130,7 +281,10 @@
             }
 
             currentFile = file;
+            generatedBlob = null;
+            currentSvgDoc = null;
             updateUIState();
+            parseFileAndExtractColors();
         }
 
         // 2. UI State Management
@@ -178,24 +332,24 @@
             } else {
                 customWidthContainer.classList.add('hidden');
             }
+            updateLiveDimsPreview();
+        });
+
+        customWidthInput.addEventListener('input', () => {
+            updateLiveDimsPreview();
         });
 
         // 4. Conversion Logic
-        convertBtn.addEventListener('click', () => {
+        function parseFileAndExtractColors() {
             if (!currentFile) return;
-
-            showToast('Converting...', 'info');
-            convertBtn.disabled = true;
-            convertBtn.textContent = 'Processing...';
-
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const rawSvg = e.target.result;
                     const parser = new DOMParser();
-                    const doc = parser.parseFromString(rawSvg, 'image/svg+xml');
+                    currentSvgDoc = parser.parseFromString(rawSvg, 'image/svg+xml');
 
-                    const svgEl = doc.documentElement;
+                    const svgEl = currentSvgDoc.documentElement;
                     if (svgEl.tagName.toLowerCase() !== 'svg') {
                         throw new Error('Invalid SVG file');
                     }
@@ -204,40 +358,74 @@
                     if (!svgEl.hasAttribute('width') || !svgEl.hasAttribute('height')) {
                         const viewBox = svgEl.getAttribute('viewBox');
                         if (viewBox) {
-                            const [x, y, w, h] = viewBox.split(/[\s,]+/).map(parseFloat);
-                            if (!isNaN(w) && !isNaN(h)) {
-                                if (!svgEl.hasAttribute('width')) svgEl.setAttribute('width', w);
-                                if (!svgEl.hasAttribute('height')) svgEl.setAttribute('height', h);
+                            // Using standard split string instead of regex to avoid python/js string escape complexity here
+                            const parts = viewBox.trim().split(/\s+|,/);
+                            if (parts.length === 4) {
+                                const w = parseFloat(parts[2]);
+                                const h = parseFloat(parts[3]);
+                                if (!isNaN(w) && !isNaN(h)) {
+                                    if (!svgEl.hasAttribute('width')) svgEl.setAttribute('width', w);
+                                    if (!svgEl.hasAttribute('height')) svgEl.setAttribute('height', h);
+                                }
                             }
                         }
                     }
 
-                    const serializer = new XMLSerializer();
-                    let svgString = serializer.serializeToString(doc);
+                    // Parse actual dimensions for live preview
+                    let w = parseFloat(svgEl.getAttribute('width'));
+                    let h = parseFloat(svgEl.getAttribute('height'));
+                    if (!isNaN(w) && !isNaN(h)) {
+                        liveOriginalWidth = w;
+                        liveOriginalHeight = h;
+                    }
 
-                    // Convert back to Data URL
-                    const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+                    extractColorsFromSVG(currentSvgDoc);
+                    buildColorPalette();
+                    updateLiveDimsPreview();
 
-                    const img = new Image();
-                    img.onload = function() {
-                        renderToCanvas(img);
-                    };
-
-                    img.onerror = function() {
-                        showToast('Error parsing SVG data.', 'error');
-                        resetButton();
-                    };
-
-                    img.src = svgDataUrl;
                 } catch (err) {
                     showToast('Error processing SVG: ' + err.message, 'error');
-                    resetButton();
                 }
             };
             reader.readAsText(currentFile);
+        }
+
+        convertBtn.addEventListener('click', () => {
+            if (!currentFile || !currentSvgDoc) return;
+            showToast('Converting...', 'info');
+            convertBtn.disabled = true;
+            convertBtn.textContent = 'Processing...';
+            generatePNG();
         });
 
-        function renderToCanvas(img) {
+        function generatePNG(isSilentUpdate = false) {
+            try {
+                const serializer = new XMLSerializer();
+                let svgString = serializer.serializeToString(currentSvgDoc);
+
+                // Use Blob URL instead of base64 to avoid crashes on massive SVG files
+                const blob = new Blob([svgString], { type: 'image/svg+xml' });
+                if (activeObjectURL) URL.revokeObjectURL(activeObjectURL);
+                activeObjectURL = URL.createObjectURL(blob);
+
+                const img = new Image();
+                img.onload = function() {
+                    renderToCanvas(img, isSilentUpdate);
+                };
+
+                img.onerror = function() {
+                    if (!isSilentUpdate) showToast('Error parsing SVG data.', 'error');
+                    resetButton();
+                };
+
+                img.src = activeObjectURL;
+            } catch (err) {
+                if (!isSilentUpdate) showToast('Error processing SVG: ' + err.message, 'error');
+                resetButton();
+            }
+        }
+
+        function renderToCanvas(img, isSilentUpdate = false) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -286,7 +474,9 @@
                     finalSize.textContent = formatFileSize(blob.size);
                     
                     // Scroll to result
-                    resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (!isSilentUpdate) {
+                        resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
                     resetButton();
                 };
 

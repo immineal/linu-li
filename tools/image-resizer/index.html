@@ -22,8 +22,15 @@
                 <div class="split-view">
                     <div>
                         <label for="targetWidth">Target Width (px)</label>
-                        <input type="number" id="targetWidth" value="1200" min="100" max="5000">
+                        <input type="number" id="targetWidth" value="1200" min="1" max="10000" placeholder="Auto">
                     </div>
+                    <div>
+                        <label for="targetHeight">Target Height (px)</label>
+                        <input type="number" id="targetHeight" min="1" max="10000" placeholder="Auto">
+                    </div>
+                </div>
+
+                <div class="split-view" style="margin-top: 1rem;">
                     <div>
                         <label for="outputFormat">Output Format</label>
                         <select id="outputFormat">
@@ -32,11 +39,25 @@
                             <option value="image/webp">WebP (Modern)</option>
                         </select>
                     </div>
+                    <div style="display: flex; align-items: flex-end; padding-bottom: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="smartCrop" disabled>
+                            <span>Smart Crop (Center)</span>
+                        </label>
+                    </div>
                 </div>
 
-                <div id="qualityWrapper">
+                <div id="qualityWrapper" style="margin-top: 1rem;">
                     <label for="qualityRange">JPEG/WebP Quality (<span id="qualityValue">80</span>%)</label>
                     <input type="range" id="qualityRange" min="10" max="100" value="80">
+                </div>
+
+                <div style="margin-top: 1rem; margin-bottom: 1rem;">
+                    <label for="namingPattern">File Naming Pattern</label>
+                    <input type="text" id="namingPattern" value="{original}_resized.{ext}" placeholder="{original}_{width}x{height}.{ext}">
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.25rem;">
+                        Variables: <code>{original}</code>, <code>{width}</code>, <code>{height}</code>, <code>{ext}</code>
+                    </p>
                 </div>
 
                 <div class="drop-zone" id="dropZone">
@@ -80,7 +101,10 @@
         const resizeBtn = document.getElementById('resizeBtn');
         const clearBtn = document.getElementById('clearBtn');
         const targetWidthInput = document.getElementById('targetWidth');
+        const targetHeightInput = document.getElementById('targetHeight');
         const outputFormatInput = document.getElementById('outputFormat');
+        const smartCropInput = document.getElementById('smartCrop');
+        const namingPatternInput = document.getElementById('namingPattern');
         const qualityRange = document.getElementById('qualityRange');
         const qualityValue = document.getElementById('qualityValue');
         const qualityWrapper = document.getElementById('qualityWrapper');
@@ -104,6 +128,19 @@
         qualityRange.addEventListener('input', (e) => {
             qualityValue.textContent = e.target.value;
         });
+
+        // Toggle Smart Crop based on Width and Height
+        function updateSmartCropToggle() {
+            if (targetWidthInput.value && targetHeightInput.value) {
+                smartCropInput.disabled = false;
+            } else {
+                smartCropInput.disabled = true;
+                smartCropInput.checked = false;
+            }
+        }
+
+        targetWidthInput.addEventListener('input', updateSmartCropToggle);
+        targetHeightInput.addEventListener('input', updateSmartCropToggle);
 
         // Toggle Quality Slider based on format (PNG doesn't use quality in canvas toBlob)
         outputFormatInput.addEventListener('change', (e) => {
@@ -178,30 +215,45 @@
             progressContainer.style.display = 'block';
             progressBar.style.width = '0%';
             
-            const width = parseInt(targetWidthInput.value) || 1200;
+            const width = parseInt(targetWidthInput.value) || null;
+            const height = parseInt(targetHeightInput.value) || null;
             const format = outputFormatInput.value;
             const quality = parseInt(qualityRange.value) / 100;
+            const smartCrop = smartCropInput.checked;
+            const namingPattern = namingPatternInput.value || "{original}_resized.{ext}";
 
             const zip = new JSZip();
             let processedCount = 0;
             let totalSizeOriginal = 0;
             let totalSizeNew = 0;
 
+            // Optional: concurrency control. For now, sequential to avoid massive memory spikes,
+            // but the worker prevents main thread blocking.
             try {
                 for (let i = 0; i < selectedFiles.length; i++) {
                     const file = selectedFiles[i];
                     totalSizeOriginal += file.size;
 
                     // Process individual image
-                    const blob = await resizeImage(file, width, format, quality);
+                    const result = await resizeImage(file, width, height, format, quality, smartCrop);
                     
                     // Add to ZIP
                     const extension = format === 'image/jpeg' ? 'jpg' : format.split('/')[1];
                     const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                    const newName = `${originalName}_resized.${extension}`;
                     
-                    zip.file(newName, blob);
-                    totalSizeNew += blob.size;
+                    let newName = namingPattern
+                        .replace(/{original}/g, originalName)
+                        .replace(/{width}/g, result.width)
+                        .replace(/{height}/g, result.height)
+                        .replace(/{ext}/g, extension);
+
+                    // fallback if naming pattern doesn't end in ext
+                    if (!newName.endsWith('.' + extension)) {
+                        newName += '.' + extension;
+                    }
+
+                    zip.file(newName, result.blob);
+                    totalSizeNew += result.blob.size;
 
                     // Update Progress
                     processedCount++;
@@ -234,48 +286,142 @@
             }
         });
 
-        // Core Resize Function using Canvas
-        function resizeImage(file, targetWidth, format, quality) {
-            return new Promise((resolve, reject) => {
-                const objectUrl = URL.createObjectURL(file);
-                const img = new Image();
-                img.src = objectUrl;
-                
-                img.onload = () => {
-                    URL.revokeObjectURL(objectUrl);
+        // === WORKER SETUP ===
+        const workerScript = `
+            self.onmessage = async function(e) {
+                const { file, targetWidth, targetHeight, format, quality, smartCrop } = e.data;
+                try {
+                    const bitmap = await createImageBitmap(file);
+                    let finalWidth = bitmap.width;
+                    let finalHeight = bitmap.height;
                     
-                    if (img.width === 0 || img.height === 0) {
-                        return reject(new Error('Invalid image dimensions'));
+                    let sx = 0, sy = 0, sWidth = bitmap.width, sHeight = bitmap.height;
+
+                    if (targetWidth && targetHeight) {
+                        finalWidth = targetWidth;
+                        finalHeight = targetHeight;
+                        if (smartCrop) {
+                            // Calculate crop area to cover target aspect ratio
+                            const targetAspect = targetWidth / targetHeight;
+                            const currentAspect = bitmap.width / bitmap.height;
+                            if (currentAspect > targetAspect) {
+                                // Image is wider than target aspect
+                                sWidth = bitmap.height * targetAspect;
+                                sHeight = bitmap.height;
+                                sx = (bitmap.width - sWidth) / 2;
+                            } else {
+                                // Image is taller than target aspect
+                                sWidth = bitmap.width;
+                                sHeight = bitmap.width / targetAspect;
+                                sy = (bitmap.height - sHeight) / 2;
+                            }
+                        }
+                    } else if (targetWidth) {
+                        finalWidth = targetWidth;
+                        finalHeight = Math.round(bitmap.height * (targetWidth / bitmap.width));
+                    } else if (targetHeight) {
+                        finalHeight = targetHeight;
+                        finalWidth = Math.round(bitmap.width * (targetHeight / bitmap.height));
                     }
 
-                    // Calculate aspect ratio
-                    const scaleFactor = targetWidth / img.width;
-                    const targetHeight = Math.round(img.height * scaleFactor);
+                    let blob;
+                    if (typeof OffscreenCanvas !== 'undefined') {
+                        const canvas = new OffscreenCanvas(finalWidth, finalHeight);
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(bitmap, sx, sy, sWidth, sHeight, 0, 0, finalWidth, finalHeight);
+                        blob = await canvas.convertToBlob({ type: format, quality: quality });
+                    } else {
+                        // Main thread fallback should be handled outside worker if OffscreenCanvas doesn't exist,
+                        // but modern browsers support OffscreenCanvas in workers.
+                        throw new Error("OffscreenCanvas not supported in worker.");
+                    }
 
-                    const canvas = document.createElement('canvas');
-                    canvas.width = targetWidth;
-                    canvas.height = targetHeight;
+                    self.postMessage({ success: true, blob: blob, width: finalWidth, height: finalHeight });
+                } catch (error) {
+                    self.postMessage({ success: false, error: error.message });
+                }
+            };
+        `;
+        const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(workerBlob);
 
-                    const ctx = canvas.getContext('2d');
+        // Core Resize Function using Web Worker
+        function resizeImage(file, targetWidth, targetHeight, format, quality, smartCrop) {
+            return new Promise((resolve, reject) => {
+                if (typeof OffscreenCanvas !== 'undefined' && window.Worker) {
+                    const worker = new Worker(workerUrl);
+                    worker.onmessage = (e) => {
+                        if (e.data.success) {
+                            resolve(e.data);
+                        } else {
+                            reject(new Error(e.data.error));
+                        }
+                        worker.terminate();
+                    };
+                    worker.onerror = (e) => {
+                        reject(new Error("Worker error: " + e.message));
+                        worker.terminate();
+                    };
+                    worker.postMessage({ file, targetWidth, targetHeight, format, quality, smartCrop });
+                } else {
+                    // Fallback to main thread
+                    const objectUrl = URL.createObjectURL(file);
+                    const img = new Image();
+                    img.src = objectUrl;
+                    img.onload = () => {
+                        URL.revokeObjectURL(objectUrl);
+                        if (img.width === 0 || img.height === 0) {
+                            return reject(new Error('Invalid image dimensions'));
+                        }
 
-                    // Better quality smoothing
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'high';
-                    
-                    // Draw
-                    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                        let finalWidth = img.width;
+                        let finalHeight = img.height;
+                        let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
 
-                    // Export
-                    canvas.toBlob((blob) => {
-                        if (blob) resolve(blob);
-                        else reject(new Error('Canvas conversion failed'));
-                    }, format, quality);
-                };
-                
-                img.onerror = (err) => {
-                    URL.revokeObjectURL(objectUrl);
-                    reject(err);
-                };
+                        if (targetWidth && targetHeight) {
+                            finalWidth = targetWidth;
+                            finalHeight = targetHeight;
+                            if (smartCrop) {
+                                const targetAspect = targetWidth / targetHeight;
+                                const currentAspect = img.width / img.height;
+                                if (currentAspect > targetAspect) {
+                                    sWidth = img.height * targetAspect;
+                                    sHeight = img.height;
+                                    sx = (img.width - sWidth) / 2;
+                                } else {
+                                    sWidth = img.width;
+                                    sHeight = img.width / targetAspect;
+                                    sy = (img.height - sHeight) / 2;
+                                }
+                            }
+                        } else if (targetWidth) {
+                            finalWidth = targetWidth;
+                            finalHeight = Math.round(img.height * (targetWidth / img.width));
+                        } else if (targetHeight) {
+                            finalHeight = targetHeight;
+                            finalWidth = Math.round(img.width * (targetHeight / img.height));
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = finalWidth;
+                        canvas.height = finalHeight;
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, finalWidth, finalHeight);
+
+                        canvas.toBlob((blob) => {
+                            if (blob) resolve({ blob, width: finalWidth, height: finalHeight });
+                            else reject(new Error('Canvas conversion failed'));
+                        }, format, quality);
+                    };
+                    img.onerror = (err) => {
+                        URL.revokeObjectURL(objectUrl);
+                        reject(err);
+                    };
+                }
             });
         }
 
