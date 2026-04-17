@@ -7,47 +7,64 @@ self.onmessage = function(e) {
     let diffObj = null;
     let language = 'plaintext';
 
-    // Detect Language for formatting (only if we have right side text)
-    if (text2 && typeof text2 === 'string') {
+    // Parse JSON if needed BEFORE highlighting
+    let rawA = text1 || '';
+    let rawB = text2 || '';
+
+    if (mode === 'json') {
         try {
-            const detected = hljs.highlightAuto(text2.slice(0, 1000));
+            rawA = rawA ? JSON.stringify(JSON.parse(rawA), null, 4) : '';
+        } catch(e) {}
+        try {
+            rawB = rawB ? JSON.stringify(JSON.parse(rawB), null, 4) : '';
+        } catch(e) {}
+    }
+
+    // Detect Language for formatting
+    if (rawB && typeof rawB === 'string') {
+        try {
+            const detected = hljs.highlightAuto(rawB.slice(0, 1000));
             language = detected.language || 'plaintext';
         } catch (err) {
             console.error("Worker highlight detection error", err);
         }
     }
 
-    try {
-        if (mode === 'json') {
-            const j1 = text1 ? JSON.stringify(JSON.parse(text1), null, 4) : '';
-            const j2 = text2 ? JSON.stringify(JSON.parse(text2), null, 4) : '';
-            diffObj = Diff.diffLines(j1, j2);
-        }
-        else if (mode === 'lines') {
-            diffObj = ignoreSpace ? Diff.diffTrimmedLines(text1, text2) : Diff.diffLines(text1, text2);
-        }
-        else if (mode === 'words') {
-            diffObj = ignoreSpace ? Diff.diffWords(text1, text2) : Diff.diffWordsWithSpace(text1, text2);
-        }
-        else {
-            diffObj = Diff.diffChars(text1, text2);
-        }
-    } catch (e) {
-        self.postMessage({ error: e.message || 'Error generating diff' });
-        return;
-    }
-
-    // Helper for Highlighting
-    const formatCode = (code) => {
+    // Helper to safely highlight or escape
+    const processCode = (code) => {
         if (!code || code.trim() === '') return code || ' ';
         try {
             if (language !== 'plaintext') {
                 return hljs.highlight(code, { language }).value;
             }
-        } catch (e) { }
-        // Fallback: simple escape
-        return code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        } catch (err) { }
+        // Fallback: full escape including quotes
+        return code.replace(/[&<>'"]/g, tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag));
     };
+
+    let hlA = processCode(rawA);
+    let hlB = processCode(rawB);
+
+    try {
+        if (mode === 'lines' || mode === 'json') {
+            diffObj = ignoreSpace ? Diff.diffTrimmedLines(hlA, hlB) : Diff.diffLines(hlA, hlB);
+        }
+        else if (mode === 'words') {
+            diffObj = ignoreSpace ? Diff.diffWords(hlA, hlB) : Diff.diffWordsWithSpace(hlA, hlB);
+        }
+        else {
+            diffObj = Diff.diffChars(hlA, hlB);
+        }
+    } catch (err) {
+        self.postMessage({ error: err.message || 'Error generating diff' });
+        return;
+    }
 
     // Calculate Inline Rows
     const inlineRows = [];
@@ -65,7 +82,7 @@ self.onmessage = function(e) {
                 typeClass,
                 numL: part.added ? '' : lineNumLeft++,
                 numR: part.removed ? '' : lineNumRight++,
-                codeHtml: formatCode(line)
+                codeHtml: line || ' '
             });
         });
     });
@@ -80,8 +97,8 @@ self.onmessage = function(e) {
         for (let i = 0; i < max; i++) {
             sideRows.push({
                 type: (leftBuffer[i] !== undefined && rightBuffer[i] !== undefined) ? 'change' : (leftBuffer[i] !== undefined ? 'del' : 'add'),
-                left: leftBuffer[i] !== undefined ? formatCode(leftBuffer[i]) : null,
-                right: rightBuffer[i] !== undefined ? formatCode(rightBuffer[i]) : null
+                left: leftBuffer[i] !== undefined ? (leftBuffer[i] || ' ') : null,
+                right: rightBuffer[i] !== undefined ? (rightBuffer[i] || ' ') : null
             });
         }
         leftBuffer.length = 0;
@@ -98,7 +115,7 @@ self.onmessage = function(e) {
             rightBuffer.push(...lines);
         } else {
             flushBuffers();
-            lines.forEach(l => sideRows.push({ type: 'neutral', left: formatCode(l), right: formatCode(l) }));
+            lines.forEach(l => sideRows.push({ type: 'neutral', left: l || ' ', right: l || ' ' }));
         }
     });
     flushBuffers();
