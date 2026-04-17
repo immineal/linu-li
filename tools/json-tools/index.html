@@ -521,13 +521,15 @@
 
                 const renderChunk = (start) => {
                     const end = Math.min(start + CHUNK_SIZE, keys.length);
+                    const fragment = document.createDocumentFragment();
                     for (let i = start; i < end; i++) {
                         const k = keys[i];
                         const li = document.createElement('li');
                         const childKey = isArray ? null : k; // Arrays don't show index keys in standard trees usually, or index
                         li.appendChild(buildTreeElement(childKey, value[k]));
-                        ul.appendChild(li);
+                        fragment.appendChild(li);
                     }
+                    ul.appendChild(fragment);
                     if (end < keys.length) {
                         const moreLi = document.createElement('li');
                         const moreBtn = document.createElement('button');
