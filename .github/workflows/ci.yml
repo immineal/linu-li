@@ -93,9 +93,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Puppeteer
-        run: npm install --no-save puppeteer
-
       - name: Start local server
         run: npx serve . --listen 3000 &
         # Give the server a moment to come up
