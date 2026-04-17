@@ -65,8 +65,21 @@ const document = {
 global.document = document;
 global.window = {};
 
-// We need to bypass the layout.js which is not loaded
-global.copyToClipboard = () => {};
+// We need to bypass the layout.js which is not loaded, but mock the clipboard
+let clipboardText = '';
+const navigatorMock = {
+    clipboard: {
+        writeText: (text) => {
+            clipboardText = text;
+            return Promise.resolve();
+        }
+    }
+};
+global.navigator = navigatorMock;
+
+global.copyToClipboard = (text) => {
+    return navigatorMock.clipboard.writeText(text);
+};
 
 eval(jsCode);
 
@@ -146,6 +159,14 @@ async function runTests() {
     processList('empty');
     runTest("Remove empty lines should eliminate consecutive blanks", () => {
         assert.strictEqual(listOutput.value, 'a\nb\nc');
+    });
+
+    // Test 8: Copy to clipboard
+    listOutput.value = 'Item 1\nItem 2\nItem 3';
+    clipboardText = '';
+    copyResult();
+    runTest("copyResult should copy the output list to the clipboard", () => {
+        assert.strictEqual(clipboardText, 'Item 1\nItem 2\nItem 3');
     });
 
     console.log(`\nTests completed. Passed: ${testsPassed}, Failed: ${testsFailed}`);
