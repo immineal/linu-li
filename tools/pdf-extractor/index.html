@@ -218,6 +218,8 @@
                 let fontsFoundTotal = 0;
                 let processedFonts = new Set(); // Prevent duplicates
 
+                const documentFragment = document.createDocumentFragment();
+
                 for (let i = 1; i <= numPages; i++) {
                     // Chunking to keep UI highly responsive for huge PDFs
                     if (i % 5 === 0) {
@@ -249,7 +251,7 @@
                                             preview: pageText.substring(0, 100) + (pageText.length > 100 ? '...' : '')
                                         };
                                         extractedTexts.push(txtObj);
-                                        addTextToGrid(txtObj);
+                                        documentFragment.appendChild(createCardForText(txtObj));
                                         textFoundTotal++;
                                     }
                                 }
@@ -279,7 +281,7 @@
                                             const processedImg = await processPdfImage(imageObj, i, imagesFoundTotal + 1);
                                             if (processedImg) {
                                                 extractedImages.push(processedImg);
-                                                addImageToGrid(processedImg);
+                                                documentFragment.appendChild(createCardForImage(processedImg));
                                                 imagesFoundTotal++;
                                             }
                                         }
@@ -314,7 +316,7 @@
                                                     name: fontObj.loadedName || fontName
                                                 };
                                                 extractedFonts.push(fntObj);
-                                                addFontToGrid(fntObj);
+                                                documentFragment.appendChild(createCardForFont(fntObj));
                                                 fontsFoundTotal++;
                                             }
                                         } catch (fntErr) {
@@ -338,6 +340,9 @@
                 try {
                     pdf.destroy();
                 } catch (e) {}
+
+                // Append all extracted elements to the grid in one go, limiting reflows
+                imageGrid.appendChild(documentFragment);
 
                 // Finish
                 progressBar.style.width = '100%';
@@ -448,8 +453,8 @@
             };
         }
 
-        // 4. UI Helper: Add to Grid
-        function addImageToGrid(imgObj) {
+        // 4. UI Helper: Create Grid Card
+        function createCardForImage(imgObj) {
             const div = document.createElement('div');
             div.className = 'image-card';
 
@@ -473,10 +478,10 @@
             div.appendChild(meta);
             div.appendChild(btn);
 
-            imageGrid.appendChild(div);
+            return div;  // ← was missing in main
         }
 
-        function addTextToGrid(txtObj) {
+        function createCardForText(txtObj) {
             const div = document.createElement('div');
             div.className = 'image-card';
 
@@ -488,7 +493,7 @@
             preview.style.overflow = 'hidden';
             preview.style.background = '#fafafa';
             preview.style.border = '1px solid #eee';
-            preview.textContent = txtObj.preview;
+            preview.textContent = txtObj.preview;  // ← safe, no innerHTML
 
             const meta = document.createElement('div');
             meta.className = 'image-meta';
@@ -506,10 +511,10 @@
             div.appendChild(meta);
             div.appendChild(btn);
 
-            imageGrid.appendChild(div);
+            return div;  // ← was missing in main
         }
 
-        function addFontToGrid(fntObj) {
+        function createCardForFont(fntObj) {
             const div = document.createElement('div');
             div.className = 'image-card';
 
@@ -539,7 +544,7 @@
             div.appendChild(meta);
             div.appendChild(btn);
 
-            imageGrid.appendChild(div);
+            return div;  // ← was missing in main
         }
 
         // 5. Download Functions
