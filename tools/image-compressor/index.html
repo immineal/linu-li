@@ -269,9 +269,9 @@
 
             // FIX: If we switch back to single mode and a file exists, force layout recalc
             if (mode === 'single' && singleFile) {
-                setTimeout(() => {
+                requestAnimationFrame(() => {
                     syncComparisonImages();
-                }, 50);
+                });
             }
         };
 
