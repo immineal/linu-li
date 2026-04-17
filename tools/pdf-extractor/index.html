@@ -457,38 +457,94 @@
         function createCardForImage(imgObj) {
             const div = document.createElement('div');
             div.className = 'image-card';
-            div.innerHTML = `
-                <img src="${imgObj.url}" class="image-preview" alt="${imgObj.filename}">
-                <div class="image-meta">${imgObj.width}x${imgObj.height}</div>
-                <button class="button sm outline" style="width:100%; font-size: 0.75rem;" onclick="downloadSingle('${imgObj.url}', '${imgObj.filename}')">Download</button>
-            `;
-            return div;
+
+            const img = document.createElement('img');
+            img.src = imgObj.url;
+            img.className = 'image-preview';
+            img.alt = imgObj.filename;
+
+            const meta = document.createElement('div');
+            meta.className = 'image-meta';
+            meta.textContent = `${imgObj.width}x${imgObj.height}`;
+
+            const btn = document.createElement('button');
+            btn.className = 'button sm outline';
+            btn.style.width = '100%';
+            btn.style.fontSize = '0.75rem';
+            btn.textContent = 'Download';
+            btn.onclick = () => downloadSingle(imgObj.url, imgObj.filename);
+
+            div.appendChild(img);
+            div.appendChild(meta);
+            div.appendChild(btn);
+
+            return div;  // ← was missing in main
         }
 
         function createCardForText(txtObj) {
             const div = document.createElement('div');
             div.className = 'image-card';
-            div.innerHTML = `
-                <div class="image-preview" style="padding: 0.5rem; font-size: 0.65rem; text-align: left; overflow: hidden; background: #fafafa; border: 1px solid #eee;">
-                    ${txtObj.preview.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
-                </div>
-                <div class="image-meta" title="${txtObj.filename}">📄 Text</div>
-                <button class="button sm outline" style="width:100%; font-size: 0.75rem;" onclick="downloadSingle('${txtObj.url}', '${txtObj.filename}')">Download</button>
-            `;
-            return div;
+
+            const preview = document.createElement('div');
+            preview.className = 'image-preview';
+            preview.style.padding = '0.5rem';
+            preview.style.fontSize = '0.65rem';
+            preview.style.textAlign = 'left';
+            preview.style.overflow = 'hidden';
+            preview.style.background = '#fafafa';
+            preview.style.border = '1px solid #eee';
+            preview.textContent = txtObj.preview;  // ← safe, no innerHTML
+
+            const meta = document.createElement('div');
+            meta.className = 'image-meta';
+            meta.title = txtObj.filename;
+            meta.textContent = '📄 Text';
+
+            const btn = document.createElement('button');
+            btn.className = 'button sm outline';
+            btn.style.width = '100%';
+            btn.style.fontSize = '0.75rem';
+            btn.textContent = 'Download';
+            btn.onclick = () => downloadSingle(txtObj.url, txtObj.filename);
+
+            div.appendChild(preview);
+            div.appendChild(meta);
+            div.appendChild(btn);
+
+            return div;  // ← was missing in main
         }
 
         function createCardForFont(fntObj) {
             const div = document.createElement('div');
             div.className = 'image-card';
-            div.innerHTML = `
-                <div class="image-preview" style="display: flex; align-items: center; justify-content: center; font-size: 2rem; background: #fafafa; border: 1px solid #eee;">
-                    🔤
-                </div>
-                <div class="image-meta" title="${fntObj.name}">Font: ${fntObj.name}</div>
-                <button class="button sm outline" style="width:100%; font-size: 0.75rem;" onclick="downloadSingle('${fntObj.url}', '${fntObj.filename}')">Download</button>
-            `;
-            return div;
+
+            const preview = document.createElement('div');
+            preview.className = 'image-preview';
+            preview.style.display = 'flex';
+            preview.style.alignItems = 'center';
+            preview.style.justifyContent = 'center';
+            preview.style.fontSize = '2rem';
+            preview.style.background = '#fafafa';
+            preview.style.border = '1px solid #eee';
+            preview.textContent = '🔤';
+
+            const meta = document.createElement('div');
+            meta.className = 'image-meta';
+            meta.title = fntObj.name;
+            meta.textContent = `Font: ${fntObj.name}`;
+
+            const btn = document.createElement('button');
+            btn.className = 'button sm outline';
+            btn.style.width = '100%';
+            btn.style.fontSize = '0.75rem';
+            btn.textContent = 'Download';
+            btn.onclick = () => downloadSingle(fntObj.url, fntObj.filename);
+
+            div.appendChild(preview);
+            div.appendChild(meta);
+            div.appendChild(btn);
+
+            return div;  // ← was missing in main
         }
 
         // 5. Download Functions

@@ -138,7 +138,9 @@
                     </div>
                     <button class="remove-file" aria-label="Remove file" onclick="removeFile()">×</button>
                 `;
-                fileList.appendChild(li);
+                const fragment = document.createDocumentFragment();
+                fragment.appendChild(li);
+                fileList.appendChild(fragment);
                 
                 dropZone.classList.add('hidden');
                 optionsPanel.classList.remove('hidden');
