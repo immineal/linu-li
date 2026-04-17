@@ -1,1 +1,8 @@
-
+{
+  "dependencies": {
+    "jsdom": "^29.0.2"
+  },
+  "scripts": {
+    "test": "node tests/test-qr-creator.js"
+  }
+}
