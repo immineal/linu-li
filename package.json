@@ -1,1 +1,8 @@
-
+{
+  "dependencies": {
+    "dompurify": "^3.4.0",
+    "jsdom": "^29.0.2",
+    "marked": "^18.0.0",
+    "puppeteer": "^24.41.0"
+  }
+}
