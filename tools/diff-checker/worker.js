@@ -1,6 +1,22 @@
 importScripts('https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js');
 importScripts('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js');
 
+// Helper for Highlighting
+function formatCode(code, language) {
+    if (!code || code.trim() === '') return code || ' ';
+    try {
+        if (language !== 'plaintext' && typeof hljs !== 'undefined') {
+            return hljs.highlight(code, { language }).value;
+        }
+    } catch (e) { }
+    // Fallback: simple escape
+    return code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { formatCode };
+}
+
 self.onmessage = function(e) {
     const { text1, text2, mode, ignoreSpace } = e.data;
 
@@ -66,6 +82,7 @@ self.onmessage = function(e) {
         return;
     }
 
+
     // Calculate Inline Rows
     const inlineRows = [];
     let lineNumLeft = 1;
@@ -83,6 +100,7 @@ self.onmessage = function(e) {
                 numL: part.added ? '' : lineNumLeft++,
                 numR: part.removed ? '' : lineNumRight++,
                 codeHtml: line || ' '
+                codeHtml: formatCode(line, language)
             });
         });
     });
@@ -99,6 +117,8 @@ self.onmessage = function(e) {
                 type: (leftBuffer[i] !== undefined && rightBuffer[i] !== undefined) ? 'change' : (leftBuffer[i] !== undefined ? 'del' : 'add'),
                 left: leftBuffer[i] !== undefined ? (leftBuffer[i] || ' ') : null,
                 right: rightBuffer[i] !== undefined ? (rightBuffer[i] || ' ') : null
+                left: leftBuffer[i] !== undefined ? formatCode(leftBuffer[i], language) : null,
+                right: rightBuffer[i] !== undefined ? formatCode(rightBuffer[i], language) : null
             });
         }
         leftBuffer.length = 0;
@@ -116,6 +136,7 @@ self.onmessage = function(e) {
         } else {
             flushBuffers();
             lines.forEach(l => sideRows.push({ type: 'neutral', left: l || ' ', right: l || ' ' }));
+            lines.forEach(l => sideRows.push({ type: 'neutral', left: formatCode(l, language), right: formatCode(l, language) }));
         }
     });
     flushBuffers();

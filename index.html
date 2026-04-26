@@ -459,7 +459,6 @@
             /* === OFFLINE PWA SUPPORT === */
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./assets/sw.js')
-                    .then(() => console.log('Offline Ready: Service Worker Registered'))
                     .catch(err => console.error('SW Fail', err));
             }
 

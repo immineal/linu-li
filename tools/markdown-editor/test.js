@@ -11,7 +11,7 @@ const DOMPurify = createDOMPurify(window);
 function render(mdInputText) {
     try {
         const rawHtml = marked.parse(mdInputText);
-        const cleanHtml = DOMPurify.sanitize(rawHtml);
+        const cleanHtml = DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['target'] });
         return cleanHtml;
     } catch (err) {
         return "<p style='color: red;'>Error rendering Markdown.</p>";
@@ -37,3 +37,9 @@ const output3 = render(mermaidPayload);
 // DOMPurify should allow the language-mermaid class for extensibility
 assert.ok(output3.includes('class="language-mermaid"'), "Mermaid code block class stripped by DOMPurify");
 console.log("✅ Mermaid Extensibility Support Test Passed");
+
+// 4. Test Target Attribute Preservation
+const targetPayload = '<a href="https://example.com" target="_blank">link</a>';
+const output4 = render(targetPayload);
+assert.ok(output4.includes('target="_blank"'), "Target attribute stripped by DOMPurify");
+console.log("✅ Target Attribute Support Test Passed");

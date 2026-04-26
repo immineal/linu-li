@@ -1,0 +1,217 @@
+name: CI Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  # ─── Node.js / jsdom tests (no browser needed) ───────────────────────────
+  node-tests:
+    name: Node.js Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run jsdom-based tests
+        run: |
+          PASS=0; FAIL=0; ERRORS=""
+
+          run_test() {
+            local file="$1"
+            if node "$file"; then
+              echo "[PASS] $file"
+              PASS=$((PASS + 1))
+            else
+              echo "[FAIL] $file"
+              FAIL=$((FAIL + 1))
+              ERRORS="$ERRORS\n  - $file"
+            fi
+          }
+
+          # .tests/ — skip hash-generator: requires Web Worker API (not in jsdom)
+          for f in .tests/*.test.js; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              .tests/hash-generator.test.js) echo "[SKIP] $f (requires Web Worker)"; continue ;;
+            esac
+            run_test "$f"
+          done
+
+          # tests/ — skip test-pdf-watermarker: uses Puppeteer (runs in puppeteer job)
+          for f in tests/test-*.js tests/test_*.js; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              tests/test-pdf-watermarker.js) echo "[SKIP] $f (Puppeteer — runs in puppeteer job)"; continue ;;
+            esac
+            run_test "$f"
+          done
+
+          # Per-tool jsdom tests
+          for f in \
+            tools/aspect-ratio/aspect-ratio.test.js \
+            tools/image-resizer/test.js \
+            tools/list-cleaner/test.js \
+            tools/markdown-editor/test.js \
+            tools/pdf-splitter/test.js \
+            tools/url-tools/test.js \
+            tools/color-tools/test_color_contrast.js \
+            tools/unit-converter/test_regression.js; do
+            [ -f "$f" ] && run_test "$f"
+          done
+
+          # Standalone node test files
+          for f in \
+            test_binary_jpeg.js \
+            test_case_converter_worker.js \
+            test_piexif.js \
+            test_piexif_copyright.js \
+            test_piexif_inject.js \
+            test_pw_gen.js \
+            test_syllables.js; do
+            [ -f "$f" ] && run_test "$f"
+          done
+
+          echo ""
+          echo "Results: $PASS passed, $FAIL failed"
+          if [ "$FAIL" -gt 0 ]; then
+            echo -e "Failed tests:$ERRORS"
+            exit 1
+          fi
+
+  # ─── Puppeteer tests (need a local HTTP server) ───────────────────────────
+  puppeteer-tests:
+    name: Puppeteer Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install ImageMagick
+        run: sudo apt-get install -y imagemagick
+
+      - name: Patch puppeteer.launch for CI sandbox
+        # GitHub Actions runners don't support Chrome's sandbox.
+        # This preload script monkey-patches puppeteer.launch() to always
+        # inject --no-sandbox without touching any test file.
+        run: |
+          cat > ci-puppeteer-preload.js << 'EOF'
+          const puppeteer = require('puppeteer');
+          const origLaunch = puppeteer.launch.bind(puppeteer);
+          puppeteer.launch = function(opts = {}) {
+            const args = opts.args || [];
+            if (!args.includes('--no-sandbox')) args.push('--no-sandbox');
+            if (!args.includes('--disable-setuid-sandbox')) args.push('--disable-setuid-sandbox');
+            return origLaunch({ ...opts, args });
+          };
+          EOF
+
+      - name: Start local server
+        run: npx serve . --listen 3000 &
+
+      - name: Wait for server
+        run: npx wait-on http://localhost:3000 --timeout 30000
+
+      - name: Run Puppeteer tests
+        run: |
+          PASS=0; FAIL=0; ERRORS=""
+
+          run_test() {
+            local file="$1"
+            if node --require ./ci-puppeteer-preload.js "$file"; then
+              echo "[PASS] $file"
+              PASS=$((PASS + 1))
+            else
+              echo "[FAIL] $file"
+              FAIL=$((FAIL + 1))
+              ERRORS="$ERRORS\n  - $file"
+            fi
+          }
+
+          run_test "test.js"
+          run_test "tests/test-pdf-watermarker.js"
+          run_test "tools/social-cropper/social-cropper.spec.js"
+
+          echo ""
+          echo "Results: $PASS passed, $FAIL failed"
+          if [ "$FAIL" -gt 0 ]; then
+            echo -e "Failed tests:$ERRORS"
+            exit 1
+          fi
+
+  # ─── Playwright Python tests (need a local HTTP server) ───────────────────
+  playwright-tests:
+    name: Playwright Python Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright + browsers
+        run: |
+          pip install playwright
+          playwright install chromium --with-deps
+
+      - name: Start local server
+        run: |
+          python3 -m http.server 8000 &
+          echo $! > /tmp/server.pid
+
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 20); do
+            curl -s http://127.0.0.1:8000/ > /dev/null && break
+            sleep 1
+          done
+
+      - name: Run Playwright tests
+        run: |
+          PASS=0; FAIL=0; ERRORS=""
+
+          run_test() {
+            local file="$1"
+            if python3 "$file"; then
+              echo "[PASS] $file"
+              PASS=$((PASS + 1))
+            else
+              echo "[FAIL] $file"
+              FAIL=$((FAIL + 1))
+              ERRORS="$ERRORS\n  - $file"
+            fi
+          }
+
+          run_test "test_ui.py"
+          run_test "tests/test_favicon.py"
+
+          echo ""
+          echo "Results: $PASS passed, $FAIL failed"
+          if [ "$FAIL" -gt 0 ]; then
+            echo -e "Failed tests:$ERRORS"
+            exit 1
+          fi
+
+      - name: Stop server
+        if: always()
+        run: kill $(cat /tmp/server.pid) 2>/dev/null || true

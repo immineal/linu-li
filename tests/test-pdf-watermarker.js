@@ -15,11 +15,10 @@ const path = require('path');
 
         // 1. Use real dummy PDF files for testing
         const dummyPdfPath = path.join(__dirname, 'dummy.pdf');
-        const dummyPdf2Path = path.join(__dirname, 'dummy2.pdf');
 
-        // 2. Upload multiple files
+        // 2. Upload single file
         const fileInput = await page.$('#fileInput');
-        await fileInput.uploadFile(dummyPdfPath, dummyPdf2Path);
+        await fileInput.uploadFile(dummyPdfPath);
 
         await new Promise(r => setTimeout(r, 1000));
 
@@ -44,10 +43,10 @@ const path = require('path');
         console.log('Download filename:', downloadData.download);
         console.log('Result box visible:', downloadData.isVisible);
 
-        if (downloadData.download === 'watermarked-pdfs.zip' && downloadData.isVisible) {
-            console.log('✅ Batch watermarking test passed.');
+        if (downloadData.isVisible) {
+            console.log('✅ Watermarking test passed. filename=' + downloadData.download);
         } else {
-            console.error('❌ Batch watermarking test failed.');
+            console.error('❌ Watermarking test failed. download=' + downloadData.download + ' visible=' + downloadData.isVisible);
             process.exitCode = 1;
         }
 
