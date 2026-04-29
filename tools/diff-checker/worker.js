@@ -1,5 +1,5 @@
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js');
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js');
+importScripts('../../assets/vendor/diff.min.js');
+importScripts('../../assets/vendor/highlight.min.js');
 
 // Helper for Highlighting
 function formatCode(code, language) {

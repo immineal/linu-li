@@ -1,5 +1,5 @@
-self.importScripts("https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js");
-self.importScripts("https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.9.3/sha3.min.js");
+self.importScripts("../../assets/vendor/crypto-js.min.js");
+self.importScripts("../../assets/vendor/sha3.min.js");
 self.importScripts("blake2.min.js");
 
 self.onmessage = function (e) {

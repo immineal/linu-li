@@ -129,6 +129,10 @@
                         <div style="position: relative;">
                             <div id="mapContainer"></div>
                             <div id="noGpsMsg" class="no-gps-overlay hidden">No GPS Data Found</div>
+                            <div id="mapOptInOverlay" class="no-gps-overlay hidden" style="flex-direction: column; background: rgba(0,0,0,0.05); z-index: 1005;">
+                                <p style="margin-bottom: 10px; color: var(--ink); font-weight: 500;">GPS Location Found</p>
+                                <button class="button sm outline" id="loadMapBtn">Load Map (Requires Internet)</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -185,6 +189,8 @@
         const previewFileName = document.getElementById('previewFileName');
         const mapContainer = document.getElementById('mapContainer');
         const noGpsMsg = document.getElementById('noGpsMsg');
+        const mapOptInOverlay = document.getElementById('mapOptInOverlay');
+        const loadMapBtn = document.getElementById('loadMapBtn');
 
         // --- State ---
         let queue = []; 
@@ -335,7 +341,12 @@
                 
                 rows.push({ label: 'GPS Coordinates', val: `${lat.toFixed(4)}, ${lng.toFixed(4)} <span class="risk-badge">RISK</span>` });
                 
-                showMap(lat, lng);
+                noGpsMsg.classList.add('hidden');
+                mapOptInOverlay.classList.remove('hidden');
+                loadMapBtn.onclick = () => {
+                    mapOptInOverlay.classList.add('hidden');
+                    showMap(lat, lng);
+                };
             } else {
                 hideMap();
             }
@@ -395,6 +406,7 @@
 
         function hideMap() {
             noGpsMsg.classList.remove('hidden');
+            mapOptInOverlay.classList.add('hidden');
             if (mapInstance) {
                 // Reset view or hide marker
                 if (mapMarker) mapInstance.removeLayer(mapMarker);

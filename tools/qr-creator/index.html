@@ -275,8 +275,9 @@
       let currentDataUrl = null;
 
       // --- Web Worker Setup ---
+      const qrcodeUrl = new URL('../../assets/vendor/qrcode.min.js', window.location.href).href;
       const workerCode = `
-            importScripts('https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js');
+            importScripts('${qrcodeUrl}');
 
             self.onmessage = async function(e) {
                 const { text, options, targetLevel, levelsToTry } = e.data;

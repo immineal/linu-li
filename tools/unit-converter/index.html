@@ -100,6 +100,11 @@
                     </div>
                 </div>
 
+                <div id="currencyOptIn" style="display: none; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); text-align: center;">
+                    <button class="button sm outline" id="fetchRatesBtn" onclick="fetchExchangeRates()">Fetch Live Currency Rates</button>
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;">(Requires internet. Fetches from er-api.com and coincap.io)</p>
+                </div>
+
             </div>
         </div>
     </main>
@@ -240,6 +245,8 @@
         // --- 1. Logic ---
         function setCategory(cat) {
             currentCategory = cat;
+            
+            document.getElementById('currencyOptIn').style.display = (cat === 'currency') ? 'block' : 'none';
             
             // Update Buttons Highlighting
             catButtons.forEach(btn => {
@@ -504,7 +511,6 @@
 
         // Init
         setCategory('length');
-        fetchExchangeRates(); // Start fetch in background
     </script>
 </body>
 </html>
