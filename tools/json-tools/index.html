@@ -581,31 +581,6 @@
             return div;
         }
 
-        // --- CSV Logic ---
-        function renderCSV(obj) {
-            if (!Array.isArray(obj)) {
-                showToast('CSV requires an Array', 'error');
-                return;
-            }
-            const headers = Array.from(new Set(obj.flatMap(o => o ? Object.keys(o) : [])));
-            const csvRows = [headers.join(',')];
-            for (const row of obj) {
-                if (!row) continue;
-                const values = headers.map(header => {
-                    let val = row[header];
-                    if (val === null || val === undefined) return '';
-                    if (typeof val === 'object') val = JSON.stringify(val).replace(/"/g, '""');
-                    val = String(val);
-                    if (val.includes(',') || val.includes('"') || val.includes('\n')) val = `"${val.replace(/"/g, '""')}"`;
-                    return val;
-                });
-                csvRows.push(values.join(','));
-            }
-            resultBox.textContent = csvRows.join('\n');
-            statusText.textContent = `CSV Generated | ${obj.length} rows`;
-            showToast('Converted to CSV', 'success');
-        }
-
         // --- Helpers ---
         function showError(err) {
             let errorHtml = `<div style="color: var(--accent); font-weight: bold;">❌ Parsing Error</div>`;
