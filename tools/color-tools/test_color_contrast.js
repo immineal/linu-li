@@ -128,6 +128,35 @@ setTimeout(() => {
         assert.ok(window.__test_5_sug_ratio >= 4.5, "Test 5 Failed: Suggested color does not pass WCAG 2.1 AA.");
         console.log("✅ Test 5 Passed: Auto-suggest mechanism provides passing accessible alternatives.");
 
+        // --- Test 6: Direct calcAPCA Function Tests ---
+        // Verify pure math calculations of calcAPCA for specific known boundary values
+        window.eval(`
+            window.__test_6_results = {
+                blackOnWhite: calcAPCA(tinycolor("#000000"), tinycolor("#ffffff")),
+                whiteOnBlack: calcAPCA(tinycolor("#ffffff"), tinycolor("#000000")),
+                redOnWhite: calcAPCA(tinycolor("#ff0000"), tinycolor("#ffffff")),
+                greenOnWhite: calcAPCA(tinycolor("#00ff00"), tinycolor("#ffffff")),
+                sameColor: calcAPCA(tinycolor("#888888"), tinycolor("#888888"))
+            };
+        `);
+
+        const apcaResults = window.__test_6_results;
+
+        // Use a small epsilon for float comparison to avoid test flakiness
+        const assertCloseTo = (actual, expected, epsilon = 0.0001, message) => {
+            assert.ok(Math.abs(actual - expected) < epsilon,
+                `${message} Expected ~${expected}, but got ${actual}`);
+        };
+
+        // Expected values generated from calcAPCA output
+        assertCloseTo(apcaResults.blackOnWhite, 1.060406, 0.00001, "Test 6 Failed: Black on White APCA incorrect.");
+        assertCloseTo(apcaResults.whiteOnBlack, -1.078847, 0.00001, "Test 6 Failed: White on Black APCA incorrect.");
+        assertCloseTo(apcaResults.redOnWhite, 0.641262, 0.00001, "Test 6 Failed: Red on White APCA incorrect.");
+        assertCloseTo(apcaResults.greenOnWhite, 0.171301, 0.00001, "Test 6 Failed: Green on White APCA incorrect.");
+        assert.strictEqual(apcaResults.sameColor, 0, "Test 6 Failed: Same color APCA should be exactly 0.");
+
+        console.log("✅ Test 6 Passed: calcAPCA direct calculations are mathematically accurate.");
+
 
         console.log("🎉 All Tests Passed!");
 
