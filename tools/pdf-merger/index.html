@@ -294,26 +294,39 @@
                 fileList.appendChild(placeholder);
             }
         }
-      
-            item.addEventListener('drop', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
 
-                if (dragStartIndex !== undefined) {
-                    const dragEndIndex = +item.getAttribute('data-index');
-                    swapItems(dragStartIndex, dragEndIndex);
-                    dragStartIndex = undefined;
-                }
+        function onPointerUp(e) {
+            if (!draggedItem) return;
 
-                item.classList.remove('drag-over-target');
-                item.classList.remove('dragging');
-            });
-            
-            item.addEventListener('dragend', () => {
-                dragStartIndex = undefined;
-                item.classList.remove('dragging');
-                document.querySelectorAll('.file-item').forEach(i => i.classList.remove('drag-over-target'));
-            });
+            document.removeEventListener('pointermove', onPointerMove);
+            document.removeEventListener('pointerup', onPointerUp);
+
+            draggedItem.style.position = '';
+            draggedItem.style.top = '';
+            draggedItem.style.left = '';
+            draggedItem.style.width = '';
+            draggedItem.style.zIndex = '';
+            draggedItem.style.boxShadow = '';
+            draggedItem.classList.remove('dragging');
+
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.replaceChild(draggedItem, placeholder);
+            }
+
+            const newIndex = Array.from(fileList.children).indexOf(draggedItem);
+
+            if (startIndex !== -1 && newIndex !== -1 && startIndex !== newIndex) {
+                const itemToMove = storedFiles[startIndex];
+                storedFiles.splice(startIndex, 1);
+                storedFiles.splice(newIndex, 0, itemToMove);
+                renderFileList();
+            } else {
+                renderFileList(); // Reset DOM state
+            }
+
+            draggedItem = null;
+            placeholder = null;
+            startIndex = -1;
         }
 
         function swapItems(fromIndex, toIndex) {
