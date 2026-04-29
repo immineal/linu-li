@@ -294,33 +294,45 @@
                 fileList.appendChild(placeholder);
             }
         }
-      
-            item.addEventListener('drop', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
 
-                if (dragStartIndex !== undefined) {
-                    const dragEndIndex = +item.getAttribute('data-index');
-                    swapItems(dragStartIndex, dragEndIndex);
-                    dragStartIndex = undefined;
-                }
+        function onPointerUp(e) {
+            if (!draggedItem) return;
 
-                item.classList.remove('drag-over-target');
-                item.classList.remove('dragging');
-            });
+            document.removeEventListener('pointermove', onPointerMove);
+            document.removeEventListener('pointerup', onPointerUp);
+
+            // Insert draggedItem before placeholder
+            fileList.insertBefore(draggedItem, placeholder);
             
-            item.addEventListener('dragend', () => {
-                dragStartIndex = undefined;
-                item.classList.remove('dragging');
-                document.querySelectorAll('.file-item').forEach(i => i.classList.remove('drag-over-target'));
-            });
-        }
+            // Clean up styles
+            draggedItem.style.position = '';
+            draggedItem.style.top = '';
+            draggedItem.style.left = '';
+            draggedItem.style.width = '';
+            draggedItem.style.zIndex = '';
+            draggedItem.style.boxShadow = '';
+            draggedItem.classList.remove('dragging');
 
-        function swapItems(fromIndex, toIndex) {
-            const itemToMove = storedFiles[fromIndex];
-            storedFiles.splice(fromIndex, 1);
-            storedFiles.splice(toIndex, 0, itemToMove);
-            renderFileList();
+            // Remove placeholder
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.removeChild(placeholder);
+            }
+
+            // Figure out the new order
+            const items = Array.from(fileList.querySelectorAll('.file-item:not(.placeholder)'));
+            const newIndex = items.indexOf(draggedItem);
+
+            if (startIndex !== newIndex && newIndex !== -1) {
+                // Update the storedFiles array
+                const movedFile = storedFiles.splice(startIndex, 1)[0];
+                storedFiles.splice(newIndex, 0, movedFile);
+                renderFileList(); // Re-render to fix indices
+            }
+
+            // Reset state
+            draggedItem = null;
+            placeholder = null;
+            startIndex = -1;
         }
 
         // 4. File Manipulation
