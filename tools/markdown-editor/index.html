@@ -144,7 +144,11 @@ graph TD;
                     }
                 } catch (err) {
                     console.error("Markdown parsing error:", err);
-                    preview.innerHTML = "<p style='color: red;'>Error rendering Markdown.</p>";
+                    preview.innerHTML = "";
+                    const errorP = document.createElement("p");
+                    errorP.style.color = "red";
+                    errorP.textContent = "Error rendering Markdown.";
+                    preview.appendChild(errorP);
                 }
             };
 
