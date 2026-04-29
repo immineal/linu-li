@@ -142,6 +142,59 @@ setTimeout(() => {
     assertEqual(unitTo.value, 'EUR', 'NLP sets unitTo for currency');
     assertEqual(inputTo.value, '85.425', 'NLP converts currency using newly fetched rates');
 
+    // --- Comprehensive NLP Tests ---
+    console.log('\n--- Running Comprehensive NLP Tests ---');
+
+    // Reset to a known state before each NLP test
+    const resetState = () => {
+        window.setCategory('length');
+        inputFrom.value = '1';
+        unitFrom.value = 'm';
+        unitTo.value = 'ft';
+    };
+
+    // 1. Invalid formats
+    resetState();
+    nlpInput.value = 'just some random text';
+    nlpInput.dispatchEvent(new window.Event('input'));
+    assertEqual(inputFrom.value, '1', 'NLP ignores random text');
+
+    resetState();
+    nlpInput.value = '';
+    nlpInput.dispatchEvent(new window.Event('input'));
+    assertEqual(inputFrom.value, '1', 'NLP ignores empty string');
+
+    // 2. Case insensitivity
+    resetState();
+    nlpInput.value = '5 KM To MILES';
+    nlpInput.dispatchEvent(new window.Event('input'));
+    assertEqual(inputFrom.value, '5', 'NLP handles case insensitivity (value)');
+    assertEqual(unitFrom.value, 'km', 'NLP handles case insensitivity (unitFrom)');
+    assertEqual(unitTo.value, 'mi', 'NLP handles case insensitivity (unitTo)');
+
+    // 3. Mismatched categories
+    resetState();
+    nlpInput.value = '5 km to kg';
+    nlpInput.dispatchEvent(new window.Event('input'));
+    assertEqual(inputFrom.value, '1', 'NLP ignores mismatched categories (km to kg)');
+    assertEqual(unitFrom.value, 'm', 'NLP maintains state on mismatch');
+
+    // 4. Unrecognized units
+    resetState();
+    nlpInput.value = '5 km to foo';
+    nlpInput.dispatchEvent(new window.Event('input'));
+    assertEqual(inputFrom.value, '1', 'NLP ignores unrecognized units (foo)');
+
+    // 5. Synonym parsing & Various keyword formats & Numeric variations
+    resetState();
+    nlpInput.value = '0.5 meters per second in mph';
+    nlpInput.dispatchEvent(new window.Event('input'));
+    assertEqual(inputFrom.value, '0.5', 'NLP parses synonyms and floats');
+    assertEqual(unitFrom.value, 'm/s', 'NLP sets correct synonym unit (m/s)');
+    assertEqual(unitTo.value, 'mph', 'NLP sets correct synonym unit (mph)');
+
+    console.log('--- End Comprehensive NLP Tests ---\n');
+
     // 4. Test Extreme Formatting
     window.setCategory('data');
 unitFrom.value = 'B';
