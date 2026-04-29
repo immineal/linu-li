@@ -121,7 +121,7 @@
                     }
 
                     container.classList.remove('hidden');
-                    let html = `<h3 style="margin-bottom: 0.5rem; font-size: 1rem; margin-top: 1rem;">Query Parameters</h3>
+                    container.innerHTML = `<h3 style="margin-bottom: 0.5rem; font-size: 1rem; margin-top: 1rem;">Query Parameters</h3>
                                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-family: var(--font-mono); font-size: 0.85rem;">
                                     <thead>
                                         <tr style="border-bottom: 1px solid var(--border); text-align: left;">
@@ -130,24 +130,52 @@
                                             <th style="padding: 0.5rem; width: 10%;"></th>
                                         </tr>
                                     </thead>
-                                    <tbody id="paramsTableBody">`;
-
-                    params.forEach(([key, val], index) => {
-                        html += `
-                            <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 0.5rem;"><input type="text" class="param-key" data-index="${index}" value="${key}" style="width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid transparent; background: transparent;" /></td>
-                                <td style="padding: 0.5rem;"><input type="text" class="param-val" data-index="${index}" value="${val}" style="width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid transparent; background: transparent;" /></td>
-                                <td style="padding: 0.5rem; text-align: center;"><button class="delete-param" data-index="${index}" style="background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1.2rem;">&times;</button></td>
-                            </tr>
-                        `;
-                    });
-
-                    html += `
-                                    </tbody>
+                                    <tbody id="paramsTableBody"></tbody>
                                 </table>
                                 <button id="addParamBtn" class="button sm outline" style="margin-bottom: 1rem;">+ Add Parameter</button>`;
 
-                    container.innerHTML = html;
+                    const tbody = container.querySelector('#paramsTableBody');
+
+                    params.forEach(([key, val], index) => {
+                        const tr = document.createElement('tr');
+                        tr.style.borderBottom = '1px solid var(--border)';
+
+                        const tdKey = document.createElement('td');
+                        tdKey.style.padding = '0.5rem';
+                        const inputKey = document.createElement('input');
+                        inputKey.type = 'text';
+                        inputKey.className = 'param-key';
+                        inputKey.dataset.index = index;
+                        inputKey.value = key;
+                        inputKey.style.cssText = 'width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid transparent; background: transparent;';
+                        tdKey.appendChild(inputKey);
+
+                        const tdVal = document.createElement('td');
+                        tdVal.style.padding = '0.5rem';
+                        const inputVal = document.createElement('input');
+                        inputVal.type = 'text';
+                        inputVal.className = 'param-val';
+                        inputVal.dataset.index = index;
+                        inputVal.value = val;
+                        inputVal.style.cssText = 'width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid transparent; background: transparent;';
+                        tdVal.appendChild(inputVal);
+
+                        const tdBtn = document.createElement('td');
+                        tdBtn.style.padding = '0.5rem';
+                        tdBtn.style.textAlign = 'center';
+                        const btn = document.createElement('button');
+                        btn.className = 'delete-param';
+                        btn.dataset.index = index;
+                        btn.style.cssText = 'background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1.2rem;';
+                        btn.innerHTML = '&times;';
+                        tdBtn.appendChild(btn);
+
+                        tr.appendChild(tdKey);
+                        tr.appendChild(tdVal);
+                        tr.appendChild(tdBtn);
+
+                        tbody.appendChild(tr);
+                    });
 
                     // Attach event listeners for inputs and deletes
                     const inputs = container.querySelectorAll('input');
