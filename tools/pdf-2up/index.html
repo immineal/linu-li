@@ -8,6 +8,50 @@
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
     <script src="../../assets/vendor/pdf-lib.min.js"></script>
+
+    <style>
+        .layout-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .layout-option {
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--input-bg);
+        }
+        .layout-option:hover {
+            border-color: var(--ink-secondary);
+        }
+        .layout-option.active {
+            border-color: var(--accent);
+            background: var(--paper);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .layout-icon {
+            width: 100%;
+            max-width: 120px;
+            height: auto;
+            margin-bottom: 0.5rem;
+        }
+        .layout-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--ink);
+        }
+        .layout-desc {
+            font-size: 0.8rem;
+            color: var(--ink-secondary);
+        }
+        @media (max-width: 600px) {
+            .layout-selector { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
     <main>
@@ -30,12 +74,39 @@
 
                 <div id="optionsPanel" class="hidden" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 2rem;">
                     
-                    <label for="layoutStyle">Layout Style</label>
-                    <select id="layoutStyle">
-                        <option value="duplicate">Duplicate Each Page (e.g., 1-1, 2-2, 3-3)</option>
-                        <option value="sequential">Arrange Sequentially (e.g., 1-2, 3-4, 5-6)</option>
-                        <option value="booklet">Booklet / Saddle Stitch (e.g., 4-1, 2-3)</option>
-                    </select>
+                    <label>Layout Style</label>
+                    <div class="layout-selector">
+                        <div class="layout-option active" data-value="duplicate">
+                            <svg viewBox="0 0 100 60" class="layout-icon">
+                                <rect x="5" y="5" width="90" height="50" rx="2" fill="var(--paper)" stroke="currentColor" stroke-width="2" style="color: var(--ink-secondary);"/>
+                                <line x1="50" y1="5" x2="50" y2="55" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4" style="color: var(--ink-secondary);"/>
+                                <text x="27.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">1</text>
+                                <text x="72.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">1</text>
+                            </svg>
+                            <div class="layout-title">Duplicate</div>
+                            <div class="layout-desc">1-1, 2-2, 3-3</div>
+                        </div>
+                        <div class="layout-option" data-value="sequential">
+                            <svg viewBox="0 0 100 60" class="layout-icon">
+                                <rect x="5" y="5" width="90" height="50" rx="2" fill="var(--paper)" stroke="currentColor" stroke-width="2" style="color: var(--ink-secondary);"/>
+                                <line x1="50" y1="5" x2="50" y2="55" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4" style="color: var(--ink-secondary);"/>
+                                <text x="27.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">1</text>
+                                <text x="72.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">2</text>
+                            </svg>
+                            <div class="layout-title">Sequential</div>
+                            <div class="layout-desc">1-2, 3-4, 5-6</div>
+                        </div>
+                        <div class="layout-option" data-value="booklet">
+                            <svg viewBox="0 0 100 60" class="layout-icon">
+                                <rect x="5" y="5" width="90" height="50" rx="2" fill="var(--paper)" stroke="currentColor" stroke-width="2" style="color: var(--ink-secondary);"/>
+                                <line x1="50" y1="5" x2="50" y2="55" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4" style="color: var(--ink-secondary);"/>
+                                <text x="27.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">4</text>
+                                <text x="72.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">1</text>
+                            </svg>
+                            <div class="layout-title">Booklet</div>
+                            <div class="layout-desc">4-1, 2-3</div>
+                        </div>
+                    </div>
 
                     <div class="split-view">
                         <div>
@@ -95,17 +166,26 @@
         const progressBar = document.getElementById('progressBar');
 
         // Inputs
-        const layoutStyleInput = document.getElementById('layoutStyle');
         const pageMarginInput = document.getElementById('pageMargin');
         const bleedAreaInput = document.getElementById('bleedArea');
         const cutLineInput = document.getElementById('cutLine');
 
         // State
         let currentFile = null;
+        let currentLayoutMode = 'duplicate';
 
         // 1. Setup Logic
         document.addEventListener('DOMContentLoaded', () => {
             setupDropZone(dropZone, fileInput, handleFileSelection);
+
+            const layoutOptions = document.querySelectorAll('.layout-option');
+            layoutOptions.forEach(opt => {
+                opt.addEventListener('click', () => {
+                    layoutOptions.forEach(o => o.classList.remove('active'));
+                    opt.classList.add('active');
+                    currentLayoutMode = opt.dataset.value;
+                });
+            });
         });
 
         // 2. Handle File Selection
@@ -175,7 +255,7 @@
                 progressBar.style.width = '10%';
 
                 // -- Read Options --
-                const layoutMode = layoutStyleInput.value; // 'duplicate', 'sequential', or 'booklet'
+        const layoutMode = currentLayoutMode; // 'duplicate', 'sequential', or 'booklet'
                 const marginMm = parseFloat(pageMarginInput.value) || 0;
                 const bleedMm = parseFloat(bleedAreaInput.value) || 0;
                 const cutStyle = cutLineInput.value;
