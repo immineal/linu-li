@@ -400,25 +400,35 @@
 
         function generatePNG(isSilentUpdate = false) {
             try {
-                const serializer = new XMLSerializer();
-                let svgString = serializer.serializeToString(currentSvgDoc);
+                let svgCode = '';
+                if (currentSvgDoc) {
+                    const serializer = new XMLSerializer();
+                    svgCode = serializer.serializeToString(currentSvgDoc);
+                }
 
-                // Use Blob URL instead of base64 to avoid crashes on massive SVG files
-                const blob = new Blob([svgString], { type: 'image/svg+xml' });
-                if (activeObjectURL) URL.revokeObjectURL(activeObjectURL);
-                activeObjectURL = URL.createObjectURL(blob);
+                // Remove unnecessary whitespace to slightly reduce size
+                if (typeof DOMPurify !== 'undefined') {
+                    svgCode = DOMPurify.sanitize(svgCode, { USE_PROFILES: { svg: true } });
+                }
+
+                // Use DOMParser to ensure it's valid XML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(svgCode, "image/svg+xml");
+                const serializer = new XMLSerializer();
+                let svgString = serializer.serializeToString(doc);
+
+                // Convert back to Data URL
+                const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
 
                 const img = new Image();
                 img.onload = function() {
                     renderToCanvas(img, isSilentUpdate);
                 };
-
                 img.onerror = function() {
                     if (!isSilentUpdate) showToast('Error parsing SVG data.', 'error');
                     resetButton();
                 };
-
-                img.src = activeObjectURL;
+                img.src = svgDataUrl;
             } catch (err) {
                 if (!isSilentUpdate) showToast('Error processing SVG: ' + err.message, 'error');
                 resetButton();

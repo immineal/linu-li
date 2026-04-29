@@ -297,7 +297,7 @@
                         opts.type = 'svg';
                         const svgString = await QRCode.toString(text, opts);
                         // Convert SVG to Data URL
-                        dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+                        dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
                         success = true;
                         break;
                     } catch (err) {
