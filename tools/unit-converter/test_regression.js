@@ -43,6 +43,7 @@ const evalCode = `
 ${inlineScript}
 window.factors = factors;
 window.setCategory = setCategory;
+window.fetchExchangeRates = fetchExchangeRates;
 `;
 dom.window.eval(evalCode);
 
@@ -121,6 +122,9 @@ unitTo.value = 'EUR';
 inputFrom.value = '100';
 inputFrom.dispatchEvent(new window.Event('input'));
 assertEqual(inputTo.value, '90', 'Fallback default rates working (100 USD -> 90 EUR)');
+
+// Trigger manual fetch (opt-in simulated)
+window.fetchExchangeRates();
 
 // Wait for async fetch in script to complete
 setTimeout(() => {
