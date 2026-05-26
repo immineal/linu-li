@@ -67,9 +67,9 @@ self.onmessage = function (e) {
 function arrayBufferToWordArray(ab) {
     const u8 = new Uint8Array(ab);
     const len = u8.length;
-    const words = [];
+    const words = new Array(Math.ceil(len / 4));
     for (let i = 0; i < len; i += 4) {
-        words.push(
+        words[i >>> 2] = (
             (u8[i] << 24) |
             ((u8[i + 1] || 0) << 16) |
             ((u8[i + 2] || 0) << 8) |
