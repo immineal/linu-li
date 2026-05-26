@@ -1,5 +1,5 @@
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js');
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js');
+importScripts('../../assets/vendor/diff.min.js');
+importScripts('../../assets/vendor/highlight.min.js');
 
 // Helper for Highlighting
 function formatCode(code, language) {
@@ -19,6 +19,15 @@ if (typeof module !== 'undefined' && module.exports) {
 
 self.onmessage = function(e) {
     const { text1, text2, mode, ignoreSpace } = e.data;
+
+    const formatCache = new Map();
+    function cachedFormatCode(code, lang) {
+        const key = lang + '|' + code;
+        if (formatCache.has(key)) return formatCache.get(key);
+        const res = formatCode(code, lang);
+        formatCache.set(key, res);
+        return res;
+    }
 
     let diffObj = null;
     let language = 'plaintext';

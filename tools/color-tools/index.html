@@ -77,6 +77,11 @@
             border: 2px solid var(--border);
         }
 
+        /* --- Palettes --- */
+        .palette-row { display: flex; gap: 0.5rem; }
+        .palette-swatch { flex: 1; height: 32px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; transition: transform 0.1s; }
+        .palette-swatch:hover { transform: scale(1.05); }
+
         /* --- Contrast Card --- */
         .contrast-card {
             padding: 2rem;
@@ -158,9 +163,20 @@
                     </div>
 
                     <label>HSL</label>
-                    <div style="display:flex; gap:8px; align-items:center;">
+                    <div style="display:flex; gap:8px; align-items:center; margin-bottom: 1rem;">
                         <input type="text" id="valHsl" value="hsl(7, 54%, 50%)" style="margin-bottom:0; flex:1;">
                         <button class="button sm secondary" onclick="copyId('valHsl')">Copy</button>
+                    </div>
+
+                    <label>CMYK</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="valCmyk" value="cmyk(0%, 61%, 69%, 23%)" style="margin-bottom:0; flex:1;">
+                        <button class="button sm secondary" onclick="copyId('valCmyk')">Copy</button>
+                    </div>
+
+                    <h3 style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">Palettes</h3>
+                    <div id="paletteContainer" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <!-- Palettes will be injected here -->
                     </div>
                 </div>
 
@@ -256,6 +272,7 @@
         const valHex = document.getElementById('valHex');
         const valRgb = document.getElementById('valRgb');
         const valHsl = document.getElementById('valHsl');
+        const valCmyk = document.getElementById('valCmyk');
         const layoutSelect = document.getElementById('layoutSelect');
 
         // Right Side Elements
@@ -348,12 +365,61 @@
             updateInputs(colors[target]); // Update displayed HEX/RGB values immediately
         }
 
+        function rgbToCmyk(r, g, b) {
+            let c = 1 - (r / 255);
+            let m = 1 - (g / 255);
+            let y = 1 - (b / 255);
+            let k = Math.min(c, Math.min(m, y));
+            if (k === 1) { c = 0; m = 0; y = 0; }
+            else { c = (c - k) / (1 - k); m = (m - k) / (1 - k); y = (y - k) / (1 - k); }
+            return `cmyk(${Math.round(c*100)}%, ${Math.round(m*100)}%, ${Math.round(y*100)}%, ${Math.round(k*100)}%)`;
+        }
+
+        function generatePalettes(colorStr) {
+            const tColor = tinycolor(colorStr);
+            const hsl = tColor.toHsl();
+            
+            const createRow = (name, colorsArr) => {
+                const swatches = colorsArr.map(c => {
+                    const hex = tinycolor(c).toHexString();
+                    return `<div class="palette-swatch" style="background: ${hex};" title="${hex}" onclick="handleManualInput('${hex}')"></div>`;
+                }).join('');
+                return `<div><div style="font-size: 0.8rem; margin-bottom: 0.25rem; color: var(--ink-secondary);">${name}</div><div class="palette-row">${swatches}</div></div>`;
+            };
+
+            const html = [
+                createRow('Complementary', [hsl, { h: (hsl.h + 180) % 360, s: hsl.s, l: hsl.l }]),
+                createRow('Analogous', [
+                    { h: (hsl.h - 30 + 360) % 360, s: hsl.s, l: hsl.l },
+                    hsl,
+                    { h: (hsl.h + 30) % 360, s: hsl.s, l: hsl.l }
+                ]),
+                createRow('Triadic', [
+                    hsl,
+                    { h: (hsl.h + 120) % 360, s: hsl.s, l: hsl.l },
+                    { h: (hsl.h + 240) % 360, s: hsl.s, l: hsl.l }
+                ]),
+                createRow('Monochromatic', [
+                    { h: hsl.h, s: hsl.s, l: Math.max(0, hsl.l - 0.2) },
+                    { h: hsl.h, s: hsl.s, l: Math.max(0, hsl.l - 0.1) },
+                    hsl,
+                    { h: hsl.h, s: hsl.s, l: Math.min(1, hsl.l + 0.1) },
+                    { h: hsl.h, s: hsl.s, l: Math.min(1, hsl.l + 0.2) }
+                ])
+            ].join('');
+
+            document.getElementById('paletteContainer').innerHTML = html;
+        }
+
         // Helper to update text inputs based on current color state
         function updateInputs(hexValue) {
             const c = tinycolor(hexValue);
             valHex.value = c.toHexString();
             valRgb.value = c.toRgbString();
             valHsl.value = c.toHslString();
+            const rgb = c.toRgb();
+            valCmyk.value = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+            generatePalettes(hexValue);
         }
 
         // --- 4. Picker Events ---
@@ -363,11 +429,14 @@
             // Update State
             colors[activeTarget] = hex;
 
-            // Update Text Inputs (Hex/RGB/HSL)
+            // Update Text Inputs (Hex/RGB/HSL/CMYK)
             // Only update if not focused to avoid typing conflicts
             if (document.activeElement !== valHex) valHex.value = hex;
             if (document.activeElement !== valRgb) valRgb.value = color.rgbString;
             if (document.activeElement !== valHsl) valHsl.value = color.hslString;
+            if (document.activeElement !== valCmyk) valCmyk.value = rgbToCmyk(color.rgb.r, color.rgb.g, color.rgb.b);
+
+            generatePalettes(hex);
 
             // Update Specific UI based on target
             if (activeTarget === 'fg') {
@@ -390,7 +459,7 @@
             }
         }
 
-        [valHex, valRgb, valHsl].forEach(input => {
+        [valHex, valRgb, valHsl, valCmyk].forEach(input => {
             input.addEventListener('input', (e) => handleManualInput(e.target.value));
         });
 

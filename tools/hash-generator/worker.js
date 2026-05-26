@@ -1,5 +1,5 @@
-self.importScripts("https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js");
-self.importScripts("https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.9.3/sha3.min.js");
+self.importScripts("../../assets/vendor/crypto-js.min.js");
+self.importScripts("../../assets/vendor/sha3.min.js");
 self.importScripts("blake2.min.js");
 
 self.onmessage = function (e) {
@@ -67,9 +67,9 @@ self.onmessage = function (e) {
 function arrayBufferToWordArray(ab) {
     const u8 = new Uint8Array(ab);
     const len = u8.length;
-    const words = [];
+    const words = new Array(Math.ceil(len / 4));
     for (let i = 0; i < len; i += 4) {
-        words.push(
+        words[i >>> 2] = (
             (u8[i] << 24) |
             ((u8[i + 1] || 0) << 16) |
             ((u8[i + 2] || 0) << 8) |

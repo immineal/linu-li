@@ -1,6 +1,6 @@
 importScripts(
-    'https://unpkg.com/pdf-lib/dist/pdf-lib.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
+    '../../assets/vendor/pdf-lib.min.js',
+    '../../assets/vendor/jszip.min.js'
 );
 
 self.onmessage = async function(e) {
