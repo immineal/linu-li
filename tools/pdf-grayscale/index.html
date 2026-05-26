@@ -456,13 +456,29 @@
             fileList.innerHTML = '';
             const li = document.createElement('li');
             li.className = 'file-item';
-            li.innerHTML = `
-                <div class="file-info">
-                    <span class="file-name">${currentFile.name}</span>
-                    <span class="file-size">${formatFileSize(currentFile.size)}</span>
-                </div>
-                <button class="remove-file" onclick="resetTool()">×</button>
-            `;
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'file-info';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'file-name';
+            nameSpan.textContent = currentFile.name;
+
+            const sizeSpan = document.createElement('span');
+            sizeSpan.className = 'file-size';
+            sizeSpan.textContent = formatFileSize(currentFile.size);
+
+            infoDiv.appendChild(nameSpan);
+            infoDiv.appendChild(sizeSpan);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-file';
+            removeBtn.onclick = resetTool;
+            removeBtn.textContent = '×';
+
+            li.appendChild(infoDiv);
+            li.appendChild(removeBtn);
+
             fileList.appendChild(li);
         }
 
