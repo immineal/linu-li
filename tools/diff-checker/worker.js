@@ -20,6 +20,15 @@ if (typeof module !== 'undefined' && module.exports) {
 self.onmessage = function(e) {
     const { text1, text2, mode, ignoreSpace } = e.data;
 
+    const formatCache = new Map();
+    function cachedFormatCode(code, lang) {
+        const key = lang + '|' + code;
+        if (formatCache.has(key)) return formatCache.get(key);
+        const res = formatCode(code, lang);
+        formatCache.set(key, res);
+        return res;
+    }
+
     let diffObj = null;
     let language = 'plaintext';
 
@@ -70,7 +79,7 @@ self.onmessage = function(e) {
                 typeClass,
                 numL: part.added ? '' : lineNumLeft++,
                 numR: part.removed ? '' : lineNumRight++,
-                codeHtml: formatCode(line, language)
+                codeHtml: cachedFormatCode(line, language)
             });
         });
     });
@@ -85,8 +94,8 @@ self.onmessage = function(e) {
         for (let i = 0; i < max; i++) {
             sideRows.push({
                 type: (leftBuffer[i] !== undefined && rightBuffer[i] !== undefined) ? 'change' : (leftBuffer[i] !== undefined ? 'del' : 'add'),
-                left: leftBuffer[i] !== undefined ? formatCode(leftBuffer[i], language) : null,
-                right: rightBuffer[i] !== undefined ? formatCode(rightBuffer[i], language) : null
+                left: leftBuffer[i] !== undefined ? cachedFormatCode(leftBuffer[i], language) : null,
+                right: rightBuffer[i] !== undefined ? cachedFormatCode(rightBuffer[i], language) : null
             });
         }
         leftBuffer.length = 0;
@@ -103,7 +112,7 @@ self.onmessage = function(e) {
             rightBuffer.push(...lines);
         } else {
             flushBuffers();
-            lines.forEach(l => sideRows.push({ type: 'neutral', left: formatCode(l, language), right: formatCode(l, language) }));
+            lines.forEach(l => sideRows.push({ type: 'neutral', left: cachedFormatCode(l, language), right: cachedFormatCode(l, language) }));
         }
     });
     flushBuffers();

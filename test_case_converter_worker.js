@@ -12,12 +12,18 @@ const self = {
 
 ${workerCode.replace('self.onmessage = function(e)', 'function handleMessage(e)')}
 
+// Extract toWords so it can be exported
+const toWordsRegex = /function toWords\\(t\\) \\{[\\s\\S]*?\\n    \\}/;
+const toWordsFuncStr = handleMessage.toString().match(toWordsRegex)[0];
+const toWords = eval('(' + toWordsFuncStr + ')');
+
 module.exports = {
     postMessage: function(data) {
         messages.length = 0;
         handleMessage({ data });
         return messages[0].result;
-    }
+    },
+    toWords: toWords
 };
 `;
 
@@ -42,6 +48,18 @@ assert.strictEqual(workerMock.postMessage({ type: 'title', text: "it's a test" }
 // Camel Case tests
 assert.strictEqual(workerMock.postMessage({ type: 'camel', text: "hello, world!" }), "helloWorld");
 assert.strictEqual(workerMock.postMessage({ type: 'camel', text: "emoji 🚀 123" }), "emoji🚀123");
+
+// toWords helper tests
+console.log('Running toWords helper tests...');
+assert.deepStrictEqual(workerMock.toWords('camelCase'), ['camel', 'Case']);
+assert.deepStrictEqual(workerMock.toWords('PascalCase'), ['Pascal', 'Case']);
+assert.deepStrictEqual(workerMock.toWords('snake_case'), ['snake', 'case']);
+assert.deepStrictEqual(workerMock.toWords('kebab-case'), ['kebab', 'case']);
+assert.deepStrictEqual(workerMock.toWords('hello 🚀 world'), ['hello', '🚀', 'world']);
+assert.deepStrictEqual(workerMock.toWords('UPPER_CASE'), ['UPPER', 'CASE']);
+assert.deepStrictEqual(workerMock.toWords('number123text'), ['number', '123', 'text']);
+assert.deepStrictEqual(workerMock.toWords('123number'), ['123', 'number']);
+assert.deepStrictEqual(workerMock.toWords('mixedCamel_and-snakeCase123'), ['mixed', 'Camel', 'and', 'snake', 'Case', '123']);
 
 console.log('Worker logic tests passed successfully! ✅');
 fs.unlinkSync('./temp_worker_test.js');

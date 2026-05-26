@@ -362,13 +362,19 @@
             currentWorker.postMessage({ file });
         });
 
+        function escapeHtml(text) {
+            return String(text).replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+            });
+        }
+
         function updateFileList(file) {
             fileList.innerHTML = ''; // Only allowing single file for this tool
             const li = document.createElement('li');
             li.className = 'file-item';
             li.innerHTML = `
                 <div class="file-info">
-                    <div class="file-name">${file.name}</div>
+                    <div class="file-name">${escapeHtml(file.name)}</div>
                     <div class="file-size">${formatFileSize(file.size)}</div>
                 </div>
                 <button class="remove-file" onclick="clearImageSelection()">&times;</button>

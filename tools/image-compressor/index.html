@@ -269,9 +269,8 @@
 
             // FIX: If we switch back to single mode and a file exists, force layout recalc
             if (mode === 'single' && singleFile) {
-                requestAnimationFrame(() => {
-                    syncComparisonImages();
-                });
+                void document.getElementById('singleModeUI').offsetHeight;
+                syncComparisonImages();
             }
         };
 
@@ -485,6 +484,15 @@
         bulkQuality.addEventListener('input', (e) => {
             bulkQualityVal.textContent = e.target.value;
         });
+
+        function escapeHtml(unsafe) {
+            return (unsafe || '').toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
 
         function renderBulkList() {
             const list = document.getElementById('bulkFileList');
