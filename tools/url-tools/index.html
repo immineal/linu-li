@@ -110,6 +110,15 @@
                 const container = document.getElementById('paramsContainer');
                 if (!container) return;
 
+                const escapeHtml = (unsafe) => {
+                    return (unsafe || '').toString()
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+                };
+
                 try {
                     const url = new URL(urlStr);
                     const params = Array.from(url.searchParams.entries());
@@ -133,10 +142,12 @@
                                     <tbody id="paramsTableBody">`;
 
                     params.forEach(([key, val], index) => {
+                        const safeKey = escapeHtml(key);
+                        const safeVal = escapeHtml(val);
                         html += `
                             <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 0.5rem;"><input type="text" class="param-key" data-index="${index}" value="${key}" style="width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid transparent; background: transparent;" /></td>
-                                <td style="padding: 0.5rem;"><input type="text" class="param-val" data-index="${index}" value="${val}" style="width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid transparent; background: transparent;" /></td>
+                                <td style="padding: 0.5rem;"><input type="text" class="param-key" data-index="${index}" value="${safeKey}" style="width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid transparent; background: transparent;" /></td>
+                                <td style="padding: 0.5rem;"><input type="text" class="param-val" data-index="${index}" value="${safeVal}" style="width: 100%; padding: 0.25rem; font-family: inherit; border: 1px solid transparent; background: transparent;" /></td>
                                 <td style="padding: 0.5rem; text-align: center;"><button class="delete-param" data-index="${index}" style="background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1.2rem;">&times;</button></td>
                             </tr>
                         `;
