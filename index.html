@@ -549,7 +549,11 @@
                 }
 
                 if (matches.length === 0) {
-                    searchResultsGrid.innerHTML = '<p style="opacity:0.5; grid-column: 1/-1;">No tools found for \"' + term + '\".</p>';
+                    const p = document.createElement('p');
+                    p.style.opacity = '0.5';
+                    p.style.gridColumn = '1/-1';
+                    p.textContent = 'No tools found for "' + term + '".';
+                    searchResultsGrid.appendChild(p);
                 } else {
                     matches.forEach(card => {
                         const clone = card.cloneNode(true);
