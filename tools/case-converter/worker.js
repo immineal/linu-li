@@ -1,3 +1,6 @@
+// We define the small words set here for Smart Title Case (AP style)
+const smallWords = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'en', 'for', 'if', 'in', 'nor', 'of', 'on', 'or', 'per', 'the', 'to', 'v', 'vs', 'via']);
+
 self.onmessage = function(e) {
     const { type, text } = e.data;
     if (!text) {
@@ -6,9 +9,6 @@ self.onmessage = function(e) {
     }
 
     let result = '';
-
-    // We define the small words set here for Smart Title Case (AP style)
-    const smallWords = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'en', 'for', 'if', 'in', 'nor', 'of', 'on', 'or', 'per', 'the', 'to', 'v', 'vs', 'via']);
 
     function toWords(t) {
         return t
