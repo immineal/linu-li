@@ -296,11 +296,12 @@
                 li.className = 'file-item';
                 li.innerHTML = `
                     <div class="file-info">
-                        <span class="file-name">${currentFile.name}</span>
+                        <span class="file-name"></span>
                         <span class="file-size">${formatFileSize(currentFile.size)}</span>
                     </div>
                     <button class="remove-file" onclick="clearFile()">×</button>
                 `;
+                li.querySelector('.file-name').textContent = currentFile.name;
                 fileList.appendChild(li);
                 
                 settingsArea.classList.remove('hidden');
