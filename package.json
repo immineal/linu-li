@@ -8,7 +8,7 @@
   "dependencies": {
     "diff": "^7.0.0",
     "dompurify": "^3.0.0",
-    "jsdom": "^29.0.2",
+    "jsdom": "^29.1.0",
     "marked": "^15.0.0",
     "tinycolor2": "^1.6.0"
   },
