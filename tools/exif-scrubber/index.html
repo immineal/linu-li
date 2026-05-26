@@ -501,14 +501,11 @@
 
                                     const newBase64 = piexif.insert(exifbytes, e2.target.result);
 
-                                    // Convert back to blob
-                                    const byteString = atob(newBase64.split(',')[1]);
-                                    const ab = new ArrayBuffer(byteString.length);
-                                    const ia = new Uint8Array(ab);
-                                    for (let j = 0; j < byteString.length; j++) {
-                                        ia[j] = byteString.charCodeAt(j);
-                                    }
-                                    resolve(new Blob([ab], { type: 'image/jpeg' }));
+                                    // Convert back to blob via fetch to delegate decode to native code
+                                    fetch(newBase64)
+                                        .then(res => res.blob())
+                                        .then(blob => resolve(blob))
+                                        .catch(err => reject(err));
                                 } catch (err) {
                                     reject(err);
                                 }
