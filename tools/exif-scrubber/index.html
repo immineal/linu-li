@@ -207,6 +207,18 @@
 
         // --- Functions ---
 
+        function escapeHTML(str) {
+            if (!str) return str;
+            return str.replace(/[&<>'"]/g,
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag]));
+        }
+
         function handleFiles(files) {
             const validTypes = ['image/jpeg', 'image/jpg'];
             let addedCount = 0;
@@ -245,7 +257,7 @@
                 li.className = 'file-item';
                 li.innerHTML = `
                     <div class="file-info" onclick="previewFileIndex(${index})" style="cursor: pointer;">
-                        <span class="file-name">${file.name}</span>
+                        <span class="file-name">${escapeHTML(file.name)}</span>
                         <span class="file-size">${formatFileSize(file.size)}</span>
                     </div>
                     <button class="remove-file" onclick="removeFile(${index})" title="Remove">&times;</button>
