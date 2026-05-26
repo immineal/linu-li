@@ -128,6 +128,54 @@ setTimeout(() => {
         assert.ok(window.__test_5_sug_ratio >= 4.5, "Test 5 Failed: Suggested color does not pass WCAG 2.1 AA.");
         console.log("✅ Test 5 Passed: Auto-suggest mechanism provides passing accessible alternatives.");
 
+        // --- Test 6: blendAlpha Unit Tests ---
+        window.eval(`
+            const fgSolid = tinycolor('rgb(255, 0, 0)');
+            const bgSolid = tinycolor('rgb(0, 0, 255)');
+
+            const fgTrans = tinycolor('rgba(255, 0, 0, 0.5)');
+            const bgTrans = tinycolor('rgba(0, 0, 255, 0.5)');
+
+            // 1. Solid over Solid
+            const res1 = blendAlpha(fgSolid, bgSolid);
+            window.__test_6_res1_fg = res1.fg.toRgbString();
+            window.__test_6_res1_bg = res1.bg.toRgbString();
+
+            // 2. Solid over Transparent
+            const res2 = blendAlpha(fgSolid, bgTrans);
+            window.__test_6_res2_fg = res2.fg.toRgbString();
+            window.__test_6_res2_bg = res2.bg.toRgbString();
+
+            // 3. Transparent over Solid
+            const res3 = blendAlpha(fgTrans, bgSolid);
+            window.__test_6_res3_fg = res3.fg.toRgbString();
+            window.__test_6_res3_bg = res3.bg.toRgbString();
+
+            // 4. Transparent over Transparent
+            const res4 = blendAlpha(fgTrans, bgTrans);
+            window.__test_6_res4_fg = res4.fg.toRgbString();
+            window.__test_6_res4_bg = res4.bg.toRgbString();
+        `);
+
+        // Assertions for blendAlpha
+        // 1. Solid over Solid -> no change to either
+        assert.strictEqual(window.__test_6_res1_fg, "rgb(255, 0, 0)", "Test 6 Failed: Solid FG should remain unchanged.");
+        assert.strictEqual(window.__test_6_res1_bg, "rgb(0, 0, 255)", "Test 6 Failed: Solid BG should remain unchanged.");
+
+        // 2. Solid over Transparent -> BG blends with white, FG unchanged
+        assert.strictEqual(window.__test_6_res2_fg, "rgb(255, 0, 0)", "Test 6 Failed: Solid FG should remain unchanged over trans BG.");
+        assert.strictEqual(window.__test_6_res2_bg, "rgb(128, 128, 255)", "Test 6 Failed: Transparent BG should blend with white.");
+
+        // 3. Transparent over Solid -> BG unchanged, FG blends over BG
+        assert.strictEqual(window.__test_6_res3_fg, "rgb(128, 0, 128)", "Test 6 Failed: Transparent FG should blend over solid BG.");
+        assert.strictEqual(window.__test_6_res3_bg, "rgb(0, 0, 255)", "Test 6 Failed: Solid BG should remain unchanged under trans FG.");
+
+        // 4. Transparent over Transparent -> BG blends with white, FG blends over new BG
+        assert.strictEqual(window.__test_6_res4_fg, "rgb(192, 64, 128)", "Test 6 Failed: Transparent FG should blend over solidified trans BG.");
+        assert.strictEqual(window.__test_6_res4_bg, "rgb(128, 128, 255)", "Test 6 Failed: Transparent BG should blend with white under trans FG.");
+
+        console.log("✅ Test 6 Passed: blendAlpha handles all transparency combinations correctly.");
+
 
         console.log("🎉 All Tests Passed!");
 
