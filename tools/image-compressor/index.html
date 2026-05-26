@@ -509,7 +509,8 @@
                 } else if (item.status === 'processing') statusHtml = `<span style="color:var(--accent)">Compressing...</span>`;
                 else if (item.status === 'error') statusHtml = `<span style="color:red">Error</span>`;
 
-                li.innerHTML = `<div class="file-info"><span class="file-name">${escapeHtml(item.file.name)}</span> <span class="file-size">${formatFileSize(item.file.size)}</span></div><div>${statusHtml}</div>`;
+                li.innerHTML = `<div class="file-info"><span class="file-name"></span> <span class="file-size">${formatFileSize(item.file.size)}</span></div><div>${statusHtml}</div>`;
+                li.querySelector('.file-name').textContent = item.file.name;
                 list.appendChild(li);
             });
             document.getElementById('bulkControls').classList.toggle('hidden', bulkQueue.length === 0);
