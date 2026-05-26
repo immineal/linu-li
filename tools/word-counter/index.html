@@ -285,12 +285,23 @@
             elFleschLevel.textContent = data.fleschLevel;
 
             if (data.topKeywords.length > 0) {
-                elKeywordList.innerHTML = data.topKeywords.map(([word, count]) =>
-                    `<li class="keyword-item">
-                        <span class="keyword-word">${word}</span>
-                        <span class="keyword-count">${count}</span>
-                    </li>`
-                ).join('');
+                elKeywordList.innerHTML = '';
+                data.topKeywords.forEach(([word, count]) => {
+                    const li = document.createElement('li');
+                    li.className = 'keyword-item';
+
+                    const spanWord = document.createElement('span');
+                    spanWord.className = 'keyword-word';
+                    spanWord.textContent = word;
+
+                    const spanCount = document.createElement('span');
+                    spanCount.className = 'keyword-count';
+                    spanCount.textContent = count;
+
+                    li.appendChild(spanWord);
+                    li.appendChild(spanCount);
+                    elKeywordList.appendChild(li);
+                });
             } else {
                 elKeywordList.innerHTML = '<li class="keyword-item"><span class="keyword-word" style="color: var(--ink-secondary);">No keywords yet...</span></li>';
             }
