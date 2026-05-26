@@ -351,7 +351,7 @@
                 const lat = convertDMSToDD(gps[piexif.GPSIFD.GPSLatitude], gps[piexif.GPSIFD.GPSLatitudeRef]);
                 const lng = convertDMSToDD(gps[piexif.GPSIFD.GPSLongitude], gps[piexif.GPSIFD.GPSLongitudeRef]);
                 
-                rows.push({ label: 'GPS Coordinates', val: `${lat.toFixed(4)}, ${lng.toFixed(4)} <span class="risk-badge">RISK</span>` });
+                rows.push({ label: 'GPS Coordinates', val: `${lat.toFixed(4)}, ${lng.toFixed(4)} <span class="risk-badge">RISK</span>`, isHTML: true });
                 
                 noGpsMsg.classList.add('hidden');
                 mapOptInOverlay.classList.remove('hidden');
@@ -367,12 +367,27 @@
             if (rows.length === 0) {
                 metaTable.innerHTML = '<p style="text-align:center; color:var(--accent-secondary);"><strong>Safe:</strong> No significant metadata found.</p>';
             } else {
-                metaTable.innerHTML = rows.map(r => `
-                    <div class="meta-row">
-                        <span class="meta-label">${r.label}</span>
-                        <span class="meta-value">${r.val}</span>
-                    </div>
-                `).join('');
+                metaTable.innerHTML = '';
+                rows.forEach(r => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'meta-row';
+
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'meta-label';
+                    labelSpan.textContent = r.label;
+
+                    const valSpan = document.createElement('span');
+                    valSpan.className = 'meta-value';
+                    if (r.isHTML) {
+                        valSpan.innerHTML = r.val;
+                    } else {
+                        valSpan.textContent = r.val;
+                    }
+
+                    rowDiv.appendChild(labelSpan);
+                    rowDiv.appendChild(valSpan);
+                    metaTable.appendChild(rowDiv);
+                });
             }
         }
 
