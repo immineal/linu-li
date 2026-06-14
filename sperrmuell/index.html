@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1d3557" />
+    <meta
+      name="description"
+      content="Sperrmüll-Abholtermine in Bonn: Straßen und Abholzonen nach Datum, mit Adresssuche."
+    />
+    <title>Bonn Sperrmüll-Karte</title>
+    <link rel="icon" href="/sperrmuell/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/sperrmuell/manifest.webmanifest" />
+    <script type="module" crossorigin src="/sperrmuell/assets/index-D81Bfzji.js"></script>
+    <link rel="stylesheet" crossorigin href="/sperrmuell/assets/index-Dy0iDqW8.css">
+  </head>
+  <body>
+    <div id="app">
+      <div id="map"></div>
+
+      <header id="app-header">
+        <h1>Sperrmüll Bonn</h1>
+        <button id="layers-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="layers-panel">
+          Karte
+        </button>
+      </header>
+
+      <div id="layers-panel" role="menu" aria-label="Kartenebenen" hidden>
+        <label><input type="checkbox" id="layer-routes" /> Abholzonen</label>
+        <label><input type="checkbox" id="layer-ortsteile" /> Ortsteile</label>
+      </div>
+
+      <div id="search-bar">
+        <form id="search-form" role="search">
+          <label for="search-input" class="visually-hidden">Adresse suchen (Straße Hausnummer)</label>
+          <input
+            id="search-input"
+            name="address"
+            type="text"
+            inputmode="text"
+            autocomplete="off"
+            placeholder="Straße und Hausnummer, z. B. Trierer Str. 130"
+          />
+          <button type="submit">Suchen</button>
+        </form>
+        <div id="search-result" role="status" aria-live="polite"></div>
+      </div>
+
+      <div id="date-scrubber">
+        <button id="date-prev" type="button" aria-label="Vorheriger Termin">‹</button>
+        <div id="date-display" aria-live="polite">
+          <span id="date-label">Lade…</span>
+          <span id="date-relative"></span>
+        </div>
+        <button id="date-next" type="button" aria-label="Nächster Termin">›</button>
+      </div>
+
+      <div id="bottom-sheet" role="region" aria-label="Details">
+        <div
+          id="bottom-sheet-handle"
+          role="button"
+          tabindex="0"
+          aria-expanded="false"
+          aria-controls="bottom-sheet-content"
+          aria-label="Details ein- oder ausblenden"
+        ></div>
+        <div id="bottom-sheet-content"></div>
+      </div>
+
+      <div id="status-banner" role="alert" hidden></div>
+    </div>
+
+  </body>
+</html>
