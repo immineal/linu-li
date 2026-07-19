@@ -2,7 +2,6 @@ if ('serviceWorker' in navigator) {
     // Adjust path based on whether we are deep in tools or at root
     const swPath = window.location.pathname.includes('/tools/') ? '../../assets/sw.js' : './assets/sw.js';
     navigator.serviceWorker.register(swPath)
-        .then(() => console.log('Service Worker Registered'))
         .catch(err => console.error('SW Registration Failed', err));
 }
 

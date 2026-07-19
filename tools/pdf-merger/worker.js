@@ -1,4 +1,4 @@
-importScripts('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js');
+importScripts('../../assets/vendor/pdf-lib.min.js');
 
 self.onmessage = async (e) => {
     const files = e.data.files;

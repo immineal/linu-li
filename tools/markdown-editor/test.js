@@ -7,7 +7,6 @@ const assert = require('assert');
 const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
 
-// Function extracted from the fix in index.html
 function render(mdInputText) {
     try {
         const rawHtml = marked.parse(mdInputText);

@@ -275,8 +275,9 @@
       let currentDataUrl = null;
 
       // --- Web Worker Setup ---
+      const qrcodeUrl = new URL('../../assets/vendor/qrcode.min.js', window.location.href).href;
       const workerCode = `
-            importScripts('https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js');
+            importScripts('${qrcodeUrl}');
 
             self.onmessage = async function(e) {
                 const { text, options, targetLevel, levelsToTry } = e.data;
@@ -297,7 +298,7 @@
                         opts.type = 'svg';
                         const svgString = await QRCode.toString(text, opts);
                         // Convert SVG to Data URL
-                        dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+                        dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
                         success = true;
                         break;
                     } catch (err) {

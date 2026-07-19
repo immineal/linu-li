@@ -1,4 +1,4 @@
-importScripts('https://unpkg.com/sql-formatter@15.3.2/dist/sql-formatter.min.js');
+importScripts('../../assets/vendor/sql-formatter.min.js');
 importScripts('schema_converter.js');
 
 self.onmessage = function(e) {
