@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const htmlPath = path.join(__dirname, '../tools/sql-formatter/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
@@ -71,6 +72,13 @@ async function simulateBtnClick() {
     await eval(`(async () => { ${btnMatch[1]} })()`);
 }
 
+// Extract schema converter logic for testing splitColumns
+const schemaConverterPath = path.join(__dirname, '../tools/sql-formatter/schema_converter.js');
+const schemaConverterCode = fs.readFileSync(schemaConverterPath, 'utf8');
+const schemaSandbox = {};
+vm.runInNewContext(schemaConverterCode, schemaSandbox);
+const splitColumns = schemaSandbox.splitColumns;
+
 async function runTests() {
     let failed = 0;
 
@@ -83,6 +91,12 @@ async function runTests() {
         }
     }
 
+    function assertDeepEqual(actual, expected, message) {
+        const isMatch = JSON.stringify(actual) === JSON.stringify(expected);
+        assert(isMatch, message);
+    }
+
+    // --- sqlFormatter tests ---
     // 1. Empty input
     inputSqlValue = "   ";
     toastLog = [];
@@ -130,6 +144,31 @@ async function runTests() {
     assert(res === false && outputSqlValue.includes("library failed to load"), "Missing sqlFormatter caught cleanly");
     assert(toastLog.length === 1 && toastLog[0].type === 'error', "Error toast shown when CDN fails");
     global.sqlFormatter = originalSqlFormatter;
+
+    // --- splitColumns tests ---
+    assertDeepEqual(
+        splitColumns('id INT, name VARCHAR'),
+        ['id INT', 'name VARCHAR'],
+        "splitColumns: Basic comma-separated columns"
+    );
+
+    assertDeepEqual(
+        splitColumns("id INT, description VARCHAR DEFAULT 'val1, val2', age INT"),
+        ['id INT', "description VARCHAR DEFAULT 'val1, val2'", 'age INT'],
+        "splitColumns: Commas within string literals"
+    );
+
+    assertDeepEqual(
+        splitColumns('id INT, PRIMARY KEY (id, name)'),
+        ['id INT', 'PRIMARY KEY (id, name)'],
+        "splitColumns: Commas within parentheses"
+    );
+
+    assertDeepEqual(
+        splitColumns('   '),
+        [],
+        "splitColumns: Empty or whitespace-only string"
+    );
 
     if (failed > 0) {
         originalConsoleError(`\n💥 ${failed} tests failed.`);

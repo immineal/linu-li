@@ -168,13 +168,14 @@
                     <div class="file-info">
                         <span style="font-size: 1.5rem;">📄</span>
                         <div>
-                            <div class="file-name">${file.name}</div>
+                            <div class="file-name"></div>
                             <div class="file-size">${formatFileSize(file.size)}</div>
                         </div>
                     </div>
                     <button class="remove-file" onclick="resetTool()">×</button>
                 </li>
             `;
+            fileList.querySelector('.file-name').textContent = file.name;
             
             dropZone.classList.add('hidden');
             controlPanel.classList.remove('hidden');

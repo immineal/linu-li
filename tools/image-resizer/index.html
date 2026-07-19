@@ -124,6 +124,17 @@
             setupDropZone(dropZone, fileInput, handleFiles);
         });
 
+        // Security Utility
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         // Update Quality Label
         qualityRange.addEventListener('input', (e) => {
             qualityValue.textContent = e.target.value;
@@ -175,7 +186,7 @@
                 
                 li.innerHTML = `
                     <div class="file-info">
-                        <span class="file-name">${file.name}</span>
+                        <span class="file-name">${escapeHTML(file.name)}</span>
                         <span class="file-size">${formatFileSize(file.size)}</span>
                     </div>
                     <button class="remove-file" onclick="removeFile(${index})">&times;</button>

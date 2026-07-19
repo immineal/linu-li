@@ -52,5 +52,40 @@ testFormatNumber(1.23456789, "1.23456789", "Normal number rounding");
 testFormatNumber(0.1 + 0.2, "0.3", "Floating point addition issue (0.1 + 0.2)");
 testFormatNumber(-1.23456789, "-1.23456789", "Normal negative number rounding");
 
-console.log("All Unit Converter tests passed!");
+function testConvertTemp(val, from, to, expected, description) {
+    const result = window.eval(`convertTemp(${val}, "${from}", "${to}")`);
+    try {
+        assert.strictEqual(result, expected);
+        console.log(`✅ Passed: ${description} (${val} ${from} -> ${expected} ${to})`);
+    } catch (e) {
+        console.error(`❌ Failed: ${description}`);
+        console.error(`   Input: ${val} ${from} to ${to}`);
+        console.error(`   Expected: ${expected}`);
+        console.error(`   Actual: ${result}`);
+        process.exit(1);
+    }
+}
+
+console.log("\nRunning Unit Converter convertTemp tests...");
+
+// Standard Conversions
+testConvertTemp(0, "Celsius", "Fahrenheit", "32", "0°C to °F");
+testConvertTemp(100, "Celsius", "Fahrenheit", "212", "100°C to °F");
+testConvertTemp(0, "Celsius", "Kelvin", "273.15", "0°C to K");
+testConvertTemp(32, "Fahrenheit", "Celsius", "0", "32°F to °C");
+testConvertTemp(212, "Fahrenheit", "Celsius", "100", "212°F to °C");
+testConvertTemp(273.15, "Kelvin", "Celsius", "0", "273.15K to °C");
+
+// Edge Cases (-40 overlap)
+testConvertTemp(-40, "Celsius", "Fahrenheit", "-40", "-40°C to °F");
+testConvertTemp(-40, "Fahrenheit", "Celsius", "-40", "-40°F to °C");
+
+// Absolute Zero Clamping
+testConvertTemp(-300, "Celsius", "Celsius", "-273.15", "Below Absolute Zero (Celsius)");
+testConvertTemp(-500, "Fahrenheit", "Celsius", "-273.15", "Below Absolute Zero (Fahrenheit to Celsius)");
+testConvertTemp(-10, "Kelvin", "Celsius", "-273.15", "Below Absolute Zero (Kelvin to Celsius)");
+testConvertTemp(-300, "Celsius", "Fahrenheit", "-459.67", "Below Absolute Zero (Celsius to Fahrenheit)");
+testConvertTemp(-300, "Celsius", "Kelvin", "0", "Below Absolute Zero (Celsius to Kelvin)");
+
+console.log("\nAll Unit Converter tests passed!");
 process.exit(0);

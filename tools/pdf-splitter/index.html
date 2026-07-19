@@ -309,7 +309,7 @@
             const items = pageGrid.querySelectorAll('.page-grid-item');
             items.forEach(item => {
                 const p = parseInt(item.dataset.page) - 1;
-                if (toSelect.includes(p)) {
+                if (toSelect.has(p)) {
                     item.classList.add('selected');
                 } else {
                     item.classList.remove('selected');
@@ -321,7 +321,9 @@
         function getPagesToExtract(rangeStr, maxPages) {
             if (!rangeStr.trim()) {
                 // Return all pages (0 to max-1)
-                return Array.from({ length: maxPages }, (_, i) => i);
+                const pages = new Set();
+                for (let i = 0; i < maxPages; i++) pages.add(i);
+                return pages;
             }
 
             const pages = new Set();
@@ -346,7 +348,7 @@
                 }
             });
 
-            return Array.from(pages).sort((a, b) => a - b);
+            return pages;
         }
 
         // --- Split Logic ---
@@ -360,7 +362,8 @@
                 progressBar.style.width = '5%';
 
                 // Parse Range
-                const indicesToExtract = getPagesToExtract(pageRangeInput.value, totalPages);
+                const indicesToExtractSet = getPagesToExtract(pageRangeInput.value, totalPages);
+                const indicesToExtract = Array.from(indicesToExtractSet).sort((a, b) => a - b);
                 
                 if (indicesToExtract.length === 0) {
                     throw new Error("No valid pages selected.");
