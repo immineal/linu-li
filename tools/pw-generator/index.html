@@ -54,8 +54,11 @@
                 <!-- DISPLAY -->
                 <div class="password-display" id="passwordOutput">Generate to start...</div>
                 
-                <div class="strength-bar">
+                <div class="strength-bar" style="margin-bottom: 0.5rem;">
                     <div class="strength-fill" id="strengthMeter"></div>
+                </div>
+                <div id="entropyDisplay" style="text-align: center; font-size: 0.85rem; font-family: var(--font-mono); color: var(--ink-secondary); margin-bottom: 2rem;">
+                    Entropy: ~0 bits (Weak)
                 </div>
 
                 <div class="button-group" style="justify-content: center; margin-bottom: 2rem;">
@@ -140,6 +143,7 @@
         // Elements
         const output = document.getElementById('passwordOutput');
         const strengthMeter = document.getElementById('strengthMeter');
+        const entropyDisplay = document.getElementById('entropyDisplay');
         const lengthRange = document.getElementById('lengthRange');
         const lengthValue = document.getElementById('lengthValue');
         const wordsRange = document.getElementById('wordsRange');
@@ -262,29 +266,55 @@
 
         function calcStrength(pw, isPassphrase) {
             let score = 0;
+            let entropy = 0;
 
             if (isPassphrase) {
                 // Passphrase strength based on bits of entropy (each word is 11 bits in BIP39)
                 const wordCount = parseInt(wordsRange.value, 10);
-                const entropy = wordCount * 11;
+                entropy = wordCount * 11;
 
-                if (entropy >= 44) score += 3; // Strong (e.g. 4+ words)
-                else if (entropy >= 33) score += 2; // Medium (e.g. 3 words)
-                else score += 1; // Weak
+                if (entropy >= 44) score = 5; // Strong
+                else if (entropy >= 33) score = 3; // Medium
+                else score = 1; // Weak
             } else {
-                // Simple heuristic for characters
-                if (pw.length > 8) score++;
-                if (pw.length > 12) score++;
-                if (/[A-Z]/.test(pw)) score++;
-                if (/[0-9]/.test(pw)) score++;
-                if (/[^A-Za-z0-9]/.test(pw)) score++;
+                let poolSize = 0;
+                if (chkUpper.checked) poolSize += 26;
+                if (chkLower.checked) poolSize += 26;
+                if (chkNum.checked) poolSize += 10;
+                if (chkSym.checked) poolSize += 29;
+                
+                // Exact ambiguous removal
+                if (chkAmbiguous.checked) {
+                    if (chkUpper.checked) poolSize -= 2; // I, O
+                    if (chkLower.checked) poolSize -= 1; // l
+                    if (chkNum.checked) poolSize -= 2; // 1, 0
+                }
+
+                if (poolSize > 0) {
+                    entropy = pw.length * Math.log2(poolSize);
+                }
+
+                // Standard entropy guidelines
+                if (entropy >= 60) score = 5; // Strong
+                else if (entropy >= 40) score = 3; // Medium
+                else score = 1; // Weak
             }
 
             strengthMeter.className = "strength-fill";
             
-            if (score < 3) strengthMeter.classList.add("weak");
-            else if (score < 5) strengthMeter.classList.add("medium");
-            else strengthMeter.classList.add("strong");
+            let label = "Weak";
+            if (score < 3) {
+                strengthMeter.classList.add("weak");
+                label = "Weak";
+            } else if (score < 5) {
+                strengthMeter.classList.add("medium");
+                label = "Medium";
+            } else {
+                strengthMeter.classList.add("strong");
+                label = "Strong";
+            }
+
+            entropyDisplay.textContent = `Entropy: ~${Math.round(entropy)} bits (${label})`;
         }
 
         // Event Listeners

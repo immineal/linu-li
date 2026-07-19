@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Sperrmüll Bonn">
+  <rect width="64" height="64" rx="12" fill="#1d3557" />
+  <path
+    d="M20 22h24l-2 28a4 4 0 0 1-4 3.7H26a4 4 0 0 1-4-3.7L20 22Z"
+    fill="#ffffff"
+  />
+  <path d="M18 22h28v4H18z" fill="#e63946" />
+  <path d="M27 16h10l2 6H25z" fill="#e63946" />
+  <path d="M27 28v18M32 28v18M37 28v18" stroke="#1d3557" stroke-width="2" stroke-linecap="round" />
+</svg>

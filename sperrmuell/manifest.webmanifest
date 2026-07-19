@@ -1,0 +1,19 @@
+{
+  "name": "Sperrmüll Bonn",
+  "short_name": "Sperrmüll",
+  "description": "Sperrmüll-Abholtermine in Bonn: Straßen und Abholzonen nach Datum, mit Adresssuche.",
+  "lang": "de",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1d3557",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

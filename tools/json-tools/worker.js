@@ -1,4 +1,4 @@
-importScripts('https://unpkg.com/json5@2/dist/index.min.js');
+importScripts('../../assets/vendor/json5.min.js');
 
 self.addEventListener('message', (e) => {
     const { action, raw, indent, unescape, mode } = e.data;

@@ -95,6 +95,18 @@
         let storedFiles = []; // Array to hold File objects
         const { PDFDocument } = PDFLib;
 
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g,
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
         // DOM Elements
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
@@ -154,7 +166,7 @@
                             <span style="font-size: 0.8rem; color: #888;">...</span>
                         </div>
                         <div>
-                            <div class="file-name" title="${file.name}" style="margin-bottom: 2px;">${file.name}</div>
+                            <div class="file-name" title="${escapeHTML(file.name)}" style="margin-bottom: 2px;">${escapeHTML(file.name)}</div>
                             <div class="file-size">${formatFileSize(file.size)}</div>
                         </div>
                     </div>
@@ -301,6 +313,10 @@
             document.removeEventListener('pointermove', onPointerMove);
             document.removeEventListener('pointerup', onPointerUp);
 
+            // Insert draggedItem before placeholder
+            fileList.insertBefore(draggedItem, placeholder);
+            
+            // Clean up styles
             draggedItem.style.position = '';
             draggedItem.style.top = '';
             draggedItem.style.left = '';
@@ -309,31 +325,26 @@
             draggedItem.style.boxShadow = '';
             draggedItem.classList.remove('dragging');
 
+            // Remove placeholder
             if (placeholder && placeholder.parentNode) {
-                placeholder.parentNode.replaceChild(draggedItem, placeholder);
+                placeholder.parentNode.removeChild(placeholder);
             }
 
-            const newIndex = Array.from(fileList.children).indexOf(draggedItem);
+            // Figure out the new order
+            const items = Array.from(fileList.querySelectorAll('.file-item:not(.placeholder)'));
+            const newIndex = items.indexOf(draggedItem);
 
-            if (startIndex !== -1 && newIndex !== -1 && startIndex !== newIndex) {
-                const itemToMove = storedFiles[startIndex];
-                storedFiles.splice(startIndex, 1);
-                storedFiles.splice(newIndex, 0, itemToMove);
-                renderFileList();
-            } else {
-                renderFileList(); // Reset DOM state
+            if (startIndex !== newIndex && newIndex !== -1) {
+                // Update the storedFiles array
+                const movedFile = storedFiles.splice(startIndex, 1)[0];
+                storedFiles.splice(newIndex, 0, movedFile);
+                renderFileList(); // Re-render to fix indices
             }
 
+            // Reset state
             draggedItem = null;
             placeholder = null;
             startIndex = -1;
-        }
-
-        function swapItems(fromIndex, toIndex) {
-            const itemToMove = storedFiles[fromIndex];
-            storedFiles.splice(fromIndex, 1);
-            storedFiles.splice(toIndex, 0, itemToMove);
-            renderFileList();
         }
 
         // 4. File Manipulation
