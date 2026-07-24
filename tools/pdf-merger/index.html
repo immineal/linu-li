@@ -95,6 +95,18 @@
         let storedFiles = []; // Array to hold File objects
         const { PDFDocument } = PDFLib;
 
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g,
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
         // DOM Elements
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
@@ -154,7 +166,7 @@
                             <span style="font-size: 0.8rem; color: #888;">...</span>
                         </div>
                         <div>
-                            <div class="file-name" title="${file.name}" style="margin-bottom: 2px;">${file.name}</div>
+                            <div class="file-name" title="${escapeHTML(file.name)}" style="margin-bottom: 2px;">${escapeHTML(file.name)}</div>
                             <div class="file-size">${formatFileSize(file.size)}</div>
                         </div>
                     </div>

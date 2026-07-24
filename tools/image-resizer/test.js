@@ -45,6 +45,16 @@ function parseNamingPattern(pattern, originalName, width, height, extension) {
     return newName;
 }
 
+function escapeHTML(str) {
+    if (!str) return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // Test Suite
 function runTests() {
     console.log('Running math logic tests for Bulk Resizer...');
@@ -185,7 +195,22 @@ function runTests() {
     const testName2 = parseNamingPattern("{original}_resized", "image", 800, 600, "png");
     assert.strictEqual(testName2, "image_resized.png", "Should append extension if missing");
 
-    console.log('✅ All math logic tests passed successfully.');
+    // 9. Test HTML escaping logic
+    const xssPayload = `<script>alert('XSS "attack" & test');</script>`;
+    const escapedPayload = escapeHTML(xssPayload);
+    assert.strictEqual(
+        escapedPayload,
+        `&lt;script&gt;alert(&#039;XSS &quot;attack&quot; &amp; test&#039;);&lt;/script&gt;`,
+        'Should properly escape all unsafe characters in filenames'
+    );
+
+    const normalName = `image.jpg`;
+    assert.strictEqual(escapeHTML(normalName), normalName, 'Should not alter safe strings');
+
+    assert.strictEqual(escapeHTML(''), '', 'Should handle empty strings');
+    assert.strictEqual(escapeHTML(null), '', 'Should handle null gracefully');
+
+    console.log('✅ All tests passed successfully.');
 }
 
 runTests();
