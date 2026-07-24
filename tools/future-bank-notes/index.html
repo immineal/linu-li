@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entwürfe für neue Euro-Banknoten | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <style>
+        /* Modern UI Accents & Variables */
+        :root {
+            --euro-blue: #003399;
+            --euro-gold: #FFCC00;
+            --gold-gradient: linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%);
+            --shadow-premium: 0 15px 35px rgba(0, 0, 0, 0.08), 0 5px 15px rgba(0, 0, 0, 0.04);
+            --transition-smooth: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        body.dark-mode {
+            --shadow-premium: 0 15px 40px rgba(0, 0, 0, 0.4), 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Hero Layout tweaks */
+        .intro-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 2.5rem;
+        }
+        
+        .badge-premium {
+            background: var(--gold-gradient);
+            color: #2a2621;
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-family: var(--font-heading);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 15px rgba(179, 135, 40, 0.25);
+            display: inline-block;
+        }
+
+        /* Interactive Mode Selector */
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.03);
+            body.dark-mode & { background: rgba(255, 255, 255, 0.03); }
+            padding: 0.35rem;
+            border-radius: 50px;
+            max-width: 400px;
+            margin: 0 auto 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 0.6rem 1.2rem;
+            border: none;
+            background: transparent;
+            font-family: var(--font-heading);
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--ink);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .mode-btn.active {
+            background: var(--card-bg);
+            color: var(--accent);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            body.dark-mode & { box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        }
+
+        /* Workspace Grid */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        @media (max-width: 900px) {
+            .workspace-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Side Navigation Panel for Proposals */
+        .proposal-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .proposal-nav-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-align: left;
+        }
+
+        .proposal-nav-card:hover {
+            transform: translateX(4px);
+            border-color: var(--accent);
+        }
+
+        .proposal-nav-card.active {
+            border-color: var(--accent);
+            background: rgba(196, 77, 60, 0.04);
+            border-left: 4px solid var(--accent);
+        }
+
+        .proposal-nav-title {
+            font-family: var(--font-heading);
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: var(--ink);
+        }
+
+        .proposal-nav-author {
+            font-size: 0.75rem;
+            color: var(--ink-secondary);
+            margin-top: 0.15rem;
+            font-weight: 400;
+        }
+
+        .proposal-nav-stars {
+            font-size: 0.9rem;
+            color: #ffb400;
+        }
+
+        /* Main Stage Panel */
+        .stage-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            min-height: 500px;
+        }
+
+        /* Denomination Controls */
+        .denom-selector {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .denom-btn {
+            padding: 0.5rem 1.25rem;
+            background: var(--paper);
+            color: var(--ink);
+            border: 1px solid var(--border);
+            font-family: var(--font-heading);
+            font-weight: 500;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .denom-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .denom-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* 3D Banknote Stage */
+        .banknote-wrapper {
+            width: 100%;
+            max-width: 520px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 1rem 0 2rem;
+        }
+
+        .banknote-stage {
+            perspective: 2000px;
+            position: relative;
+            cursor: pointer;
+            width: 100%;
+            transition: height 0.4s ease;
+        }
+
+        .banknote-card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+            border-radius: 6px;
+        }
+
+        .banknote-card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .banknote-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: var(--shadow-premium);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: box-shadow 0.3s;
+        }
+
+        .banknote-face img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            display: block;
+        }
+
+        .banknote-face.back {
+            transform: rotateY(180deg);
+        }
+
+        /* Hover shadow glow effects on tilt */
+        .banknote-stage:hover .banknote-face {
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.14), 0 10px 20px rgba(0, 0, 0, 0.08);
+            body.dark-mode & { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 10px 25px rgba(0, 0, 0, 0.3); }
+        }
+
+        /* Size Guides (Dynamic representation) */
+        .physical-size-badge {
+            font-size: 0.8rem;
+            color: var(--ink-secondary);
+            font-family: var(--font-heading);
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        /* Action bar */
+        .action-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* Info Tab area */
+        .info-tabs-container {
+            width: 100%;
+            margin-top: 2rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1.5rem;
+        }
+
+        .info-text {
+            font-size: 0.95rem;
+            line-height: 1.7;
+            text-align: justify;
+            color: var(--ink);
+        }
+
+        /* Comparison Mode Layout */
+        .compare-stage {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .compare-stage {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .compare-pane {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(0,0,0,0.015);
+            body.dark-mode & { background: rgba(255, 255, 255, 0.015); }
+            border: 1px dashed var(--border);
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+
+        .compare-select {
+            width: 100%;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Star Rating System */
+        .rating-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .rating-label {
+            font-family: var(--font-heading);
+            font-weight: 500;
+            font-size: 1rem;
+            margin-bottom: 0;
+        }
+
+        .stars-interactive {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .star-item {
+            font-size: 1.6rem;
+            cursor: pointer;
+            color: #ccc;
+            transition: transform 0.2s, color 0.2s;
+        }
+
+        .star-item:hover,
+        .star-item.active {
+            color: #ffb400;
+        }
+
+        .star-item:hover {
+            transform: scale(1.2);
+        }
+
+        /* Scoreboard Panel */
+        .scoreboard-section {
+            margin-top: 3rem;
+        }
+
+        .scoreboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .scoreboard-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .scoreboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .scoreboard-bar-bg {
+            background: rgba(0,0,0,0.06);
+            body.dark-mode & { background: rgba(255,255,255,0.06); }
+            height: 6px;
+            border-radius: 3px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .scoreboard-bar-fill {
+            background: var(--accent-secondary);
+            height: 100%;
+            width: 0%;
+            transition: width 0.8s ease;
+        }
+
+        /* Lightbox Overlay */
+        .lightbox-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: zoom-out;
+        }
+
+        .lightbox-content {
+            max-width: 90%;
+            max-height: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Micro-animations */
+        @keyframes scaleUp {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .animated-pane {
+            animation: scaleUp 0.35s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+        }
+
+        .compare-pane h3 {
+            font-family: var(--font-heading);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="container">
+            <!-- 1. HEADER SECTION -->
+            <div class="intro-container">
+                <span class="badge-premium">Euro Neugestaltung</span>
+                <h1>Neue Euro-Banknoten</h1>
+                <p>Erkunden, vergleichen und bewerten Sie die 10 von der Europäischen Zentralbank (EZB) vorgeschlagenen Designentwürfe für das Geld der Zukunft.</p>
+            </div>
+
+            <!-- 2. MODE SWITCHER -->
+            <div class="mode-selector">
+                <button id="mode-single" class="mode-btn active">Design-Explorer</button>
+                <button id="mode-compare" class="mode-btn">Vergleichs-Modus</button>
+            </div>
+
+            <!-- 3. WORKSPACE: EXPLORER MODE -->
+            <div id="explorer-view" class="workspace-grid animated-pane">
+                <!-- Sidebar Menu -->
+                <div class="proposal-sidebar" id="sidebar-list">
+                    <!-- Javascript will populate this list -->
+                </div>
+
+                <!-- Main Display Panel -->
+                <div class="stage-panel" id="main-stage">
+                    <!-- Denominations -->
+                    <div class="denom-selector" id="explorer-denom-selector">
+                        <button class="denom-btn active" data-val="5">5 €</button>
+                        <button class="denom-btn" data-val="10">10 €</button>
+                        <button class="denom-btn" data-val="20">20 €</button>
+                        <button class="denom-btn" data-val="50">50 €</button>
+                        <button class="denom-btn" data-val="100">100 €</button>
+                        <button class="denom-btn" data-val="200">200 €</button>
+                    </div>
+
+                    <!-- 3D Banknote Stage -->
+                    <div class="banknote-wrapper">
+                        <div class="banknote-stage" id="main-banknote-stage" title="Klicken, um die Banknote umzudrehen">
+                            <div class="banknote-card" id="main-banknote-card">
+                                <div class="banknote-face front">
+                                    <img id="img-front" src="" alt="Vorderseite">
+                                </div>
+                                <div class="banknote-face back">
+                                    <img id="img-back" src="" alt="Rückseite">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="physical-size-badge" id="size-label">Abmessungen: 120 mm &times; 62 mm (Originalmaßstab)</div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="action-row">
+                        <button class="button secondary sm" id="btn-flip">🔄 Umdrehen</button>
+                        <button class="button outline sm" id="btn-zoom">🔍 Vergrößern</button>
+                        <a class="button outline sm" id="btn-download" href="" download>💾 Bild speichern</a>
+                    </div>
+
+                    <!-- Star Ratings -->
+                    <div class="rating-card">
+                        <span class="rating-label" id="rating-text">Entwurf bewerten:</span>
+                        <div class="stars-interactive" id="star-rating-container">
+                            <span class="star-item" data-val="1">&#9733;</span>
+                            <span class="star-item" data-val="2">&#9733;</span>
+                            <span class="star-item" data-val="3">&#9733;</span>
+                            <span class="star-item" data-val="4">&#9733;</span>
+                            <span class="star-item" data-val="5">&#9733;</span>
+                        </div>
+                    </div>
+
+                    <!-- Info Tabs / Context -->
+                    <div class="info-tabs-container">
+                        <h2 id="designer-title" style="margin-bottom: 0.75rem;">Design A - Studio Joost Grootens</h2>
+                        <p class="info-text" id="concept-desc">Lade Beschreibung...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. WORKSPACE: COMPARE MODE -->
+            <div id="compare-view" class="animated-pane hidden">
+                <div class="stage-panel" style="min-height: auto; padding: 2rem 1.5rem;">
+                    <!-- Denominations for compare -->
+                    <div class="denom-selector" id="compare-denom-selector" style="margin-bottom: 1.5rem;">
+                        <button class="denom-btn active" data-val="5">5 €</button>
+                        <button class="denom-btn" data-val="10">10 €</button>
+                        <button class="denom-btn" data-val="20">20 €</button>
+                        <button class="denom-btn" data-val="50">50 €</button>
+                        <button class="denom-btn" data-val="100">100 €</button>
+                        <button class="denom-btn" data-val="200">200 €</button>
+                    </div>
+                    
+                    <div class="action-row" style="margin-top: 0; margin-bottom: 1.5rem;">
+                        <button class="button secondary sm" id="compare-btn-flip">🔄 Alle umdrehen</button>
+                    </div>
+
+                    <div class="compare-stage">
+                        <!-- Left Pane -->
+                        <div class="compare-pane">
+                            <h3>Entwurf Links</h3>
+                            <select id="compare-select-left" class="compare-select">
+                                <!-- JS Populated -->
+                            </select>
+                            
+                            <div class="banknote-stage" id="compare-stage-left" style="max-width: 100%;">
+                                <div class="banknote-card" id="compare-card-left">
+                                    <div class="banknote-face front">
+                                        <img id="compare-img-left-front" src="" alt="Vorderseite Links">
+                                    </div>
+                                    <div class="banknote-face back">
+                                        <img id="compare-img-left-back" src="" alt="Rückseite Links">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Pane -->
+                        <div class="compare-pane">
+                            <h3>Entwurf Rechts</h3>
+                            <select id="compare-select-right" class="compare-select">
+                                <!-- JS Populated -->
+                            </select>
+                            
+                            <div class="banknote-stage" id="compare-stage-right" style="max-width: 100%;">
+                                <div class="banknote-card" id="compare-card-right">
+                                    <div class="banknote-face front">
+                                        <img id="compare-img-right-front" src="" alt="Vorderseite Rechts">
+                                    </div>
+                                    <div class="banknote-face back">
+                                        <img id="compare-img-right-back" src="" alt="Rückseite Rechts">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. SCOREBOARD / GENERAL RESULTS -->
+            <div class="scoreboard-section card">
+                <h2>Ihre Favoriten-Rangliste</h2>
+                <p class="category-intro" style="margin-bottom: 1.5rem;">Hier sehen Sie Ihre persönliche Bewertung aller Designvorschläge im Überblick (gespeichert im Browser).</p>
+                <div class="scoreboard-grid" id="scoreboard-container">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Lightbox Zoom Overlay -->
+    <div class="lightbox-overlay" id="lightbox">
+        <img class="lightbox-content" id="lightbox-img" src="" alt="Zoomierte Ansicht">
+    </div>
+
+    <script src="../../assets/js/layout.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Proposals data structure ( German concepts )
+            const proposals = {
+                "proposalA": {
+                    "id": "proposalA",
+                    "letter": "A",
+                    "title": "Design A",
+                    "designer": "Studio Joost Grootens",
+                    "desc": "Das Design lässt sich als Reflexion darüber erklären, wie Kultur entsteht. Die Augen stehen für Beobachtung, Wahrnehmung und Reflexion, während der Mund Ausdruck, Dialog und Austausch symbolisiert. Durch die Hervorhebung dieser Elemente gehen die Porträts über die individuelle Identität hinaus und verweisen auf eine gemeinsame menschliche Fähigkeit zum kulturellen Schaffen. Auf der Rückseite zeigen zeitgenössische Kulturräume, wie Menschen unterschiedlicher Herkunft und unterschiedlichen Alters zusammenkommen und interagieren. Zusammen verbinden beide Seiten individuelle Wahrnehmung und individuellen Ausdruck mit kollektivem Austausch und laden die Öffentlichkeit dazu ein, die Banknoten als Sinnbild von Kultur als lebendigen, gemeinsamen Prozess zu betrachten."
+                },
+                "proposalB": {
+                    "id": "proposalB",
+                    "letter": "B",
+                    "title": "Design B",
+                    "designer": "PunktFormStrich",
+                    "desc": "Die Banknotenserie „Flüsse und Vögel“ vermittelt ihr Konzept durch einen direkten Zusammenhang zwischen visuellen Elementen und ihrer Bedeutung. Jede Banknote zeigt eine bestimmte Vogelart in Bezug zu ihrem Lebensraum und verbindet biologische Vielfalt mit europäischen Landschaften. Horizontale Balkenstrukturen übertragen den charakteristischen Ruf jedes Vogels in eine visuelle Form, während eine vertikale Skala dessen Fluggeschwindigkeit anzeigt und so eine intuitive Erfassung der Informationen ermöglicht. Detaillierte Angaben auf der Vorderseite ordnen die jeweilige Art zusätzlich ein. Auf der Rückseite stellen EU-Gebäude und eine Landkarte Europas eine Verbindung zwischen der natürlichen Umgebung und der gemeinsamen kulturellen Identität her."
+                },
+                "proposalC": {
+                    "id": "proposalC",
+                    "letter": "C",
+                    "title": "Design C",
+                    "designer": "Neue Gestaltung GmbH",
+                    "desc": "Das Design erzählt eine einfache Geschichte: Europa ist ein gemeinsamer Kulturraum. Jede Banknote ist aufgrund ihrer dominierenden Farbe und seines eigenen zentralen Motivs sofort erkennbar; jede zeigt eine Persönlichkeit, deren Leben und Werk die Europäer über Jahrhunderte hinweg miteinander verbinden. Die Rückseite vereint eine Landkarte Europas, die leicht von den Sternbildern überlagert wird, die Reisende lange Zeit geleitet haben, mit einer aktuellen Szene des Kulturraums, den die Banknote abbildet – darstellende Künste, Musik, Schulen, Bibliotheken, Museen und öffentliche Plätze. Menschen werden ohne spezifische Merkmale dargestellt, damit die Bürgerinnen und Bürger sich in ihnen wiedererkennen können."
+                },
+                "proposalD": {
+                    "id": "proposalD",
+                    "letter": "D",
+                    "title": "Design D",
+                    "designer": "Rudy Guedj & François Girard-Meunier",
+                    "desc": "Sechs Vögel sind in abstrakten Landschaften zu sehen, die mit der stetigen Reise eines Flusses verbunden sind, von einer Bergquelle hin zu einem stürmischen Meer. Licht begleitet diesen Verlauf und entfaltet sich von einer sanften Präsenz zu einer dynamischen, durchdringenden Kraft mit symbolischer Resonanz. Die Szenen laden zu einer eingehenden Betrachtung ein und versetzen den Betrachter in die Position eines Vogelbeobachters, der Spuren jeder einzelnen Art sammelt. Auf der Rückseite werden die EU-Institutionen durch Handgesten und ein sich wandelndes, stoffartiges Geflecht dargestellt. Hände halten, stabilisieren, richten aus und gestikulieren, was eine Zusammenarbeit in Aktion nahelegt, während von allen Gebäuden ein Leuchten auf das gesamte EU-Gebiet ausgeht."
+                },
+                "proposalE": {
+                    "id": "proposalE",
+                    "letter": "E",
+                    "title": "Design E",
+                    "designer": "Myrsini Vardopoulou",
+                    "desc": "Der kommunikative Ansatz stellt den universellen Wert des Wirkens der jeweiligen Person in den Vordergrund und nicht ihre Persönlichkeit. Der Kreis und die Symbole fungieren als visuelle Botschaft, die für einen intellektuellen Raum steht. Dieser Raum vermittelt dem Betrachter eine unmittelbare visuelle Vertrautheit. Gleichzeitig verweisen symbolische Details subtil auf eine tiefergehende konzeptionelle Interpretation. So vermittelt das Design, dass der Beitrag der einzelnen Menschen trotz ihrer Vielfalt eine gemeinsame Inspirationsquelle darstellt und ein Mittel ist, um uns mit vertrauten, sich jedoch ständig wandelnden kulturellen Werten wiederzuverbinden."
+                },
+                "proposalF": {
+                    "id": "proposalF",
+                    "letter": "F",
+                    "title": "Design F",
+                    "designer": "Jan Robert Dünnweller",
+                    "desc": "Das Design soll das offizielle Motto der EU – „In Vielfalt geeint“ – veranschaulichen. Europa ist durch eine reiche gemeinsame Kulturgeschichte und ein kulturelles Erbe vereint, die durch die Porträts ikonischer europäischer Persönlichkeiten dargestellt werden. Es ist vereint durch gemeinsame Werte und ein Zugehörigkeitsgefühl, das durch die Vielfalt kultureller Identitäten gestärkt wird. Diese Vielfalt wird in einer Collage aus zahlreichen Formen und Oberflächenstrukturen visualisiert, die zusammen ein neues Ganzes schaffen, das diese verschiedenen Elemente verbindet. Die Collage bildet den Hintergrund der handgezeichneten Porträts und der Darstellungen gemeinsamer Kulturräume als konkrete Ausdrucksformen dieser Ideen."
+                },
+                "proposalG": {
+                    "id": "proposalG",
+                    "letter": "G",
+                    "title": "Design G",
+                    "designer": "Rubio & del Amo & Cruz más Cruz",
+                    "desc": "Ein einnehmender Blick trifft den Betrachter aus der Mitte der Banknote. In ihr verdichten sich ein Vorschlag, eine Idee und ein Dialog zwischen denjenigen Menschen, die unsere kulturelle Identität geformt haben, und denjenigen von uns, die Europa zu einem Ort von Vordenkern machen und den Geist dieser Persönlichkeiten in unserem Alltag lebendig halten. Eine dominierende, einheitliche und wiedererkennbare Farbe trifft auf ein lineares Muster, das für eine gemeinsame Textur sorgt, innerhalb einer Struktur, die das Ganze zusammenhält. Wenn wir die Banknoten horizontal drehen, erkennen wir vier vertikale Blöcke, die jeweils durch einen Buchstaben inspiriert sind: „E“, „U“, „R“ und „O“."
+                },
+                "proposalH": {
+                    "id": "proposalH",
+                    "letter": "H",
+                    "title": "Design H",
+                    "designer": "Atelier Goppel-Toperngpong",
+                    "desc": "Wasser fließt. Es bildet die Grundlage allen Lebens, prägt unsere Umwelt und schafft die Lebensräume für die vielfältige Vogelwelt Europas, die auf den Banknoten abgebildet ist. Darüber hinaus kann Wasser viele Eigenschaften annehmen, wie etwa Ausgeglichenheit oder Beständigkeit. Die Verwendung dieser Eigenschaften als Analogien für die EU-Institutionen schafft Vertrauen und ein Verständnis für ihre Funktionen. Ein Tropfen mag vernachlässigbar erscheinen, aber über Jahrhunderte hinweg ist ein Strom stark genug, um Gebirgszüge zu formen. Ein einzelner Mensch mag unbedeutend erscheinen, aber Millionen von Menschen, die ein gemeinsames Ziel eint, sind widerstandsfähig und stark. In diesem Sinne ist Wasser eine treffende Analogie für die EU."
+                },
+                "proposalI": {
+                    "id": "proposalI",
+                    "letter": "I",
+                    "title": "Design I",
+                    "designer": "Isabelle Daëron",
+                    "desc": "Vom Flügelschlag eines Vogels bis zum Strom der Flüsse – Bewegung steht im Mittelpunkt dieses Entwurfs. Sie soll sowohl die Dynamik der EU als auch die materiellen und immateriellen Ströme verkörpern, die ihr Gebiet durchziehen. Als wahrer Botschafter symbolisiert der Vogel – der auf der Vorderseite allein und auf der Rückseite als Schwarm zu sehen ist – das Zwiegespräch und die gegenseitige Abhängigkeit zwischen unseren Gesellschaften und der Natur. Von der Quelle eines Flusses bis zum Ozean offenbart der Flug des Vogels die Landschaft, die er durchquert, durch das Zusammenspiel zweier Muster – eines mit Filzstift handgezeichnet und das andere vektorbasiert –, die Zusammenhalt durch Vielfalt verkörpern."
+                },
+                "proposalJ": {
+                    "id": "proposalJ",
+                    "letter": "J",
+                    "title": "Design J",
+                    "designer": "Ville Tietäväinen",
+                    "desc": "Diese Euro-Banknotenserie erzählt eine visuelle Geschichte der europäischen Flüsse, von ihrer Quelle in den Bergen bis zu ihrer Mündung ins Meer. Die Hauptdarsteller sind die europäischen Vögel in ihren natürlichen Lebensräumen. Je höher die Stückelung der Banknoten, desto stärker nähern sich die Abbildungen dem Meer. Die Sicherheitsfolien zeigen jeweils einen Abschnitt eines Flusses mit dem dazugehörigen Vogel. Sie dienen als Infografik, die in das erzählerische Konzept der Banknotenserie einführt. Selbst die EU-Gebäude auf der Rückseite der Banknoten verschmelzen mit dem Flügel des jeweiligen Vogels auf der Vorderseite."
+                }
+            };
+
+            // Banknote physical specifications
+            const banknoteSpecs = {
+                5:   { w: 120, h: 62 },
+                10:  { w: 127, h: 67 },
+                20:  { w: 133, h: 72 },
+                50:  { w: 140, h: 77 },
+                100: { w: 147, h: 82 },
+                200: { w: 153, h: 82 }
+            };
+
+            // Global State
+            let currentProposalId = "proposalA";
+            let currentDenom = 5;
+            let isFlipped = false;
+            let ratings = JSON.parse(localStorage.getItem('future_banknotes_ratings') || '{}');
+
+            // DOM Elements
+            const modeSingle = document.getElementById('mode-single');
+            const modeCompare = document.getElementById('mode-compare');
+            const explorerView = document.getElementById('explorer-view');
+            const compareView = document.getElementById('compare-view');
+
+            const sidebarList = document.getElementById('sidebar-list');
+            const designerTitle = document.getElementById('designer-title');
+            const conceptDesc = document.getElementById('concept-desc');
+
+            const imgFront = document.getElementById('img-front');
+            const imgBack = document.getElementById('img-back');
+            const mainBanknoteCard = document.getElementById('main-banknote-card');
+            const mainBanknoteStage = document.getElementById('main-banknote-stage');
+            const sizeLabel = document.getElementById('size-label');
+
+            const btnFlip = document.getElementById('btn-flip');
+            const btnZoom = document.getElementById('btn-zoom');
+            const btnDownload = document.getElementById('btn-download');
+
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightbox-img');
+
+            const starContainer = document.getElementById('star-rating-container');
+            const ratingText = document.getElementById('rating-text');
+
+            // Compare DOMs
+            const selectLeft = document.getElementById('compare-select-left');
+            const selectRight = document.getElementById('compare-select-right');
+            const imgLeftFront = document.getElementById('compare-img-left-front');
+            const imgLeftBack = document.getElementById('compare-img-left-back');
+            const imgRightFront = document.getElementById('compare-img-right-front');
+            const imgRightBack = document.getElementById('compare-img-right-back');
+            const compareCardLeft = document.getElementById('compare-card-left');
+            const compareCardRight = document.getElementById('compare-card-right');
+            const compareBtnFlip = document.getElementById('compare-btn-flip');
+
+            // === 1. INITIALIZATION ===
+            init();
+
+            function init() {
+                // Populate single sidebar
+                buildSidebar();
+                // Populate compare selectors
+                buildCompareSelectors();
+                // Load active elements
+                updateStage();
+                // Build Scoreboard
+                updateScoreboard();
+            }
+
+            // === 2. EVENT LISTENERS & SWITCHERS ===
+            modeSingle.addEventListener('click', () => {
+                modeSingle.classList.add('active');
+                modeCompare.classList.remove('active');
+                explorerView.classList.remove('hidden');
+                compareView.classList.add('hidden');
+                updateStage();
+            });
+
+            modeCompare.addEventListener('click', () => {
+                modeCompare.classList.add('active');
+                modeSingle.classList.remove('active');
+                compareView.classList.remove('hidden');
+                explorerView.classList.add('hidden');
+                updateCompareStage();
+            });
+
+            // Single Denomination Switcher
+            document.querySelectorAll('#explorer-denom-selector .denom-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('#explorer-denom-selector .denom-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentDenom = parseInt(e.target.getAttribute('data-val'));
+                    updateStage();
+                });
+            });
+
+            // Compare Denomination Switcher
+            document.querySelectorAll('#compare-denom-selector .denom-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('#compare-denom-selector .denom-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentDenom = parseInt(e.target.getAttribute('data-val'));
+                    updateCompareStage();
+                });
+            });
+
+            // Flip Actions
+            btnFlip.addEventListener('click', toggleFlip);
+            mainBanknoteStage.addEventListener('click', toggleFlip);
+
+            function toggleFlip() {
+                isFlipped = !isFlipped;
+                if (isFlipped) {
+                    mainBanknoteCard.classList.add('flipped');
+                } else {
+                    mainBanknoteCard.classList.remove('flipped');
+                }
+            }
+
+            // Compare Flip Actions
+            let compareFlipped = false;
+            compareBtnFlip.addEventListener('click', () => {
+                compareFlipped = !compareFlipped;
+                if (compareFlipped) {
+                    compareCardLeft.classList.add('flipped');
+                    compareCardRight.classList.add('flipped');
+                } else {
+                    compareCardLeft.classList.remove('flipped');
+                    compareCardRight.classList.remove('flipped');
+                }
+            });
+
+            document.getElementById('compare-stage-left').addEventListener('click', () => {
+                compareCardLeft.classList.toggle('flipped');
+            });
+            document.getElementById('compare-stage-right').addEventListener('click', () => {
+                compareCardRight.classList.toggle('flipped');
+            });
+
+            // Zoom Action
+            btnZoom.addEventListener('click', () => {
+                const activeImg = isFlipped ? imgBack.src : imgFront.src;
+                lightboxImg.src = activeImg;
+                lightbox.style.display = 'flex';
+            });
+
+            lightbox.addEventListener('click', () => {
+                lightbox.style.display = 'none';
+            });
+
+            // Interactive Rating
+            starContainer.querySelectorAll('.star-item').forEach(star => {
+                star.addEventListener('click', (e) => {
+                    const ratingVal = parseInt(e.target.getAttribute('data-val'));
+                    ratings[currentProposalId] = ratingVal;
+                    localStorage.setItem('future_banknotes_ratings', JSON.stringify(ratings));
+                    
+                    updateStarsUI(ratingVal);
+                    updateScoreboard();
+                    buildSidebar(); // Refresh star previews
+                    showToast(`${proposals[currentProposalId].title} bewertet mit ${ratingVal} Sternen!`, 'success');
+                });
+            });
+
+            // Compare dropdown change
+            selectLeft.addEventListener('change', updateCompareStage);
+            selectRight.addEventListener('change', updateCompareStage);
+
+            // 3D Parallax Tilt Effect on Hover
+            setupParallax(mainBanknoteStage, mainBanknoteCard);
+            setupParallax(document.getElementById('compare-stage-left'), compareCardLeft);
+            setupParallax(document.getElementById('compare-stage-right'), compareCardRight);
+
+            function setupParallax(stage, card) {
+                if (!stage || !card) return;
+                stage.addEventListener('mousemove', (e) => {
+                    const rect = stage.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const percentX = (x - centerX) / centerX;
+                    const percentY = (y - centerY) / centerY;
+                    
+                    // Cap rotation angles
+                    const maxRotateX = 15;
+                    const maxRotateY = 15;
+
+                    const rotateX = -percentY * maxRotateX;
+                    // Account for Y flip when applying rotateY
+                    const isCardFlipped = card.classList.contains('flipped');
+                    let rotateY = percentX * maxRotateY;
+                    if (isCardFlipped) {
+                        rotateY = 180 - rotateY;
+                    }
+
+                    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                });
+
+                stage.addEventListener('mouseleave', () => {
+                    const isCardFlipped = card.classList.contains('flipped');
+                    card.style.transform = isCardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+                });
+            }
+
+
+            // === 3. CORE UPDATE FUNCTIONS ===
+
+            function buildSidebar() {
+                sidebarList.innerHTML = '';
+                Object.values(proposals).forEach(prop => {
+                    const starVal = ratings[prop.id] || 0;
+                    const starStr = starVal > 0 ? `★ ${starVal}` : '☆ Bewerten';
+
+                    const card = document.createElement('div');
+                    card.className = `proposal-nav-card ${prop.id === currentProposalId ? 'active' : ''}`;
+                    card.innerHTML = `
+                        <div>
+                            <div class="proposal-nav-title">${prop.title}</div>
+                            <div class="proposal-nav-author">${prop.designer}</div>
+                        </div>
+                        <span class="proposal-nav-stars" style="color: ${starVal > 0 ? '#ffb400' : 'var(--ink-secondary)'}; font-weight: 500; font-size: 0.8rem;">
+                            ${starStr}
+                        </span>
+                    `;
+                    card.addEventListener('click', () => {
+                        currentProposalId = prop.id;
+                        document.querySelectorAll('.proposal-nav-card').forEach(c => c.classList.remove('active'));
+                        card.classList.add('active');
+                        updateStage();
+                    });
+                    sidebarList.appendChild(card);
+                });
+            }
+
+            function buildCompareSelectors() {
+                selectLeft.innerHTML = '';
+                selectRight.innerHTML = '';
+                Object.values(proposals).forEach((prop, idx) => {
+                    const optLeft = document.createElement('option');
+                    optLeft.value = prop.id;
+                    optLeft.textContent = `${prop.title} (${prop.designer})`;
+                    selectLeft.appendChild(optLeft);
+
+                    const optRight = document.createElement('option');
+                    optRight.value = prop.id;
+                    optRight.textContent = `${prop.title} (${prop.designer})`;
+                    // default select second one for right pane
+                    if (idx === 1) optRight.selected = true;
+                    selectRight.appendChild(optRight);
+                });
+            }
+
+            function updateStage() {
+                const prop = proposals[currentProposalId];
+                designerTitle.textContent = `${prop.title} - ${prop.designer}`;
+                conceptDesc.textContent = prop.desc;
+
+                // Path to local files: images/banknote-design-proposal-{prop_letter_lowercase}-{denom}-{side}.jpg
+                const propLetter = prop.letter.toLowerCase();
+                const frontSrc = `./images/banknote-design-proposal-${propLetter}-${currentDenom}-front.jpg`;
+                const backSrc = `./images/banknote-design-proposal-${propLetter}-${currentDenom}-back.jpg`;
+
+                imgFront.src = frontSrc;
+                imgBack.src = backSrc;
+                btnDownload.href = isFlipped ? backSrc : frontSrc;
+                btnDownload.setAttribute('download', `banknote-${propLetter}-${currentDenom}-${isFlipped ? 'back' : 'front'}.jpg`);
+
+                // Adjust Stage heights & physical size label based on denomination
+                const spec = banknoteSpecs[currentDenom];
+                sizeLabel.innerHTML = `Abmessungen: <strong>${spec.w} mm &times; ${spec.h} mm</strong> (Relativer Maßstab: 100%)`;
+
+                // Calculate CSS height relative to width to preserve correct aspect ratio
+                const aspectRatio = spec.w / spec.h;
+                const stageWidth = mainBanknoteStage.clientWidth || 500;
+                mainBanknoteStage.style.height = `${stageWidth / aspectRatio}px`;
+
+                // Scale the banknote wrapper to represent physical size differences
+                // Using 200€ (largest, 153mm) as 100% scale
+                const maxScaleWidth = 153;
+                const currentScale = spec.w / maxScaleWidth;
+                mainBanknoteStage.style.transform = `scale(${currentScale})`;
+
+                // Render current star ratings
+                const activeRating = ratings[currentProposalId] || 0;
+                updateStarsUI(activeRating);
+            }
+
+            // Adjust aspect ratio dynamically on resize
+            window.addEventListener('resize', () => {
+                const spec = banknoteSpecs[currentDenom];
+                const aspectRatio = spec.w / spec.h;
+                const stageWidth = mainBanknoteStage.clientWidth || 500;
+                mainBanknoteStage.style.height = `${stageWidth / aspectRatio}px`;
+                
+                // Compare stages
+                const stageLeft = document.getElementById('compare-stage-left');
+                const stageRight = document.getElementById('compare-stage-right');
+                if(stageLeft && stageRight) {
+                    const widthL = stageLeft.clientWidth || 250;
+                    stageLeft.style.height = `${widthL / aspectRatio}px`;
+                    stageRight.style.height = `${widthL / aspectRatio}px`;
+                }
+            });
+
+            function updateCompareStage() {
+                const propIdLeft = selectLeft.value;
+                const propIdRight = selectRight.value;
+
+                const propLeft = proposals[propIdLeft];
+                const propRight = proposals[propIdRight];
+
+                const pL = propLeft.letter.toLowerCase();
+                const pR = propRight.letter.toLowerCase();
+
+                imgLeftFront.src = `./images/banknote-design-proposal-${pL}-${currentDenom}-front.jpg`;
+                imgLeftBack.src = `./images/banknote-design-proposal-${pL}-${currentDenom}-back.jpg`;
+                imgRightFront.src = `./images/banknote-design-proposal-${pR}-${currentDenom}-front.jpg`;
+                imgRightBack.src = `./images/banknote-design-proposal-${pR}-${currentDenom}-back.jpg`;
+
+                // Set heights for compare stages
+                const spec = banknoteSpecs[currentDenom];
+                const aspectRatio = spec.w / spec.h;
+                const stageLeft = document.getElementById('compare-stage-left');
+                const stageRight = document.getElementById('compare-stage-right');
+                
+                if (stageLeft && stageRight) {
+                    const width = stageLeft.clientWidth || 250;
+                    stageLeft.style.height = `${width / aspectRatio}px`;
+                    stageRight.style.height = `${width / aspectRatio}px`;
+                }
+            }
+
+            function updateStarsUI(ratingVal) {
+                starContainer.querySelectorAll('.star-item').forEach(star => {
+                    const starVal = parseInt(star.getAttribute('data-val'));
+                    if (starVal <= ratingVal) {
+                        star.classList.add('active');
+                    } else {
+                        star.classList.remove('active');
+                    }
+                });
+                
+                if (ratingVal > 0) {
+                    ratingText.innerHTML = `Ihre Bewertung: <strong>${ratingVal} Sterne</strong>`;
+                } else {
+                    ratingText.textContent = `Entwurf bewerten:`;
+                }
+            }
+
+            function updateScoreboard() {
+                const scoreboardContainer = document.getElementById('scoreboard-container');
+                scoreboardContainer.innerHTML = '';
+
+                // Sort proposals based on score
+                const sortedProps = Object.values(proposals).map(prop => {
+                    return {
+                        ...prop,
+                        rating: ratings[prop.id] || 0
+                    };
+                }).sort((a, b) => b.rating - a.rating || a.title.localeCompare(b.title));
+
+                sortedProps.forEach(prop => {
+                    const card = document.createElement('div');
+                    card.className = 'scoreboard-card';
+                    
+                    const percent = (prop.rating / 5) * 100;
+                    const scoreText = prop.rating > 0 ? `${prop.rating} / 5 ★` : 'Keine Bewertung';
+
+                    card.innerHTML = `
+                        <div class="scoreboard-header">
+                            <strong>${prop.title}</strong>
+                            <span style="font-size: 0.85rem; color: ${prop.rating > 0 ? '#ffb400' : 'var(--ink-secondary)'}; font-weight: 600;">
+                                ${scoreText}
+                            </span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--ink-secondary); margin-bottom: 0.25rem;">
+                            ${prop.designer}
+                        </div>
+                        <div class="scoreboard-bar-bg">
+                            <div class="scoreboard-bar-fill" style="width: ${percent}%;"></div>
+                        </div>
+                    `;
+                    scoreboardContainer.appendChild(card);
+                });
+            }
+
+        });
+    </script>
+</body>
+</html>
