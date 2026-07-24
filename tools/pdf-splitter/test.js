@@ -5,7 +5,7 @@ const assert = require('assert');
 const htmlContent = fs.readFileSync(__dirname + '/index.html', 'utf8');
 
 // Use a simple regex to extract the function logic from the HTML file
-const functionMatch = htmlContent.match(/function getPagesToExtract[\s\S]*?return pages;\n\s*\}/);
+const functionMatch = htmlContent.match(/function getPagesToExtract[\s\S]*?(?=\s*\/\/ --- Split Logic ---)/);
 
 if (!functionMatch) {
     console.error("Could not find getPagesToExtract function in index.html");
