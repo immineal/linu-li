@@ -103,7 +103,7 @@
         <div class="container">
             <div class="tool-header">
                 <h1>EXIF Data Remover</h1>
-                <p>Strip GPS coordinates, camera details, and metadata non-destructively. <br>Review what is hidden inside your photos below.</p>
+                <p>Strip GPS coordinates, camera details, Content Credentials, and metadata non-destructively. <br>Review what is hidden inside your photos below.</p>
             </div>
 
             <div class="card">
@@ -142,6 +142,13 @@
                         <label for="copyrightInput" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Copyright Injection (Optional)</label>
                         <p style="font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 1rem;">Inject a clean copyright notice after scrubbing all other metadata.</p>
                         <input type="text" id="copyrightInput" class="input" placeholder="e.g. © 2024 Jane Doe">
+                    </div>
+
+                    <div class="copyright-panel" style="margin-top: 1rem;">
+                        <label style="display: flex; align-items: center; cursor: pointer; font-weight: 500;">
+                            <input type="checkbox" id="removeIccCheckbox" checked style="margin-right: 0.5rem; width: auto;">
+                            Remove colour profile (ICC)
+                        </label>
                     </div>
 
                     <div class="button-group" style="margin-top: 2rem;">
@@ -443,7 +450,7 @@
 
         // --- REMOVAL LOGIC ---
 
-        window.stripAllMetadataAndInject = function(file, copyrightText) {
+        window.stripAllMetadataAndInject = function(file, copyrightText, removeICC = true) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -487,12 +494,16 @@
                                 let keep = true;
                                 if (marker === 0xE1) { // APP1 (EXIF, XMP)
                                     keep = false;
+                                } else if (marker === 0xEB) { // APP11 (JUMBF / C2PA Content Credentials)
+                                    keep = false;
                                 } else if (marker === 0xED) { // APP13 (IPTC / Photoshop)
                                     keep = false;
                                 } else if (marker === 0xFE) { // COM (Comment)
                                     keep = false;
                                 } else if (marker === 0xE2) { // APP2 (ICC Profile, etc - usually safe to remove for pure scrub, but we keep it or strip it. Let's strip to be paranoid about hidden data)
-                                    keep = false;
+                                    if (removeICC) {
+                                        keep = false;
+                                    }
                                 }
 
                                 if (keep) {
@@ -568,12 +579,14 @@
             let errorCount = 0;
             const copyrightInput = document.getElementById('copyrightInput');
             const copyrightText = copyrightInput ? copyrightInput.value : '';
+            const removeIccCheckbox = document.getElementById('removeIccCheckbox');
+            const removeICC = removeIccCheckbox ? removeIccCheckbox.checked : true;
             
             try {
                 for (let i = 0; i < total; i++) {
                     const file = queue[i];
                     try {
-                        const blob = await window.stripAllMetadataAndInject(file, copyrightText);
+                        const blob = await window.stripAllMetadataAndInject(file, copyrightText, removeICC);
                         processedBlobs.push({ name: `clean_${file.name}`, blob: blob });
                     } catch (err) {
                         console.error(`Failed to scrub ${file.name}:`, err);
