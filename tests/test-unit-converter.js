@@ -43,8 +43,8 @@ console.log("Running Unit Converter formatNumber tests...");
 
 // Test cases
 testFormatNumber(0, "0", "Zero");
-testFormatNumber(0.000000000001, "0", "Very small positive number (< 1e-10)");
-testFormatNumber(-0.000000000001, "0", "Very small negative number (> -1e-10)");
+testFormatNumber(0.0000000000001, "0", "Very small positive number (< 1e-12)");
+testFormatNumber(-0.0000000000001, "0", "Very small negative number (> -1e-12)");
 testFormatNumber(1000000, "1000000", "Large positive number (>= 1e6)");
 testFormatNumber(1234567.89, "1234567.89", "Large positive number with decimals");
 testFormatNumber(-1000000, "-1000000", "Large negative number (<= -1e6)");
