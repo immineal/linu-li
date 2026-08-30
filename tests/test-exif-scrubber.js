@@ -24,11 +24,13 @@ setTimeout(async () => {
 
     console.log("Running EXIF Scrubber tests...");
 
-    // Create a dummy JPEG with fake APP1, APP13
+    // Create a dummy JPEG with fake APP1, APP13, APP11, APP2
     const dummyJpeg = new Uint8Array([
         0xFF, 0xD8, // SOI
         0xFF, 0xE1, 0x00, 0x06, 0x45, 0x78, 0x69, 0x66, // APP1
         0xFF, 0xED, 0x00, 0x04, 0x12, 0x34, // APP13
+        0xFF, 0xEB, 0x00, 0x04, 0x56, 0x78, // APP11
+        0xFF, 0xE2, 0x00, 0x04, 0x90, 0x12, // APP2
         0xFF, 0xDA, 0x00, 0x08, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, // SOS + data
         0xFF, 0xD9 // EOI
     ]);
@@ -44,12 +46,16 @@ setTimeout(async () => {
 
         let foundApp1 = false;
         let foundApp13 = false;
+        let foundApp11 = false;
+        let foundApp2 = false;
 
         for (let i = 2; i < bytes.length;) {
             if (bytes[i] === 0xFF) {
                 const marker = bytes[i+1];
                 if (marker === 0xE1) foundApp1 = true;
                 if (marker === 0xED) foundApp13 = true;
+                if (marker === 0xEB) foundApp11 = true;
+                if (marker === 0xE2) foundApp2 = true;
 
                 if (marker === 0xDA) break;
 
@@ -62,6 +68,31 @@ setTimeout(async () => {
 
         assert.ok(!foundApp1, "APP1 should be completely stripped");
         assert.ok(!foundApp13, "APP13 should be completely stripped");
+        assert.ok(!foundApp11, "APP11 should be completely stripped");
+        assert.ok(!foundApp2, "APP2 should be completely stripped by default");
+
+        // Test robust stripping without copyright and keep ICC (APP2)
+        const strippedBlobKeepIcc = await window.stripAllMetadataAndInject(file, "", false);
+        const arrayBufferKeepIcc = await strippedBlobKeepIcc.arrayBuffer();
+        const bytesKeepIcc = new Uint8Array(arrayBufferKeepIcc);
+
+        let foundApp2Keep = false;
+
+        for (let i = 2; i < bytesKeepIcc.length;) {
+            if (bytesKeepIcc[i] === 0xFF) {
+                const marker = bytesKeepIcc[i+1];
+                if (marker === 0xE2) foundApp2Keep = true;
+
+                if (marker === 0xDA) break;
+
+                const len = (bytesKeepIcc[i+2] << 8) | bytesKeepIcc[i+3];
+                i += 2 + len;
+            } else {
+                break;
+            }
+        }
+
+        assert.ok(foundApp2Keep, "APP2 should be kept when removeICC is false");
 
         // Test robust stripping WITH copyright
         const copyrightBlob = await window.stripAllMetadataAndInject(file, "Linus Linhof");
