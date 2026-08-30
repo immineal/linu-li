@@ -364,9 +364,9 @@
 
         function formatNumber(num) {
             // Fix floating point issues for display (e.g. 0.1 + 0.2)
-            if (Math.abs(num) < 1e-10) return "0";
+            if (Math.abs(num) < 1e-12) return "0";
 
-            let str = num.toPrecision(10);
+            let str = num.toPrecision(12);
             return parseFloat(str).toString();
         }
 
