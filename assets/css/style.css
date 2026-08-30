@@ -90,6 +90,17 @@ input[type="text"], input[type="number"], input[type="email"], input[type="file"
     resize: vertical;
 }
 
+/* Remove default number input spinners (arrows) */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
 /* Code/Data Editor Style (for JSON, Base64, CSS) */
 textarea.code-editor {
     font-family: var(--font-mono); font-size: 0.9rem; white-space: pre;
