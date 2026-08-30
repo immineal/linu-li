@@ -410,9 +410,9 @@
                 // Fix Leaflet default marker icons (vendored locally)
                 delete L.Icon.Default.prototype._getIconUrl;
                 L.Icon.Default.mergeOptions({
-                    iconUrl:       '../../assets/vendor/images/marker-icon.png',
-                    iconRetinaUrl: '../../assets/vendor/images/marker-icon-2x.png',
-                    shadowUrl:     '../../assets/vendor/images/marker-shadow.png',
+                    iconUrl:       '../../assets/vendor/leaflet-images/marker-icon.png',
+                    iconRetinaUrl: '../../assets/vendor/leaflet-images/marker-icon-2x.png',
+                    shadowUrl:     '../../assets/vendor/leaflet-images/marker-shadow.png',
                 });
                 mapInstance = L.map('mapContainer').setView([lat, lng], 13);
                 // Note: tile images are fetched from OpenStreetMap servers on demand
