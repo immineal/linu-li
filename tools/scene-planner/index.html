@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scene & Prop Planner | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css" />
+    <link rel="stylesheet" href="planner.css" />
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg" />
+  </head>
+  <body>
+    <main>
+      <div class="tool-header sp-visually-hidden">
+        <p>
+          Plan where every prop stands in every scene, then print A4 ground plans,
+          overview sheets and a change-over list for the crew. Works offline, saves
+          in your browser, nothing is uploaded.
+        </p>
+      </div>
+
+      <div class="sp-app" id="spApp">
+        <!-- ------------------------------------------------------ top bar -->
+        <header class="sp-bar">
+          <div class="sp-bar-left">
+            <h1 class="sp-wordmark">Scene planner <span>for prop and set crews</span></h1>
+            <select id="spProductionSelect" data-no-save="1" style="width: auto; min-width: 11rem"
+                    aria-label="Production"></select>
+            <button class="sp-btn is-quiet" id="spProductionMenu" title="Production settings">Settings</button>
+          </div>
+
+          <nav class="sp-tabs" role="tablist" aria-label="Sections">
+            <button class="sp-tab-btn" role="tab" data-tab="scenes" aria-selected="true">Scenes</button>
+            <button class="sp-tab-btn" role="tab" data-tab="stage" aria-selected="false">Stage</button>
+            <button class="sp-tab-btn" role="tab" data-tab="props" aria-selected="false">Prop library</button>
+            <button class="sp-tab-btn" role="tab" data-tab="print" aria-selected="false">Print</button>
+          </nav>
+
+          <div class="sp-bar-right">
+            <span class="sp-status" id="spSaveState">Saved locally</span>
+            <button class="sp-btn is-quiet" id="spUndo" title="Undo (Ctrl+Z)" disabled>Undo</button>
+            <button class="sp-btn is-quiet" id="spRedo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button>
+            <button class="sp-btn" id="spBackup">Backup</button>
+          </div>
+        </header>
+
+        <div class="sp-panels">
+          <!-- ================================================ SCENES ==== -->
+          <section class="sp-panel is-active" id="spPanel-scenes" role="tabpanel">
+            <div class="sp-columns">
+              <aside class="sp-rail">
+                <div class="sp-rail-head">
+                  <h2>Running order</h2>
+                  <button class="sp-btn is-quiet" id="spAddAct" title="Group the following scenes into a new act">Add act</button>
+                  <button class="sp-btn" id="spAddScene">Add scene</button>
+                </div>
+                <div class="sp-scroll" id="spSceneList"></div>
+              </aside>
+
+              <div class="sp-centre">
+                <div class="sp-toolbar">
+                  <input type="text" class="sp-scene-name-input" id="spSceneTitle" data-no-save="1"
+                         placeholder="Untitled scene" aria-label="Scene title" />
+                  <span class="sp-sep"></span>
+                  <button class="sp-btn is-quiet" id="spZoomOut" title="Zoom out">&minus;</button>
+                  <button class="sp-btn is-quiet" id="spZoomFit" title="Fit the stage in the window">Fit</button>
+                  <button class="sp-btn is-quiet" id="spZoomIn" title="Zoom in">+</button>
+                  <span class="sp-sep"></span>
+                  <button class="sp-btn" id="spSnapToggle" title="Snap positions to the grid">Snap</button>
+                  <select id="spLabelMode" data-no-save="1" style="width: auto" aria-label="Plan labels">
+                    <option value="name">Prop names</option>
+                    <option value="custom">Written labels only</option>
+                    <option value="both">Name and label</option>
+                    <option value="number">Numbers keyed to the list</option>
+                    <option value="none">No labels</option>
+                  </select>
+                  <button class="sp-btn" id="spGhostToggle" title="Show where things stood in the previous scene">Previous scene</button>
+                  <span class="sp-sep"></span>
+                  <button class="sp-btn" id="spCopyLayout">Copy layout from…</button>
+                  <button class="sp-btn" id="spMirror" title="Flip the whole layout across the centre line">Mirror</button>
+                  <button class="sp-btn" id="spPresetSave">Save as preset</button>
+                  <button class="sp-btn" id="spPresetApply">Presets</button>
+                </div>
+
+                <div class="sp-stage-host" id="spStageHost">
+                  <svg id="spCanvas" class="sp-plan" xmlns="http://www.w3.org/2000/svg"></svg>
+                  <p class="sp-canvas-note" id="spCanvasNote" hidden></p>
+                </div>
+
+                <div class="sp-statusbar">
+                  <span class="sp-readout" id="spPointerReadout">&nbsp;</span>
+                  <span class="sp-readout" id="spSelectionReadout"></span>
+                  <span class="sp-warn" id="spOffstageWarning"></span>
+                </div>
+              </div>
+
+              <aside class="sp-aside">
+                <div class="sp-aside-head">
+                  <div class="sp-seg" style="flex: 1 1 auto" role="tablist" aria-label="Inspector">
+                    <button role="tab" data-inspector="props" aria-selected="true">Props</button>
+                    <button role="tab" data-inspector="item" aria-selected="false">Selection</button>
+                    <button role="tab" data-inspector="scene" aria-selected="false">Scene</button>
+                  </div>
+                </div>
+
+                <div class="sp-scroll" id="spInspectorProps">
+                  <div class="sp-palette-head">
+                    <input type="search" id="spPropSearch" data-no-save="1" placeholder="Search props" aria-label="Search props" />
+                    <select id="spPropCategory" data-no-save="1" aria-label="Prop category"></select>
+                    <p class="sp-hint">Drag a prop onto the stage, or click it to drop one in the middle.</p>
+                  </div>
+                  <div class="sp-palette" id="spPalette"></div>
+                </div>
+
+                <div class="sp-scroll" id="spInspectorItem" hidden></div>
+                <div class="sp-scroll" id="spInspectorScene" hidden></div>
+              </aside>
+            </div>
+          </section>
+
+          <!-- ================================================= STAGE ==== -->
+          <section class="sp-panel" id="spPanel-stage" role="tabpanel">
+            <div class="sp-work">
+              <div class="sp-work-main sp-pad">
+                <div class="sp-measure">
+                  <h2 id="spStageHeading">Stage</h2>
+                  <p id="spStageIntro">
+                    Set the playing area once and every scene inherits it. A single scene can
+                    be given its own stage if the set changes shape at the interval.
+                  </p>
+                  <div class="sp-shape-grid" id="spShapeGrid"></div>
+                  <div class="sp-stage-preview" style="margin-top: 1rem">
+                    <div id="spStagePreview" style="height: 100%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="sp-work-side" id="spStageSide"></div>
+            </div>
+          </section>
+
+          <!-- ================================================= PROPS ==== -->
+          <section class="sp-panel" id="spPanel-props" role="tabpanel">
+            <div class="sp-work">
+              <div class="sp-work-main sp-pad">
+                <div class="sp-measure is-wide">
+                  <h2>Prop library</h2>
+                  <p>
+                    Sixty-odd drawings to start with, plus anything you add yourself. Every
+                    prop carries a real footprint, so it lands on the plan at the right size.
+                  </p>
+                  <div class="sp-btn-row" style="margin-bottom: 1rem">
+                    <input type="search" id="spLibrarySearch" data-no-save="1" placeholder="Search the library"
+                           aria-label="Search the library" style="max-width: 16rem" />
+                    <select id="spLibraryCategory" data-no-save="1" style="width: auto" aria-label="Filter by category"></select>
+                    <button class="sp-btn is-primary" id="spAddCustomProp">Add your own prop</button>
+                  </div>
+                  <div class="sp-lib-grid" id="spLibraryGrid"></div>
+                </div>
+              </div>
+              <div class="sp-work-side sp-pad" id="spLibrarySide"></div>
+            </div>
+          </section>
+
+          <!-- ================================================= PRINT ==== -->
+          <section class="sp-panel" id="spPanel-print" role="tabpanel">
+            <div class="sp-work">
+              <div class="sp-work-side is-left sp-pad" id="spPrintOptions"></div>
+              <div class="sp-work-main sp-print-preview" id="spPrintPreview"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <!-- The sheets that actually go to the printer live outside the app so
+         the print stylesheet can hide everything else on the page. -->
+    <div id="spPrintPortal" hidden></div>
+
+    <script src="../../assets/js/layout.js"></script>
+    <script src="core.js"></script>
+    <script src="props.js"></script>
+    <script src="plan.js"></script>
+    <script src="sheets.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -48,6 +48,9 @@ No analytics, no ads, no cookies. Also works offline as a PWA.
 - **Base64** — file-to-base64, text-to-base64
 - **Epoch Converter** — unix timestamp ↔ human readable
 
+### Stage & production
+- **Scene & Prop Planner** — build a running order of scenes, place props on a stage (rectangular, thrust, circular, arena, traverse…), and print A4 ground plans, N×N overview sheets and a change-over list
+
 ### Misc
 - **Password Gen** — uses Web Crypto API, no bias
 - **QR Creator** — WiFi, vCard, URL

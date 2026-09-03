@@ -1,0 +1,751 @@
+/*
+ * Scene & Prop Planner — geometry and bookkeeping.
+ *
+ * Deliberately free of DOM access so the same code runs in the browser and
+ * under Node for the test suite. Everything is measured in metres internally;
+ * feet only exist at the edges, where numbers are read or written by a human.
+ */
+(function (root, factory) {
+    if (typeof module === 'object' && typeof module.exports === 'object') {
+        module.exports = factory();
+    } else {
+        root.SP = factory();
+    }
+}(typeof self !== 'undefined' ? self : this, function () {
+    'use strict';
+
+    var FOOT = 0.3048;
+
+    /* ------------------------------------------------------------------ *
+     * Small helpers
+     * ------------------------------------------------------------------ */
+
+    function round(n, digits) {
+        var f = Math.pow(10, digits === undefined ? 3 : digits);
+        return Math.round(n * f) / f;
+    }
+
+    function clamp(n, lo, hi) {
+        return n < lo ? lo : (n > hi ? hi : n);
+    }
+
+    var uidCounter = 0;
+    function uid(prefix) {
+        uidCounter += 1;
+        return (prefix || 'id') + '-' +
+            Date.now().toString(36) +
+            uidCounter.toString(36) +
+            Math.random().toString(36).slice(2, 6);
+    }
+
+    function num(value, fallback) {
+        var n = typeof value === 'number' ? value : parseFloat(value);
+        return isFinite(n) ? n : fallback;
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Units
+     * ------------------------------------------------------------------ */
+
+    function toUnit(metres, units) {
+        return units === 'ft' ? metres / FOOT : metres;
+    }
+
+    function toMetres(value, units) {
+        return units === 'ft' ? value * FOOT : value;
+    }
+
+    /* Human-readable length. Feet are written the way a stage crew writes
+       them (12'-6"), metres with one decimal place. */
+    function formatLength(metres, units) {
+        if (units === 'ft') {
+            var totalInches = Math.round(metres / FOOT * 12);
+            var sign = totalInches < 0 ? '-' : '';
+            totalInches = Math.abs(totalInches);
+            var feet = Math.floor(totalInches / 12);
+            var inches = totalInches % 12;
+            return sign + feet + '′' + (inches ? '–' + inches + '″' : '');
+        }
+        var m = round(metres, 2);
+        var text = Math.abs(m) < 10 ? m.toFixed(2) : m.toFixed(1);
+        text = text.replace(/(\.\d*[1-9])0+$/, '$1').replace(/\.0+$/, '');
+        return text + ' m';
+    }
+
+    function unitSuffix(units) {
+        return units === 'ft' ? 'ft' : 'm';
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Stage shapes
+     *
+     * Plan space: x = 0 is the centre line, positive x is towards the
+     * audience's right (which is stage left). y = 0 is the upstage edge of
+     * the bounding box and grows downstage, towards the audience. The
+     * setting line — the front of the main stage, ignoring any apron — is
+     * reported as frontY.
+     * ------------------------------------------------------------------ */
+
+    var STAGE_SHAPES = [
+        {
+            id: 'rect', name: 'Rectangular',
+            fields: ['width', 'depth'],
+            blurb: 'End-on or proscenium. Audience downstage.'
+        },
+        {
+            id: 'trapezoid', name: 'Trapezoid',
+            fields: ['backWidth', 'width', 'depth'],
+            blurb: 'Narrower upstage than down, or the other way round.'
+        },
+        {
+            id: 'thrust', name: 'Thrust',
+            fields: ['width', 'depth', 'apronWidth', 'apronDepth'],
+            blurb: 'Main stage plus an apron the audience sits around.'
+        },
+        {
+            id: 'circle', name: 'Circular',
+            fields: ['diameter'],
+            blurb: 'Round stage, audience on the downstage side.'
+        },
+        {
+            id: 'halfround', name: 'Half round',
+            fields: ['diameter'],
+            blurb: 'Flat upstage wall, curved front edge.'
+        },
+        {
+            id: 'arena', name: 'Arena, in the round',
+            fields: ['diameter'],
+            blurb: 'Round stage with audience on every side.'
+        },
+        {
+            id: 'traverse', name: 'Traverse, alley',
+            fields: ['width', 'depth'],
+            blurb: 'Long playing strip, audience on both long sides.'
+        },
+        {
+            id: 'polygon', name: 'Polygon',
+            fields: ['diameter', 'sides'],
+            blurb: 'Regular polygon with a flat edge facing the audience.'
+        }
+    ];
+
+    var DEFAULT_STAGE = {
+        shape: 'rect',
+        width: 12,
+        depth: 9,
+        backWidth: 8,
+        diameter: 10,
+        sides: 6,
+        apronWidth: 7,
+        apronDepth: 2.5,
+        grid: { show: true, spacing: 1, labels: false },
+        centreLine: true,
+        settingLine: true,
+        scaleBar: true,
+        curtains: [],
+        markers: []
+    };
+
+    function shapeById(id) {
+        for (var i = 0; i < STAGE_SHAPES.length; i++) {
+            if (STAGE_SHAPES[i].id === id) return STAGE_SHAPES[i];
+        }
+        return STAGE_SHAPES[0];
+    }
+
+    function polygonPoints(stage) {
+        var r = Math.max(0.5, num(stage.diameter, 10) / 2);
+        var n = Math.max(3, Math.min(24, Math.round(num(stage.sides, 6))));
+        var pts = [];
+        for (var k = 0; k < n; k++) {
+            var a = (2 * Math.PI * k / n) + Math.PI / n;
+            pts.push([r * Math.sin(a), r - r * Math.cos(a)]);
+        }
+        return pts;
+    }
+
+    function boundsOfPoints(pts) {
+        var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (var i = 0; i < pts.length; i++) {
+            if (pts[i][0] < minX) minX = pts[i][0];
+            if (pts[i][0] > maxX) maxX = pts[i][0];
+            if (pts[i][1] < minY) minY = pts[i][1];
+            if (pts[i][1] > maxY) maxY = pts[i][1];
+        }
+        return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+    }
+
+    /* Returns { d, bounds, frontY, audience, polygon? } for a stage. */
+    function stageOutline(stage) {
+        stage = stage || DEFAULT_STAGE;
+        var W = Math.max(0.5, num(stage.width, 12));
+        var D = Math.max(0.5, num(stage.depth, 9));
+        var BW = Math.max(0.5, num(stage.backWidth, 8));
+        var r = Math.max(0.25, num(stage.diameter, 10) / 2);
+
+        switch (stage.shape) {
+        case 'trapezoid': {
+            var pts = [[-BW / 2, 0], [BW / 2, 0], [W / 2, D], [-W / 2, D]];
+            return {
+                d: 'M' + pts.map(function (p) { return p[0] + ',' + p[1]; }).join(' L') + ' Z',
+                bounds: boundsOfPoints(pts),
+                frontY: D,
+                audience: ['front'],
+                polygon: pts
+            };
+        }
+        case 'thrust': {
+            var AW = clamp(num(stage.apronWidth, W * 0.6), 0.5, W);
+            var AD = Math.max(0.2, num(stage.apronDepth, 2.5));
+            var d = 'M' + (-W / 2) + ',0 H' + (W / 2) + ' V' + D +
+                ' L' + (AW / 2) + ',' + D +
+                ' A' + (AW / 2) + ',' + AD + ' 0 0 1 ' + (-AW / 2) + ',' + D +
+                ' L' + (-W / 2) + ',' + D + ' Z';
+            return {
+                d: d,
+                bounds: { x: -Math.max(W, AW) / 2, y: 0, w: Math.max(W, AW), h: D + AD },
+                frontY: D,
+                audience: ['front', 'left', 'right']
+            };
+        }
+        case 'circle':
+        case 'arena': {
+            var dd = 'M' + (-r) + ',' + r +
+                ' A' + r + ',' + r + ' 0 0 1 ' + r + ',' + r +
+                ' A' + r + ',' + r + ' 0 0 1 ' + (-r) + ',' + r + ' Z';
+            return {
+                d: dd,
+                bounds: { x: -r, y: 0, w: 2 * r, h: 2 * r },
+                frontY: 2 * r,
+                audience: stage.shape === 'arena' ? ['ring'] : ['front']
+            };
+        }
+        case 'halfround': {
+            return {
+                d: 'M' + (-r) + ',0 H' + r + ' A' + r + ',' + r + ' 0 0 1 ' + (-r) + ',0 Z',
+                bounds: { x: -r, y: 0, w: 2 * r, h: r },
+                frontY: r,
+                audience: ['front', 'left', 'right']
+            };
+        }
+        case 'traverse': {
+            return {
+                d: 'M' + (-W / 2) + ',0 H' + (W / 2) + ' V' + D + ' H' + (-W / 2) + ' Z',
+                bounds: { x: -W / 2, y: 0, w: W, h: D },
+                frontY: D,
+                audience: ['left', 'right']
+            };
+        }
+        case 'polygon': {
+            var pp = polygonPoints(stage);
+            var b = boundsOfPoints(pp);
+            return {
+                d: 'M' + pp.map(function (p) { return round(p[0], 4) + ',' + round(p[1], 4); }).join(' L') + ' Z',
+                bounds: b,
+                frontY: b.y + b.h,
+                audience: ['front'],
+                polygon: pp
+            };
+        }
+        default: {
+            return {
+                d: 'M' + (-W / 2) + ',0 H' + (W / 2) + ' V' + D + ' H' + (-W / 2) + ' Z',
+                bounds: { x: -W / 2, y: 0, w: W, h: D },
+                frontY: D,
+                audience: ['front'],
+                polygon: [[-W / 2, 0], [W / 2, 0], [W / 2, D], [-W / 2, D]]
+            };
+        }
+        }
+    }
+
+    /* Horizontal extent of the stage floor at a given depth, or null when the
+       line misses the stage entirely. Used to draw curtains and grid lines
+       that stop at the edge of the floor instead of running off it. */
+    function spanAt(stage, y) {
+        stage = stage || DEFAULT_STAGE;
+        var out = stageOutline(stage);
+        var b = out.bounds;
+        if (y < b.y - 1e-9 || y > b.y + b.h + 1e-9) return null;
+
+        var W = Math.max(0.5, num(stage.width, 12));
+        var D = Math.max(0.5, num(stage.depth, 9));
+        var r = Math.max(0.25, num(stage.diameter, 10) / 2);
+
+        switch (stage.shape) {
+        case 'trapezoid': {
+            var BW = Math.max(0.5, num(stage.backWidth, 8));
+            var t = D === 0 ? 0 : clamp(y / D, 0, 1);
+            var half = (BW + (W - BW) * t) / 2;
+            return [-half, half];
+        }
+        case 'thrust': {
+            if (y <= D) return [-W / 2, W / 2];
+            var AW = clamp(num(stage.apronWidth, W * 0.6), 0.5, W);
+            var AD = Math.max(0.2, num(stage.apronDepth, 2.5));
+            var k = clamp((y - D) / AD, 0, 1);
+            var halfA = (AW / 2) * Math.sqrt(Math.max(0, 1 - k * k));
+            return halfA > 1e-6 ? [-halfA, halfA] : null;
+        }
+        case 'circle':
+        case 'arena': {
+            var dy = y - r;
+            var halfC = Math.sqrt(Math.max(0, r * r - dy * dy));
+            return halfC > 1e-6 ? [-halfC, halfC] : null;
+        }
+        case 'halfround': {
+            var halfH = Math.sqrt(Math.max(0, r * r - y * y));
+            return halfH > 1e-6 ? [-halfH, halfH] : null;
+        }
+        case 'polygon': {
+            var pts = polygonPoints(stage);
+            var xs = [];
+            for (var i = 0; i < pts.length; i++) {
+                var a = pts[i], c = pts[(i + 1) % pts.length];
+                if ((a[1] - y) * (c[1] - y) > 0) continue;
+                if (a[1] === c[1]) { xs.push(a[0], c[0]); continue; }
+                var t2 = (y - a[1]) / (c[1] - a[1]);
+                xs.push(a[0] + (c[0] - a[0]) * t2);
+            }
+            if (!xs.length) return null;
+            return [Math.min.apply(null, xs), Math.max.apply(null, xs)];
+        }
+        default:
+            return [-W / 2, W / 2];
+        }
+    }
+
+    /* Is a point on the stage floor? Used to warn about props parked in the
+       wings, and to keep dragging sensible. */
+    function containsPoint(stage, x, y) {
+        var span = spanAt(stage, y);
+        if (!span) return false;
+        return x >= span[0] - 1e-9 && x <= span[1] + 1e-9;
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Grid
+     * ------------------------------------------------------------------ */
+
+    function gridLines(stage, spacing) {
+        var out = stageOutline(stage);
+        var b = out.bounds;
+        var s = Math.max(0.1, num(spacing, 1));
+        var vertical = [];
+        var horizontal = [];
+        var i;
+
+        for (i = 0; i * s <= b.x + b.w + 1e-9; i++) {
+            if (i * s >= b.x - 1e-9) vertical.push(round(i * s, 4));
+        }
+        for (i = 1; -i * s >= b.x - 1e-9; i++) {
+            vertical.unshift(round(-i * s, 4));
+        }
+        for (i = 0; out.frontY - i * s >= b.y - 1e-9; i++) {
+            horizontal.unshift(round(out.frontY - i * s, 4));
+        }
+        for (i = 1; out.frontY + i * s <= b.y + b.h + 1e-9; i++) {
+            horizontal.push(round(out.frontY + i * s, 4));
+        }
+        return { vertical: vertical, horizontal: horizontal, spacing: s, bounds: b, frontY: out.frontY };
+    }
+
+    function columnLetter(index) {
+        var s = '';
+        index = Math.max(0, index);
+        do {
+            s = String.fromCharCode(65 + (index % 26)) + s;
+            index = Math.floor(index / 26) - 1;
+        } while (index >= 0);
+        return s;
+    }
+
+    /* Grid reference for a point, e.g. "C4": letters run left to right as the
+       audience sees it, numbers run upstage from the setting line. */
+    function gridReference(stage, x, y, spacing) {
+        var out = stageOutline(stage);
+        var s = Math.max(0.1, num(spacing, 1));
+        var col = Math.floor((x - out.bounds.x) / s);
+        var rowsFromFront = Math.floor((out.frontY - y) / s);
+        return columnLetter(col) + String(Math.max(0, rowsFromFront) + 1);
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Describing a position the way a crew would say it
+     * ------------------------------------------------------------------ */
+
+    var DEPTH_ZONES = [
+        { max: 0.2, name: 'downstage' },
+        { max: 0.45, name: 'centre stage' },
+        { max: 1.01, name: 'upstage' }
+    ];
+
+    function zoneName(stage, x, y) {
+        var out = stageOutline(stage);
+        var depth = out.bounds.h || 1;
+        var fromFront = clamp((out.frontY - y) / depth, 0, 1);
+        var band = 'centre stage';
+        for (var i = 0; i < DEPTH_ZONES.length; i++) {
+            if (fromFront <= DEPTH_ZONES[i].max) { band = DEPTH_ZONES[i].name; break; }
+        }
+        var halfWidth = (out.bounds.w || 1) / 2;
+        var side = '';
+        if (x > halfWidth * 0.2) side = 'stage left';
+        else if (x < -halfWidth * 0.2) side = 'stage right';
+        else side = 'centre';
+        if (band === 'centre stage' && side === 'centre') return 'centre stage';
+        return band + ' ' + side;
+    }
+
+    /* "2.40 m stage left, 3.10 m upstage" */
+    function describePosition(stage, x, y, units) {
+        var out = stageOutline(stage);
+        var lateral = Math.abs(x) < 0.05
+            ? 'on the centre line'
+            : formatLength(Math.abs(x), units) + ' stage ' + (x > 0 ? 'left' : 'right');
+        var depth = out.frontY - y;
+        var depthText = Math.abs(depth) < 0.05
+            ? 'on the setting line'
+            : formatLength(Math.abs(depth), units) + (depth >= 0 ? ' upstage' : ' downstage');
+        return lateral + ', ' + depthText;
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Placements
+     * ------------------------------------------------------------------ */
+
+    function makePlacement(prop, x, y) {
+        return {
+            id: uid('pl'),
+            trackId: uid('trk'),
+            propId: prop.id,
+            x: round(x, 3),
+            y: round(y, 3),
+            rot: 0,
+            w: prop.w,
+            h: prop.h,
+            flip: false,
+            label: '',
+            note: '',
+            locked: false
+        };
+    }
+
+    /* Mirror a whole layout across the centre line (or across the mid-depth
+       line for 'vertical'). Rotations mirror too, so a chair still faces the
+       way it did relative to its neighbours. */
+    function mirrorPlacements(placements, axis, stage) {
+        var out = stageOutline(stage || DEFAULT_STAGE);
+        var midY = out.bounds.y + out.bounds.h / 2;
+        return placements.map(function (p) {
+            var copy = Object.assign({}, p);
+            if (axis === 'vertical') {
+                copy.y = round(2 * midY - p.y, 3);
+                copy.rot = normaliseAngle(180 - p.rot);
+            } else {
+                copy.x = round(-p.x, 3);
+                copy.rot = normaliseAngle(-p.rot);
+                copy.flip = !p.flip;
+            }
+            return copy;
+        });
+    }
+
+    function normaliseAngle(deg) {
+        var a = deg % 360;
+        if (a > 180) a -= 360;
+        if (a < -180) a += 360;
+        return round(a, 1);
+    }
+
+    /* Deep-copies a layout for another scene. Track ids are carried over so
+       the change list can tell "the same table, moved" from "a new table". */
+    function copyPlacements(placements, keepTracking) {
+        return placements.map(function (p) {
+            var copy = Object.assign({}, p);
+            copy.id = uid('pl');
+            if (!keepTracking) copy.trackId = uid('trk');
+            return copy;
+        });
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Scene to scene changes — the heart of a relocation plan
+     * ------------------------------------------------------------------ */
+
+    var MOVE_TOLERANCE = 0.12;   // metres
+    var TURN_TOLERANCE = 4;      // degrees
+
+    function distance(a, b) {
+        var dx = a.x - b.x, dy = a.y - b.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function labelKey(p) {
+        return (p.label || '').trim().toLowerCase();
+    }
+
+    /*
+     * Pairs up the props of two scenes and reports what the crew has to do.
+     * Matching runs in three passes, most reliable first:
+     *   1. same tracking id (the layout was copied or edited in place)
+     *   2. same prop and same written label ("Anna's chair")
+     *   3. same prop, nearest first
+     * Whatever is left over is genuinely coming on or going off.
+     */
+    function diffScenes(previous, current, options) {
+        options = options || {};
+        var tolerance = num(options.tolerance, MOVE_TOLERANCE);
+        var prev = (previous && previous.placements ? previous.placements : []).slice();
+        var cur = (current && current.placements ? current.placements : []).slice();
+
+        var pairs = [];
+        var prevLeft = prev.slice();
+        var curLeft = cur.slice();
+
+        function take(prevItem, curItem) {
+            pairs.push({ from: prevItem, to: curItem });
+            prevLeft.splice(prevLeft.indexOf(prevItem), 1);
+            curLeft.splice(curLeft.indexOf(curItem), 1);
+        }
+
+        // Pass 1 — tracking id.
+        curLeft.slice().forEach(function (c) {
+            if (!c.trackId) return;
+            for (var i = 0; i < prevLeft.length; i++) {
+                if (prevLeft[i].trackId === c.trackId) { take(prevLeft[i], c); return; }
+            }
+        });
+
+        // Pass 2 — same prop, same label.
+        curLeft.slice().forEach(function (c) {
+            if (!labelKey(c)) return;
+            for (var i = 0; i < prevLeft.length; i++) {
+                if (prevLeft[i].propId === c.propId && labelKey(prevLeft[i]) === labelKey(c)) {
+                    take(prevLeft[i], c);
+                    return;
+                }
+            }
+        });
+
+        // Pass 3 — same prop, closest first.
+        var candidates = [];
+        curLeft.forEach(function (c) {
+            prevLeft.forEach(function (p) {
+                if (p.propId === c.propId) candidates.push({ p: p, c: c, d: distance(p, c) });
+            });
+        });
+        candidates.sort(function (a, b) { return a.d - b.d; });
+        candidates.forEach(function (pair) {
+            if (prevLeft.indexOf(pair.p) === -1 || curLeft.indexOf(pair.c) === -1) return;
+            take(pair.p, pair.c);
+        });
+
+        var moved = [];
+        var unchanged = [];
+        pairs.forEach(function (pair) {
+            var d = distance(pair.from, pair.to);
+            var turned = Math.abs(normaliseAngle(pair.to.rot - pair.from.rot));
+            var resized = Math.abs(pair.to.w - pair.from.w) > 0.05 || Math.abs(pair.to.h - pair.from.h) > 0.05;
+            if (d > tolerance || turned > TURN_TOLERANCE || resized) {
+                moved.push({
+                    from: pair.from, to: pair.to,
+                    distance: round(d, 3),
+                    turned: round(turned, 1),
+                    resized: resized
+                });
+            } else {
+                unchanged.push(pair.to);
+            }
+        });
+
+        return {
+            added: curLeft,
+            removed: prevLeft,
+            moved: moved,
+            unchanged: unchanged,
+            isFirst: !previous
+        };
+    }
+
+    function changeCount(diff) {
+        return diff.added.length + diff.removed.length + diff.moved.length;
+    }
+
+    /* Groups identical props so a change list reads "3 × chair" rather than
+       naming the same chair three times. */
+    function groupByProp(placements, nameOf) {
+        var order = [];
+        var map = {};
+        placements.forEach(function (p) {
+            var key = p.propId + '|' + labelKey(p);
+            if (!map[key]) {
+                map[key] = { propId: p.propId, label: (p.label || '').trim(), count: 0, items: [], name: nameOf ? nameOf(p.propId) : p.propId };
+                order.push(key);
+            }
+            map[key].count += 1;
+            map[key].items.push(p);
+        });
+        return order.map(function (k) { return map[k]; });
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Scenes, acts and numbering
+     * ------------------------------------------------------------------ */
+
+    var ROMAN = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
+                 [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+
+    function roman(n) {
+        var out = '';
+        n = Math.max(1, Math.round(n));
+        for (var i = 0; i < ROMAN.length; i++) {
+            while (n >= ROMAN[i][0]) { out += ROMAN[i][1]; n -= ROMAN[i][0]; }
+        }
+        return out;
+    }
+
+    /*
+     * Works out the printed number for every scene in order. Continuous
+     * numbering counts straight through the evening; per-act numbering
+     * restarts inside each act and prefixes the act, as in "II.3".
+     */
+    function numberScenes(production) {
+        var scenes = production.scenes || [];
+        var acts = production.acts || [];
+        var perAct = production.numbering === 'per-act';
+        var actIndex = {};
+        acts.forEach(function (a, i) { actIndex[a.id] = i + 1; });
+
+        var counters = {};
+        var running = 0;
+        return scenes.map(function (scene) {
+            running += 1;
+            var label;
+            if (scene.label) {
+                label = scene.label;
+            } else if (perAct && scene.actId && actIndex[scene.actId]) {
+                counters[scene.actId] = (counters[scene.actId] || 0) + 1;
+                label = roman(actIndex[scene.actId]) + '.' + counters[scene.actId];
+            } else {
+                label = String(running);
+            }
+            return { id: scene.id, label: label, index: running };
+        });
+    }
+
+    function sceneNumbers(production) {
+        var map = {};
+        numberScenes(production).forEach(function (n) { map[n.id] = n; });
+        return map;
+    }
+
+    /* Splits the running order into consecutive runs of the same act, which is
+       what an audience actually sees and what the printed dividers follow. */
+    function groupScenesByAct(production) {
+        var actById = {};
+        (production.acts || []).forEach(function (a) { actById[a.id] = a; });
+
+        var groups = [];
+        var current = null;
+        (production.scenes || []).forEach(function (scene) {
+            var act = scene.actId ? (actById[scene.actId] || null) : null;
+            if (!current || current.act !== act) {
+                current = { act: act, scenes: [] };
+                groups.push(current);
+            }
+            current.scenes.push(scene);
+        });
+        return groups;
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Print pagination
+     * ------------------------------------------------------------------ */
+
+    function chunk(list, size) {
+        var out = [];
+        size = Math.max(1, Math.round(size));
+        for (var i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+        return out;
+    }
+
+    /* Overview sheets: cols × rows thumbnails per page. Acts can be kept on
+       their own sheets so a page never straddles an interval. */
+    function overviewPages(production, cols, rows, splitByAct) {
+        var perPage = Math.max(1, cols * rows);
+        if (!splitByAct) return chunk(production.scenes || [], perPage);
+        var pages = [];
+        groupScenesByAct(production).forEach(function (group) {
+            chunk(group.scenes, perPage).forEach(function (page) {
+                page.act = group.act;
+                pages.push(page);
+            });
+        });
+        return pages;
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Inventory
+     * ------------------------------------------------------------------ */
+
+    /* Every prop used anywhere, with the largest number needed at any one
+       time — that number is what actually has to exist backstage. */
+    function propInventory(production) {
+        var totals = {};
+        var order = [];
+        (production.scenes || []).forEach(function (scene) {
+            var perScene = {};
+            (scene.placements || []).forEach(function (p) {
+                perScene[p.propId] = (perScene[p.propId] || 0) + 1;
+            });
+            Object.keys(perScene).forEach(function (propId) {
+                if (!totals[propId]) {
+                    totals[propId] = { propId: propId, peak: 0, scenes: [], uses: 0 };
+                    order.push(propId);
+                }
+                totals[propId].peak = Math.max(totals[propId].peak, perScene[propId]);
+                totals[propId].uses += perScene[propId];
+                totals[propId].scenes.push({ sceneId: scene.id, count: perScene[propId] });
+            });
+        });
+        return order.map(function (id) { return totals[id]; });
+    }
+
+    return {
+        FOOT: FOOT,
+        round: round,
+        clamp: clamp,
+        uid: uid,
+        num: num,
+        toUnit: toUnit,
+        toMetres: toMetres,
+        formatLength: formatLength,
+        unitSuffix: unitSuffix,
+        STAGE_SHAPES: STAGE_SHAPES,
+        DEFAULT_STAGE: DEFAULT_STAGE,
+        shapeById: shapeById,
+        stageOutline: stageOutline,
+        spanAt: spanAt,
+        containsPoint: containsPoint,
+        gridLines: gridLines,
+        columnLetter: columnLetter,
+        gridReference: gridReference,
+        zoneName: zoneName,
+        describePosition: describePosition,
+        makePlacement: makePlacement,
+        mirrorPlacements: mirrorPlacements,
+        copyPlacements: copyPlacements,
+        normaliseAngle: normaliseAngle,
+        diffScenes: diffScenes,
+        changeCount: changeCount,
+        groupByProp: groupByProp,
+        roman: roman,
+        numberScenes: numberScenes,
+        sceneNumbers: sceneNumbers,
+        groupScenesByAct: groupScenesByAct,
+        chunk: chunk,
+        overviewPages: overviewPages,
+        propInventory: propInventory
+    };
+}));
