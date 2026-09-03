@@ -9,12 +9,14 @@
  */
 (function (root, factory) {
     if (typeof module === 'object' && typeof module.exports === 'object') {
-        module.exports = factory(require('./core.js'));
+        module.exports = factory(require('./core.js'), require('./i18n.js'));
     } else {
-        root.SPPlan = factory(root.SP);
+        root.SPPlan = factory(root.SP, root.SPI18n);
     }
-}(typeof self !== 'undefined' ? self : this, function (SP) {
+}(typeof self !== 'undefined' ? self : this, function (SP, I18n) {
     'use strict';
+
+    var t = I18n ? I18n.t : function (key) { return key; };
 
     function esc(text) {
         return String(text === undefined || text === null ? '' : text)
@@ -126,7 +128,48 @@
                 parts.push('<path class="sp-guide" d="M' + n(sl[0]) + ' ' + n(out.frontY) + ' H' + n(sl[1]) +
                     '" stroke-width="' + n(u * 1.1) + '" stroke-dasharray="' + n(u * 7) + ' ' + n(u * 4) + '"/>');
                 parts.push('<text class="sp-guide-label" x="' + n(sl[1] - fs * 0.4) + '" y="' + n(out.frontY - fs * 0.55) +
-                    '" font-size="' + n(fs * 0.62) + '" text-anchor="end">Setting line</text>');
+                    '" font-size="' + n(fs * 0.62) + '" text-anchor="end">' + esc(t('Setting line')) + '</text>');
+            }
+        }
+
+        /* ----------------------------------------------------------- Gassen */
+        if (opts.wings !== false) {
+            SP.wingLines(stage).forEach(function (line) {
+                var d = 'M' + line.map(function (pt) { return n(pt[0]) + ' ' + n(pt[1]); }).join(' L');
+                parts.push('<path class="sp-guide sp-wing" d="' + d +
+                    '" stroke-width="' + n(u * 1.4) + '" stroke-dasharray="' +
+                    n(u * 3.2) + ' ' + n(u * 3.2) + '" stroke-linecap="butt"/>');
+            });
+        }
+
+        /* ------------------------------------------------------ Gassenzettel
+           Ein kleines Bild mit Bildunterschrift, in die Gasse gestellt: was
+           dort bereitliegen muss, ohne dass es auf der Bühne steht. */
+        if (opts.wingNotes && opts.wingNotes.length) {
+            var wl = SP.wingLines(stage);
+            if (wl.length) {
+                var noteSize = Math.min(b.w, b.h) * 0.12;
+                var stacked = { left: 0, right: 0 };
+                opts.wingNotes.forEach(function (note) {
+                    var side = note.side === 'left' ? 'left' : 'right';
+                    var edge = side === 'left' ? b.x : b.x + b.w;
+                    var inner = side === 'left' ? wl[0][0][0] : wl[1][0][0];
+                    var cx = (edge + inner) / 2;
+                    var cy = b.y + noteSize * 0.9 + stacked[side] * noteSize * 2.5;
+                    stacked[side] += 1;
+
+                    var prop = opts.resolve ? opts.resolve(note.propId) : null;
+                    if (prop) {
+                        parts.push('<g class="sp-wing-note" transform="translate(' + n(cx) + ' ' + n(cy) + ')">' +
+                            drawProp({ x: 0, y: 0, w: noteSize, h: noteSize, rot: 0 }, prop, u, {}) + '</g>');
+                    }
+                    var lines = wrapWords(note.text || '', 15);
+                    lines.forEach(function (line, i) {
+                        parts.push('<text class="sp-wing-note-label" x="' + n(cx) + '" y="' +
+                            n(cy + noteSize * 0.75 + fs * 0.85 * (i + 1)) + '" font-size="' + n(fs * 0.66) +
+                            '" text-anchor="middle">' + esc(line) + '</text>');
+                    });
+                });
             }
         }
 
@@ -155,8 +198,8 @@
                         '" stroke-dasharray="' + n(u * 4) + ' ' + n(u * 4) + '"/>');
                 }
                 pieces.push('<text class="sp-curtain-label" x="' + n(span[0] + fs * 1.9) + '" y="' + n(y - fs * 0.5) +
-                    '" font-size="' + n(fs * 0.62) + '">' + esc(curtain.name || 'Curtain') +
-                    (state === 'closed' ? '' : ', ' + state) + '</text>');
+                    '" font-size="' + n(fs * 0.62) + '">' + esc(curtain.name || t('Curtain')) +
+                    (state === 'closed' ? '' : ', ' + t('curtain state ' + state)) + '</text>');
                 parts.push('<g class="sp-curtain">' + pieces.join('') + '</g>');
             });
         }
@@ -230,14 +273,58 @@
         try { return SP.spanAt(stage, y); } catch (err) { return null; }
     }
 
+    /* Der Katalogname wird übersetzt, eine eigene Beschriftung nie. */
+    /*
+     * Wie eine Zeichnung auf ihre Standfläche kommt. Einmal geschrieben,
+     * weil sowohl der volle Aufbau des Plans als auch das schnelle Nachziehen
+     * beim Aufziehen einer Ecke danach fragen — liefen die beiden
+     * auseinander, sähe das Requisit während des Ziehens anders aus als
+     * danach.
+     *
+     * Die eingebauten Symbole sind gezeichnet, um auf die Standfläche
+     * gezogen zu werden: die Uhr ist ein Kreis, der auf dem Plan zur flachen
+     * Ellipse wird, und das ist so gemeint. Die übernommenen Zeichnungen
+     * haben ihr eigenes Verhältnis und stehen mittig in einem quadratischen
+     * Feld, dessen längere Seite prop.fit Einheiten misst; sie werden
+     * gleichmäßig skaliert.
+     */
+    function artTransform(prop, w, h, flip) {
+        var sign = flip ? -1 : 1;
+        if (prop && prop.fit) {
+            var unit = Math.max(w, h) / prop.fit;
+            return { sx: sign * unit, sy: unit, unit: unit };
+        }
+        return { sx: sign * w / 100, sy: h / 100, unit: (w + h) / 200 };
+    }
+
+    /* Behält eine Zeichnung mit eigenem Verhältnis ihre Form? */
+    function keepsAspect(prop) {
+        return !!(prop && prop.fit);
+    }
+
+    /* Bricht eine Bildunterschrift nach Wörtern um, damit sie in die Gasse passt. */
+    function wrapWords(text, width) {
+        var words = String(text).split(/\s+/).filter(Boolean);
+        var lines = [];
+        var line = '';
+        words.forEach(function (word) {
+            if (!line) line = word;
+            else if ((line + ' ' + word).length <= width) line += ' ' + word;
+            else { lines.push(line); line = word; }
+        });
+        if (line) lines.push(line);
+        return lines;
+    }
+
     function captionFor(placement, prop, index, mode) {
         var custom = (placement.label || '').trim();
+        var name = t(prop.name);
         switch (mode) {
         case 'none': return '';
         case 'number': return String(index + 1);
         case 'custom': return custom;
-        case 'both': return custom ? prop.name + ' — ' + custom : prop.name;
-        default: return custom || prop.name;
+        case 'both': return custom ? name + ' — ' + custom : name;
+        default: return custom || name;
         }
     }
 
@@ -245,9 +332,12 @@
         flags = flags || {};
         var w = Math.max(0.05, placement.w || prop.w);
         var h = Math.max(0.05, placement.h || prop.h);
-        var sx = (placement.flip ? -1 : 1) * w / 100;
-        var sy = h / 100;
-        var strokeWidth = u / ((w + h) / 200);
+        var fit = artTransform(prop, w, h, placement.flip);
+        var sx = fit.sx;
+        var sy = fit.sy;
+        /* sw dämpft Zeichnungen, die schon mit doppelter Kontur gezeichnet
+           sind — sonst laufen ihre Linien bei voller Stärke ineinander. */
+        var strokeWidth = u / fit.unit * (prop.sw || 1);
 
         var classes = ['sp-item'];
         if (flags.ghost) classes.push('sp-item-ghost');
@@ -315,20 +405,20 @@
             pieces.push('<path d="' + chevronRow(b.x + b.w * 0.12, b.x + b.w * 0.88, y, false) +
                 '" stroke-width="' + n(u * 1.2) + '"/>');
             pieces.push('<text x="' + n(b.x + b.w / 2) + '" y="' + n(y + fs * 1.25) +
-                '" font-size="' + n(fs * 0.72) + '" text-anchor="middle">Audience</text>');
+                '" font-size="' + n(fs * 0.72) + '" text-anchor="middle">' + esc(t('Audience')) + '</text>');
         }
         if (out.audience.indexOf('ring') !== -1) {
             var yr = b.y + b.h + gap;
             pieces.push('<text x="' + n(b.x + b.w / 2) + '" y="' + n(yr + fs * 0.8) +
-                '" font-size="' + n(fs * 0.72) + '" text-anchor="middle">Audience on all sides</text>');
+                '" font-size="' + n(fs * 0.72) + '" text-anchor="middle">' + esc(t('Audience on all sides')) + '</text>');
         }
         if (out.audience.indexOf('left') !== -1) {
             pieces.push('<text transform="translate(' + n(b.x - gap * 0.6) + ' ' + n(b.y + b.h / 2) + ') rotate(-90)" ' +
-                'font-size="' + n(fs * 0.72) + '" text-anchor="middle">Audience</text>');
+                'font-size="' + n(fs * 0.72) + '" text-anchor="middle">' + esc(t('Audience')) + '</text>');
         }
         if (out.audience.indexOf('right') !== -1) {
             pieces.push('<text transform="translate(' + n(b.x + b.w + gap * 0.6) + ' ' + n(b.y + b.h / 2) + ') rotate(90)" ' +
-                'font-size="' + n(fs * 0.72) + '" text-anchor="middle">Audience</text>');
+                'font-size="' + n(fs * 0.72) + '" text-anchor="middle">' + esc(t('Audience')) + '</text>');
         }
         return '<g class="sp-audience">' + pieces.join('') + '</g>';
     }
@@ -359,8 +449,9 @@
         return '<svg class="sp-plan' + (opts.className ? ' ' + opts.className : '') +
             '" viewBox="' + plan.viewBox + '" preserveAspectRatio="xMidYMid meet" ' +
             'xmlns="http://www.w3.org/2000/svg" role="img" aria-label="' +
-            esc(opts.ariaLabel || 'Stage ground plan') + '">' + plan.inner + '</svg>';
+            esc(opts.ariaLabel || t('Stage ground plan')) + '">' + plan.inner + '</svg>';
     }
 
-    return { build: build, svg: svg, escape: esc, folds: folds, niceStep: niceStep };
+    return { build: build, svg: svg, escape: esc, folds: folds, niceStep: niceStep,
+             artTransform: artTransform, keepsAspect: keepsAspect };
 }));

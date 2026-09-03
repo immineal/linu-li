@@ -1,39 +1,64 @@
 /*
- * Scene & Prop Planner — the printed pages.
+ * Szenen- und Requisitenplaner — die gedruckten Seiten.
  *
- * Builds A4 sheets as plain HTML so the browser's own print dialogue can turn
- * them into paper or a PDF. Sizes are written in millimetres throughout, which
- * is the only reliable way to get a page that measures the same on screen and
- * in the tray.
+ * Zwei Dokumente, die getrennt gedruckt werden:
+ *
+ *   Die Pläne    — eine Szene pro Blatt, groß gezeichnet. Nummer und Titel,
+ *                  sonst nichts zu lesen. Was zu tun ist, steht woanders.
+ *   Der Umbauplan— eine Tabelle über den ganzen Abend: Abbau, Aufbau und
+ *                  Umstellen zwischen je zwei Szenen, dazu ein Referenzkasten
+ *                  mit den Orten. Satzbild nach der LaTeX-Vorlage: A4, 10 pt,
+ *                  serifenlos, Ränder 1,4 cm oben und unten, 1,8 cm seitlich.
+ *
+ * Alle Maße in Millimetern — nur so misst eine Seite am Bildschirm dasselbe
+ * wie im Papierfach. Die Tabelle wird hier selbst umbrochen, statt sie dem
+ * Browser zu überlassen: dadurch steht die Kopfzeile auf jedem Blatt, und ein
+ * Balken wie „PAUSE“ landet nie allein am Seitenende.
  */
 (function (root, factory) {
     if (typeof module === 'object' && typeof module.exports === 'object') {
-        module.exports = factory(require('./core.js'), require('./plan.js'));
+        module.exports = factory(require('./core.js'), require('./plan.js'), require('./i18n.js'));
     } else {
-        root.SPSheets = factory(root.SP, root.SPPlan);
+        root.SPSheets = factory(root.SP, root.SPPlan, root.SPI18n);
     }
-}(typeof self !== 'undefined' ? self : this, function (SP, SPPlan) {
+}(typeof self !== 'undefined' ? self : this, function (SP, SPPlan, I18n) {
     'use strict';
 
     var esc = SPPlan.escape;
+    var t = I18n ? I18n.t : function (key) { return key; };
+
+    /* ------------------------------------------------------------ Optionen */
 
     var DEFAULT_OPTIONS = {
-        orientation: 'portrait',
+        /* Die Pläne. Der Umbauplan steht immer hoch, das regelt buildChangeover. */
+        orientation: 'landscape',
         cover: true,
         actPages: true,
         scenePages: true,
         overview: true,
-        runSheet: true,
         inventory: false,
         overviewCols: 3,
         overviewRows: 3,
         overviewSplitActs: true,
         labels: 'name',
         showGrid: true,
-        showChanges: true,
-        showPropList: true,
-        showNotes: true,
-        showGhosts: false,
+        showNotes: false,
+        showPlace: true,
+        showTitle: true,
+        showFooter: true,
+        showScaleBar: true,
+        showAudience: true,
+        showGuides: true,
+        showWings: true,
+        showCurtains: true,
+        numberOutside: false,
+
+        /* Der Umbauplan */
+        referenceBox: true,
+        positions: false,
+        changeoverTitle: '',
+
+        /* Beides */
         scope: 'all',
         footer: ''
     };
@@ -47,112 +72,77 @@
         return o;
     }
 
+    function context(input) {
+        return {
+            production: input.production,
+            resolve: input.resolve,
+            units: input.units || input.production.units || 'm',
+            options: options(input.options),
+            today: input.today || new Date().toLocaleDateString(
+                I18n && I18n.language() === 'en' ? 'en-GB' : 'de-DE',
+                { year: 'numeric', month: 'long', day: 'numeric' })
+        };
+    }
+
     function stageFor(production, scene) {
         return (scene && scene.stage) || production.stage;
     }
 
-    function planSvg(ctx, scene, opts) {
-        var stage = stageFor(ctx.production, scene);
-        var settings = {
-            stage: stage,
-            scene: scene,
-            resolve: ctx.resolve,
-            units: ctx.units,
-            idPrefix: 'sheet-' + (planSvg.counter = (planSvg.counter || 0) + 1),
-            labels: opts.labels,
-            grid: opts.grid,
-            scaleBar: opts.scaleBar,
-            audience: opts.audience,
-            ghosts: opts.ghosts,
-            ghostArrows: opts.ghostArrows
-        };
-        return SPPlan.svg(settings);
-    }
-
-    /* Where a prop sits, said the way a crew would write it on a sheet. */
-    function positionText(stage, placement, units) {
-        var text = SP.describePosition(stage, placement.x, placement.y, units);
-        if (stage.grid && stage.grid.show && stage.grid.labels) {
-            text = SP.gridReference(stage, placement.x, placement.y, SP.num(stage.grid.spacing, 1)) + ' · ' + text;
-        }
-        return text;
-    }
-
     function nameOf(ctx, propId) {
         var prop = ctx.resolve(propId);
-        return prop ? prop.name : 'Unknown prop';
+        return prop ? t(prop.name) : t('Unknown prop');
     }
 
-    function describeGroup(group) {
-        return (group.count > 1 ? group.count + ' × ' : '') + group.name +
-            (group.label ? ' (' + group.label + ')' : '');
+    function scopedScenes(ctx) {
+        var all = ctx.production.scenes || [];
+        var scope = ctx.options.scope;
+        if (!scope || scope === 'all') return all;
+        return all.filter(function (s) { return s.actId === scope; });
     }
 
-    /* The three things a crew can be asked to do between two scenes. */
-    function changeLines(ctx, diff, stage) {
-        var resolveName = function (id) { return nameOf(ctx, id); };
-        return {
-            on: SP.groupByProp(diff.added, resolveName).map(describeGroup),
-            off: SP.groupByProp(diff.removed, resolveName).map(describeGroup),
-            move: diff.moved.map(function (m) {
-                var label = nameOf(ctx, m.to.propId) + (m.to.label ? ' (' + m.to.label + ')' : '');
-                if (m.distance <= 0.12 && m.turned > 4) {
-                    return label + ' — turn to ' + Math.round(m.to.rot) + '°';
-                }
-                return label + ' — to ' + positionText(stage, m.to, ctx.units);
-            })
-        };
-    }
-
-    function listBlock(title, items, emptyText) {
-        if (!items.length && !emptyText) return '';
-        var body = items.length
-            ? '<ul>' + items.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'
-            : '<ul><li class="sp-li-note">' + esc(emptyText) + '</li></ul>';
-        return '<section><h3>' + esc(title) + '</h3>' + body + '</section>';
-    }
-
-    /* ------------------------------------------------------------- sheets */
+    /* ============================================================ *
+     * Dokument 1 — Die Pläne
+     * ============================================================ */
 
     function sheet(ctx, className, body) {
-        return '<article class="sp-sheet' + (ctx.options.orientation === 'landscape' ? ' is-landscape' : '') +
+        return '<article class="sp-sheet' +
+            (ctx.options.orientation === 'landscape' ? ' is-landscape' : '') +
             (className ? ' ' + className : '') + '">' + body + '</article>';
     }
 
     function foot(ctx, left) {
         return '<div class="sp-sheet-foot"><span>' + esc(left || ctx.production.name) + '</span>' +
             (ctx.options.footer ? '<span>' + esc(ctx.options.footer) + '</span>' : '<span></span>') +
-            '<span>Page %%PAGE%% of %%PAGES%%</span></div>';
+            '<span>' + esc(t('Page {n} of {total}', { n: '%%PAGE%%', total: '%%PAGES%%' })) + '</span></div>';
     }
 
     function coverSheet(ctx) {
         var p = ctx.production;
-        var scenes = p.scenes || [];
         var stage = p.stage;
         var out = SP.stageOutline(stage);
         var shape = SP.shapeById(stage.shape);
-        var propCount = SP.propInventory(p).length;
+        var places = SP.referenceRows(p, function (id) { return nameOf(ctx, id); });
         var rows = [
-            ['Scenes', String(scenes.length)],
-            ['Acts', String((p.acts || []).length || '—')],
-            ['Stage', shape.name + ', ' + SP.formatLength(out.bounds.w, ctx.units) + ' by ' +
-                SP.formatLength(out.bounds.h, ctx.units)],
-            ['Distinct props', String(propCount)],
-            ['Curtains', (stage.curtains || []).length
-                ? stage.curtains.map(function (c) { return c.name; }).join(', ') : 'None marked'],
-            ['Drawn', ctx.today]
+            [t('Scenes'), String((p.scenes || []).length)],
+            [t('Act'), String((p.acts || []).length || '—')],
+            [t('Stage'), t(shape.name) + ', ' + SP.formatLength(out.bounds.w, ctx.units) +
+                ' × ' + SP.formatLength(out.bounds.h, ctx.units)],
+            [t('Distinct props'), String(SP.propInventory(p).length)],
+            [t('Drawn'), ctx.today]
         ];
-        if (p.venue) rows.splice(2, 0, ['Venue', p.venue]);
+        if (places.length) rows.splice(3, 0, [t('Places'), String(places.length)]);
+        if (p.venue) rows.splice(2, 0, [t('Venue'), p.venue]);
 
         return sheet(ctx, 'sp-cover',
             '<div style="flex:1 1 auto; display:flex; flex-direction:column; justify-content:center">' +
-            '<p class="sp-act-kicker">Prop and scene plan</p>' +
-            '<h2>' + esc(p.name || 'Untitled production') + '</h2>' +
+            '<p class="sp-act-kicker">' + esc(t('Prop and scene plan')) + '</p>' +
+            '<h2>' + esc(p.name || t('Untitled production')) + '</h2>' +
             (p.subtitle ? '<p class="sp-cover-sub">' + esc(p.subtitle) + '</p>' : '') +
             '<dl>' + rows.map(function (r) {
                 return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>';
             }).join('') + '</dl>' +
-            (p.notes ? '<p style="font-size:3.4mm; max-width:120mm; line-height:1.6">' + esc(p.notes) + '</p>' : '') +
+            (p.notes ? '<p style="font-size:3.4mm; max-width:120mm; line-height:1.6">' +
+                esc(p.notes) + '</p>' : '') +
             '</div>' + foot(ctx));
     }
 
@@ -161,106 +151,74 @@
         var index = (ctx.production.acts || []).indexOf(act) + 1;
         var items = group.scenes.map(function (s) {
             return '<li class="is-keyed"><span class="sp-li-key">' + esc(numbers[s.id].label) + '</span>' +
-                esc(s.title || 'Untitled scene') + '</li>';
+                esc(s.title || t('Untitled scene')) + '</li>';
         }).join('');
 
-        var props = {};
-        group.scenes.forEach(function (s) {
-            (s.placements || []).forEach(function (pl) { props[pl.propId] = true; });
-        });
-        var propNames = Object.keys(props).map(function (id) { return nameOf(ctx, id); }).sort();
-
         return sheet(ctx, 'sp-act-sheet',
-            '<p class="sp-act-kicker">Act ' + esc(SP.roman(index || 1)) + '</p>' +
-            '<h2>' + esc(act.name || ('Act ' + SP.roman(index || 1))) + '</h2>' +
+            '<p class="sp-act-kicker">' + esc(t('Act {n}', { n: SP.roman(index || 1) })) + '</p>' +
+            '<h2>' + esc(act.name || t('Act {n}', { n: SP.roman(index || 1) })) + '</h2>' +
             (act.notes ? '<p style="font-size:3.6mm; max-width:130mm; margin-bottom:8mm; line-height:1.6">' +
                 esc(act.notes) + '</p>' : '') +
-            '<section><h3>Scenes in this act</h3><ul class="sp-act-scenes">' + items + '</ul></section>' +
-            (propNames.length ? '<section style="margin-top:8mm"><h3>Props needed during the act</h3>' +
-                '<p style="font-size:3.2mm; line-height:1.7; color:#554d44">' + esc(propNames.join(' · ')) + '</p></section>' : '') +
+            '<section><h3>' + esc(t('Scenes in this act')) + '</h3>' +
+            '<ul class="sp-act-scenes">' + items + '</ul></section>' +
             foot(ctx));
     }
 
-    function sceneSheet(ctx, scene, previous, numbers) {
+    /*
+     * Ein Szenenblatt ist bewusst fast leer: die Zeichnung, so groß wie sie
+     * auf das Blatt passt, darüber Nummer und Titel. Alles, was man lesen
+     * statt sehen muss, steht im Umbauplan.
+     */
+    function sceneSheet(ctx, scene, numbers) {
         var o = ctx.options;
         var stage = stageFor(ctx.production, scene);
-        var number = numbers[scene.id];
-        var act = (ctx.production.acts || []).filter(function (a) { return a.id === scene.actId; })[0];
-        var diff = SP.diffScenes(previous, scene);
-        var lines = changeLines(ctx, diff, stage);
+        var place = SP.placeForScene(ctx.production, scene);
+        var subtitle = [
+            o.showPlace && place ? place.name : '',
+            scene.subtitle || ''
+        ].filter(Boolean).join(' · ');
 
-        var emphasise = {
-            added: diff.added.map(function (p) { return p.id; }),
-            moved: diff.moved.map(function (m) { return m.to.id; })
-        };
-
-        var planOptions = {
+        var svg = SPPlan.svg({
+            stage: stage,
+            scene: scene,
+            resolve: ctx.resolve,
+            units: ctx.units,
+            idPrefix: 'sheet-' + (sceneSheet.counter = (sceneSheet.counter || 0) + 1),
             labels: o.labels,
             grid: o.showGrid,
-            scaleBar: true,
-            audience: true,
-            ghosts: o.showGhosts && previous ? previous.placements : null,
-            ghostArrows: o.showGhosts ? diff.moved : null
-        };
-        var stageSettings = {
-            stage: stage, scene: scene, resolve: ctx.resolve, units: ctx.units,
-            idPrefix: 'sheet-' + (planSvg.counter = (planSvg.counter || 0) + 1),
-            labels: planOptions.labels, grid: planOptions.grid, scaleBar: true,
-            audience: true, ghosts: planOptions.ghosts, ghostArrows: planOptions.ghostArrows,
-            emphasise: o.showChanges ? emphasise : null
-        };
-        var svg = SPPlan.svg(stageSettings);
+            scaleBar: o.showScaleBar,
+            audience: o.showAudience,
+            settingLine: o.showGuides,
+            centreLine: o.showGuides,
+            wings: o.showWings,
+            curtains: o.showCurtains,
+            wingNotes: scene.wingNotes || null
+        });
 
-        var propItems = (scene.placements || []).map(function (p, i) {
-            var name = nameOf(ctx, p.propId);
-            return '<li class="is-keyed"><span class="sp-li-key">' + (i + 1) + '</span>' + esc(name) +
-                (p.label ? ' <span class="sp-li-note">' + esc(p.label) + '</span>' : '') +
-                '<span class="sp-li-pos">' + esc(positionText(stage, p, ctx.units)) +
-                (p.rot ? ', turned ' + Math.round(p.rot) + '°' : '') + '</span></li>';
-        }).join('');
+        var number = '<span class="sp-plan-sheet-number">' + esc(numbers[scene.id].label) + '</span>';
 
-        var changeSections = '';
-        if (o.showChanges) {
-            if (!previous) {
-                changeSections = '<section><h3>Preset before the house opens</h3>' +
-                    '<ul><li class="sp-li-note">Everything on this sheet is set before the show starts.</li></ul></section>';
-            } else {
-                changeSections =
-                    listBlock('Bring on', lines.on, 'Nothing new') +
-                    listBlock('Strike', lines.off, 'Nothing struck') +
-                    listBlock('Move', lines.move, 'Nothing moved');
-            }
+        /* Die Nummer groß neben der Bühne, sonst nichts auf dem Blatt — so
+           liegen die Blätter, die diese Mannschaft schon benutzt. */
+        if (o.numberOutside) {
+            return sheet(ctx, 'sp-plan-sheet is-bare',
+                '<div class="sp-plan-sheet-bare">' + number +
+                '<div class="sp-plan-sheet-plan">' + svg + '</div></div>' +
+                (o.showNotes && scene.notes
+                    ? '<p class="sp-plan-sheet-note">' + esc(scene.notes) + '</p>' : '') +
+                (o.showFooter ? foot(ctx) : ''));
         }
 
-        var head =
-            '<div class="sp-sheet-head">' +
-            '<div class="sp-sheet-number">' + esc(number.label) + '</div>' +
-            '<div class="sp-sheet-titles"><h2>' + esc(scene.title || 'Untitled scene') + '</h2>' +
-            '<p>' + esc([act ? act.name : '', scene.subtitle || ''].filter(Boolean).join(' · ') || ' ') + '</p></div>' +
-            '<div class="sp-sheet-meta">' + esc(ctx.production.name || '') + '<br>' +
-            esc(SP.shapeById(stage.shape).name) + ' stage<br>' +
-            (scene.placements || []).length + ' props' +
-            '</div></div>';
-
-        var longList = (scene.placements || []).length > 6;
-        var lists =
-            (o.showPropList ? '<section' + (longList ? ' class="is-long"' : '') +
-                '><h3>On stage</h3><ol>' + (propItems || '<li class="sp-li-note">Bare stage</li>') +
-                '</ol></section>' : '') +
-            changeSections +
-            (o.showNotes && scene.notes ? '<section><h3>Notes</h3><ul><li>' + esc(scene.notes) + '</li></ul></section>' : '');
-
-        var body;
-        if (o.orientation === 'landscape') {
-            body = head +
-                '<div class="sp-sheet-body"><div class="sp-sheet-plan">' + svg + '</div>' +
-                '<div class="sp-sheet-side">' + lists + '</div></div>';
-        } else {
-            body = head +
-                '<div class="sp-sheet-plan">' + svg + '</div>' +
-                '<div class="sp-sheet-cols">' + lists + '</div>';
-        }
-        return sheet(ctx, '', body + foot(ctx));
+        return sheet(ctx, 'sp-plan-sheet',
+            '<div class="sp-plan-sheet-head">' + number +
+            (o.showTitle
+                ? '<span class="sp-plan-sheet-title">' + esc(scene.title || t('Untitled scene')) + '</span>' +
+                  (subtitle ? '<span class="sp-plan-sheet-sub">' + esc(subtitle) + '</span>' : '')
+                : '') +
+            '</div>' +
+            '<div class="sp-plan-sheet-plan">' + svg + '</div>' +
+            (o.showNotes && scene.notes
+                ? '<p class="sp-plan-sheet-note">' + esc(scene.notes) + '</p>' : '') +
+            (o.showFooter ? foot(ctx) : ''));
     }
 
     function overviewSheets(ctx, scenes, numbers) {
@@ -273,67 +231,28 @@
 
         return pages.map(function (page, pageIndex) {
             var cells = page.map(function (scene) {
-                var stage = stageFor(ctx.production, scene);
                 var svg = SPPlan.svg({
-                    stage: stage, scene: scene, resolve: ctx.resolve, units: ctx.units,
-                    idPrefix: 'ov-' + (planSvg.counter = (planSvg.counter || 0) + 1),
+                    stage: stageFor(ctx.production, scene), scene: scene,
+                    resolve: ctx.resolve, units: ctx.units,
+                    idPrefix: 'ov-' + (sceneSheet.counter = (sceneSheet.counter || 0) + 1),
                     labels: labels, grid: cols <= 3 && o.showGrid, scaleBar: false,
                     audience: cols <= 3, settingLine: cols <= 3
                 });
                 return '<div class="sp-overview-cell"><div class="sp-overview-cell-head">' +
                     '<b>' + esc(numbers[scene.id].label) + '</b>' +
-                    '<span>' + esc(scene.title || 'Untitled scene') + '</span></div>' +
+                    '<span>' + esc(scene.title || t('Untitled scene')) + '</span></div>' +
                     '<div class="sp-overview-plan">' + svg + '</div></div>';
             }).join('');
 
-            var heading = page.act ? page.act.name : 'Overview';
             return sheet(ctx, '',
                 '<div class="sp-sheet-head"><div class="sp-sheet-titles">' +
-                '<h2>' + esc(heading) + '</h2>' +
-                '<p>' + cols + ' by ' + rows + ' overview, sheet ' + (pageIndex + 1) + ' of ' + pages.length + '</p>' +
+                '<h2>' + esc(page.act ? page.act.name : t('Overview')) + '</h2>' +
+                '<p>' + esc(t('{cols} by {rows} overview, sheet {n} of {total}',
+                    { cols: cols, rows: rows, n: pageIndex + 1, total: pages.length })) + '</p>' +
                 '</div><div class="sp-sheet-meta">' + esc(ctx.production.name || '') + '</div></div>' +
                 '<div class="sp-overview-grid" style="grid-template-columns: repeat(' + cols +
                 ', 1fr); grid-template-rows: repeat(' + rows + ', 1fr)">' + cells + '</div>' +
                 foot(ctx));
-        });
-    }
-
-    function runSheets(ctx, scenes, numbers) {
-        var perPage = ctx.options.orientation === 'landscape' ? 7 : 11;
-        var rows = [];
-        for (var i = 1; i < scenes.length; i++) {
-            var stage = stageFor(ctx.production, scenes[i]);
-            var diff = SP.diffScenes(scenes[i - 1], scenes[i]);
-            var lines = changeLines(ctx, diff, stage);
-            rows.push({
-                from: numbers[scenes[i - 1].id].label,
-                to: numbers[scenes[i].id].label,
-                title: scenes[i].title || 'Untitled scene',
-                on: lines.on, off: lines.off, move: lines.move,
-                count: SP.changeCount(diff)
-            });
-        }
-        if (!rows.length) return [];
-
-        return SP.chunk(rows, perPage).map(function (page, index, all) {
-            var body = page.map(function (r) {
-                return '<tr>' +
-                    '<td class="sp-num">' + esc(r.from) + ' &rarr; ' + esc(r.to) + '</td>' +
-                    '<td>' + esc(r.title) + '</td>' +
-                    '<td>' + (r.on.length ? esc(r.on.join('; ')) : '—') + '</td>' +
-                    '<td>' + (r.off.length ? esc(r.off.join('; ')) : '—') + '</td>' +
-                    '<td>' + (r.move.length ? esc(r.move.join('; ')) : '—') + '</td>' +
-                    '</tr>';
-            }).join('');
-            return sheet(ctx, '',
-                '<div class="sp-sheet-head"><div class="sp-sheet-titles">' +
-                '<h2>Change-over list</h2><p>What happens between scenes' +
-                (all.length > 1 ? ', part ' + (index + 1) + ' of ' + all.length : '') + '</p></div>' +
-                '<div class="sp-sheet-meta">' + esc(ctx.production.name || '') + '</div></div>' +
-                '<div style="flex:1 1 auto; padding-top:4mm"><table><thead><tr>' +
-                '<th style="width:20mm">Change</th><th style="width:32mm">Into</th>' +
-                '<th>Bring on</th><th>Strike</th><th>Move</th></tr></thead><tbody>' +
-                body + '</tbody></table></div>' + foot(ctx));
         });
     }
 
@@ -346,77 +265,265 @@
             var body = page.map(function (entry) {
                 var prop = ctx.resolve(entry.propId);
                 var art = prop && !prop.image
-                    ? '<svg viewBox="0 0 100 100" width="7mm" height="7mm" class="sp-plan"><g class="sp-art" stroke-width="4">' + prop.art + '</g></svg>'
+                    ? '<svg viewBox="0 0 100 100" width="7mm" height="7mm" class="sp-plan">' +
+                      '<g class="sp-art" stroke-width="' + (4 * (prop.sw || 1)) + '">' + prop.art + '</g></svg>'
                     : (prop && prop.image ? '<img src="' + esc(prop.image) + '" width="26" height="26" alt="">' : '');
                 var where = entry.scenes.map(function (s) {
                     return numbers[s.sceneId].label + (s.count > 1 ? '×' + s.count : '');
                 }).join(', ');
                 return '<tr><td style="width:9mm">' + art + '</td>' +
-                    '<td>' + esc(prop ? prop.name : entry.propId) + '</td>' +
+                    '<td>' + esc(prop ? t(prop.name) : entry.propId) + '</td>' +
                     '<td class="sp-num">' + entry.peak + '</td>' +
                     '<td class="sp-num">' + entry.scenes.length + '</td>' +
                     '<td>' + esc(where) + '</td></tr>';
             }).join('');
+
             return sheet(ctx, '',
                 '<div class="sp-sheet-head"><div class="sp-sheet-titles">' +
-                '<h2>Prop inventory</h2><p>Every prop used, and the most needed at any one time' +
-                (all.length > 1 ? ', part ' + (index + 1) + ' of ' + all.length : '') + '</p></div>' +
+                '<h2>' + esc(t('Prop inventory')) + '</h2><p>' +
+                esc(t('Every prop used, and the most needed at any one time') +
+                    (all.length > 1 ? ', ' + t('part {n} of {total}',
+                        { n: index + 1, total: all.length }) : '')) + '</p></div>' +
                 '<div class="sp-sheet-meta">' + esc(ctx.production.name || '') + '</div></div>' +
                 '<div style="flex:1 1 auto; padding-top:4mm"><table><thead><tr>' +
-                '<th></th><th>Prop</th><th>Most at once</th><th>Scenes</th><th>Appears in</th>' +
+                '<th></th><th>' + esc(t('Props')) + '</th><th>' + esc(t('Most at once')) + '</th>' +
+                '<th>' + esc(t('Scenes')) + '</th><th>' + esc(t('Appears in')) + '</th>' +
                 '</tr></thead><tbody>' + body + '</tbody></table></div>' + foot(ctx));
         });
     }
 
-    /* ------------------------------------------------------------- build */
-
-    function build(input) {
-        var ctx = {
-            production: input.production,
-            resolve: input.resolve,
-            units: input.units || input.production.units || 'm',
-            options: options(input.options),
-            today: input.today || new Date().toLocaleDateString(undefined, {
-                year: 'numeric', month: 'long', day: 'numeric'
-            })
-        };
+    /* Baut das Plan-Dokument: Titel, Trennblätter, Szenen, Übersicht, Liste. */
+    function buildPlans(input) {
+        var ctx = context(input);
         var o = ctx.options;
         var numbers = SP.sceneNumbers(ctx.production);
-        var all = ctx.production.scenes || [];
-        var scenes = o.scope && o.scope !== 'all'
-            ? all.filter(function (s) { return s.actId === o.scope; })
-            : all;
-
+        var scenes = scopedScenes(ctx);
         var sheets = [];
+
         if (o.cover) sheets.push(coverSheet(ctx));
 
         if (o.scenePages || o.actPages) {
-            SP.groupScenesByAct({ acts: ctx.production.acts, scenes: scenes }).forEach(function (group) {
-                if (o.actPages && group.act) sheets.push(actSheet(ctx, group, numbers));
-                if (!o.scenePages) return;
-                group.scenes.forEach(function (scene) {
-                    var index = all.indexOf(scene);
-                    var previous = index > 0 ? all[index - 1] : null;
-                    sheets.push(sceneSheet(ctx, scene, previous, numbers));
+            SP.groupScenesByAct({ acts: ctx.production.acts, scenes: scenes })
+                .forEach(function (group) {
+                    if (o.actPages && group.act) sheets.push(actSheet(ctx, group, numbers));
+                    if (!o.scenePages) return;
+                    group.scenes.forEach(function (scene) {
+                        sheets.push(sceneSheet(ctx, scene, numbers));
+                    });
                 });
-            });
         }
 
         if (o.overview) sheets = sheets.concat(overviewSheets(ctx, scenes, numbers));
-        if (o.runSheet) sheets = sheets.concat(runSheets(ctx, scenes, numbers));
         if (o.inventory) sheets = sheets.concat(inventorySheets(ctx, scenes, numbers));
 
+        return paginate(sheets);
+    }
+
+    /* ============================================================ *
+     * Dokument 2 — Der Umbauplan
+     *
+     * Satzbild der LaTeX-Vorlage, in Millimetern nachgebaut.
+     * ============================================================ */
+
+    var PAGE = {
+        width: 210, height: 297,
+        marginX: 18, marginY: 14,
+        line: 4.1,          // Zeilenhöhe im Tabellentext
+        rowPadding: 2.6,    // Luft über und unter einer Zeile
+        minRow: 8.4,
+        headRow: 7.2,
+        banner: 9.5,
+        bannerSub: 4.6,
+        title: 15,
+        noteLine: 4.1
+    };
+
+    /* Spaltenbreiten, zusammen die Satzbreite von 174 mm. */
+    var COLUMNS = [22, 48, 54, 50];
+
+    function contentWidth() { return PAGE.width - 2 * PAGE.marginX; }
+    function contentHeight() { return PAGE.height - 2 * PAGE.marginY; }
+
+    /*
+     * Wie hoch wird der Referenzkasten? Eine Zeile Überschrift, dann pro Ort
+     * so viele Zeilen, wie sein Text umbricht. Grob geschätzt über die
+     * Zeichenzahl — genau genug, damit unten nichts überläuft.
+     */
+    function referenceHeight(rows) {
+        if (!rows.length) return 0;
+        var lines = 1;
+        rows.forEach(function (row) {
+            var text = row.name + ': ' + row.items.join(', ');
+            lines += Math.max(1, Math.ceil(text.length / 96));
+        });
+        return lines * 3.9 + 5.5;
+    }
+
+    function rowHeight(row) {
+        if (row.type === 'banner') {
+            return PAGE.banner + (row.sub ? PAGE.bannerSub : 0);
+        }
+        var lines = Math.max(1, row.strike.length, row.setup.length, row.move.length);
+        var height = lines * PAGE.line + 2 * PAGE.rowPadding;
+        if (row.note) {
+            height += Math.max(1, Math.ceil(row.note.length / 60)) * PAGE.noteLine;
+        }
+        return Math.max(PAGE.minRow, height);
+    }
+
+    /*
+     * Bricht die Zeilen auf Blätter um. Die erste Seite trägt Titel und
+     * Referenzkasten, jede weitere nur die Kopfzeile der Tabelle. Ein Balken
+     * wandert mit auf die nächste Seite, wenn die Zeile darunter nicht mehr
+     * mit draufpasst — sonst stünde „PAUSE“ allein am Fuß.
+     */
+    function paginateChangeover(rows, firstPageExtra) {
+        var pages = [];
+        var page = [];
+        var used = (firstPageExtra || 0) + PAGE.headRow;
+        var limit = contentHeight();
+
+        function flush() {
+            if (page.length) pages.push(page);
+            page = [];
+            used = PAGE.headRow;
+        }
+
+        for (var i = 0; i < rows.length; i++) {
+            var height = rowHeight(rows[i]);
+            var needed = height;
+
+            // Ein Balken zieht die folgende Zeile mit auf dieselbe Seite.
+            if (rows[i].type === 'banner' && rows[i + 1]) {
+                needed += rowHeight(rows[i + 1]);
+            }
+
+            if (page.length && used + needed > limit) flush();
+            page.push(rows[i]);
+            used += height;
+        }
+        flush();
+        return pages.length ? pages : [[]];
+    }
+
+    function cellLines(items, critical) {
+        if (!items.length) return '<span class="sp-uv-empty">—</span>';
+        return items.map(function (line) {
+            return critical
+                ? '<b>' + esc(line) + '</b>'
+                : esc(line);
+        }).join('<br>');
+    }
+
+    function referenceBox(ctx, rows) {
+        if (!rows.length) return '';
+        var body = rows.map(function (row) {
+            return '<div class="sp-uv-ref-line"><b>' + esc(row.name) + ':</b> ' +
+                esc(row.items.join(', ')) +
+                (row.notes ? ' <i>' + esc(row.notes) + '</i>' : '') + '</div>';
+        }).join('');
+        return '<div class="sp-uv-ref">' +
+            '<div class="sp-uv-ref-head"><b>' + esc(t('For reference')) + '</b> ' +
+            '(' + esc(t('The plan gives more')) + ')<b>:</b></div>' +
+            body + '</div>';
+    }
+
+    function changeoverTable(ctx, rows) {
+        var head = '<thead><tr>' +
+            '<th style="width:' + COLUMNS[0] + 'mm">' + esc(t('Transition')) + '</th>' +
+            '<th style="width:' + COLUMNS[1] + 'mm">' + esc(t('Strike')) + ' ↓</th>' +
+            '<th style="width:' + COLUMNS[2] + 'mm">' + esc(t('Bring on')) + ' ↑</th>' +
+            '<th style="width:' + COLUMNS[3] + 'mm">' + esc(t('Move')) + '</th>' +
+            '</tr></thead>';
+
+        var body = rows.map(function (row) {
+            if (row.type === 'banner') {
+                return '<tr class="sp-uv-banner"><td colspan="4">' +
+                    '<span class="sp-uv-banner-text">— &nbsp; ' + esc(row.text) + ' &nbsp; —</span>' +
+                    (row.sub ? '<span class="sp-uv-banner-sub">' + esc(row.sub) + '</span>' : '') +
+                    '</td></tr>';
+            }
+            var label = '<span class="sp-uv-pair">' + (row.isPreset
+                ? '<b>' + esc(row.toLabel) + '</b>'
+                : esc(row.fromLabel) + ' →<br><b>' + esc(row.toLabel) + '</b>') + '</span>';
+            var note = row.note
+                ? '<div class="sp-uv-note">★ ' + esc(row.note) + '</div>' : '';
+            return '<tr' + (row.critical ? ' class="is-critical"' : '') + '>' +
+                '<td class="sp-uv-from">' + (row.isPreset
+                    ? '<span class="sp-uv-preset">' + esc(t('Before the show')) + '</span>' + label
+                    : label) + '</td>' +
+                '<td>' + cellLines(row.strike, row.critical) + '</td>' +
+                '<td>' + cellLines(row.setup, row.critical) + note + '</td>' +
+                '<td>' + cellLines(row.move, row.critical) + '</td>' +
+                '</tr>';
+        }).join('');
+
+        return '<table class="sp-uv-table">' + head + '<tbody>' + body + '</tbody></table>';
+    }
+
+    function buildChangeover(input) {
+        var ctx = context(input);
+        var o = ctx.options;
+        var p = ctx.production;
+
+        var scoped = scopedScenes(ctx);
+        var rows = SP.changeoverRows(
+            { scenes: scoped, acts: p.acts, places: p.places, stage: p.stage,
+              transitions: p.transitions, numbering: p.numbering, units: p.units },
+            {
+                nameOf: function (id) { return nameOf(ctx, id); },
+                units: ctx.units,
+                positions: o.positions
+            });
+
+        var refRows = o.referenceBox
+            ? SP.referenceRows(p, function (id) { return nameOf(ctx, id); }) : [];
+        var title = o.changeoverTitle || (t('Change-over plan') +
+            (p.name ? ' — ' + p.name : ''));
+
+        var firstExtra = PAGE.title + referenceHeight(refRows);
+        var pages = paginateChangeover(rows, firstExtra);
+
+        return pages.map(function (pageRows, index) {
+            var isFirst = index === 0;
+            return '<article class="sp-sheet sp-uv-sheet">' +
+                (isFirst
+                    ? '<h1 class="sp-uv-title">' + esc(title) + '</h1>' + referenceBox(ctx, refRows)
+                    : '') +
+                changeoverTable(ctx, pageRows) +
+                '<div class="sp-uv-foot"><span>' + esc(p.name || '') + '</span>' +
+                (o.footer ? '<span>' + esc(o.footer) + '</span>' : '<span></span>') +
+                '<span>' + esc(t('Page {n} of {total}',
+                    { n: index + 1, total: pages.length })) + '</span></div>' +
+                '</article>';
+        });
+    }
+
+    /* ------------------------------------------------------------ Hilfen */
+
+    function paginate(sheets) {
         var total = sheets.length;
         return sheets.map(function (html, i) {
-            return html.replace(/%%PAGE%%/g, String(i + 1)).replace(/%%PAGES%%/g, String(total));
+            return html.replace(/%%PAGE%%/g, String(i + 1))
+                .replace(/%%PAGES%%/g, String(total));
         });
+    }
+
+    /* Alte Signatur: baut weiterhin das Plan-Dokument. */
+    function build(input) {
+        return buildPlans(input);
     }
 
     return {
         build: build,
+        buildPlans: buildPlans,
+        buildChangeover: buildChangeover,
+        paginateChangeover: paginateChangeover,
+        rowHeight: rowHeight,
+        referenceHeight: referenceHeight,
         DEFAULT_OPTIONS: DEFAULT_OPTIONS,
         options: options,
-        changeLines: changeLines,
-        positionText: positionText
+        PAGE: PAGE,
+        COLUMNS: COLUMNS
     };
 }));

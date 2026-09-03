@@ -7,12 +7,14 @@
  */
 (function (root, factory) {
     if (typeof module === 'object' && typeof module.exports === 'object') {
-        module.exports = factory();
+        module.exports = factory(require('./i18n.js'));
     } else {
-        root.SP = factory();
+        root.SP = factory(root.SPI18n);
     }
-}(typeof self !== 'undefined' ? self : this, function () {
+}(typeof self !== 'undefined' ? self : this, function (I18n) {
     'use strict';
+
+    var t = I18n ? I18n.t : function (key) { return key; };
 
     var FOOT = 0.3048;
 
@@ -69,7 +71,8 @@
         var m = round(metres, 2);
         var text = Math.abs(m) < 10 ? m.toFixed(2) : m.toFixed(1);
         text = text.replace(/(\.\d*[1-9])0+$/, '$1').replace(/\.0+$/, '');
-        return text + ' m';
+        var sep = I18n ? I18n.decimalSeparator() : '.';
+        return text.replace('.', sep) + ' m';
     }
 
     function unitSuffix(units) {
@@ -142,6 +145,7 @@
         centreLine: true,
         settingLine: true,
         scaleBar: true,
+        wings: { show: false, inset: 1.2, depth: 3.6 },
         curtains: [],
         markers: []
     };
@@ -324,6 +328,39 @@
     }
 
     /* ------------------------------------------------------------------ *
+     * Gassen
+     *
+     * Die Abdeckung an den Seiten: von hinten kommt eine Linie nach vorne und
+     * knickt dann zur Seitenkante ab. Was dahinter liegt, sieht das Publikum
+     * nicht — dort steht, was noch auf seinen Auftritt wartet.
+     * ------------------------------------------------------------------ */
+
+    function wingLines(stage) {
+        var w = (stage && stage.wings) || {};
+        if (!w.show) return [];
+        var out = stageOutline(stage);
+        var b = out.bounds;
+        var inset = clamp(num(w.inset, 1.2), 0.05, Math.max(0.06, b.w / 2 - 0.05));
+        var depth = clamp(num(w.depth, b.h * 0.8), 0.05, b.h);
+        var yEnd = round(b.y + depth, 4);
+        var left = round(b.x + inset, 4);
+        var right = round(b.x + b.w - inset, 4);
+        return [
+            [[left, b.y], [left, yEnd], [round(b.x, 4), yEnd]],
+            [[right, b.y], [right, yEnd], [round(b.x + b.w, 4), yEnd]]
+        ];
+    }
+
+    /* Steht dieser Punkt in einer Gasse, also außer Sicht? */
+    function inWing(stage, x, y) {
+        var lines = wingLines(stage);
+        if (!lines.length) return false;
+        var yEnd = lines[0][1][1];
+        if (y > yEnd) return false;
+        return x < lines[0][0][0] || x > lines[1][0][0];
+    }
+
+    /* ------------------------------------------------------------------ *
      * Grid
      * ------------------------------------------------------------------ */
 
@@ -374,39 +411,64 @@
      * Describing a position the way a crew would say it
      * ------------------------------------------------------------------ */
 
+    /*
+     * Which way is "left"? Stage crews are split: some say it as the drawing
+     * reads (the audience's left), some as the cast stands (their own left,
+     * which is the drawing's right). The production decides, and everything
+     * printed follows that one choice.
+     */
+    var directions = 'audience';
+
+    function setDirections(mode) {
+        directions = mode === 'cast' ? 'cast' : 'audience';
+        return directions;
+    }
+
+    function directionMode() { return directions; }
+
+    /* Positive x is drawn to the right of the page. From the cast's side of
+       the footlights that same spot is on their left. */
+    function sideKey(x) {
+        var toDrawingRight = x > 0;
+        if (directions === 'cast') toDrawingRight = !toDrawingRight;
+        return toDrawingRight ? 'right' : 'left';
+    }
+
     var DEPTH_ZONES = [
-        { max: 0.2, name: 'downstage' },
-        { max: 0.45, name: 'centre stage' },
-        { max: 1.01, name: 'upstage' }
+        { max: 0.2, key: 'front' },
+        { max: 0.45, key: 'centre' },
+        { max: 1.01, key: 'back' }
     ];
 
+    /* A corner of the stage in the words a crew actually writes on a sheet:
+       "hinten rechts", "vorne links", "Bühnenmitte". */
     function zoneName(stage, x, y) {
         var out = stageOutline(stage);
         var depth = out.bounds.h || 1;
         var fromFront = clamp((out.frontY - y) / depth, 0, 1);
-        var band = 'centre stage';
+        var band = 'centre';
         for (var i = 0; i < DEPTH_ZONES.length; i++) {
-            if (fromFront <= DEPTH_ZONES[i].max) { band = DEPTH_ZONES[i].name; break; }
+            if (fromFront <= DEPTH_ZONES[i].max) { band = DEPTH_ZONES[i].key; break; }
         }
         var halfWidth = (out.bounds.w || 1) / 2;
-        var side = '';
-        if (x > halfWidth * 0.2) side = 'stage left';
-        else if (x < -halfWidth * 0.2) side = 'stage right';
-        else side = 'centre';
-        if (band === 'centre stage' && side === 'centre') return 'centre stage';
-        return band + ' ' + side;
+        var side = Math.abs(x) <= halfWidth * 0.2 ? 'centre' : sideKey(x);
+        if (band === 'centre' && side === 'centre') return t('centre stage');
+        if (side === 'centre') return t(band + ' centre');
+        if (band === 'centre') return t('to the ' + side);
+        return t(band + ' ' + side);
     }
 
-    /* "2.40 m stage left, 3.10 m upstage" */
+    /* "2,40 m nach links, 3,10 m nach hinten" */
     function describePosition(stage, x, y, units) {
         var out = stageOutline(stage);
         var lateral = Math.abs(x) < 0.05
-            ? 'on the centre line'
-            : formatLength(Math.abs(x), units) + ' stage ' + (x > 0 ? 'left' : 'right');
+            ? t('on the centre line')
+            : t('{len} to the ' + sideKey(x), { len: formatLength(Math.abs(x), units) });
         var depth = out.frontY - y;
         var depthText = Math.abs(depth) < 0.05
-            ? 'on the setting line'
-            : formatLength(Math.abs(depth), units) + (depth >= 0 ? ' upstage' : ' downstage');
+            ? t('on the setting line')
+            : t(depth >= 0 ? '{len} upstage' : '{len} downstage',
+                { len: formatLength(Math.abs(depth), units) });
         return lateral + ', ' + depthText;
     }
 
@@ -613,7 +675,8 @@
     function numberScenes(production) {
         var scenes = production.scenes || [];
         var acts = production.acts || [];
-        var perAct = production.numbering === 'per-act';
+        var perAct = production.numbering === 'per-act' || production.numbering === 'per-act-roman';
+        var romanScenes = production.numbering === 'per-act-roman';
         var actIndex = {};
         acts.forEach(function (a, i) { actIndex[a.id] = i + 1; });
 
@@ -626,7 +689,8 @@
                 label = scene.label;
             } else if (perAct && scene.actId && actIndex[scene.actId]) {
                 counters[scene.actId] = (counters[scene.actId] || 0) + 1;
-                label = roman(actIndex[scene.actId]) + '.' + counters[scene.actId];
+                label = roman(actIndex[scene.actId]) + '.' +
+                    (romanScenes ? roman(counters[scene.actId]) : counters[scene.actId]);
             } else {
                 label = String(running);
             }
@@ -712,6 +776,264 @@
         return order.map(function (id) { return totals[id]; });
     }
 
+    /* ------------------------------------------------------------------ *
+     * Places — a set that comes back
+     *
+     * The kitchen, the market, the cafe. A scene picks one; the printed
+     * reference box lists what belongs in each. The standing prop list is
+     * written by hand, because only the crew knows that the cafe needs a
+     * coffee pot with a mouthful of water in it.
+     * ------------------------------------------------------------------ */
+
+    function newPlace(name) {
+        return { id: uid('plc'), name: name || '', props: [], notes: '', placements: [] };
+    }
+
+    function placeById(production, id) {
+        if (!id) return null;
+        var places = production.places || [];
+        for (var i = 0; i < places.length; i++) {
+            if (places[i].id === id) return places[i];
+        }
+        return null;
+    }
+
+    function placeForScene(production, scene) {
+        return scene ? placeById(production, scene.placeId) : null;
+    }
+
+    function scenesInPlace(production, placeId) {
+        return (production.scenes || []).filter(function (s) { return s.placeId === placeId; });
+    }
+
+    /*
+     * Was zu einem Ort gehört. Steht ein Bühnenbild dahinter, wird die Liste
+     * daraus gelesen; eine von Hand geschriebene Liste hat Vorrang, denn nur
+     * die kennt „Gläser (1× leer, 1× leicht gefüllt)".
+     */
+    function placeItems(place, nameOf) {
+        if (place.props && place.props.length) return place.props.slice();
+        return groupByProp(place.placements || [], nameOf).map(describeGroup);
+    }
+
+    /* Rows for the reference box: every place a scene actually plays in, plus
+       any place that has a set of its own. */
+    function referenceRows(production, nameOf) {
+        var used = {};
+        (production.scenes || []).forEach(function (s) {
+            if (s.placeId) used[s.placeId] = true;
+        });
+        return (production.places || []).filter(function (pl) {
+            return used[pl.id] || (pl.props && pl.props.length) ||
+                (pl.placements && pl.placements.length);
+        }).map(function (pl) {
+            return {
+                id: pl.id,
+                name: pl.name || '',
+                items: placeItems(pl, nameOf),
+                notes: pl.notes || '',
+                used: !!used[pl.id],
+                hasLayout: !!(pl.placements && pl.placements.length)
+            };
+        });
+    }
+
+    /*
+     * Weicht eine Szene von ihrem Ort ab? Die Szene gewinnt immer — hier wird
+     * nur festgestellt, nicht eingegriffen. Ohne Bühnenbild am Ort gibt es
+     * nichts zu vergleichen.
+     */
+    function placeDrift(production, scene) {
+        var place = placeForScene(production, scene);
+        if (!place || !(place.placements || []).length) return null;
+        var diff = diffScenes({ placements: place.placements }, scene);
+        return { place: place, diff: diff, count: changeCount(diff) };
+    }
+
+    function scenesDriftingFrom(production, placeId) {
+        return scenesInPlace(production, placeId).filter(function (sc) {
+            var drift = placeDrift(production, sc);
+            return drift && drift.count > 0;
+        });
+    }
+
+    /* Übernimmt frühere Vorlagen als Orte — sie waren dasselbe, nur getrennt. */
+    function foldPresetsIntoPlaces(production) {
+        var presets = production.presets || [];
+        if (!presets.length) return production;
+        production.places = production.places || [];
+        presets.forEach(function (preset) {
+            var name = (preset.name || '').trim();
+            var match = production.places.filter(function (pl) {
+                return pl.name && pl.name.trim().toLowerCase() === name.toLowerCase();
+            })[0];
+            if (match) {
+                if (!(match.placements || []).length) {
+                    match.placements = copyPlacements(preset.placements || [], false);
+                }
+            } else {
+                var place = newPlace(name);
+                place.placements = copyPlacements(preset.placements || [], false);
+                production.places.push(place);
+            }
+        });
+        production.presets = [];
+        return production;
+    }
+
+    /*
+     * Reads back what the scenes in a place actually hold, as a starting point
+     * for its standing list. Offered to the user on a button — never written
+     * into the plan behind their back.
+     */
+    function suggestPlaceProps(production, placeId, nameOf) {
+        var counts = {};
+        var order = [];
+        scenesInPlace(production, placeId).forEach(function (scene) {
+            var perScene = {};
+            (scene.placements || []).forEach(function (pl) {
+                var key = pl.propId + '|' + labelKey(pl);
+                if (!perScene[key]) {
+                    perScene[key] = {
+                        count: 0,
+                        name: nameOf ? nameOf(pl.propId) : pl.propId,
+                        label: (pl.label || '').trim()
+                    };
+                }
+                perScene[key].count += 1;
+            });
+            Object.keys(perScene).forEach(function (key) {
+                if (!counts[key]) { counts[key] = perScene[key]; order.push(key); }
+                else counts[key].count = Math.max(counts[key].count, perScene[key].count);
+            });
+        });
+        return order.map(function (key) { return describeGroup(counts[key]); });
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Transitions — what the crew is told between two scenes
+     *
+     * Keyed by the pair of scene ids rather than by position, so reordering
+     * the running order does not silently move a note onto a different change.
+     * ------------------------------------------------------------------ */
+
+    function transitionKey(fromScene, toScene) {
+        return (fromScene ? fromScene.id : 'start') + '>' + (toScene ? toScene.id : 'end');
+    }
+
+    function getTransition(production, fromScene, toScene) {
+        var map = production.transitions || {};
+        return map[transitionKey(fromScene, toScene)] || null;
+    }
+
+    function ensureTransition(production, fromScene, toScene) {
+        if (!production.transitions) production.transitions = {};
+        var key = transitionKey(fromScene, toScene);
+        if (!production.transitions[key]) {
+            production.transitions[key] = { note: '', critical: false, banners: [] };
+        }
+        var trans = production.transitions[key];
+        if (!trans.banners) trans.banners = [];
+        return trans;
+    }
+
+    /* Drops notes whose two scenes no longer sit next to each other, so a
+       reordered running order does not carry stale instructions around. */
+    function pruneTransitions(production) {
+        var map = production.transitions || {};
+        var live = {};
+        var scenes = production.scenes || [];
+        for (var i = 0; i < scenes.length; i++) {
+            live[transitionKey(i > 0 ? scenes[i - 1] : null, scenes[i])] = true;
+        }
+        Object.keys(map).forEach(function (key) {
+            var trans = map[key];
+            var empty = !trans || (!trans.note && !trans.critical &&
+                (!trans.banners || !trans.banners.length));
+            if (!live[key] || empty) delete map[key];
+        });
+        return production;
+    }
+
+    /* ------------------------------------------------------------------ *
+     * The change-over plan
+     * ------------------------------------------------------------------ */
+
+    /* "3 × Stuhl (Anna)" */
+    function describeGroup(group) {
+        return (group.count > 1 ? group.count + ' \u00d7 ' : '') + group.name +
+            (group.label ? ' (' + group.label + ')' : '');
+    }
+
+    /*
+     * The whole evening as a list of table rows and banners, ready for the
+     * printed Umbauplan. Row one is the preset: everything that stands before
+     * the house opens, which is a change like any other as far as the crew is
+     * concerned.
+     */
+    function changeoverRows(production, opts) {
+        opts = opts || {};
+        var nameOf = opts.nameOf || function (id) { return id; };
+        var units = opts.units || production.units || 'm';
+        var withPositions = !!opts.positions;
+        var scenes = production.scenes || [];
+        var numbers = sceneNumbers(production);
+        var rows = [];
+
+        function banners(trans, where) {
+            ((trans && trans.banners) || []).forEach(function (b) {
+                var at = b.where === 'after' ? 'after' : 'before';
+                if (at !== where) return;
+                rows.push({ type: 'banner', text: b.text || '', sub: b.sub || '' });
+            });
+        }
+
+        function moveLine(stage, m) {
+            var name = nameOf(m.to.propId) + (m.to.label ? ' (' + m.to.label + ')' : '');
+            if (m.distance <= MOVE_TOLERANCE && m.turned > TURN_TOLERANCE) {
+                return name + ' \u2192 ' + Math.round(m.to.rot) + '\u00b0';
+            }
+            var where = (stage.grid && stage.grid.show && stage.grid.labels)
+                ? gridReference(stage, m.to.x, m.to.y, num(stage.grid.spacing, 1))
+                : zoneName(stage, m.to.x, m.to.y);
+            if (withPositions) {
+                where += ' (' + describePosition(stage, m.to.x, m.to.y, units) + ')';
+            }
+            return name + ' \u2192 ' + where;
+        }
+
+        scenes.forEach(function (scene, i) {
+            var from = i > 0 ? scenes[i - 1] : null;
+            var trans = getTransition(production, from, scene);
+            var stage = scene.stage || production.stage;
+            var diff = diffScenes(from, scene);
+
+            banners(trans, 'before');
+            rows.push({
+                type: 'row',
+                sceneId: scene.id,
+                fromLabel: from ? numbers[from.id].label : t('Before the show'),
+                toLabel: numbers[scene.id].label,
+                title: scene.title || '',
+                place: (placeForScene(production, scene) || {}).name || '',
+                strike: groupByProp(diff.removed, nameOf).map(describeGroup),
+                setup: groupByProp(diff.added, nameOf).map(describeGroup),
+                move: diff.moved.map(function (m) { return moveLine(stage, m); }),
+                note: (trans && trans.note) || '',
+                critical: !!(trans && trans.critical),
+                isPreset: !from
+            });
+            banners(trans, 'after');
+        });
+
+        return rows;
+    }
+
+    function changeoverIsEmpty(row) {
+        return row.type === 'row' && !row.strike.length && !row.setup.length &&
+            !row.move.length && !row.note;
+    }
+
     return {
         FOOT: FOOT,
         round: round,
@@ -728,11 +1050,32 @@
         stageOutline: stageOutline,
         spanAt: spanAt,
         containsPoint: containsPoint,
+        wingLines: wingLines,
+        inWing: inWing,
         gridLines: gridLines,
         columnLetter: columnLetter,
         gridReference: gridReference,
         zoneName: zoneName,
         describePosition: describePosition,
+        setDirections: setDirections,
+        directionMode: directionMode,
+        newPlace: newPlace,
+        placeById: placeById,
+        placeForScene: placeForScene,
+        scenesInPlace: scenesInPlace,
+        referenceRows: referenceRows,
+        placeItems: placeItems,
+        placeDrift: placeDrift,
+        scenesDriftingFrom: scenesDriftingFrom,
+        foldPresetsIntoPlaces: foldPresetsIntoPlaces,
+        suggestPlaceProps: suggestPlaceProps,
+        transitionKey: transitionKey,
+        getTransition: getTransition,
+        ensureTransition: ensureTransition,
+        pruneTransitions: pruneTransitions,
+        describeGroup: describeGroup,
+        changeoverRows: changeoverRows,
+        changeoverIsEmpty: changeoverIsEmpty,
         makePlacement: makePlacement,
         mirrorPlacements: mirrorPlacements,
         copyPlacements: copyPlacements,

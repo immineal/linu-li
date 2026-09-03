@@ -5,13 +5,21 @@
    from dark mode still comes out as black ink on white paper.
    ========================================================================== */
 
-.sp-app {
+/* Auf <body>, nicht auf .sp-app: Dialoge und Erklärkästen hängen direkt am
+   <body> und stünden unter .sp-app ohne diese Werte da — durchsichtig und
+   ohne Rahmen. Und nicht auf :root, weil das Farbschema der Seite seine
+   Werte auf body.dark-mode setzt: von :root aus gesehen wäre hier immer die
+   helle Fassung eingefroren. */
+body {
     --sp-line: var(--border);
     --sp-panel: var(--card-bg);
     --sp-muted: var(--ink-secondary);
     --sp-field: var(--input-bg);
     --sp-rail: 264px;
     --sp-aside: 312px;
+}
+
+.sp-app {
     font-family: var(--font-heading);
     display: flex;
     flex-direction: column;
@@ -32,8 +40,12 @@
     min-height: 52px;
 }
 .sp-bar > * { display: flex; align-items: center; gap: 0.5rem; }
-.sp-bar-left { flex: 0 1 auto; min-width: 0; }
-.sp-bar-right { margin-left: auto; }
+/* Der Titel gibt als Erstes nach, damit die Reiter nie unter die Knöpfe
+   links rutschen — mit dem fünften Reiter wird es sonst eng. */
+.sp-bar-left { flex: 1 1 auto; min-width: 0; }
+.sp-tabs { flex: 0 0 auto; }
+.sp-bar-right { flex: 0 0 auto; margin-left: auto; }
+.sp-bar-left > select { flex: 0 1 auto; min-width: 0; }
 
 .sp-wordmark {
     font-size: 0.95rem;
@@ -41,6 +53,10 @@
     letter-spacing: -0.02em;
     margin: 0 0.5rem 0 0;
     white-space: nowrap;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .sp-wordmark span { font-weight: 400; color: var(--sp-muted); }
 
@@ -115,6 +131,42 @@
 .sp-panels { flex: 1 1 auto; min-height: 0; }
 .sp-panel { display: none; height: 100%; min-height: 0; }
 .sp-panel.is-active { display: flex; }
+
+/* ---------------------------------------------------------- Einführungen
+ * Schwebt unter dem Reiter, damit sie der Seite keinen Platz wegnimmt.
+ */
+
+.sp-intro {
+    position: fixed;
+    z-index: 110;
+    width: min(26rem, calc(100vw - 1rem));
+    padding: 0.8rem 0.9rem 0.75rem;
+    background: var(--sp-panel);
+    border: 1px solid var(--sp-line);
+    border-radius: 4px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.2);
+}
+.sp-intro h4 { margin: 0 0 0.15rem; font-size: 0.88rem; font-weight: 600; }
+.sp-intro p {
+    margin: 0 0 0.5rem;
+    font-size: 0.79rem;
+    line-height: 1.45;
+    color: var(--ink-secondary);
+    max-width: none;
+}
+.sp-intro ol { margin: 0; padding-left: 1.15rem; }
+.sp-intro li {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--ink-secondary);
+    padding: 0.09rem 0;
+}
+.sp-intro-actions {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-end;
+    margin-top: 0.7rem;
+}
 
 .sp-columns { display: flex; width: 100%; min-height: 0; }
 .sp-rail {
@@ -296,7 +348,8 @@
     color: var(--sp-muted);
 }
 .sp-seg button:last-child { border-right: 0; }
-.sp-seg button[aria-selected="true"] { background: rgba(196, 77, 60, 0.08); color: var(--accent); }
+.sp-seg button[aria-selected="true"],
+.sp-seg button[aria-checked="true"] { background: rgba(196, 77, 60, 0.08); color: var(--accent); }
 
 .sp-section { border-bottom: 1px solid var(--sp-line); padding: 0.85rem; }
 .sp-section:last-child { border-bottom: 0; }
@@ -482,6 +535,8 @@
 .sp-stage { fill: rgba(127, 127, 127, 0.05); }
 .sp-guide { stroke: var(--sp-muted); opacity: 0.75; }
 .sp-guide-label { fill: var(--sp-muted); }
+.sp-wing { stroke: var(--ink); opacity: 0.6; }
+.sp-wing-note-label { fill: var(--ink); opacity: 0.8; }
 .sp-curtain path { stroke: var(--accent); }
 .sp-curtain-label { fill: var(--accent); }
 .sp-curtain-track { opacity: 0.6; }
@@ -489,6 +544,9 @@
 .sp-audience text { fill: var(--sp-muted); }
 .sp-art .f { fill: rgba(107, 144, 128, 0.2); }
 .sp-art .d { stroke-dasharray: 3.5 3; }
+/* In der Vorlage gefüllte Flächen bleiben gefüllt. */
+.sp-art .s { fill: currentColor; stroke: none; }
+.sp-art .fs { fill: currentColor; }
 .sp-hit { fill: transparent; stroke: none; }
 .sp-items .sp-item { cursor: move; }
 .sp-items .sp-item.is-locked { cursor: default; }
@@ -544,6 +602,8 @@
 .sp-sheet .sp-stage { fill: rgba(0, 0, 0, 0.022); }
 .sp-sheet .sp-guide { stroke: rgba(0, 0, 0, 0.42); opacity: 1; }
 .sp-sheet .sp-guide-label { fill: rgba(0, 0, 0, 0.45); }
+.sp-sheet .sp-wing { stroke: rgba(0, 0, 0, 0.72); opacity: 1; }
+.sp-sheet .sp-wing-note-label { fill: #16130f; }
 .sp-sheet .sp-curtain path { stroke: #6d6459; }
 .sp-sheet .sp-curtain-label { fill: #6d6459; }
 .sp-sheet .sp-audience { stroke: rgba(0, 0, 0, 0.42); opacity: 1; }
@@ -557,41 +617,14 @@
 .sp-sheet .sp-item.is-added, .sp-sheet .sp-item.is-moved { color: inherit; }
 
 .sp-sheet-head { display: flex; align-items: flex-start; gap: 6mm; border-bottom: 0.6pt solid #16130f; padding-bottom: 3mm; flex: 0 0 auto; }
-.sp-sheet-number {
-    font-size: 20mm;
-    line-height: 0.82;
-    font-weight: 500;
-    letter-spacing: -0.04em;
-    font-variant-numeric: tabular-nums;
-}
 .sp-sheet-titles { flex: 1 1 auto; min-width: 0; padding-top: 1mm; }
 .sp-sheet-titles h2 { font-size: 6.4mm; line-height: 1.05; margin: 0 0 1mm; font-weight: 500; letter-spacing: -0.02em; color: inherit; }
 .sp-sheet-titles p { font-size: 3.3mm; margin: 0; color: #554d44; max-width: none; font-family: var(--font-heading); }
 .sp-sheet-meta { text-align: right; font-size: 3mm; color: #554d44; line-height: 1.5; padding-top: 1.5mm; white-space: nowrap; }
 
 /* An SVG only fills a flex box reliably when it is taken out of flow, and an
-   absolutely placed replaced element needs real lengths — with auto sizes it
-   falls back to its own aspect ratio and spills past the bottom inset. */
-.sp-sheet-plan { flex: 1 1 auto; min-height: 62mm; position: relative; }
-.sp-sheet-plan > svg {
-    position: absolute;
-    top: 4mm;
-    left: 0;
-    width: 100%;
-    height: calc(100% - 8mm);
-}
-.sp-sheet-body { display: flex; gap: 6mm; flex: 1 1 auto; min-height: 0; }
-.sp-sheet-body .sp-sheet-plan { flex: 1 1 auto; }
-.sp-sheet-side { flex: 0 0 78mm; min-width: 0; overflow: hidden; }
 
-.sp-sheet-cols { display: flex; gap: 6mm; flex: 0 1 auto; border-top: 0.4pt solid rgba(0,0,0,0.25); padding-top: 3mm; max-height: 104mm; overflow: hidden; }
-.sp-sheet-cols > section { flex: 1 1 0; min-width: 0; }
 /* A long prop list runs into two columns rather than falling off the page. */
-.sp-sheet-cols > section.is-long { flex: 2.1 1 0; }
-.sp-sheet-cols > section.is-long ol { column-count: 2; column-gap: 4mm; }
-.sp-sheet-cols > section.is-long li { break-inside: avoid; }
-.sp-sheet-side > section.is-long ol { column-count: 2; column-gap: 4mm; }
-.sp-sheet-side > section.is-long li { break-inside: avoid; }
 .sp-sheet h3 {
     font-size: 3mm;
     text-transform: none;
@@ -608,8 +641,6 @@
 .sp-sheet li { font-size: 3.1mm; line-height: 1.5; padding: 0.4mm 0; position: relative; }
 .sp-sheet li.is-keyed { padding-left: 5.8mm; }
 .sp-sheet li .sp-li-key { position: absolute; left: 0; top: 0.4mm; color: #7a7168; font-variant-numeric: tabular-nums; }
-.sp-sheet li .sp-li-note { color: #7a7168; }
-.sp-sheet li .sp-li-pos { display: block; color: #7a7168; }
 .sp-sheet-foot {
     flex: 0 0 auto;
     border-top: 0.4pt solid rgba(0, 0, 0, 0.25);
@@ -693,6 +724,13 @@
 
 /* ------------------------------------------------------------- responsive */
 
+@media (max-width: 1480px) {
+    /* „für Requisite und Bühnenbau“ ist das Erste, was gehen darf. */
+    .sp-wordmark span { display: none; }
+}
+@media (max-width: 1260px) {
+    .sp-wordmark { display: none; }
+}
 @media (max-width: 1180px) {
     .sp-app { --sp-rail: 220px; --sp-aside: 272px; }
     .sp-palette { grid-template-columns: repeat(2, 1fr); }
@@ -722,7 +760,431 @@
     .sp-panel.is-active { flex-direction: column; }
 }
 
+/* ======================================================================
+ * Erklärkästen
+ *
+ * Ein "?" an jeder Einstellung, die eine Erklärung verdient. Klein genug,
+ * um nicht im Weg zu stehen, groß genug, um getroffen zu werden.
+ * ====================================================================== */
+
+.sp-why {
+    appearance: none;
+    width: 1.05rem;
+    height: 1.05rem;
+    flex: 0 0 auto;
+    margin-left: 0.35rem;
+    padding: 0;
+    border: 1px solid var(--sp-line);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--sp-muted);
+    font: inherit;
+    font-size: 0.66rem;
+    line-height: 1;
+    cursor: help;
+    vertical-align: 1px;
+}
+.sp-why:hover, .sp-why:focus-visible { color: var(--ink); border-color: var(--ink); }
+
+/* Kästchen und sein "?" bleiben auf einer Zeile. */
+.sp-check-row { display: flex; align-items: center; gap: 0.1rem; margin-bottom: 0.4rem; }
+.sp-check-row .sp-check { margin-bottom: 0; }
+.sp-check + .sp-why { margin-left: 0.25rem; }
+
+.sp-explainer {
+    position: fixed;
+    /* Über dem Schleier eines Dialogs: sonst antwortet ein "?" im Dialog
+       zwar, aber die Antwort liegt darunter und ist nicht zu sehen. */
+    z-index: 1600;
+    width: min(23rem, calc(100vw - 1rem));
+    padding: 0.75rem 0.85rem 0.8rem;
+    background: var(--sp-panel);
+    border: 1px solid var(--sp-line);
+    border-radius: 4px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.sp-explainer h4 {
+    margin: 0 0 0.3rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+    padding-right: 1.2rem;
+}
+.sp-explainer p {
+    margin: 0;
+    font-size: 0.79rem;
+    line-height: 1.5;
+    color: var(--ink-secondary);
+    max-width: none;
+}
+.sp-explainer-close {
+    position: absolute;
+    top: 0.3rem;
+    right: 0.4rem;
+    appearance: none;
+    border: 0;
+    background: none;
+    color: var(--sp-muted);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.2rem;
+}
+
+/* ======================================================================
+ * Der erste Besuch
+ * ====================================================================== */
+
+.sp-choice-grid { display: grid; gap: 0.7rem; }
+.sp-choice {
+    appearance: none;
+    display: block;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--sp-line);
+    border-radius: 4px;
+    background: var(--sp-field);
+    color: var(--ink);
+    cursor: pointer;
+}
+.sp-choice:hover, .sp-choice:focus-visible { border-color: var(--ink); }
+.sp-choice b { display: block; font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem; }
+.sp-choice span { display: block; font-size: 0.8rem; line-height: 1.5; color: var(--ink-secondary); }
+
+.sp-modal.is-wizard { width: min(34rem, calc(100vw - 2rem)); }
+.sp-wiz-step {
+    margin: 0.15rem 0 0;
+    font-size: 0.74rem;
+    color: var(--sp-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ======================================================================
+ * Orte
+ * ====================================================================== */
+
+.sp-place {
+    border: 1px solid var(--sp-line);
+    border-radius: 4px;
+    padding: 0.8rem 0.9rem;
+    margin-bottom: 0.8rem;
+    background: var(--sp-panel);
+}
+.sp-place-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
+.sp-place-name { flex: 1 1 auto; font-weight: 600; }
+.sp-place-count { font-size: 0.75rem; color: var(--sp-muted); white-space: nowrap; }
+.sp-place-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--ink-secondary);
+    margin-bottom: 0.3rem;
+}
+.sp-place-props { width: 100%; font-family: var(--font-body); }
+.sp-place-body { display: flex; gap: 0.9rem; align-items: flex-start; }
+.sp-place-plan {
+    flex: 0 0 34%;
+    min-width: 0;
+    aspect-ratio: 4 / 3;
+    border: 1px solid var(--sp-line);
+    border-radius: 3px;
+    padding: 0.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sp-place-plan svg { width: 100%; height: 100%; }
+.sp-place-side { flex: 1 1 auto; min-width: 0; }
+.sp-place-status { margin-top: 0.45rem; font-size: 0.76rem; display: flex; align-items: center; }
+.sp-place-drift { color: var(--accent); }
+.sp-place-ok { color: var(--sp-muted); }
+.sp-drift b { color: var(--accent); }
+
+@media (max-width: 900px) {
+    .sp-place-body { flex-direction: column; }
+    .sp-place-plan { flex: 0 0 auto; width: 100%; }
+}
+
+/* ======================================================================
+ * Zwei Dokumente im Druckbereich
+ * ====================================================================== */
+
+.sp-doc-switch { display: grid; gap: 0.5rem; margin-top: 0.8rem; }
+.sp-doc {
+    appearance: none;
+    text-align: left;
+    font: inherit;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--sp-line);
+    border-radius: 4px;
+    background: var(--sp-field);
+    color: var(--ink);
+    cursor: pointer;
+}
+.sp-doc.is-on { border-color: var(--ink); background: var(--sp-panel); }
+.sp-doc b { display: block; font-size: 0.84rem; font-weight: 600; margin-bottom: 0.15rem; }
+.sp-doc span { display: block; font-size: 0.74rem; line-height: 1.45; color: var(--ink-secondary); }
+
+.sp-banner-list { list-style: none; margin: 0.6rem 0 0; padding: 0; }
+.sp-banner-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+    border-top: 1px solid var(--sp-line);
+    font-size: 0.78rem;
+}
+.sp-banner-list li b { flex: 0 0 auto; }
+.sp-banner-list li span { flex: 1 1 auto; color: var(--sp-muted); min-width: 0; }
+
+/* ======================================================================
+ * Das Planblatt — nur die Zeichnung
+ *
+ * Nummer und Titel oben, darunter die Zeichnung so groß wie sie passt.
+ * Wer wissen will, was zu tun ist, schlägt im Umbauplan nach.
+ * ====================================================================== */
+
+.sp-plan-sheet { padding: 14mm 14mm 10mm; }
+.sp-plan-sheet-head {
+    display: flex;
+    align-items: baseline;
+    gap: 4mm;
+    flex: 0 0 auto;
+    padding-bottom: 3mm;
+}
+.sp-plan-sheet-number {
+    font-size: 11mm;
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+}
+.sp-plan-sheet-title {
+    font-size: 6mm;
+    line-height: 1.1;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+}
+.sp-plan-sheet-sub { font-size: 3.4mm; color: #554d44; margin-left: auto; white-space: nowrap; }
+.sp-plan-sheet-plan { flex: 1 1 auto; min-height: 0; position: relative; }
+.sp-plan-sheet-plan > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Bloßes Blatt: weiße Bühne, kein Grauschleier — so liegen die Vorlagen. */
+.sp-plan-sheet.is-bare { padding: 12mm; }
+.sp-plan-sheet.is-bare .sp-stage { fill: none; }
+.sp-plan-sheet-bare {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 8mm;
+    min-height: 0;
+}
+.sp-plan-sheet-bare .sp-plan-sheet-number {
+    flex: 0 0 auto;
+    font-size: 16mm;
+    line-height: 1;
+    padding-top: 2mm;
+}
+.sp-plan-sheet-bare .sp-plan-sheet-plan { flex: 1 1 auto; align-self: stretch; }
+
+.sp-plan-sheet-note {
+    flex: 0 0 auto;
+    font-size: 3.2mm;
+    line-height: 1.5;
+    color: #554d44;
+    padding-top: 3mm;
+    border-top: 0.4pt solid rgba(0, 0, 0, 0.25);
+}
+
+/* ======================================================================
+ * Der Umbauplan
+ *
+ * Nachbau der LaTeX-Vorlage: A4, 10 pt, serifenlos, Ränder 1,4 cm oben und
+ * unten, 1,8 cm seitlich. Linien nach booktabs — waagerecht, in drei
+ * Stärken, keine senkrechten.
+ * ====================================================================== */
+
+.sp-uv-sheet {
+    padding: 14mm 18mm;
+    font-family: Helvetica, "Helvetica Neue", Arial, "Liberation Sans", sans-serif;
+    font-size: 10pt;
+    line-height: 1.32;
+    color: #000;
+}
+
+.sp-uv-title {
+    font-size: 17pt;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.15;
+    margin: 0 0 4mm;
+    letter-spacing: -0.01em;
+    color: inherit;
+}
+
+/* \fbox um eine \parbox — ein Rahmen, sonst nichts. */
+.sp-uv-ref {
+    border: 0.4pt solid #000;
+    padding: 2.2mm 2.6mm;
+    font-size: 8pt;
+    line-height: 1.42;
+    margin-bottom: 4.5mm;
+}
+.sp-uv-ref-head { margin-bottom: 0.8mm; }
+.sp-uv-ref-line { margin: 0; }
+.sp-uv-ref-line i { color: #333; }
+
+.sp-uv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+    table-layout: fixed;
+}
+.sp-uv-table th,
+.sp-uv-table td {
+    text-align: left;
+    vertical-align: top;
+    padding: 1.6mm 2.4mm;
+    border: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+/* \toprule, \midrule, \bottomrule */
+.sp-uv-table thead th {
+    font-weight: 700;
+    border-top: 1.1pt solid #000;
+    border-bottom: 0.6pt solid #000;
+    padding-top: 1.9mm;
+    padding-bottom: 1.5mm;
+}
+.sp-uv-table tbody tr + tr > td { border-top: 0.4pt solid #000; }
+.sp-uv-table tbody tr:last-child > td { border-bottom: 1.1pt solid #000; }
+
+.sp-uv-from { font-variant-numeric: tabular-nums; }
+.sp-uv-from .sp-uv-pair { white-space: nowrap; }
+.sp-uv-preset { display: block; font-size: 8pt; color: #333; line-height: 1.25; }
+.sp-uv-empty { color: #000; }
+
+.sp-uv-table tr.is-critical > td { font-weight: 700; }
+
+/* Die kursive Sternchenzeile: alles, was der Planer nicht wissen kann. */
+.sp-uv-note {
+    font-style: italic;
+    font-size: 9pt;
+    line-height: 1.35;
+    margin-top: 1.1mm;
+    text-indent: -2.6mm;
+    padding-left: 2.6mm;
+}
+
+/* \specialrule{1.4pt} über und unter einem Balken quer durch die Tabelle. */
+.sp-uv-table tr.sp-uv-banner > td {
+    text-align: center;
+    border-top: 1.4pt solid #000 !important;
+    border-bottom: 1.4pt solid #000;
+    padding: 1.4mm 0;
+}
+.sp-uv-banner-text { display: block; font-weight: 700; font-size: 11pt; letter-spacing: 0.01em; }
+.sp-uv-banner-sub { display: block; font-size: 8.5pt; margin-top: 0.6mm; }
+
+.sp-uv-foot {
+    position: absolute;
+    left: 18mm;
+    right: 18mm;
+    bottom: 7mm;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.5pt;
+    color: #555;
+}
+
+/* ====================================================================== *
+ * Der Requisiten-Zeichner
+ *
+ * Links das Quadrat, in dem gezeichnet wird, rechts dieselbe Zeichnung in
+ * Bühnengröße. Das Quadrat bleibt quadratisch — verzerrt wird erst später,
+ * wenn die Zeichnung auf die Grundfläche der Requisite gezogen wird.
+ * ====================================================================== */
+
+.sp-modal.is-draw { width: min(940px, calc(100vw - 2rem)); }
+
+.sp-draw {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 15.5rem;
+    gap: 1rem;
+    align-items: start;
+}
+@media (max-width: 820px) {
+    .sp-draw { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Klebt oben: sonst sind die Werkzeuge weg, sobald man unten den Namen
+   einträgt und der Dialog dafür scrollt. */
+.sp-draw-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.6rem;
+    position: sticky;
+    /* Der Anschlag rechnet die Polsterung des Dialogs mit, deshalb hier eine
+       Polsterung nach oben zurück — sonst schöbe sich die Zeichnung als
+       schmaler Streifen über die Werkzeuge. */
+    top: -1rem;
+    z-index: 2;
+    background: var(--sp-panel);
+    margin-top: -1rem;
+    padding: 1rem 0 0.35rem;
+}
+.sp-draw-bar .sp-seg { flex: 0 1 auto; }
+.sp-draw-bar .sp-sep { width: 1px; height: 1.1rem; background: var(--sp-line); margin: 0 0.2rem; }
+
+.sp-draw-board {
+    position: relative;
+    width: 100%;
+    max-width: 26rem;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    border: 1px solid var(--sp-line);
+    border-radius: 3px;
+    background: var(--sp-field);
+    /* Sonst scrollt das Ziehen mit dem Finger die Seite statt zu zeichnen. */
+    touch-action: none;
+}
+.sp-draw-board > svg { width: 100%; height: 100%; display: block; }
+.sp-draw-board.is-drawing { cursor: crosshair; }
+
+.sp-draw-grid { stroke: var(--sp-line); }
+.sp-draw-grid-major { stroke: var(--sp-muted); opacity: 0.45; }
+.sp-draw-frame { stroke: var(--sp-line); fill: none; }
+
+/* Unsichtbar, aber breit genug, um eine dünne Linie zu treffen. */
+.sp-draw-hit { fill: transparent; stroke: transparent; stroke-width: 4; cursor: move; }
+.sp-draw-sel { fill: none; stroke: var(--accent); stroke-width: 0.5; stroke-dasharray: 2 1.6; }
+.sp-draw-handle { fill: var(--sp-panel); stroke: var(--accent); stroke-width: 0.4; }
+.sp-draw-handle:hover { fill: var(--accent); }
+.sp-draw-handle[data-handle="nw"], .sp-draw-handle[data-handle="se"] { cursor: nwse-resize; }
+.sp-draw-handle[data-handle="ne"], .sp-draw-handle[data-handle="sw"] { cursor: nesw-resize; }
+.sp-draw-handle[data-handle="n"], .sp-draw-handle[data-handle="s"] { cursor: ns-resize; }
+.sp-draw-handle[data-handle="e"], .sp-draw-handle[data-handle="w"] { cursor: ew-resize; }
+.sp-draw-ink { fill: none; stroke: var(--accent); stroke-width: 0.5; }
+.sp-draw-node { fill: var(--accent); stroke: none; }
+
+.sp-draw-preview {
+    height: 9.5rem;
+    border: 1px solid var(--sp-line);
+    border-radius: 3px;
+    background: var(--sp-field);
+    padding: 0.3rem;
+}
+.sp-draw-preview .sp-plan { width: 100%; height: 100%; }
+
+.sp-draw-side .sp-section { border: 1px solid var(--sp-line); border-radius: 3px; margin-bottom: 0.6rem; padding: 0.7rem; }
+.sp-draw-side .sp-section:last-child { margin-bottom: 0; }
+.sp-draw-side .sp-seg button { padding: 0.35rem 0.2rem; font-size: 0.74rem; }
+.sp-draw-count { font-variant-numeric: tabular-nums; }
+
 @media print {
+    @page { size: A4; margin: 0; }
     body > *:not(#spPrintPortal) { display: none !important; }
     body { background: #fff !important; }
     #spPrintPortal { display: block !important; }

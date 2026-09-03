@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Scene & Prop Planner | Linus Linhof</title>
+    <title>Szenen- und Requisitenplaner | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css" />
     <link rel="stylesheet" href="planner.css" />
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg" />
@@ -12,9 +12,9 @@
     <main>
       <div class="tool-header sp-visually-hidden">
         <p>
-          Plan where every prop stands in every scene, then print A4 ground plans,
-          overview sheets and a change-over list for the crew. Works offline, saves
-          in your browser, nothing is uploaded.
+          Plane, wo in jeder Szene welches Requisit steht, und drucke daraus die
+          Grundrisse für die Bühne und den Umbauplan für die Mannschaft. Läuft
+          offline, speichert im Browser, lädt nichts hoch.
         </p>
       </div>
 
@@ -22,24 +22,33 @@
         <!-- ------------------------------------------------------ top bar -->
         <header class="sp-bar">
           <div class="sp-bar-left">
-            <h1 class="sp-wordmark">Scene planner <span>for prop and set crews</span></h1>
-            <select id="spProductionSelect" data-no-save="1" style="width: auto; min-width: 11rem"
-                    aria-label="Production"></select>
-            <button class="sp-btn is-quiet" id="spProductionMenu" title="Production settings">Settings</button>
+            <h1 class="sp-wordmark">
+              <span data-i18n>Scene planner</span>
+              <span data-i18n>for prop and set crews</span>
+            </h1>
+            <select id="spProductionSelect" data-no-save="1" style="width: auto; min-width: 7rem; max-width: 14rem"
+                    data-i18n-attr="aria-label" aria-label="Production"></select>
+            <button class="sp-btn is-quiet" id="spProductionMenu"
+                    data-i18n-attr="title" title="Production settings" data-i18n>Settings</button>
           </div>
 
-          <nav class="sp-tabs" role="tablist" aria-label="Sections">
-            <button class="sp-tab-btn" role="tab" data-tab="scenes" aria-selected="true">Scenes</button>
-            <button class="sp-tab-btn" role="tab" data-tab="stage" aria-selected="false">Stage</button>
-            <button class="sp-tab-btn" role="tab" data-tab="props" aria-selected="false">Prop library</button>
-            <button class="sp-tab-btn" role="tab" data-tab="print" aria-selected="false">Print</button>
+          <nav class="sp-tabs" role="tablist" data-i18n-attr="aria-label" aria-label="Sections">
+            <button class="sp-tab-btn" role="tab" data-tab="scenes" aria-selected="true" data-i18n>Scenes</button>
+            <button class="sp-tab-btn" role="tab" data-tab="stage" aria-selected="false" data-i18n>Stage</button>
+            <button class="sp-tab-btn" role="tab" data-tab="places" aria-selected="false" data-i18n>Places</button>
+            <button class="sp-tab-btn" role="tab" data-tab="props" aria-selected="false" data-i18n>Prop library</button>
+            <button class="sp-tab-btn" role="tab" data-tab="print" aria-selected="false" data-i18n>Print</button>
           </nav>
 
           <div class="sp-bar-right">
-            <span class="sp-status" id="spSaveState">Saved locally</span>
-            <button class="sp-btn is-quiet" id="spUndo" title="Undo (Ctrl+Z)" disabled>Undo</button>
-            <button class="sp-btn is-quiet" id="spRedo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button>
-            <button class="sp-btn" id="spBackup">Backup</button>
+            <span class="sp-status" id="spSaveState" data-i18n>Saved locally</span>
+            <button class="sp-btn is-quiet" id="spUndo"
+                    data-i18n-attr="title" title="Undo (Ctrl+Z)" disabled data-i18n>Undo</button>
+            <button class="sp-btn is-quiet" id="spRedo"
+                    data-i18n-attr="title" title="Redo (Ctrl+Shift+Z)" disabled data-i18n>Redo</button>
+            <button class="sp-btn" id="spBackup" data-i18n>Backup</button>
+            <button class="sp-btn is-quiet" id="spHelp"
+                    data-i18n-attr="title" title="Help and setup">?</button>
           </div>
         </header>
 
@@ -49,9 +58,10 @@
             <div class="sp-columns">
               <aside class="sp-rail">
                 <div class="sp-rail-head">
-                  <h2>Running order</h2>
-                  <button class="sp-btn is-quiet" id="spAddAct" title="Group the following scenes into a new act">Add act</button>
-                  <button class="sp-btn" id="spAddScene">Add scene</button>
+                  <h2 data-i18n>Running order</h2>
+                  <button class="sp-btn is-quiet" id="spAddAct" data-i18n-attr="title"
+                          title="Group the following scenes into a new act" data-i18n>Add act</button>
+                  <button class="sp-btn" id="spAddScene" data-i18n>Add scene</button>
                 </div>
                 <div class="sp-scroll" id="spSceneList"></div>
               </aside>
@@ -59,26 +69,32 @@
               <div class="sp-centre">
                 <div class="sp-toolbar">
                   <input type="text" class="sp-scene-name-input" id="spSceneTitle" data-no-save="1"
+                         data-i18n-attr="placeholder,aria-label"
                          placeholder="Untitled scene" aria-label="Scene title" />
                   <span class="sp-sep"></span>
-                  <button class="sp-btn is-quiet" id="spZoomOut" title="Zoom out">&minus;</button>
-                  <button class="sp-btn is-quiet" id="spZoomFit" title="Fit the stage in the window">Fit</button>
-                  <button class="sp-btn is-quiet" id="spZoomIn" title="Zoom in">+</button>
+                  <button class="sp-btn is-quiet" id="spZoomOut" data-i18n-attr="title" title="Zoom out">&minus;</button>
+                  <button class="sp-btn is-quiet" id="spZoomFit" data-i18n-attr="title"
+                          title="Fit the stage in the window" data-i18n>Fit</button>
+                  <button class="sp-btn is-quiet" id="spZoomIn" data-i18n-attr="title" title="Zoom in">+</button>
                   <span class="sp-sep"></span>
-                  <button class="sp-btn" id="spSnapToggle" title="Snap positions to the grid">Snap</button>
-                  <select id="spLabelMode" data-no-save="1" style="width: auto" aria-label="Plan labels">
-                    <option value="name">Prop names</option>
-                    <option value="custom">Written labels only</option>
-                    <option value="both">Name and label</option>
-                    <option value="number">Numbers keyed to the list</option>
-                    <option value="none">No labels</option>
+                  <button class="sp-btn" id="spSnapToggle" data-i18n-attr="title"
+                          title="Snap positions to the grid" data-i18n>Snap</button>
+                  <select id="spLabelMode" data-no-save="1" style="width: auto"
+                          data-i18n-attr="aria-label" aria-label="Plan labels">
+                    <option value="name" data-i18n>Prop names</option>
+                    <option value="custom" data-i18n>Written labels only</option>
+                    <option value="both" data-i18n>Name and label</option>
+                    <option value="number" data-i18n>Numbers keyed to the list</option>
+                    <option value="none" data-i18n>No labels</option>
                   </select>
-                  <button class="sp-btn" id="spGhostToggle" title="Show where things stood in the previous scene">Previous scene</button>
+                  <button class="sp-btn" id="spGhostToggle" data-i18n-attr="title"
+                          title="Show where things stood in the previous scene" data-i18n>Previous scene</button>
                   <span class="sp-sep"></span>
-                  <button class="sp-btn" id="spCopyLayout">Copy layout from…</button>
-                  <button class="sp-btn" id="spMirror" title="Flip the whole layout across the centre line">Mirror</button>
-                  <button class="sp-btn" id="spPresetSave">Save as preset</button>
-                  <button class="sp-btn" id="spPresetApply">Presets</button>
+                  <button class="sp-btn" id="spCopyLayout" data-i18n>Copy layout from…</button>
+                  <button class="sp-btn" id="spMirror" data-i18n-attr="title"
+                          title="Flip the whole layout across the centre line" data-i18n>Mirror</button>
+                  <button class="sp-btn" id="spPresetSave" data-i18n>Update the place from this scene</button>
+                  <button class="sp-btn" id="spPresetApply" data-i18n>Insert this place’s set</button>
                 </div>
 
                 <div class="sp-stage-host" id="spStageHost">
@@ -95,18 +111,22 @@
 
               <aside class="sp-aside">
                 <div class="sp-aside-head">
-                  <div class="sp-seg" style="flex: 1 1 auto" role="tablist" aria-label="Inspector">
-                    <button role="tab" data-inspector="props" aria-selected="true">Props</button>
-                    <button role="tab" data-inspector="item" aria-selected="false">Selection</button>
-                    <button role="tab" data-inspector="scene" aria-selected="false">Scene</button>
+                  <div class="sp-seg" style="flex: 1 1 auto" role="tablist"
+                       data-i18n-attr="aria-label" aria-label="Inspector">
+                    <button role="tab" data-inspector="props" aria-selected="true" data-i18n>Props</button>
+                    <button role="tab" data-inspector="item" aria-selected="false" data-i18n>Selection</button>
+                    <button role="tab" data-inspector="scene" aria-selected="false" data-i18n>Scene</button>
                   </div>
                 </div>
 
                 <div class="sp-scroll" id="spInspectorProps">
                   <div class="sp-palette-head">
-                    <input type="search" id="spPropSearch" data-no-save="1" placeholder="Search props" aria-label="Search props" />
-                    <select id="spPropCategory" data-no-save="1" aria-label="Prop category"></select>
-                    <p class="sp-hint">Drag a prop onto the stage, or click it to drop one in the middle.</p>
+                    <input type="search" id="spPropSearch" data-no-save="1"
+                           data-i18n-attr="placeholder,aria-label"
+                           placeholder="Search props" aria-label="Search props" />
+                    <select id="spPropCategory" data-no-save="1"
+                            data-i18n-attr="aria-label" aria-label="Prop category"></select>
+                    <p class="sp-hint" data-i18n>Drag a prop onto the stage, or click it to drop one in the middle.</p>
                   </div>
                   <div class="sp-palette" id="spPalette"></div>
                 </div>
@@ -122,8 +142,8 @@
             <div class="sp-work">
               <div class="sp-work-main sp-pad">
                 <div class="sp-measure">
-                  <h2 id="spStageHeading">Stage</h2>
-                  <p id="spStageIntro">
+                  <h2 id="spStageHeading" data-i18n>Stage</h2>
+                  <p id="spStageIntro" data-i18n>
                     Set the playing area once and every scene inherits it. A single scene can
                     be given its own stage if the set changes shape at the interval.
                   </p>
@@ -137,21 +157,46 @@
             </div>
           </section>
 
+          <!-- ================================================ PLACES ==== -->
+          <section class="sp-panel" id="spPanel-places" role="tabpanel">
+            <div class="sp-work">
+              <div class="sp-work-main sp-pad">
+                <div class="sp-measure">
+                  <h2 data-i18n>Places</h2>
+                  <p data-i18n>
+                    Name the sets that recur through the evening — the kitchen, the market,
+                    the café. A scene picks a place, and the printed reference box lists what
+                    belongs in each one.
+                  </p>
+                  <div class="sp-btn-row" style="margin-bottom: 1rem">
+                    <button class="sp-btn is-primary" id="spAddPlace" data-i18n>Add a place</button>
+                  </div>
+                  <div id="spPlaceList"></div>
+                </div>
+              </div>
+              <div class="sp-work-side sp-pad" id="spPlaceSide"></div>
+            </div>
+          </section>
+
           <!-- ================================================= PROPS ==== -->
           <section class="sp-panel" id="spPanel-props" role="tabpanel">
             <div class="sp-work">
               <div class="sp-work-main sp-pad">
                 <div class="sp-measure is-wide">
-                  <h2>Prop library</h2>
-                  <p>
+                  <h2 data-i18n>Prop library</h2>
+                  <p data-i18n>
                     Sixty-odd drawings to start with, plus anything you add yourself. Every
                     prop carries a real footprint, so it lands on the plan at the right size.
                   </p>
                   <div class="sp-btn-row" style="margin-bottom: 1rem">
-                    <input type="search" id="spLibrarySearch" data-no-save="1" placeholder="Search the library"
-                           aria-label="Search the library" style="max-width: 16rem" />
-                    <select id="spLibraryCategory" data-no-save="1" style="width: auto" aria-label="Filter by category"></select>
-                    <button class="sp-btn is-primary" id="spAddCustomProp">Add your own prop</button>
+                    <input type="search" id="spLibrarySearch" data-no-save="1"
+                           data-i18n-attr="placeholder,aria-label"
+                           placeholder="Search the library" aria-label="Search the library"
+                           style="max-width: 16rem" />
+                    <select id="spLibraryCategory" data-no-save="1" style="width: auto"
+                            data-i18n-attr="aria-label" aria-label="Filter by category"></select>
+                    <button class="sp-btn is-primary" id="spDrawCustomProp" data-act="draw-custom-prop" data-i18n>Draw a prop</button>
+                    <button class="sp-btn" id="spAddCustomProp" data-act="add-custom-prop" data-i18n>Add your own prop</button>
                   </div>
                   <div class="sp-lib-grid" id="spLibraryGrid"></div>
                 </div>
@@ -176,8 +221,10 @@
     <div id="spPrintPortal" hidden></div>
 
     <script src="../../assets/js/layout.js"></script>
+    <script src="i18n.js"></script>
     <script src="core.js"></script>
     <script src="props.js"></script>
+    <script src="draw.js"></script>
     <script src="plan.js"></script>
     <script src="sheets.js"></script>
     <script src="app.js"></script>
