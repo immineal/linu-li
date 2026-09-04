@@ -1743,11 +1743,17 @@
         drawStagePreview();
 
         var shape = SP.shapeById(stage.shape);
+        /* Jedes Maß hat seine eigene Erklärung; an der Überschrift hing bisher
+           nur die der Breite, Tiefe und Vorbühne standen unerklärt da. */
+        var FIELD_EXPLAIN = {
+            width: 'stage.width', depth: 'stage.depth',
+            apronWidth: 'stage.apron', apronDepth: 'stage.apron'
+        };
         var dimensionFields = shape.fields.map(function (field) {
             var isCount = field === 'sides';
             var value = isCount ? SP.num(stage[field], 6) : toField(SP.num(stage[field], 1));
             return '<div><label for="spDim-' + field + '">' + esc(FIELD_LABELS[field] || field) +
-                (isCount ? '' : ' (' + lengthLabel() + ')') + '</label>' +
+                (isCount ? '' : ' (' + lengthLabel() + ')') + why(FIELD_EXPLAIN[field] || '') + '</label>' +
                 '<input type="number" id="spDim-' + field + '" data-stage-field="' + field + '"' +
                 ' step="' + (isCount ? '1' : '0.1') + '" min="' + (isCount ? '3' : '0.5') + '"' +
                 (isCount ? ' max="24"' : '') + ' value="' + value + '"></div>';
@@ -1768,7 +1774,7 @@
         }).join('');
 
         $('#spStageSide').innerHTML =
-            '<div class="sp-section"><h3>' + esc(t('Measurements')) + why('stage.width') + '</h3>' +
+            '<div class="sp-section"><h3>' + esc(t('Measurements')) + '</h3>' +
             '<div class="' + (shape.fields.length > 2 ? 'sp-field-row' : 'sp-field-row') + '">' + dimensionFields + '</div>' +
             '<p class="sp-hint" id="spStageReadout" style="margin-top:0.5rem">' +
             esc(t('The playing area comes out {w} across by {h} deep.', {
@@ -1811,7 +1817,7 @@
 
             '<div class="sp-section"><h3>' + esc(t('Curtains')) + why('stage.curtains') + '</h3>' +
             (curtains ? '<div style="margin-bottom:0.5rem"><div class="sp-curtain-row" style="font-size:0.7rem;color:var(--sp-muted)">' +
-                '<span>' + esc(t('Name')) + '</span><span>' + esc(t('Upstage ({unit})', { unit: lengthLabel() })) + '</span><span>' + esc(t('Normally')) + '</span><span></span></div>' +
+                '<span>' + esc(t('Name')) + '</span><span>' + esc(t('Upstage ({unit})', { unit: lengthLabel() })) + why('stage.curtain.offset') + '</span><span>' + esc(t('Normally')) + '</span><span></span></div>' +
                 curtains + '</div>' : '<p class="sp-hint">' + esc(t('No curtain marked.')) + '</p>') +
             '<div class="sp-btn-row"><button class="sp-btn" data-act="add-curtain">' + esc(t('Add a curtain')) + '</button></div>' +
             '<p class="sp-hint" style="margin-top:0.5rem">' +
@@ -3070,6 +3076,7 @@
                 '<button class="sp-btn" data-act="load-example">' + esc(t('Open the example')) + '</button>' +
                 '<button class="sp-btn" data-act="export-json">' + esc(t('Export a backup')) + '</button>' +
                 '<button class="sp-btn" data-act="import-json">' + esc(t('Restore a backup')) + '</button>' +
+                why('store.restore') +
                 (db.productions.length > 1
                     ? '<button class="sp-btn is-danger" data-act="delete-production">' + esc(t('Delete this production')) + '</button>' : '') +
                 '</div>',

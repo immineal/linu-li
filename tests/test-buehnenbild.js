@@ -1055,5 +1055,22 @@ test('an exact title wins over a mere mention', () => {
     assert.strictEqual(first.key, 'stage.wings');
 });
 
+
+test('every explainer is attached to a control', () => {
+    /* Erklärtexte, die niemand erreicht, sind teurer als keine: sie sehen
+       im Wörterbuch nach Dokumentation aus und stehen im Programm nirgends.
+       Vier lagen so herum — Tiefe, Vorbühne, Vorhangabstand und
+       Wiederherstellen. Wer eine neue Erklärung schreibt, muss sie auch
+       aufhängen, sonst fällt das hier auf. */
+    const fs = require('fs');
+    const path = require('path');
+    const dir = path.join(__dirname, '../tools/buehnenbild/');
+    const src = fs.readFileSync(dir + 'app.js', 'utf8') +
+        fs.readFileSync(dir + 'index.html', 'utf8');
+    const loose = Object.keys(I18n.EXPLAIN.de).filter(
+        (key) => src.indexOf("'" + key + "'") === -1 && src.indexOf('"' + key + '"') === -1);
+    assert.deepStrictEqual(loose, [], 'diese Erklärungen hängen an nichts');
+});
+
 console.log('\n' + passed + ' checks passed');
 
