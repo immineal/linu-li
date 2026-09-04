@@ -531,6 +531,58 @@ test('an unknown key falls through to its own text', () => {
     assert.strictEqual(I18n.t('Kleiderständer aus dem Fundus'), 'Kleiderständer aus dem Fundus');
 });
 
+test('every translated string in the source exists in the dictionary', () => {
+    /*
+     * Fängt die Sorte Fehler, die beim Aufräumen des Wörterbuchs entsteht:
+     * ein Schlüssel wird als unbenutzt gestrichen, obwohl ihn jemand aufruft.
+     * Dann fällt t() stillschweigend auf den englischen Schlüssel zurück und
+     * niemand merkt es, bis ein Anwender englischen Text sieht.
+     */
+    const fs = require('fs');
+    const path = require('path');
+    const dir = path.join(__dirname, '../tools/scene-planner/');
+    const missing = [];
+
+    const record = (raw, where) => {
+        let key;
+        try { key = JSON.parse('"' + raw.replace(/\\'/g, "'").replace(/"/g, '\\"') + '"'); }
+        catch (e) { return; }
+        if (I18n.DE[key] === undefined) missing.push(key + '  (' + where + ')');
+    };
+
+    ['app.js', 'core.js', 'plan.js', 'sheets.js', 'draw.js'].forEach((file) => {
+        const src = fs.readFileSync(dir + file, 'utf8');
+        // t('…') — aber nicht t('… ' + variable), wo der Schlüssel erst zur
+        // Laufzeit entsteht
+        const call = /(?:^|[^\w$.])t\(\s*'((?:[^'\\]|\\.)*)'\s*([),])/g;
+        let m;
+        while ((m = call.exec(src))) record(m[1], file);
+        const plural = /plural\(\s*[^,]+,\s*'((?:[^'\\]|\\.)*)'\s*,\s*'((?:[^'\\]|\\.)*)'/g;
+        while ((m = plural.exec(src))) { record(m[1], file); record(m[2], file); }
+    });
+
+    // data-i18n im Markup: der sichtbare Text ist selbst der Schlüssel
+    const html = fs.readFileSync(dir + 'index.html', 'utf8');
+    const tag = /<(\w+)[^>]*\sdata-i18n(?=[\s>])[^>]*>([^<]*)</g;
+    let h;
+    while ((h = tag.exec(html))) {
+        const key = h[2].replace(/\s+/g, ' ').trim();
+        if (key && I18n.DE[key] === undefined) missing.push(key + '  (index.html)');
+    }
+
+    assert.deepStrictEqual(missing, [], 'these keys fall back to English');
+});
+
+test('no dictionary entry is an accidental English passthrough', () => {
+    /* Einzelne Wörter dürfen gleich sein — Name, Position, Park und Umbauplan
+       heißen in beiden Sprachen so. Ein ganzer Satz, der sich nicht ändert,
+       ist dagegen eine vergessene Übersetzung. */
+    const same = Object.keys(I18n.DE)
+        .filter((k) => I18n.DE[k] === k && k.indexOf(' ') > -1);
+    assert.deepStrictEqual(same, [], 'these phrases translate to themselves');
+});
+
+
 test('no dictionary key is defined twice', () => {
     /* Zwei Einträge mit demselben Schlüssel: der zweite gewinnt stillschweigend.
        So wurde aus dem Knopf „Spiegeln“ einmal das Requisit „Spiegel“. */
@@ -585,16 +637,11 @@ test('the reference box lists the places a scene actually plays in', () => {
         'a place with a standing list is printed even when unused');
 });
 
-test('a place can read its standing list back from its scenes', () => {
+test('a place can read its standing list back from its own set', () => {
     const cafe = SP.newPlace('Café');
-    const production = {
-        places: [cafe],
-        scenes: [{
-            id: 's1', placeId: cafe.id,
-            placements: [placement('ill-chair', -1, 3), placement('ill-chair', 1, 3),
-                         placement('ill-table', 0, 4)]
-        }]
-    };
+    cafe.placements = [placement('ill-chair', -1, 3), placement('ill-chair', 1, 3),
+                       placement('ill-table', 0, 4)];
+    const production = { places: [cafe], scenes: [] };
     const lines = SP.suggestPlaceProps(production, cafe.id, (id) => Props.get(id).name);
     assert.deepStrictEqual(lines, ['2 × School chair', 'Table from above']);
     assert.strictEqual(cafe.props.length, 0, 'nothing is written into the place behind the user’s back');

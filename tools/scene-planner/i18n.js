@@ -210,6 +210,26 @@
         'Flip': 'Umdrehen',
         'Space evenly': 'Gleichmäßig verteilen',
         'Copy': 'Kopie',
+        'Shift finer · Alt free': 'Umschalt feiner · Alt frei',
+        'Shift 5° · Alt free': 'Umschalt 5° · Alt frei',
+        'Shift keeps the proportion off': 'Umschalt hält das Verhältnis',
+        'Drag to move · Shift adds to the selection': 'Ziehen verschiebt · Umschalt wählt dazu',
+        'Space or middle mouse pans · wheel zooms': 'Leertaste oder mittlere Maustaste schiebt · Rad zoomt',
+        'Take the wording from the set': 'Wortlaut aus dem Bühnenbild holen',
+        'Mirror it across the centre line': 'Dabei an der Mittelachse spiegeln',
+        'Measured upstage from the setting line. Each scene can open or close them on its own.':
+            'Gemessen von der Bauflucht nach hinten. Ob ein Vorhang offen oder zu ist, entscheidet jede Szene für sich.',
+        'Add {n} productions from the backup?': '{n} Produktionen aus der Sicherung dazunehmen?',
+        'Add 1 production from the backup?': '1 Produktion aus der Sicherung dazunehmen?',
+        '1 prop copied.': '1 Requisit kopiert.',
+        '{n} props copied.': '{n} Requisiten kopiert.',
+        'Kitchen\nMarket\nCafé': 'Schule\nMarkt\nWohnzimmer\nPark\nCafé',
+        'Set the playing area once and every scene inherits it. A single scene can be given its own stage if the set changes shape at the interval.':
+            'Die Spielfläche einmal festlegen, alle Szenen übernehmen sie. Einzelne Szenen können eine eigene Bühne bekommen, wenn sich die Form in der Pause ändert.',
+        'Name the sets that recur through the evening — the kitchen, the market, the café. A scene picks a place, and the printed reference box lists what belongs in each one.':
+            'Benenne die Bühnenbilder, die im Lauf des Abends wiederkehren: die Schule, den Markt, das Café. Eine Szene wählt einen Ort, und der Referenzkasten im Umbauplan listet, was zu jedem gehört.',
+        'Sixty-odd drawings to start with, plus anything you add yourself. Every prop carries a real footprint, so it lands on the plan at the right size.':
+            'Knapp vierzig Zeichnungen zum Anfangen, dazu alles, was du selbst zeichnest oder hochlädst. Jedes Requisit hat eine echte Grundfläche und landet damit maßstäblich im Plan.',
         'Choose a drawing first.': 'Wähle zuerst eine Zeichnung.',
         'The set': 'Das Bühnenbild',
         'Insert this place’s set': 'Bühnenbild dieses Orts einsetzen',
@@ -258,7 +278,7 @@
             'Neben jeder Einstellung im Planer steht ein ?. Es sagt, was die Einstellung auf dem gedruckten Blatt bewirkt, nicht bloß, wie sie heißt.',
         'Where things live': 'Wo was steckt',
         'Scene numbering, units and the direction convention are under Settings, next to the production name. The stage shape, the grid, the wings and the curtains are on the Stage tab.':
-            'Szenennummerierung, Maßeinheit und Richtungssicht stehen unter „Einstellungen“, neben dem Namen der Produktion. Bühnenform, Raster, Gassen und Vorhänge stehen im Reiter „Bühne“.',
+            'Szenennummerierung und Richtungssicht stehen unter „Einstellungen“, neben dem Namen der Produktion. Bühnenform, Maße, Maßeinheit, Raster, Gassen und Vorhänge stehen im Reiter „Bühne“.',
         'A play in two acts, for trying things out': 'Ein Stück in zwei Akten, zum Ausprobieren',
         'School hall': 'Aula',
         'Before the interval': 'Vor der Pause',
@@ -513,7 +533,6 @@
         'the audience': 'des Publikums',
         'the cast': 'der Spielenden',
 
-        'stage.wings': 'Gassen',
 
         /* ------------------------------------------------------ Stage shapes */
         'Rectangular': 'Rechteckig',

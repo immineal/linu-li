@@ -767,6 +767,18 @@ body {
  * um nicht im Weg zu stehen, groß genug, um getroffen zu werden.
  * ====================================================================== */
 
+/* Was die Umschalt- und Alt-Taste gerade tun. Steht rechts in der Statuszeile,
+   weil die halbe Bedienung sonst nirgends steht. */
+.sp-hintbar {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--sp-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+@media (max-width: 1100px) { .sp-hintbar { display: none; } }
+
 .sp-why {
     appearance: none;
     width: 1.05rem;

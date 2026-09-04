@@ -882,32 +882,14 @@
     }
 
     /*
-     * Reads back what the scenes in a place actually hold, as a starting point
-     * for its standing list. Offered to the user on a button — never written
-     * into the plan behind their back.
+     * Liest die feste Liste aus dem Bühnenbild des Orts. Angeboten auf einen
+     * Knopf, nie von selbst geschrieben: nur die Mannschaft weiß, ob im Glas
+     * ein Schluck Wasser sein muss.
      */
     function suggestPlaceProps(production, placeId, nameOf) {
-        var counts = {};
-        var order = [];
-        scenesInPlace(production, placeId).forEach(function (scene) {
-            var perScene = {};
-            (scene.placements || []).forEach(function (pl) {
-                var key = pl.propId + '|' + labelKey(pl);
-                if (!perScene[key]) {
-                    perScene[key] = {
-                        count: 0,
-                        name: nameOf ? nameOf(pl.propId) : pl.propId,
-                        label: (pl.label || '').trim()
-                    };
-                }
-                perScene[key].count += 1;
-            });
-            Object.keys(perScene).forEach(function (key) {
-                if (!counts[key]) { counts[key] = perScene[key]; order.push(key); }
-                else counts[key].count = Math.max(counts[key].count, perScene[key].count);
-            });
-        });
-        return order.map(function (key) { return describeGroup(counts[key]); });
+        var place = placeById(production, placeId);
+        if (!place) return [];
+        return groupByProp(place.placements || [], nameOf).map(describeGroup);
     }
 
     /* ------------------------------------------------------------------ *

@@ -769,6 +769,22 @@
         });
     }
 
+    /*
+     * Sagt an, was Umschalt und Alt gerade bewirken. Ein gutes Drittel der
+     * Bedienung hängt an diesen beiden Tasten und stand bisher nirgends.
+     */
+    function setModifierHint(mode) {
+        var el = $('#spModifierHint');
+        if (!el) return;
+        var text = '';
+        if (mode === 'move') text = t('Shift finer · Alt free');
+        else if (mode === 'rotate') text = t('Shift 5° · Alt free');
+        else if (mode === 'scale') text = t('Shift keeps the proportion off');
+        else if (selectedPlacements().length) text = t('Drag to move · Shift adds to the selection');
+        else text = t('Space or middle mouse pans · wheel zooms');
+        el.textContent = text;
+    }
+
     function renderOverlay(temp) {
         var layer = $('#spOverlay');
         if (!layer) return;
@@ -831,6 +847,7 @@
             ? t((resolveProp(sel[0].propId) || { name: t('Unknown prop') }).name) + ', ' +
               SP.describePosition(stageOf(scene()), sel[0].x, sel[0].y, units())
             : (sel.length ? SPI18n.plural(sel.length, '1 prop selected', '{n} props selected') : '');
+        setModifierHint(null);
     }
 
     function propTile(prop) {
@@ -903,7 +920,7 @@
             host.innerHTML =
                 '<div class="sp-section"><h3>' + esc(SPI18n.plural(sel.length, '1 prop selected', '{n} props selected')) + '</h3>' +
                 '<div class="sp-btn-row">' +
-                '<button class="sp-btn" data-act="align" data-axis="x">' + esc(t('Line up across')) + '</button>' +
+                why('item.align') + '<button class="sp-btn" data-act="align" data-axis="x">' + esc(t('Line up across')) + '</button>' +
                 '<button class="sp-btn" data-act="align" data-axis="y">' + esc(t('Line up upstage')) + '</button>' +
                 '<button class="sp-btn" data-act="spread" data-axis="x">' + esc(t('Space evenly')) + '</button>' +
                 '<button class="sp-btn" data-act="mirror-selection">' + esc(t('Mirror')) + '</button>' +
@@ -928,7 +945,7 @@
         host.innerHTML =
             '<div class="sp-section">' +
             '<h3>' + esc(t(prop.name)) + '</h3>' +
-            '<div class="sp-field"><label for="spItemLabel">' + esc(t('Written on the plan')) + '</label>' +
+            '<div class="sp-field"><label for="spItemLabel">' + esc(t('Written on the plan')) + why('item.label') + '</label>' +
             '<input type="text" id="spItemLabel" data-bind="item.label" value="' + esc(p.label || '') +
             '" placeholder="' + esc(t('e.g. Anna’s chair')) + '"></div>' +
             '<div class="sp-field"><label for="spItemNote">' + esc(t('Note for the crew')) + '</label>' +
@@ -945,7 +962,7 @@
             toField(out.frontY - p.y) + '"></div>' +
             '</div>' +
             '<div class="sp-field-row">' +
-            '<div><label for="spItemRot">' + esc(t('Turned (degrees)')) + '</label>' +
+            '<div><label for="spItemRot">' + esc(t('Turned (degrees)')) + why('item.rot') + '</label>' +
             '<input type="number" step="5" id="spItemRot" data-bind="item.rot" value="' + SP.round(p.rot || 0, 1) + '"></div>' +
             '<div><label>' + esc(t('Reads as')) + '</label><p class="sp-hint" style="margin-top:0.3rem">' +
             esc(SP.zoneName(stage, p.x, p.y)) +
@@ -966,16 +983,16 @@
             '</div>' +
             '<div class="sp-btn-row">' +
             '<button class="sp-btn" data-act="reset-size">' + esc(t('Back to catalogue size')) + '</button>' +
-            '<button class="sp-btn' + (p.flip ? ' is-on' : '') + '" data-act="flip">' + esc(t('Flip')) + '</button>' +
+            '<button class="sp-btn' + (p.flip ? ' is-on' : '') + '" data-act="flip">' + esc(t('Flip')) + '</button>' + why('item.flip') +
             '<button class="sp-btn' + (p.locked ? ' is-on' : '') + '" data-act="lock">' +
-            (p.locked ? t('Locked') : t('Lock')) + '</button>' +
+            (p.locked ? t('Locked') : t('Lock')) + '</button>' + why('item.lock') +
             '</div></div>' +
 
             '<div class="sp-section"><h3>' + esc(t('Order and copies')) + '</h3><div class="sp-btn-row">' +
             '<button class="sp-btn" data-act="raise">' + esc(t('Bring forward')) + '</button>' +
             '<button class="sp-btn" data-act="lower">' + esc(t('Send back')) + '</button>' +
             '<button class="sp-btn" data-act="duplicate-selection">' + esc(t('Duplicate')) + '</button>' +
-            '<button class="sp-btn" data-act="push-forward">' + esc(t('Carry into later scenes…')) + '</button>' +
+            '<button class="sp-btn" data-act="push-forward">' + esc(t('Carry into later scenes…')) + '</button>' + why('scene.pushForward') +
             '<button class="sp-btn is-danger" data-act="delete-selection">' + esc(t('Delete')) + '</button>' +
             '</div></div>';
     }
@@ -1098,7 +1115,58 @@
      * Modals
      * ================================================================== */
 
+    var FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), ' +
+        'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    function focusableIn(root) {
+        return $$(FOCUSABLE, root).filter(function (el) {
+            return el.offsetParent !== null || el === document.activeElement;
+        });
+    }
+
+    /*
+     * Hält Tab im Dialog. Ohne das wandert der Fokus hinter das Fenster in die
+     * Seite, die gerade nicht bedienbar ist — man tabbt ins Leere und kommt
+     * nur mit der Maus zurück.
+     */
+    function trapFocus(backdrop) {
+        backdrop.addEventListener('keydown', function (e) {
+            if (e.key !== 'Tab') return;
+            var items = focusableIn(backdrop);
+            if (!items.length) return;
+            var first = items[0];
+            var last = items[items.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault(); last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault(); first.focus();
+            }
+        });
+    }
+
+    /*
+     * Beim Schließen dorthin zurück, wo der Anwender herkam. Gab es keinen
+     * Ausgangspunkt — beim allerersten Öffnen etwa — dann auf die Bühne,
+     * damit der Fokus nicht im Nichts liegt und die Tastatur weiter greift.
+     */
+    function restoreFocus(opener) {
+        if (opener && opener.isConnected && opener !== document.body) {
+            opener.focus({ preventScroll: true });
+            return;
+        }
+        var fallback = $('#spCanvas') || $('.sp-tab-btn[aria-selected="true"]') || $('.sp-tab-btn');
+        if (fallback) fallback.focus({ preventScroll: true });
+    }
+
+    /* Beim Öffnen ins erste bedienbare Element. */
+    function focusFirstIn(backdrop) {
+        var field = $('input:not([type="hidden"]), select, textarea', backdrop);
+        var target = field || focusableIn(backdrop)[0];
+        if (target) target.focus({ preventScroll: true });
+    }
+
     function openModal(config) {
+        var opener = document.activeElement;
         var backdrop = document.createElement('div');
         backdrop.className = 'sp-modal-backdrop';
         var actions = (config.actions || []).map(function (a, i) {
@@ -1121,6 +1189,7 @@
             document.removeEventListener('keydown', onKey, true);
             backdrop.remove();
             if (config.onClose) config.onClose();
+            restoreFocus(opener);
             renderIntro(ui.tab);
         }
         function onKey(e) {
@@ -1144,8 +1213,8 @@
         document.addEventListener('keydown', onKey, true);
         closeIntro();
         document.body.appendChild(backdrop);
-        var first = $('input, select, textarea', body);
-        if (first) first.focus();
+        trapFocus(backdrop);
+        focusFirstIn(backdrop);
         return { element: backdrop, body: body, close: close };
     }
 
@@ -1187,9 +1256,19 @@
         });
     }
 
-    function snap(value) {
+    /*
+     * Rastet auf halbe Rasterfelder ein. Mit gedrückter Umschalttaste noch
+     * einmal halb so fein — für den Stuhl, der genau neben dem Tisch stehen
+     * muss und nicht auf der nächsten Rasterlinie.
+     */
+    function snapStep(fine) {
+        var spacing = SP.num((stageOf(scene()).grid || {}).spacing, 1) / 2;
+        return fine ? spacing / 2 : spacing;
+    }
+
+    function snap(value, fine) {
         if (!ui.snap) return SP.round(value, 3);
-        var step = SP.num((stageOf(scene()).grid || {}).spacing, 1) / 2;
+        var step = snapStep(fine);
         return SP.round(Math.round(value / step) * step, 3);
     }
 
@@ -1369,7 +1448,7 @@
                 '<select id="spCopyMode">' +
                 '<option value="replace">' + esc(t('replace what is here')) + '</option>' +
                 '<option value="merge">' + esc(t('add to what is here')) + '</option></select></div>' +
-                '<label class="sp-check"><input type="checkbox" id="spCopyMirror"> Mirror it across the centre line</label>' +
+                '<label class="sp-check"><input type="checkbox" id="spCopyMirror"> ' + esc(t('Mirror it across the centre line')) + '</label>' +
                 '<p class="sp-hint">' + esc(t('Props keep their identity, so the change list will say “moved” rather than “struck and brought back on”.')) + '</p>',
             actions: [{
                 label: t('Copy the layout'), primary: true,
@@ -1717,8 +1796,9 @@
                 '<span>' + esc(t('Name')) + '</span><span>' + esc(t('Upstage ({unit})', { unit: lengthLabel() })) + '</span><span>' + esc(t('Normally')) + '</span><span></span></div>' +
                 curtains + '</div>' : '<p class="sp-hint">' + esc(t('No curtain marked.')) + '</p>') +
             '<div class="sp-btn-row"><button class="sp-btn" data-act="add-curtain">' + esc(t('Add a curtain')) + '</button></div>' +
-            '<p class="sp-hint" style="margin-top:0.5rem">Measured upstage from the setting line. Each scene can ' +
-            'open or close them on its own.</p></div>' +
+            '<p class="sp-hint" style="margin-top:0.5rem">' +
+            esc(t('Measured upstage from the setting line. Each scene can open or close them on its own.')) +
+            '</p></div>' +
 
             '<div class="sp-section"><h3>' + esc(t('This production')) + '</h3>' +
             '<div class="sp-field"><label for="spUnits">' + esc(t('Measure in')) + '</label>' +
@@ -1842,7 +1922,7 @@
                 '<input type="text" id="spPropName" value="' + esc(draft.name) + '" placeholder="' + esc(t('Grandfather clock')) + '"></div>' +
                 '<div class="sp-field"><label for="spPropCat">' + esc(t('Category')) + '</label><select id="spPropCat">' +
                 cats.map(function (c) {
-                    return '<option value="' + esc(c) + '"' + (draft.cat === c ? ' selected' : '') + '>' + esc(c) + '</option>';
+                    return '<option value="' + esc(c) + '"' + (draft.cat === c ? ' selected' : '') + '>' + esc(t(c)) + '</option>';
                 }).join('') + '</select></div>' +
                 '<div class="sp-field-row">' +
                 '<div><label for="spPropW">' + esc(t('Across ({unit})', { unit: lengthLabel() })) + '</label>' +
@@ -2846,8 +2926,8 @@
                     return;
                 }
                 var mode = window.confirm(
-                    'Add ' + incoming.productions.length + ' production' +
-                    (incoming.productions.length === 1 ? '' : 's') + ' from the backup?\n\n' +
+                    SPI18n.plural(incoming.productions.length,
+                        'Add 1 production from the backup?', 'Add {n} productions from the backup?') + '\n\n' +
                     t('OK adds them alongside what you have. Cancel replaces everything.'));
                 change(function () {
                     incoming.productions.forEach(migrateProduction);
@@ -3011,7 +3091,9 @@
             var lead = drag.items[0];
             var rawX = lead.x + (point.x - drag.start.x);
             var rawY = lead.y + (point.y - drag.start.y);
-            var snapped = e.altKey ? { x: SP.round(rawX, 3), y: SP.round(rawY, 3) } : { x: snap(rawX), y: snap(rawY) };
+            var snapped = e.altKey
+                ? { x: SP.round(rawX, 3), y: SP.round(rawY, 3) }
+                : { x: snap(rawX, e.shiftKey), y: snap(rawY, e.shiftKey) };
             var shiftX = snapped.x - lead.x;
             var shiftY = snapped.y - lead.y;
             drag.items.forEach(function (entry) {
@@ -3021,6 +3103,7 @@
             });
             renderOverlay();
             $('#spPointerReadout').textContent = SP.describePosition(stageOf(sc), lead.ref.x, lead.ref.y, units());
+            setModifierHint('move');
             return;
         }
 
@@ -3028,11 +3111,15 @@
             var target = findPlacement(drag.id);
             if (!target) return;
             var angle = Math.atan2(point.y - target.y, point.x - target.x) * 180 / Math.PI + 90;
-            if (!e.altKey) angle = Math.round(angle / 15) * 15;
+            if (!e.altKey) {
+                var stepDeg = e.shiftKey ? 5 : 15;
+                angle = Math.round(angle / stepDeg) * stepDeg;
+            }
             target.rot = SP.normaliseAngle(angle);
             setNodeTransform(itemNode(target.id), target);
             renderOverlay();
             $('#spPointerReadout').textContent = t('Turned {n}°', { n: Math.round(target.rot) });
+            setModifierHint('rotate');
             return;
         }
 
@@ -3058,6 +3145,7 @@
             renderOverlay();
             $('#spPointerReadout').textContent = SP.formatLength(item.w, units()) + ' × ' +
                 SP.formatLength(item.h, units());
+            setModifierHint('scale');
             return;
         }
 
@@ -3105,6 +3193,7 @@
     function onCanvasPointerUp(e) {
         var host = $('#spStageHost');
         host.classList.remove('is-panning');
+        setModifierHint(null);
         if (!drag) return;
 
         if (drag.mode === 'pan') { drag = null; return; }
@@ -3284,6 +3373,12 @@
                 'data-place="' + esc(place.id) + '" placeholder="' +
                 esc(t('Leave empty and the list is read from the set.')) + '">' +
                 esc((place.props || []).join('\n')) + '</textarea>' +
+                (place.placements && place.placements.length
+                    ? '<div class="sp-btn-row" style="margin-top:0.4rem">' +
+                      '<button class="sp-btn is-quiet" data-act="suggest-place-props" data-id="' +
+                      esc(place.id) + '">' + esc(t('Take the wording from the set')) + '</button>' +
+                      why('place.suggest') + '</div>'
+                    : '') +
                 (status ? '<div class="sp-place-status">' + status + '</div>' : '') +
                 '</div></div></section>';
         }).join('');
@@ -3606,11 +3701,14 @@
             '<button class="sp-btn" data-wiz="back">' + esc(t('Back')) + '</button>' +
             '<button class="sp-btn is-primary" data-wiz="next">' + esc(t('Next')) + '</button>' +
             '</footer></div>';
+        var opener = document.activeElement;
         closeIntro();
         document.body.appendChild(backdrop);
+        trapFocus(backdrop);
 
         function close() {
             backdrop.remove();
+            restoreFocus(opener);
             renderIntro(ui.tab);
         }
 
@@ -3774,8 +3872,9 @@
             $('[data-wiz="back"]', backdrop).disabled = draft.step === 0;
             $('[data-wiz="next"]', backdrop).textContent =
                 draft.step === WIZARD_STEPS.length - 1 ? t('Take me to the first scene') : t('Next');
-            var focus = $('input, select, textarea', body);
-            if (focus) focus.focus();
+            var focus = $('input:not([type="hidden"]), select, textarea', body) ||
+                focusableIn(body)[0] || $('[data-wiz="next"]', backdrop);
+            if (focus) focus.focus({ preventScroll: true });
         }
 
         function finish() {
@@ -3841,7 +3940,14 @@
         });
 
         backdrop.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') close();
+            if (e.key === 'Escape') { close(); return; }
+            /* Eingabetaste in einem Feld schaltet weiter. In einem Formular
+               erwartet das jeder; ohne es muss man zur Maus greifen. */
+            if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' &&
+                e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                $('[data-wiz="next"]', backdrop).click();
+            }
         });
 
         renderStep();
@@ -4206,7 +4312,7 @@
                     var field = el.dataset.stageField;
                     if (field === 'grid.spacing') stage.grid.spacing = Math.max(0.1, fromField(el.value, 1));
                     else if (field === 'sides') stage.sides = SP.clamp(Math.round(Number(el.value) || 6), 3, 24);
-                    else stage[field] = Math.max(0.2, fromField(el.value, SP.num(stage[field], 1)));
+                    else stage[field] = Math.max(0.5, fromField(el.value, SP.num(stage[field], 1)));
                     ui.view = null;
                 });
                 return;
@@ -4324,6 +4430,11 @@
 
         var svg = $('#spCanvas');
         svg.addEventListener('pointerdown', function (e) {
+            /* Den Fokus mitnehmen. Sonst bleibt er in dem Feld, das zuletzt
+               angefasst wurde, und jede Tastenabfrage steigt bei isTyping()
+               aus — die Pfeiltasten, Entf und Kopieren wirken dann einfach
+               nicht mehr, ohne dass etwas darauf hindeutet. */
+            if (document.activeElement !== svg) svg.focus({ preventScroll: true });
             pendingDragState = snapshot();
             onCanvasPointerDown(e);
             if (!drag) pendingDragState = null;
@@ -4420,7 +4531,7 @@
             }
             if (meta && e.key.toLowerCase() === 'c') {
                 clipboard = JSON.parse(JSON.stringify(selectedPlacements()));
-                if (clipboard.length) toast(clipboard.length + ' prop' + (clipboard.length === 1 ? '' : 's') + ' copied.');
+                if (clipboard.length) toast(SPI18n.plural(clipboard.length, '1 prop copied.', '{n} props copied.'));
                 return;
             }
             if (meta && e.key.toLowerCase() === 'v') {
@@ -4438,12 +4549,17 @@
                 });
                 return;
             }
-            if (meta && e.key.toLowerCase() === 'p') { e.preventDefault(); setTab('print'); return; }
+            if (meta && e.key.toLowerCase() === 'p') {
+                /* Nicht abfangen: Strg+P heißt überall drucken. Der Reiter
+                   wird gewechselt, der Druckdialog des Browsers geht trotzdem
+                   auf, und dahinter steht dann die richtige Vorschau. */
+                setTab('print');
+                return;
+            }
             if (meta) return;
 
             if (ui.tab !== 'scenes') return;
-            var step = ui.snap ? SP.num((stageOf(scene()).grid || {}).spacing, 1) / 2 : 0.05;
-            if (e.shiftKey) step *= 2;
+            var step = ui.snap ? snapStep(e.shiftKey) : (e.shiftKey ? 0.025 : 0.05);
 
             switch (e.key) {
             case 'Delete':
@@ -4453,7 +4569,6 @@
             case 'ArrowRight': e.preventDefault(); nudge(step, 0); break;
             case 'ArrowUp': e.preventDefault(); nudge(0, -step); break;
             case 'ArrowDown': e.preventDefault(); nudge(0, step); break;
-            case 'r': case 'R': rotateSelection(e.shiftKey ? -15 : 15); break;
             case 'f': case 'F': fitView(); break;
             case 'm': case 'M': mirrorSelection(); break;
             default: break;
