@@ -1,14 +1,15 @@
 /*
- * Scene & prop planner — geometry, change lists and printed pagination.
+ * Bühnenbild-Planer — geometry, change lists and printed pagination.
  * Pure Node, no browser: the modules under test never touch the DOM.
  */
 const assert = require('assert');
-const SP = require('../tools/scene-planner/core.js');
-const Props = require('../tools/scene-planner/props.js');
-const Plan = require('../tools/scene-planner/plan.js');
-const Sheets = require('../tools/scene-planner/sheets.js');
-const I18n = require('../tools/scene-planner/i18n.js');
-const Draw = require('../tools/scene-planner/draw.js');
+const SP = require('../tools/buehnenbild/core.js');
+const Props = require('../tools/buehnenbild/props.js');
+const Plan = require('../tools/buehnenbild/plan.js');
+const Sheets = require('../tools/buehnenbild/sheets.js');
+const I18n = require('../tools/buehnenbild/i18n.js');
+const Draw = require('../tools/buehnenbild/draw.js');
+const Guide = require('../tools/buehnenbild/guide.js');
 
 let passed = 0;
 function test(name, fn) {
@@ -540,7 +541,7 @@ test('every translated string in the source exists in the dictionary', () => {
      */
     const fs = require('fs');
     const path = require('path');
-    const dir = path.join(__dirname, '../tools/scene-planner/');
+    const dir = path.join(__dirname, '../tools/buehnenbild/');
     const missing = [];
 
     const record = (raw, where) => {
@@ -587,7 +588,7 @@ test('no dictionary key is defined twice', () => {
     /* Zwei Einträge mit demselben Schlüssel: der zweite gewinnt stillschweigend.
        So wurde aus dem Knopf „Spiegeln“ einmal das Requisit „Spiegel“. */
     const src = require('fs').readFileSync(
-        require('path').join(__dirname, '../tools/scene-planner/i18n.js'), 'utf8');
+        require('path').join(__dirname, '../tools/buehnenbild/i18n.js'), 'utf8');
     const table = src.slice(src.indexOf('var DE = {'), src.indexOf('var EXPLAIN_DE'));
     const keys = table.match(/^ {8}'(?:[^'\\]|\\.)*':/gm) || [];
     const seen = new Set();
@@ -988,4 +989,71 @@ test('a long evening paginates and repeats the column heads', () => {
 });
 
 
+
+test('crowded labels step out of each other’s way', () => {
+    /* Vier Tassen auf einem Tisch druckten ihre Namen übereinander — auf dem
+       Blatt ein schwarzer Klumpen statt einer Liste. Jetzt rutschen sie
+       untereinander. Geprüft wird, was am Ende im SVG steht. */
+    const stage = Object.assign({}, SP.DEFAULT_STAGE, { shape: 'rect', width: 10, depth: 8 });
+    const mug = Props.get('ill-mug');
+    const scene = {
+        placements: [
+            SP.makePlacement(mug, 0, 4),
+            SP.makePlacement(mug, 0.1, 4.05),
+            SP.makePlacement(mug, -0.1, 4.02),
+            SP.makePlacement(mug, 0.05, 3.98)
+        ]
+    };
+    const svg = Plan.svg({ stage, scene, resolve, units: 'm', labels: 'name' });
+    const ys = [...svg.matchAll(/<text class="sp-item-label"[^>]*\by="(-?[\d.]+)"/g)]
+        .map((m) => Number(m[1])).sort((a, b) => a - b);
+
+    assert.strictEqual(ys.length, 4, 'alle vier bekommen eine Beschriftung');
+    for (let i = 1; i < ys.length; i++) {
+        assert.ok(ys[i] - ys[i - 1] > 0.01,
+            `Zeile ${i} liegt auf der vorigen (${ys[i - 1]} / ${ys[i]})`);
+    }
+});
+
+
+test('every explainer has a route into the programme', () => {
+    /* Eine Suche, die einen zum falschen Reiter schickt, ist schlimmer als
+       gar keine. Ein neuer Schlüssel ohne Wegbeschreibung fällt hier auf. */
+    const keys = Object.keys(I18n.EXPLAIN.de);
+    assert.deepStrictEqual(Guide.audit(keys), [], 'diese Schlüssel führen ins Nichts');
+    Guide.buildIndex(keys, I18n.explain).forEach((entry) => {
+        assert.ok(entry.open && entry.open.length > 3,
+            entry.key + ' sagt nicht, wo die Einstellung wohnt');
+    });
+});
+
+test('the manual is found however you spell the umlaut', () => {
+    /* bühne / buehne / buhne müssen dasselbe finden — sonst tippt man im
+       Deutschen dauernd an der Suche vorbei. */
+    const index = Guide.buildIndex(Object.keys(I18n.EXPLAIN.de), I18n.explain);
+    const titles = (q) => Guide.search(index, q, 5).map((e) => e.key).join();
+    assert.ok(titles('bühne').length > 0, 'mit Umlaut wird etwas gefunden');
+    assert.strictEqual(titles('buehne'), titles('bühne'));
+    assert.strictEqual(titles('buhne'), titles('bühne'));
+    assert.strictEqual(Guide.fold('Maßstab'), Guide.fold('massstab'));
+});
+
+test('search narrows with each further word', () => {
+    /* Zwei Wörter dürfen die Liste nicht verlängern. Genau das passiert,
+       wenn man die Treffer vereinigt statt schneidet. */
+    const index = Guide.buildIndex(Object.keys(I18n.EXPLAIN.de), I18n.explain);
+    const one = Guide.search(index, 'raster', 50).length;
+    const two = Guide.search(index, 'raster drucken', 50).length;
+    assert.ok(one > 0, 'ein Wort findet etwas');
+    assert.ok(two <= one, `zwei Wörter fanden mehr (${one} -> ${two})`);
+    assert.deepStrictEqual(Guide.search(index, '   ', 5), [], 'leere Anfrage findet nichts');
+});
+
+test('an exact title wins over a mere mention', () => {
+    const index = Guide.buildIndex(Object.keys(I18n.EXPLAIN.de), I18n.explain);
+    const first = Guide.search(index, 'Gassen', 5)[0];
+    assert.strictEqual(first.key, 'stage.wings');
+});
+
 console.log('\n' + passed + ' checks passed');
+

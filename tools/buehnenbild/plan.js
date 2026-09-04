@@ -242,14 +242,40 @@
             body.push(drawProp(p, prop, u, flags));
             var caption = captionFor(p, prop, index, opts.labels);
             if (caption) {
-                var reach = Math.max(p.w, p.h) / 2 + fs * 0.95;
-                captions.push('<text class="sp-item-label" x="' + n(p.x) + '" y="' + n(p.y + reach) +
-                    '" font-size="' + n(fs) + '" text-anchor="middle" paint-order="stroke">' +
-                    esc(caption) + '</text>');
+                captions.push({
+                    x: p.x,
+                    y: p.y + Math.max(p.w, p.h) / 2 + fs * 0.95,
+                    text: caption
+                });
             }
         });
         parts.push('<g class="sp-items">' + body.join('') + '</g>');
-        if (captions.length) parts.push('<g class="sp-labels">' + captions.join('') + '</g>');
+
+        /* Vier Tassen auf einem Tisch ergaben bisher einen unlesbaren Klumpen
+           aus übereinander gedruckten Namen. Wer eng steht, rutscht nach
+           unten, bis er frei steht. Die Textbreite wird geschätzt — SVG misst
+           Text nicht, ohne ihn zu setzen —, das reicht zum Ausweichen. */
+        if (captions.length) {
+            var taken = [];
+            var line = fs * 1.2;
+            captions.sort(function (a, b) { return a.y - b.y || a.x - b.x; });
+            var drawn = captions.map(function (label) {
+                var w = label.text.length * fs * 0.52;
+                for (var tries = 0; tries < 8; tries++) {
+                    var clash = taken.some(function (other) {
+                        return Math.abs(label.x - other.x) < (w + other.w) / 2 &&
+                            Math.abs(label.y - other.y) < line;
+                    });
+                    if (!clash) break;
+                    label.y += line;
+                }
+                taken.push({ x: label.x, y: label.y, w: w });
+                return '<text class="sp-item-label" x="' + n(label.x) + '" y="' + n(label.y) +
+                    '" font-size="' + n(fs) + '" text-anchor="middle" paint-order="stroke">' +
+                    esc(label.text) + '</text>';
+            });
+            parts.push('<g class="sp-labels">' + drawn.join('') + '</g>');
+        }
 
         /* ------------------------------------------------------ scale bar */
         if (opts.scaleBar !== false && stage.scaleBar) {

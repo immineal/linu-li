@@ -443,10 +443,19 @@ body {
     font: inherit;
     font-size: 0.76rem;
     color: var(--ink);
+    /* Buttons zentrieren ihren Inhalt senkrecht. Da alle Karten gleich hoch
+       sind, sackte das Bild bei kurzer Beschreibung nach unten und die
+       Formen standen auf acht verschiedenen Höhen. */
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
 }
+.sp-shape-text strong { display: block; font-weight: 500; }
+.sp-shape-text > span { display: block; color: var(--sp-muted); font-size: 0.7rem; }
 .sp-shape-card:hover { border-color: var(--accent); }
 .sp-shape-card[aria-pressed="true"] { border-color: var(--accent); background: rgba(196, 77, 60, 0.06); }
-.sp-shape-card svg { width: 100%; height: 52px; display: block; margin-bottom: 0.3rem; }
+.sp-shape-card svg { flex: 0 0 auto; width: 100%; height: 52px; display: block; margin-bottom: 0.3rem; }
 .sp-shape-card svg path { fill: rgba(127, 127, 127, 0.14); stroke: currentColor; stroke-width: 1.6; }
 
 /* two-column working areas for the stage, library and print tabs */
@@ -470,6 +479,18 @@ body {
     background: var(--paper);
     padding: 0.75rem;
     height: 320px;
+}
+
+/* Der Bühne-Tab: seit man die Maße im Bild anfassen kann, ist das Bild die
+   Hauptsache und nicht mehr eine Miniatur unter den Formkarten. Der Text
+   oben bleibt schmal, das Bild bekommt den Rest. */
+.sp-stage-main { display: flex; flex-direction: column; gap: 0.85rem; }
+.sp-stage-head { flex: 0 0 auto; max-width: 760px; }
+.sp-stage-main .sp-shape-grid { flex: 0 0 auto; grid-auto-rows: 1fr; }
+.sp-stage-main .sp-stage-preview {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: clamp(280px, 42vh, 560px);
 }
 .sp-stage-preview .sp-plan { height: 100%; width: 100%; }
 
@@ -876,11 +897,21 @@ body {
  * Orte
  * ====================================================================== */
 
+/* Ein Ort ist ein Bühnenbild. Also ist das Bild die Karte und nicht eine
+   Briefmarke neben einem Textfeld — Karten nebeneinander, Bild oben, breit. */
+.sp-places-head { max-width: 760px; margin-bottom: 1rem; }
+.sp-places-head h2 { display: inline-block; margin-right: 0.15rem; }
+.sp-place-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 0.9rem;
+    align-items: start;
+}
+
 .sp-place {
     border: 1px solid var(--sp-line);
     border-radius: 4px;
     padding: 0.8rem 0.9rem;
-    margin-bottom: 0.8rem;
     background: var(--sp-panel);
 }
 .sp-place-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
@@ -893,14 +924,15 @@ body {
     margin-bottom: 0.3rem;
 }
 .sp-place-props { width: 100%; font-family: var(--font-body); }
-.sp-place-body { display: flex; gap: 0.9rem; align-items: flex-start; }
+.sp-place-body { display: flex; flex-direction: column; gap: 0.7rem; align-items: stretch; }
 .sp-place-plan {
-    flex: 0 0 34%;
+    width: 100%;
+    height: clamp(190px, 24vh, 300px);
     min-width: 0;
-    aspect-ratio: 4 / 3;
     border: 1px solid var(--sp-line);
     border-radius: 3px;
-    padding: 0.35rem;
+    background: var(--paper);
+    padding: 0.45rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -913,8 +945,7 @@ body {
 .sp-drift b { color: var(--accent); }
 
 @media (max-width: 900px) {
-    .sp-place-body { flex-direction: column; }
-    .sp-place-plan { flex: 0 0 auto; width: 100%; }
+    .sp-place-grid { grid-template-columns: 1fr; }
 }
 
 /* ======================================================================
@@ -1209,4 +1240,79 @@ body {
         margin: 0;
     }
     #spPrintPortal .sp-sheet:last-child { break-after: auto; page-break-after: auto; }
+}
+
+/* ------------------------------------------------- Bühnenmaße anfassen --
+   Die Griffe sitzen auf den Kanten, die sie verstellen. Sie sind absichtlich
+   kräftig: wer sie nicht sieht, sucht die Maße weiter nur im Panel. */
+.sp-stage-handle {
+    fill: var(--sp-accent, #c8552b);
+    stroke: #fff;
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.85;
+    transition: opacity 0.12s ease;
+}
+.sp-stage-handle:hover,
+.sp-stage-handle:focus {
+    opacity: 1;
+    outline: none;
+}
+.sp-stage-handle:focus {
+    stroke: var(--sp-fg, #111);
+    stroke-width: 2.5;
+}
+
+.sp-stage-tip { flex: 0 0 auto; margin-top: -0.4rem; }
+
+/* ------------------------------------------------------------ Handbuch --
+   Die Suche über allem: Eingabe oben, Treffer darunter, Pfeiltasten und
+   Enter. Jeder Treffer sagt gleich, wo die Einstellung wohnt. */
+.sp-modal.is-guide { width: min(680px, 92vw); }
+.sp-guide-query {
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.55rem 0.7rem;
+    margin-bottom: 0.7rem;
+}
+.sp-guide-hits { max-height: min(52vh, 460px); overflow-y: auto; }
+.sp-guide-hit {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    padding: 0.5rem 0.6rem;
+    cursor: pointer;
+}
+.sp-guide-hit + .sp-guide-hit { margin-top: 0.15rem; }
+.sp-guide-hit strong { display: block; font-weight: 600; font-size: 0.9rem; }
+.sp-guide-where {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--accent);
+    margin: 0.1rem 0 0.2rem;
+}
+.sp-guide-body {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    color: var(--ink-secondary);
+}
+.sp-guide-hit.is-on, .sp-guide-hit:hover {
+    border-color: var(--accent);
+    background: rgba(196, 77, 60, 0.07);
+}
+
+/* Kurzes Aufblitzen, wenn die Suche einen hierher gebracht hat. */
+.sp-why-found {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 50%;
 }

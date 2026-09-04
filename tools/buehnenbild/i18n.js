@@ -28,7 +28,7 @@
         'Scenes': 'Szenen',
         'Stage': 'Bühne',
         'Places': 'Orte',
-        'Prop library': 'Requisitenfundus',
+        'Prop library': 'Requisiten',
         'Print': 'Drucken',
         'Sections': 'Bereiche',
         'Saved locally': 'Lokal gespeichert',
@@ -54,11 +54,11 @@
         'What brings you here?': 'Was hast du vor?',
         'I am planning a real production':
             'Ich plane ein konkretes Stück',
-        'Set the whole thing up step by step — the piece, the stage, the acts, the scenes and the places they play in. Nothing is guessed for you.':
-            'Alles Schritt für Schritt einrichten: Stück, Bühne, Akte, Szenen und die Orte, an denen sie spielen. Nichts wird für dich geraten.',
+        'Set the whole thing up step by step: the piece, the stage, the acts, the scenes and the places they play in.':
+            'Alles Schritt für Schritt einrichten: Stück, Bühne, Akte, Szenen und die Orte, an denen sie spielen.',
         'I am just having a look': 'Ich schaue mich nur um',
-        'Opens a worked example you can pull apart. You can start a real plan at any time.':
-            'Öffnet ein fertiges Beispiel zum Auseinandernehmen. Ein echtes Stück kannst du jederzeit anlegen.',
+        'Opens a worked example you can pull apart.':
+            'Öffnet ein fertiges Beispiel zum Auseinandernehmen.',
         'Open the example': 'Beispiel öffnen',
         'Step {n} of {total}': 'Schritt {n} von {total}',
         'Set up later': 'Später einrichten',
@@ -97,13 +97,13 @@
 
         'The scenes': 'Die Szenen',
         'How many scenes are there?': 'Wie viele Szenen gibt es?',
-        'Empty scenes are created now and you fill them in as you go. Add or remove scenes at any time.':
-            'Die Szenen werden jetzt leer angelegt und nach und nach gefüllt. Hinzufügen und Löschen geht jederzeit.',
+        'Empty scenes are created now and you fill them in as you go.':
+            'Die Szenen werden jetzt leer angelegt und nach und nach gefüllt.',
         'Scenes in act {n}': 'Szenen in Akt {n}',
 
         'Ready': 'Fertig',
-        'That is the frame. From here you drag props onto the stage, scene by scene; the tool works out what has to be carried on and off between them and prints it as an Umbauplan.':
-            'Das ist der Rahmen. Von hier aus ziehst du Requisiten auf die Bühne, Szene für Szene; der Planer rechnet aus, was dazwischen getragen werden muss, und druckt es als Umbauplan.',
+        'From here you drag props onto the stage, scene by scene. The tool works out what has to be carried between them and prints it as an Umbauplan.':
+            'Von hier ziehst du Requisiten auf die Bühne, Szene für Szene. Der Planer rechnet aus, was dazwischen getragen werden muss, und druckt es als Umbauplan.',
         'Nothing is placed for you — the stage starts empty, exactly as you left it.':
             'Nichts wird für dich hingestellt. Die Bühne bleibt leer, genau wie du sie verlässt.',
         'Take me to the first scene': 'Zur ersten Szene',
@@ -192,7 +192,7 @@
         'No places yet.': 'Noch keine Orte.',
 
         /* --------------------------------------------------------- Props tab */
-        'Search the library': 'Fundus durchsuchen',
+        'Search the library': 'Requisiten durchsuchen',
         'Filter by category': 'Nach Kategorie filtern',
         'Add your own prop': 'Eigenes Requisit hinzufügen',
         'Name': 'Name',
@@ -210,6 +210,20 @@
         'Flip': 'Umdrehen',
         'Space evenly': 'Gleichmäßig verteilen',
         'Copy': 'Kopie',
+        'Handbook': 'Handbuch',
+        'What are you looking for?': 'Wonach suchst du?',
+        'Nothing under that word.': 'Unter dem Wort steht nichts.',
+        'Read the whole manual': 'Ganzes Handbuch öffnen',
+        'Search the manual (Ctrl+K)': 'Handbuch durchsuchen (Strg+K)',
+        'You will find \u201c{what}\u201d here: {where}':
+            'Wo „{what}“ steht: {where}',
+        '\u201c{what}\u201d could not be found on screen.':
+            '„{what}“ ist gerade nicht auf dem Schirm.',
+        'Drag the dots to change a measurement. Hold Shift for finer steps.':
+            'Die Punkte im Bild lassen sich ziehen. Umschalt für feinere Schritte.',
+        'This scene already starts an act.': 'Diese Szene beginnt schon einen Akt.',
+        'Add a scene first.': 'Leg zuerst eine Szene an.',
+        'Side table': 'Kaffeetisch',
         'Shift finer · Alt free': 'Umschalt feiner · Alt frei',
         'Shift 5° · Alt free': 'Umschalt 5° · Alt frei',
         'Shift keeps the proportion off': 'Umschalt hält das Verhältnis',
@@ -224,13 +238,9 @@
         '1 prop copied.': '1 Requisit kopiert.',
         '{n} props copied.': '{n} Requisiten kopiert.',
         'Kitchen\nMarket\nCafé': 'Schule\nMarkt\nWohnzimmer\nPark\nCafé',
-        'Set the playing area once and every scene inherits it. A single scene can be given its own stage if the set changes shape at the interval.':
-            'Die Spielfläche einmal festlegen, alle Szenen übernehmen sie. Einzelne Szenen können eine eigene Bühne bekommen, wenn sich die Form in der Pause ändert.',
-        'Name the sets that recur through the evening — the kitchen, the market, the café. A scene picks a place, and the printed reference box lists what belongs in each one.':
-            'Benenne die Bühnenbilder, die im Lauf des Abends wiederkehren: die Schule, den Markt, das Café. Eine Szene wählt einen Ort, und der Referenzkasten im Umbauplan listet, was zu jedem gehört.',
-        'Sixty-odd drawings to start with, plus anything you add yourself. Every prop carries a real footprint, so it lands on the plan at the right size.':
-            'Knapp vierzig Zeichnungen zum Anfangen, dazu alles, was du selbst zeichnest oder hochlädst. Jedes Requisit hat eine echte Grundfläche und landet damit maßstäblich im Plan.',
-        'Choose a drawing first.': 'Wähle zuerst eine Zeichnung.',
+                'Sets that come back through the evening. Each scene plays in one place.':
+            'Bühnenbilder, die im Lauf des Abends wiederkommen. Jede Szene spielt an einem Ort.',
+                'Choose a drawing first.': 'Wähle zuerst eine Zeichnung.',
         'The set': 'Das Bühnenbild',
         'Insert this place’s set': 'Bühnenbild dieses Orts einsetzen',
         'Update the place from this scene': 'Ort aus dieser Szene aktualisieren',
@@ -274,8 +284,8 @@
         'Open the worked example': 'Beispiel öffnen',
         'A finished production to pull apart. It is added alongside what you have.':
             'Eine fertige Produktion zum Auseinandernehmen. Sie kommt zu dem dazu, was du schon hast.',
-        'Every setting in the planner has a ? beside it. It says what the setting does on the printed sheet, not just what it is called.':
-            'Neben jeder Einstellung im Planer steht ein ?. Es sagt, was die Einstellung auf dem gedruckten Blatt bewirkt, nicht bloß, wie sie heißt.',
+        'Every setting has a ? beside it. It says what the setting does on the printed sheet.':
+            'Neben jeder Einstellung steht ein ?. Es sagt, was sie auf dem gedruckten Blatt bewirkt.',
         'Where things live': 'Wo was steckt',
         'Scene numbering, units and the direction convention are under Settings, next to the production name. The stage shape, the grid, the wings and the curtains are on the Stage tab.':
             'Szenennummerierung und Richtungssicht stehen unter „Einstellungen“, neben dem Namen der Produktion. Bühnenform, Maße, Maßeinheit, Raster, Gassen und Vorhänge stehen im Reiter „Bühne“.',
@@ -342,8 +352,8 @@
         '{title} ({n} props)': '{title} ({n} Requisiten)',
         'curtain state open': 'offen',
         'curtain state half': 'halb offen',
-        'Set the playing area once and every scene inherits it. A single scene can be given a stage of its own on the Scene panel if the set changes shape at the interval.':
-            'Die Spielfläche einmal festlegen, alle Szenen übernehmen sie. Einzelnen Szenen lässt sich im Szenenfeld eine eigene Bühne geben, wenn sich die Form in der Pause ändert.',
+        'Applies to every scene. A single scene can be given a stage of its own on the Scene panel.':
+            'Gilt für alle Szenen. Einzelne Szenen können im Szenen-Tab eine eigene Bühne bekommen.',
         'Include the place': 'Ort mitdrucken',
         'Scene {label}': 'Szene {label}',
         'Across ({unit})': 'Quer ({unit})',
@@ -386,10 +396,10 @@
         'Use the production stage for this scene': 'Für diese Szene die Bühne der Produktion nehmen',
         'used {n}×': '{n}× verwendet',
         'not used yet': 'noch nicht verwendet',
-        'Nothing added yet. A PNG, JPEG or SVG works. It gets scaled down and kept in this browser.':
-            'Noch nichts hinzugefügt. PNG, JPEG oder SVG geht. Es wird verkleinert und in diesem Browser abgelegt.',
-        'Plan views read best: draw the prop as if looking straight down at the stage, on a square canvas, with a transparent background. Give it the real footprint in the size fields and it will land on the plan at the right scale.':
-            'Am besten liest sich die Draufsicht: zeichne das Requisit von genau oben gesehen, auf quadratischer Fläche, mit durchsichtigem Hintergrund. Trag die echte Grundfläche in die Maßfelder ein, dann landet es maßstäblich im Plan.',
+        'Nothing added yet. A PNG, JPEG or SVG works.':
+            'Noch nichts hinzugefügt. PNG, JPEG oder SVG geht.',
+        'Draw it seen from straight above. The size fields below set the size on the plan.':
+            'Von oben gesehen zeichnen. Die Maßfelder darunter bestimmen die Größe im Plan.',
         'Everything you have made takes about {size}. Browsers usually stop somewhere around 5 MB, so keep custom drawings small and take a backup from time to time.':
             'Alles Angelegte belegt etwa {size}. Browser machen meist bei rund 5 MB Schluss. Halte eigene Zeichnungen also klein und sichere ab und zu.',
         'Edit prop': 'Requisit bearbeiten',
@@ -459,11 +469,11 @@
         'A4 sheets, straight from the browser. Choose “Save as PDF” in the print dialogue if you would rather send a file than carry paper.':
             'A4 direkt aus dem Browser. Wähle im Druckdialog „Als PDF sichern“, wenn du lieber eine Datei verschickst als Papier trägst.',
         'The plans': 'Die Pläne',
-        'Drawings only — one scene to a sheet, the number and the title, nothing to read.':
-            'Nur Zeichnungen: eine Szene pro Blatt, Nummer und Titel, sonst nichts zu lesen.',
+        'One scene to a sheet.':
+            'Eine Szene pro Blatt.',
         'The Umbauplan': 'Der Umbauplan',
-        'The table: what comes off, what goes on and what gets moved between every pair of scenes.':
-            'Die Tabelle: was zwischen je zwei Szenen abgebaut, aufgebaut und umgestellt wird.',
+        'The table for every changeover.':
+            'Die Tabelle für jeden Umbau.',
         'Print the plans': 'Pläne drucken',
         'Print the Umbauplan': 'Umbauplan drucken',
         'Paper': 'Papier',
@@ -485,8 +495,8 @@
         'Across': 'Quer',
         'Down': 'Hoch',
         'Start a fresh sheet for each act': 'Für jeden Akt ein neues Blatt beginnen',
-        'In the print dialogue, set margins to none and turn on background graphics so the plans come out exactly as they look here.':
-            'Stell im Druckdialog die Ränder auf „keine“ und schalte Hintergrundgrafiken ein, damit die Pläne genau so herauskommen, wie sie hier aussehen.',
+        'In the print dialogue: margins to none, background graphics on.':
+            'Im Druckdialog: Ränder auf „keine“, Hintergrundgrafiken an.',
         '{n} sheets': '{n} Blätter',
         '1 sheet': '1 Blatt',
         'Include the reference box': 'Referenzkasten mitdrucken',
@@ -581,10 +591,8 @@
         /* ------------------------------------------------ Illustrationen */
         'Blackboard': 'Tafel',
         'School chair': 'Stuhl',
-        'Market stall': 'Händlerstand',
         'Crate': 'Kiste',
         'Coat stand': 'Kleiderständer',
-        'Side table with picture': 'Kaffeetisch mit Bild',
         'Typewriter': 'Schreibmaschine',
         'Wine bottle': 'Weinflasche',
         'Bench': 'Bank',
@@ -605,7 +613,6 @@
 
         /* -------------------------------------------------------- Prop names */
         'Armchair': 'Sessel',
-        'Side table': 'Beistelltisch',
         'Suitcase': 'Koffer',
         'Single bed': 'Einzelbett',
         'Double bed': 'Doppelbett',
@@ -731,10 +738,10 @@
         'Edit the drawing': 'Zeichnung bearbeiten',
         'Pick': 'Auswählen',
         'Box': 'Rechteck',
-        'Round': 'Rundung',
+        'Round': 'Kreis',
         'Line': 'Linie',
-        'Open run': 'Linienzug',
-        'Closed run': 'Umriss',
+        'Open run': 'Linie mit Ecken',
+        'Closed run': 'Geschlossene Form',
         'Line only': 'Nur Linie',
         'Tinted': 'Getönt',
         'Dashed': 'Gestrichelt',
@@ -1108,49 +1115,44 @@
     var INTRO_DE = {
         scenes: {
             title: 'Szenen',
-            body: 'Links der Ablauf, in der Mitte die Bühne, rechts der Fundus.',
+            body: 'Jede Szene ist ein Standbild. Was zwischen zwei Szenen getragen werden muss, rechnet der Planer selbst aus.',
             steps: [
-                'Szene links wählen oder anlegen.',
-                'Requisit rechts anklicken oder herüberziehen.',
-                'Pfeiltasten schieben, R dreht, F passt ein.',
-                'Im Feld „Szene“ steht, was sich zur Szene davor ändert.'
+                'Das Ergebnis steht im Feld „Szene“ unter „Änderungen zur Szene davor“ und wird später zum Umbauplan.',
+                'Beim Ziehen macht Umschalt das Raster feiner, Alt hebt es ganz auf.',
+                'Was die Tasten gerade tun, steht unten rechts in der Leiste.'
             ]
         },
         stage: {
             title: 'Bühne',
-            body: 'Einmal eingerichtet, von allen Szenen geteilt.',
+            body: 'Eine Bühne für den ganzen Abend. Alle Szenen teilen sie sich.',
             steps: [
-                'Form wählen, echte Maße eintragen.',
-                'Gassen einzeichnen, wenn seitlich abgedeckt wird.',
-                'Vorhänge eintragen. Offen oder zu entscheidet jede Szene.',
-                'Einzelne Szenen können eine eigene Bühne bekommen.'
+                'Vorhänge werden hier eingetragen, aber jede Szene stellt für sich ein, ob sie offen oder zu sind.',
+                'Ändert sich die Form in der Pause, kann eine einzelne Szene eine eigene Bühne bekommen. Das steht im Feld „Szene“.'
             ]
         },
         places: {
             title: 'Orte',
-            body: 'Bühnenbilder, die wiederkehren: Schule, Markt, Café.',
+            body: 'Ein Ort ist ein Bühnenbild, das wiederkehrt. Er merkt sich seinen Aufbau, damit du ihn nicht jedes Mal neu stellst.',
             steps: [
-                'Ort anlegen und benennen.',
-                'Eintragen, was fest dazugehört.',
-                'Im Feld „Szene“ jeder Szene ihren Ort geben.'
+                'Aus dem Ort lässt sich der Aufbau in jede Szene setzen, und aus einer eingerichteten Szene der Ort aktualisieren.',
+                'Weicht eine Szene später ab, wird das nur gemeldet. Geändert wird nichts von selbst.',
+                'Was hier steht, füllt den Referenzkasten oben auf dem Umbauplan.'
             ]
         },
         props: {
-            title: 'Requisitenfundus',
+            title: 'Requisiten',
             body: 'Alles, was auf die Bühne kann.',
             steps: [
-                'Schräge Ansichten und Draufsichten besser nicht mischen.',
-                'Eigene Zeichnungen als PNG, JPEG oder SVG ergänzen.',
-                'Grundfläche in Metern eintragen, dann stimmt der Maßstab.'
+                'Die Grundfläche in Metern bestimmt, wie groß ein Stück im Plan erscheint. Lieber nachmessen als schätzen.',
+                'Fehlt etwas, zeichne es selbst: Rechtecke, Rundungen und Linien genügen für die meisten Requisiten.'
             ]
         },
         print: {
             title: 'Drucken',
-            body: 'Zwei Dokumente: Pläne zum Ansehen, Umbauplan zum Abarbeiten.',
+            body: 'Zwei Dokumente, die getrennt gedruckt werden, weil sie an verschiedenen Orten liegen.',
             steps: [
-                'Oben umschalten, welches in der Vorschau steht.',
-                '„Wie mein Umbauplan“ setzt die Planblätter quer und bloß.',
-                'Im Druckdialog „Als PDF sichern“, Ränder auf keine.'
+                'Die Pläne gehören an die Bühne, der Umbauplan zur Mannschaft.',
+                'Was du hier einstellst, gehört zu dieser Produktion. Eine andere Produktion hat ihre eigenen Einstellungen.'
             ]
         }
     };

@@ -431,15 +431,17 @@
         var s1 = scene(t('The school'), school.id, act1.id, [
             put('ill-blackboard', -1.6, 1.1),
             put('ill-table', 0.4, 2.5),
-            put('ill-sponge', 0.15, 2.35),
+            put('ill-sponge', 0.2, 2.35),
             put('ill-chalk', 0.62, 2.62),
             put('ill-chair', -1.9, 4.4), put('ill-chair', -0.7, 4.4),
             put('ill-chair', 0.8, 4.4), put('ill-chair', 2.0, 4.4)
         ]);
 
         var s2 = scene(t('The market'), market.id, act1.id, [
-            put('ill-stall', -0.4, 2.3, 8),
-            put('ill-crate', -2.5, 3.7, -12)
+            put('ill-table', -0.4, 2.3),
+            put('ill-pot', -0.55, 2.1),
+            put('ill-crate', -2.5, 3.7, -12),
+            put('ill-crate', 1.5, 3.1, 6)
         ]);
 
         var s3 = scene(t('The living room'), living.id, act1.id, [
@@ -448,8 +450,8 @@
             put('ill-chair', 0.2, 1.9, 180),
             put('ill-coatstand', 3.1, 1.3),
             put('ill-sidetable', -2.9, 4.6),
-            put('ill-typewriter', 0.5, 3.1),
-            put('ill-bottle', -0.7, 3.5)
+            put('ill-typewriter', -2.9, 4.5),
+            put('ill-bottle', 0.15, 3.25)
         ]);
 
         var s4 = scene(t('The park'), park.id, act2.id, [
@@ -459,13 +461,13 @@
 
         var s5 = scene(t('The café'), cafe.id, act2.id, [
             put('ill-table', 0, 3.4),
-            put('ill-pot', -0.22, 3.28),
-            put('ill-mug', 0.2, 3.22),
-            put('ill-menu', 0.26, 3.6),
+            put('ill-pot', -0.28, 3.15),
+            put('ill-mug', 0.25, 3.15),
+            put('ill-menu', 0.25, 3.62),
             put('ill-cafechair', -1.6, 3.3, 0),
             put('ill-cafechair', 1.6, 3.3, 180),
             put('ill-cafechair', 0, 2.0, 90),
-            put('ill-mug', 0.3, 3.2)
+            put('ill-mug', -0.25, 3.62)
         ]);
 
         p.scenes = [s1, s2, s3, s4, s5];
@@ -1193,7 +1195,12 @@
             renderIntro(ui.tab);
         }
         function onKey(e) {
-            if (e.key === 'Escape') { e.stopPropagation(); close(); }
+            if (e.key !== 'Escape') return;
+            e.stopPropagation();
+            /* Ein Dialog darf Escape zuerst selbst verwerten — der Zeichner
+               bricht damit den angefangenen Zug ab, statt alles wegzuwerfen. */
+            if (config.onEscape && config.onEscape() === false) return;
+            close();
         }
 
         backdrop.addEventListener('click', function (e) {
@@ -1635,31 +1642,38 @@
     }
 
     /*
-     * Legt einen Akt an, der bei der aktuellen Szene beginnt. Akte, die
-     * dabei leer zurückbleiben, verschwinden — sonst sammeln sich unsichtbare
-     * Akte an und die sichtbaren scheinen sich umzubenennen.
+     * Teilt den Ablauf an der aktuellen Szene: der neue Akt beginnt hier und
+     * läuft bis zum Ende des Akts, in dem die Szene bisher lag. Spätere Akte
+     * bleiben unberührt, und es wird nie einer gelöscht — in einem Akt steckt
+     * ein Name und eine Notiz fürs Trennblatt, die niemand nebenbei verlieren
+     * will.
      */
     function addAct() {
+        var p = production();
+        var current = scene();
+        if (!current) { toast(t('Add a scene first.')); return; }
+
+        var from = p.scenes.indexOf(current);
+        var was = current.actId || null;
+        var before = p.scenes[from - 1];
+        var alreadyStarts = was && (from === 0 || !before || before.actId !== was);
+        if (alreadyStarts) { toast(t('This scene already starts an act.')); return; }
+
         var moved = 0;
         change(function () {
-            var p = production();
             var act = { id: SP.uid('act'), name: '', notes: '' };
-            p.acts.push(act);
-            var current = scene();
-            if (current) {
-                var from = p.scenes.indexOf(current);
-                for (var i = from; i < p.scenes.length; i++) {
-                    p.scenes[i].actId = act.id;
-                    moved += 1;
-                }
+            var after = was
+                ? p.acts.map(function (a) { return a.id; }).indexOf(was) + 1
+                : p.acts.length;
+            p.acts.splice(after, 0, act);
+            for (var i = from; i < p.scenes.length; i++) {
+                if ((p.scenes[i].actId || null) !== was) break;
+                p.scenes[i].actId = act.id;
+                moved += 1;
             }
-            var alive = {};
-            p.scenes.forEach(function (sc) { if (sc.actId) alive[sc.actId] = true; });
-            p.acts = p.acts.filter(function (a) { return alive[a.id] || a === act; });
         });
-        toast(moved
-            ? SPI18n.plural(moved, 'Act added, with 1 scene in it.', 'Act added, with {n} scenes in it.')
-            : t('Act added. It is empty for now.'), 'success');
+        toast(SPI18n.plural(moved, 'Act added, with 1 scene in it.',
+            'Act added, with {n} scenes in it.'), 'success');
     }
 
     /* ================================================================== *
@@ -1697,32 +1711,36 @@
             : t('The stage');
         $('#spStageIntro').textContent = isScene
             ? t('This scene has been given a stage of its own. Every other scene keeps the production stage.')
-            : t('Set the playing area once and every scene inherits it. A single scene can be given a stage of its own on the Scene panel if the set changes shape at the interval.');
+            : t('Applies to every scene. A single scene can be given a stage of its own on the Scene panel.');
 
-        $('#spShapeGrid').innerHTML = SP.STAGE_SHAPES.map(function (shape) {
-            var sample = Object.assign({}, SP.DEFAULT_STAGE, {
+        /* Alle Karten zeigen dieselben Beispielmaße in derselben viewBox.
+           Vorher rechnete jede ihre eigene aus, also füllte ein Rund von 10 m
+           die Karte genauso wie eine Bühne von 12 m — die Karten logen über
+           die Größe, die man gerade auswählt. */
+        var samples = SP.STAGE_SHAPES.map(function (shape) {
+            return SP.stageOutline(Object.assign({}, SP.DEFAULT_STAGE, {
                 shape: shape.id, width: 12, depth: 9, backWidth: 8, diameter: 10, sides: 6,
                 apronWidth: 7, apronDepth: 2.5
-            });
-            var out = SP.stageOutline(sample);
-            var b = out.bounds;
-            var pad = Math.max(b.w, b.h) * 0.06;
+            }));
+        });
+        var span = samples.reduce(function (m, o) {
+            return Math.max(m, o.bounds.w, o.bounds.h);
+        }, 0) * 1.12;
+
+        $('#spShapeGrid').innerHTML = SP.STAGE_SHAPES.map(function (shape, i) {
+            var b = samples[i].bounds;
+            var vx = (b.x + b.w / 2 - span / 2).toFixed(3);
+            var vy = (b.y + b.h / 2 - span / 2).toFixed(3);
             return '<button class="sp-shape-card" data-act="set-shape" data-shape="' + esc(shape.id) + '"' +
                 ' aria-pressed="' + (stage.shape === shape.id ? 'true' : 'false') + '">' +
-                '<svg viewBox="' + (b.x - pad) + ' ' + (b.y - pad) + ' ' + (b.w + pad * 2) + ' ' + (b.h + pad * 2) +
-                '" preserveAspectRatio="xMidYMid meet"><path d="' + out.d + '"/></svg>' +
-                '<strong style="font-weight:500">' + esc(t(shape.name)) + '</strong><br>' +
-                '<span style="color:var(--sp-muted); font-size:0.7rem">' + esc(t(shape.blurb)) + '</span></button>';
+                '<svg viewBox="' + vx + ' ' + vy + ' ' + span.toFixed(3) + ' ' + span.toFixed(3) +
+                '" preserveAspectRatio="xMidYMid meet"><path d="' + samples[i].d +
+                '" vector-effect="non-scaling-stroke"/></svg>' +
+                '<span class="sp-shape-text"><strong>' + esc(t(shape.name)) + '</strong>' +
+                '<span>' + esc(t(shape.blurb)) + '</span></span></button>';
         }).join('');
 
-        $('#spStagePreview').innerHTML = SPPlan.svg({
-            stage: stage,
-            scene: sc || { placements: [] },
-            resolve: resolveProp,
-            units: units(),
-            labels: 'none',
-            idPrefix: 'stage-preview'
-        });
+        drawStagePreview();
 
         var shape = SP.shapeById(stage.shape);
         var dimensionFields = shape.fields.map(function (field) {
@@ -1752,7 +1770,7 @@
         $('#spStageSide').innerHTML =
             '<div class="sp-section"><h3>' + esc(t('Measurements')) + why('stage.width') + '</h3>' +
             '<div class="' + (shape.fields.length > 2 ? 'sp-field-row' : 'sp-field-row') + '">' + dimensionFields + '</div>' +
-            '<p class="sp-hint" style="margin-top:0.5rem">' +
+            '<p class="sp-hint" id="spStageReadout" style="margin-top:0.5rem">' +
             esc(t('The playing area comes out {w} across by {h} deep.', {
                 w: SP.formatLength(SP.stageOutline(stage).bounds.w, units()),
                 h: SP.formatLength(SP.stageOutline(stage).bounds.h, units())
@@ -1811,6 +1829,212 @@
     }
 
     /* ================================================================== *
+     * Bühnenmaße direkt am Bild ziehen
+     *
+     * Die Zahlenfelder rechts bleiben, wie sie sind — sie sind genauer und
+     * für manche Maße der einzige Weg. Aber wer eine Bühne einrichtet, hat
+     * ein Bild im Kopf und keine Tabelle, und Breite, Tiefe, Gassen und
+     * Vorhänge lassen sich hier anfassen. Ein Zug ist ein Undo-Schritt.
+     * ================================================================== */
+
+    var SVGNS = 'http://www.w3.org/2000/svg';
+
+    function drawStagePreview() {
+        var host = $('#spStagePreview');
+        if (!host) return;
+        host.innerHTML = SPPlan.svg({
+            stage: editingStage(),
+            scene: scene() || { placements: [] },
+            resolve: resolveProp,
+            units: units(),
+            labels: 'none',
+            idPrefix: 'stage-preview'
+        });
+        mountStageHandles();
+    }
+
+    /* Wo sitzt welcher Griff. Nur Maße, die diese Form überhaupt hat. */
+    function stageHandleSpecs(stage) {
+        var shape = SP.shapeById(stage.shape);
+        var out = SP.stageOutline(stage);
+        var b = out.bounds;
+        var has = function (f) { return shape.fields.indexOf(f) > -1; };
+        var specs = [];
+
+        if (has('width')) {
+            var half = SP.num(stage.width, b.w) / 2;
+            specs.push({ key: 'width', x: -half, y: out.frontY, cursor: 'ew-resize', label: t('Width') });
+            specs.push({ key: 'width', x: half, y: out.frontY, cursor: 'ew-resize', label: t('Width') });
+        }
+        if (has('diameter')) {
+            specs.push({ key: 'diameter', x: SP.num(stage.diameter, b.w) / 2, y: b.y + b.h / 2,
+                cursor: 'ew-resize', label: t('Diameter') });
+        }
+        if (has('depth')) {
+            specs.push({ key: 'depth', x: 0, y: b.y + SP.num(stage.depth, b.h),
+                cursor: 'ns-resize', label: t('Depth') });
+        }
+        if (stage.wings && stage.wings.show) {
+            SP.wingLines(stage).forEach(function (line, side) {
+                specs.push({ key: 'wings.inset', side: side, x: line[0][0],
+                    y: b.y + (line[1][1] - b.y) / 2, cursor: 'ew-resize', label: t('Inset from the side') });
+                specs.push({ key: 'wings.depth', x: line[1][0], y: line[1][1],
+                    cursor: 'ns-resize', label: t('How far forward') });
+            });
+        }
+        (stage.curtains || []).forEach(function (curtain) {
+            specs.push({ key: 'curtain', id: curtain.id, x: 0,
+                y: out.frontY - SP.num(curtain.offset, 0), cursor: 'ns-resize',
+                label: curtain.name || t('Curtain') });
+        });
+        return specs;
+    }
+
+    /* Aus einem Punkt in Metern wird der neue Wert für dieses Maß. */
+    function stageHandleValue(spec, stage, px, py) {
+        var out = SP.stageOutline(stage);
+        var b = out.bounds;
+        if (spec.key === 'width' || spec.key === 'diameter') return Math.abs(px) * 2;
+        if (spec.key === 'depth' || spec.key === 'wings.depth') return py - b.y;
+        if (spec.key === 'wings.inset') return spec.side ? (b.x + b.w - px) : (px - b.x);
+        if (spec.key === 'curtain') return out.frontY - py;
+        return 0;
+    }
+
+    function applyStageHandle(spec, value) {
+        var stage = editingStage();
+        if (spec.key === 'curtain') {
+            var curtain = (stage.curtains || []).filter(function (c) { return c.id === spec.id; })[0];
+            if (curtain) curtain.offset = Math.max(0, value);
+            return;
+        }
+        if (spec.key === 'wings.inset' || spec.key === 'wings.depth') {
+            stage.wings[spec.key.split('.')[1]] = Math.max(0.05, value);
+            return;
+        }
+        stage[spec.key] = Math.max(0.5, value);
+    }
+
+    /* Feldwerte nachziehen, damit Bild und Panel nie auseinanderlaufen. */
+    function syncStageFields() {
+        var stage = editingStage();
+        SP.shapeById(stage.shape).fields.forEach(function (field) {
+            var el = $('#spDim-' + field);
+            if (el && document.activeElement !== el && field !== 'sides') {
+                el.value = toField(SP.num(stage[field], 1));
+            }
+        });
+        var inset = $('#spWingInset');
+        if (inset && document.activeElement !== inset) inset.value = toField(stage.wings.inset, 2);
+        var wdepth = $('#spWingDepth');
+        if (wdepth && document.activeElement !== wdepth) wdepth.value = toField(stage.wings.depth, 2);
+        (stage.curtains || []).forEach(function (curtain) {
+            var el = $('[data-curtain="' + curtain.id + '"][data-curtain-field="offset"]');
+            if (el && document.activeElement !== el) el.value = toField(SP.num(curtain.offset, 0));
+        });
+    }
+
+    function previewPoint(svg, evt) {
+        var matrix = svg.getScreenCTM();
+        if (!matrix) return { x: 0, y: 0 };
+        var point = svg.createSVGPoint();
+        point.x = evt.clientX;
+        point.y = evt.clientY;
+        return point.matrixTransform(matrix.inverse());
+    }
+
+    function mountStageHandles() {
+        var svg = $('#spStagePreview svg');
+        if (!svg) return;
+        var stage = editingStage();
+        var bounds = SP.stageOutline(stage).bounds;
+        var radius = Math.max(bounds.w, bounds.h) * 0.017;
+        var specs = stageHandleSpecs(stage);
+
+        var group = document.createElementNS(SVGNS, 'g');
+        group.setAttribute('class', 'sp-stage-handles');
+        specs.forEach(function (spec, i) {
+            var dot = document.createElementNS(SVGNS, 'circle');
+            dot.setAttribute('class', 'sp-stage-handle');
+            dot.setAttribute('cx', spec.x);
+            dot.setAttribute('cy', spec.y);
+            dot.setAttribute('r', radius);
+            dot.setAttribute('tabindex', '0');
+            dot.setAttribute('role', 'slider');
+            dot.setAttribute('aria-label', spec.label);
+            dot.setAttribute('style', 'cursor:' + spec.cursor);
+            dot.setAttribute('data-handle', String(i));
+            group.appendChild(dot);
+        });
+        svg.appendChild(group);
+
+        group.addEventListener('pointerdown', function (e) {
+            var dot = e.target.closest('.sp-stage-handle');
+            if (!dot) return;
+            e.preventDefault();
+            var spec = specs[Number(dot.getAttribute('data-handle'))];
+            /* Die Geometrie beim Anfassen einfrieren. Rechnete man gegen die
+               laufend veränderte Bühne, schaukelt sich der Wert auf. */
+            var frozen = JSON.parse(JSON.stringify(editingStage()));
+            var moved = false;
+            beginHistory();
+
+            /* Am Fenster hängen, nicht am Griff: die Vorschau wird bei jedem
+               Schritt neu gezeichnet, der Griff darunter also ausgetauscht.
+               Aus demselben Grund muss das SVG jedes Mal neu geholt werden —
+               das alte hängt nicht mehr im Dokument und hat keine Matrix. */
+            function move(ev) {
+                var live = $('#spStagePreview svg');
+                if (!live) return;
+                var point = previewPoint(live, ev);
+                var step = ev.shiftKey ? 0.01 : 0.1;
+                var value = stageHandleValue(spec, frozen, point.x, point.y);
+                applyStageHandle(spec, Math.round(value / step) * step);
+                moved = true;
+                drawStagePreview();
+                syncStageFields();
+                setStageReadout();
+            }
+            function up() {
+                window.removeEventListener('pointermove', move);
+                window.removeEventListener('pointerup', up);
+                if (moved) { commitHistory(); persist(); render(); } else { cancelHistory(); }
+            }
+            window.addEventListener('pointermove', move);
+            window.addEventListener('pointerup', up);
+        });
+
+        /* Mit der Tastatur genauso: Pfeiltasten schieben den Griff. */
+        group.addEventListener('keydown', function (e) {
+            var dot = e.target.closest('.sp-stage-handle');
+            if (!dot) return;
+            var delta = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[e.key];
+            if (!delta) return;
+            e.preventDefault();
+            var spec = specs[Number(dot.getAttribute('data-handle'))];
+            var stageNow = editingStage();
+            var current = spec.key === 'curtain'
+                ? SP.num(((stageNow.curtains || []).filter(function (c) { return c.id === spec.id; })[0] || {}).offset, 0)
+                : (spec.key.indexOf('wings.') === 0
+                    ? SP.num(stageNow.wings[spec.key.split('.')[1]], 1)
+                    : SP.num(stageNow[spec.key], 1));
+            change(function () {
+                applyStageHandle(spec, current + delta * (e.shiftKey ? 0.01 : 0.1));
+            });
+        });
+    }
+
+    function setStageReadout() {
+        var el = $('#spStageReadout');
+        if (!el) return;
+        var b = SP.stageOutline(editingStage()).bounds;
+        el.textContent = t('The playing area comes out {w} across by {h} deep.', {
+            w: SP.formatLength(b.w, units()),
+            h: SP.formatLength(b.h, units())
+        });
+    }
+
+    /* ================================================================== *
      * Prop library tab
      * ================================================================== */
 
@@ -1861,13 +2085,13 @@
                 ? SPI18n.plural(customCount,
                     '1 drawing added. It sits alongside the built-in ones in every production in this browser.',
                     '{n} drawings added. They sit alongside the built-in ones in every production in this browser.')
-                : t('Nothing added yet. A PNG, JPEG or SVG works. It gets scaled down and kept in this browser.')) +
+                : t('Nothing added yet. A PNG, JPEG or SVG works.')) +
             '</p><div class="sp-btn-row"><button class="sp-btn is-primary" data-act="draw-custom-prop">' +
             esc(t('Draw one yourself')) + '</button>' + why('draw.open') +
             '<button class="sp-btn" data-act="add-custom-prop">' + esc(t('Add a prop')) + '</button></div></div>' +
 
             '<div class="sp-section"><h3>' + esc(t('Drawing your own')) + '</h3>' +
-            '<p class="sp-hint">' + esc(t('Plan views read best: draw the prop as if looking straight down at the stage, on a square canvas, with a transparent background. Give it the real footprint in the size fields and it will land on the plan at the right scale.')) + '</p>' + '</div>' +
+            '<p class="sp-hint">' + esc(t('Draw it seen from straight above. The size fields below set the size on the plan.')) + '</p>' + '</div>' +
 
             '<div class="sp-section"><h3>' + esc(t('Browser storage')) + '</h3>' +
             '<p class="sp-hint">' + esc(t('Everything you have made takes about {size}. Browsers usually stop somewhere around 5 MB, so keep custom drawings small and take a backup from time to time.', { size: formatBytes(bytes) })) + '</p>' +
@@ -2278,7 +2502,21 @@
             draw.shapes.splice(draw.sel, 1);
             draw.sel = -1;
             draw.undo.pop();
+        } else if (gesture.type === 'draw' && draw.sel > -1) {
+            /* Die frisch gezogene Form bleibt ausgewählt und das Werkzeug
+               springt zurück auf Auswählen. Sonst zeichnet der nächste Zug
+               ein zweites Rechteck, statt das erste zu ändern — genau der
+               Griff, den man als Erstes machen will. */
+            draw.tool = 'select';
         }
+        drawRender();
+    }
+
+    /* Bricht den angefangenen Linienzug ab und lässt alles andere stehen. */
+    function drawCancelRun() {
+        if (!draw.run) return;
+        draw.run = null;
+        draw.cursor = null;
         drawRender();
     }
 
@@ -2414,6 +2652,11 @@
             modalClass: 'is-draw',
             body: body,
             onClose: function () { draw = null; },
+            onEscape: function () {
+                /* Erst den angefangenen Zug, dann die Auswahl, dann erst zu. */
+                if (draw && draw.run) { drawCancelRun(); return false; }
+                if (draw && draw.sel > -1) { draw.sel = -1; drawRender(); return false; }
+            },
             actions: [{
                 label: existing ? t('Save') : t('Add it'),
                 primary: true,
@@ -2541,12 +2784,11 @@
         var head =
             '<div class="sp-section" style="padding-left:0;padding-right:0">' +
             '<h2 style="margin-bottom:0.3rem">' + esc(t('Print')) + why('print.docs') + '</h2>' +
-            '<p class="sp-hint">' + esc(t('A4 sheets, straight from the browser. Choose “Save as PDF” in the print dialogue if you would rather send a file than carry paper.')) + '</p>' +
             '<div class="sp-doc-switch" role="tablist">' +
             '<button class="sp-doc' + (doc === 'plans' ? ' is-on' : '') + '" data-act="print-doc" data-doc="plans">' +
-            '<b>' + esc(t('The plans')) + '</b><span>' + esc(t('Drawings only — one scene to a sheet, the number and the title, nothing to read.')) + '</span></button>' +
+            '<b>' + esc(t('The plans')) + '</b><span>' + esc(t('One scene to a sheet.')) + '</span></button>' +
             '<button class="sp-doc' + (doc === 'changeover' ? ' is-on' : '') + '" data-act="print-doc" data-doc="changeover">' +
-            '<b>' + esc(t('The Umbauplan')) + '</b><span>' + esc(t('The table: what comes off, what goes on and what gets moved between every pair of scenes.')) + '</span></button>' +
+            '<b>' + esc(t('The Umbauplan')) + '</b><span>' + esc(t('The table for every changeover.')) + '</span></button>' +
             '</div></div>';
 
         var scope = p.acts.length
@@ -2644,7 +2886,7 @@
             '<div class="sp-btn-row"><button class="sp-btn is-primary" data-act="do-print">' +
             esc(doc === 'changeover' ? t('Print the Umbauplan') : t('Print the plans')) + '</button></div>' +
             '<p class="sp-page-count" id="spPageCount" style="margin-top:0.5rem"></p>' +
-            '<p class="sp-hint">' + esc(t('In the print dialogue, set margins to none and turn on background graphics so the plans come out exactly as they look here.')) + '</p></div>';
+            '<p class="sp-hint">' + esc(t('In the print dialogue: margins to none, background graphics on.')) + '</p></div>';
 
         renderPrintPreview();
     }
@@ -2894,7 +3136,7 @@
 
     function exportJson() {
         var payload = JSON.stringify({
-            kind: 'linu.li/scene-planner',
+            kind: 'linu.li/buehnenbild',
             version: 1,
             exported: new Date().toISOString(),
             data: db
@@ -3320,7 +3562,6 @@
 
         if (!p.places.length) {
             host.innerHTML = '<p class="sp-empty">' + esc(t('No places yet.')) + '</p>';
-            $('#spPlaceSide').innerHTML = placeSideHelp();
             return;
         }
 
@@ -3383,15 +3624,6 @@
                 '</div></div></section>';
         }).join('');
 
-        $('#spPlaceSide').innerHTML = placeSideHelp();
-    }
-
-    function placeSideHelp() {
-        return ['place.what', 'place.set', 'place.props', 'place.drift'].map(function (key) {
-            var info = SPI18n.explain(key);
-            return '<div class="sp-section"><h3>' + esc(info.title) + '</h3>' +
-                '<p class="sp-hint">' + esc(info.body) + '</p></div>';
-        }).join('');
     }
 
     function addPlace() {
@@ -3620,7 +3852,7 @@
                 '</div>' +
                 '<div class="sp-section" style="padding-left:0;padding-right:0;margin-top:0.9rem">' +
                 '<h3>' + esc(t('What is this?')) + '</h3>' +
-                '<p class="sp-hint">' + esc(t('Every setting in the planner has a ? beside it. It says what the setting does on the printed sheet, not just what it is called.')) + '</p></div>' +
+                '<p class="sp-hint">' + esc(t('Every setting has a ? beside it. It says what the setting does on the printed sheet.')) + '</p></div>' +
                 '<div class="sp-section" style="padding-left:0;padding-right:0">' +
                 '<h3>' + esc(t('Show the introductions again')) + '</h3>' +
                 '<p class="sp-hint">' + esc(t('The short panel that appears the first time you open each section.')) + '</p>' +
@@ -3647,11 +3879,11 @@
             body: '<div class="sp-choice-grid">' +
                 '<button type="button" class="sp-choice" data-choose="setup">' +
                 '<b>' + esc(t('I am planning a real production')) + '</b>' +
-                '<span>' + esc(t('Set the whole thing up step by step — the piece, the stage, the acts, the scenes and the places they play in. Nothing is guessed for you.')) + '</span>' +
+                '<span>' + esc(t('Set the whole thing up step by step: the piece, the stage, the acts, the scenes and the places they play in.')) + '</span>' +
                 '</button>' +
                 '<button type="button" class="sp-choice" data-choose="example">' +
                 '<b>' + esc(t('I am just having a look')) + '</b>' +
-                '<span>' + esc(t('Opens a worked example you can pull apart. You can start a real plan at any time.')) + '</span>' +
+                '<span>' + esc(t('Opens a worked example you can pull apart.')) + '</span>' +
                 '</button></div>'
         });
         markWelcomed();
@@ -3856,16 +4088,16 @@
                             (draft.perAct[i] === undefined ? 5 : draft.perAct[i]) + '"></div>';
                     }
                     body.innerHTML = '<div class="sp-field-row" style="flex-wrap:wrap">' + rows + '</div>' +
-                        '<p class="sp-hint">' + esc(t('Empty scenes are created now and you fill them in as you go. Add or remove scenes at any time.')) + '</p>';
+                        '<p class="sp-hint">' + esc(t('Empty scenes are created now and you fill them in as you go.')) + '</p>';
                 } else {
                     body.innerHTML =
                         '<div class="sp-field"><label for="spWizScenes">' + esc(t('How many scenes are there?')) + '</label>' +
                         '<input type="number" id="spWizScenes" min="1" max="99" value="' + draft.sceneCount + '"></div>' +
-                        '<p class="sp-hint">' + esc(t('Empty scenes are created now and you fill them in as you go. Add or remove scenes at any time.')) + '</p>';
+                        '<p class="sp-hint">' + esc(t('Empty scenes are created now and you fill them in as you go.')) + '</p>';
                 }
             } else {
                 body.innerHTML =
-                    '<p style="margin-bottom:0.8rem">' + esc(t('That is the frame. From here you drag props onto the stage, scene by scene; the tool works out what has to be carried on and off between them and prints it as an Umbauplan.')) + '</p>' +
+                    '<p style="margin-bottom:0.8rem">' + esc(t('From here you drag props onto the stage, scene by scene. The tool works out what has to be carried between them and prints it as an Umbauplan.')) + '</p>' +
                     '<p class="sp-hint">' + esc(t('Nothing is placed for you — the stage starts empty, exactly as you left it.')) + '</p>';
             }
 
@@ -3956,6 +4188,125 @@
     /* ================================================================== *
      * Wiring
      * ================================================================== */
+
+    /* ================================================================== *
+     * Handbuch
+     *
+     * Zu jeder Einstellung steht schon ein Erklärtext hinter ihrem ?. Das
+     * nützt nur, wenn man die Einstellung findet. Hier kann man nach dem Wort
+     * suchen, das einem einfällt, und wird dann hingebracht: richtiger
+     * Reiter, richtiges Panel, das Feld kurz hervorgehoben und die Erklärung
+     * gleich offen. Wer nicht sucht, merkt davon nichts.
+     * ================================================================== */
+
+    var guideCache = null;
+
+    function guideIndex() {
+        if (!guideCache) {
+            guideCache = SPGuide.buildIndex(
+                Object.keys(SPI18n.EXPLAIN.de), SPI18n.explain);
+        }
+        return guideCache;
+    }
+
+    /* Bringt zur Einstellung hinter diesem Schlüssel. */
+    function gotoExplain(entry) {
+        if (entry.tab && entry.tab !== ui.tab) setTab(entry.tab);
+        if (entry.panel && ui.tab === 'scenes') setInspector(entry.panel);
+
+        /* Nach dem Reiterwechsel ist das Feld erst im nächsten Zeichnen da. */
+        window.setTimeout(function () {
+            var target = $('[data-explain="' + entry.key + '"]');
+            if (!target) {
+                toast(entry.open
+                    ? t('You will find “{what}” here: {where}', { what: entry.title, where: entry.open })
+                    : t('“{what}” could not be found on screen.', { what: entry.title }));
+                return;
+            }
+            if (target.scrollIntoView) {
+                target.scrollIntoView({ block: 'center', inline: 'nearest' });
+            }
+            target.classList.add('sp-why-found');
+            window.setTimeout(function () { target.classList.remove('sp-why-found'); }, 2000);
+            openExplainer(target);
+        }, 60);
+    }
+
+    function openGuide() {
+        var index = guideIndex();
+        var wrap = document.createElement('div');
+        wrap.className = 'sp-guide';
+        wrap.innerHTML =
+            '<input type="search" class="sp-guide-query" id="spGuideQuery" autocomplete="off" ' +
+            'placeholder="' + esc(t('What are you looking for?')) + '" ' +
+            'aria-label="' + esc(t('What are you looking for?')) + '">' +
+            '<div class="sp-guide-hits" id="spGuideHits" role="listbox"></div>';
+
+        var modal = openModal({
+            title: t('Handbook'),
+            body: wrap,
+            modalClass: 'is-guide',
+            cancelLabel: t('Close'),
+            actions: [{
+                label: t('Read the whole manual'),
+                onClick: function () { window.open('handbuch.html', '_blank', 'noopener'); return false; }
+            }]
+        });
+
+        var query = $('#spGuideQuery', wrap);
+        var hits = $('#spGuideHits', wrap);
+        var shown = [];
+        var cursor = 0;
+
+        function draw() {
+            var text = query.value.trim();
+            /* Ohne Eingabe die Abschnitte zeigen, damit man auch blättern
+               kann, wenn einem das Wort gerade nicht einfällt. */
+            shown = text ? SPGuide.search(index, text, 14) : index.slice(0, 14);
+            cursor = 0;
+            if (!shown.length) {
+                hits.innerHTML = '<p class="sp-empty">' +
+                    esc(t('Nothing under that word.')) + '</p>';
+                return;
+            }
+            hits.innerHTML = shown.map(function (entry, i) {
+                return '<button type="button" class="sp-guide-hit' + (i === 0 ? ' is-on' : '') +
+                    '" role="option" data-hit="' + i + '" aria-selected="' + (i === 0) + '">' +
+                    '<strong>' + esc(entry.title) + '</strong>' +
+                    '<span class="sp-guide-where">' + esc(entry.open) + '</span>' +
+                    '<span class="sp-guide-body">' + esc(entry.body) + '</span></button>';
+            }).join('');
+        }
+
+        function mark() {
+            $$('.sp-guide-hit', hits).forEach(function (el, i) {
+                el.classList.toggle('is-on', i === cursor);
+                el.setAttribute('aria-selected', String(i === cursor));
+                if (i === cursor && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+            });
+        }
+
+        function choose(i) {
+            var entry = shown[i];
+            if (!entry) return;
+            modal.close();
+            gotoExplain(entry);
+        }
+
+        query.addEventListener('input', draw);
+        query.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowDown') { e.preventDefault(); cursor = Math.min(cursor + 1, shown.length - 1); mark(); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); cursor = Math.max(cursor - 1, 0); mark(); }
+            else if (e.key === 'Enter') { e.preventDefault(); choose(cursor); }
+        });
+        hits.addEventListener('click', function (e) {
+            var hit = e.target.closest('[data-hit]');
+            if (hit) choose(Number(hit.dataset.hit));
+        });
+
+        draw();
+        query.focus();
+    }
 
     function setTab(tab) {
         ui.tab = tab;
@@ -4475,6 +4826,7 @@
         $('#spPresetApply').addEventListener('click', insertPlaceSet);
         $('#spProductionMenu').addEventListener('click', productionDialog);
         $('#spBackup').addEventListener('click', exportJson);
+        $('#spGuide').addEventListener('click', openGuide);
         $('#spHelp').addEventListener('click', helpDialog);
         $('#spUndo').addEventListener('click', undo);
         $('#spRedo').addEventListener('click', redo);
@@ -4509,6 +4861,18 @@
         /* ----------------------------------------------------- keyboard */
 
         document.addEventListener('keydown', function (e) {
+            /* Das Handbuch geht immer auf, auch mitten im Tippen — wer nach
+               einer Einstellung sucht, steht meistens gerade in einem Feld. */
+            if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey) && !e.altKey) {
+                e.preventDefault();
+                if (!$('.sp-modal-backdrop')) openGuide();
+                return;
+            }
+            if (e.key === 'F1') {
+                e.preventDefault();
+                if (!$('.sp-modal-backdrop')) openGuide();
+                return;
+            }
             if (e.key === ' ' && !isTyping(e.target)) { spaceHeld = true; }
             if (isTyping(e.target)) return;
             if ($('.sp-modal-backdrop')) return;

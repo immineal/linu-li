@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Szenen- und Requisitenplaner | Linus Linhof</title>
+    <title>Bühnenbild-Planer | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css" />
     <link rel="stylesheet" href="planner.css" />
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg" />
@@ -48,6 +48,9 @@
                     data-i18n-attr="title" title="Redo (Ctrl+Shift+Z)" disabled data-i18n>Redo</button>
             <button class="sp-btn" id="spBackup" data-i18n>Backup</button>
             <button type="button" class="sp-why" data-explain="store.backup" aria-label="?">?</button>
+            <button class="sp-btn is-quiet" id="spGuide"
+                    data-i18n-attr="title,aria-label" title="Search the manual (Ctrl+K)"
+                    aria-label="Search the manual (Ctrl+K)">⌕</button>
             <button class="sp-btn is-quiet" id="spHelp"
                     data-i18n-attr="title" title="Help and setup">?</button>
           </div>
@@ -148,18 +151,16 @@
           <!-- ================================================= STAGE ==== -->
           <section class="sp-panel" id="spPanel-stage" role="tabpanel">
             <div class="sp-work">
-              <div class="sp-work-main sp-pad">
-                <div class="sp-measure">
+              <div class="sp-work-main sp-pad sp-stage-main">
+                <div class="sp-stage-head">
                   <h2 id="spStageHeading" data-i18n>Stage</h2>
-                  <p id="spStageIntro" data-i18n>
-                    Set the playing area once and every scene inherits it. A single scene can
-                    be given its own stage if the set changes shape at the interval.
-                  </p>
-                  <div class="sp-shape-grid" id="spShapeGrid"></div>
-                  <div class="sp-stage-preview" style="margin-top: 1rem">
-                    <div id="spStagePreview" style="height: 100%"></div>
-                  </div>
+                  <p id="spStageIntro" data-i18n>Applies to every scene. A single scene can be given a stage of its own on the Scene panel.</p>
                 </div>
+                <div class="sp-shape-grid" id="spShapeGrid"></div>
+                <div class="sp-stage-preview">
+                  <div id="spStagePreview" style="height: 100%"></div>
+                </div>
+                <p class="sp-hint sp-stage-tip" data-i18n>Drag the dots to change a measurement. Hold Shift for finer steps.</p>
               </div>
               <div class="sp-work-side" id="spStageSide"></div>
             </div>
@@ -169,20 +170,17 @@
           <section class="sp-panel" id="spPanel-places" role="tabpanel">
             <div class="sp-work">
               <div class="sp-work-main sp-pad">
-                <div class="sp-measure">
+                <div class="sp-places-head">
                   <h2 data-i18n>Places</h2>
-                  <p data-i18n>
-                    Name the sets that recur through the evening — the kitchen, the market,
-                    the café. A scene picks a place, and the printed reference box lists what
-                    belongs in each one.
-                  </p>
-                  <div class="sp-btn-row" style="margin-bottom: 1rem">
+                  <button type="button" class="sp-why" data-explain="place.what" aria-label="?">?</button>
+                  <p data-i18n>Sets that come back through the evening. Each scene plays in one place.</p>
+                  <div class="sp-btn-row">
                     <button class="sp-btn is-primary" id="spAddPlace" data-i18n>Add a place</button>
+                    <button type="button" class="sp-why" data-explain="place.set" aria-label="?">?</button>
                   </div>
-                  <div id="spPlaceList"></div>
                 </div>
+                <div id="spPlaceList" class="sp-place-grid"></div>
               </div>
-              <div class="sp-work-side sp-pad" id="spPlaceSide"></div>
             </div>
           </section>
 
@@ -192,10 +190,6 @@
               <div class="sp-work-main sp-pad">
                 <div class="sp-measure is-wide">
                   <h2 data-i18n>Prop library</h2>
-                  <p data-i18n>
-                    Sixty-odd drawings to start with, plus anything you add yourself. Every
-                    prop carries a real footprint, so it lands on the plan at the right size.
-                  </p>
                   <div class="sp-btn-row" style="margin-bottom: 1rem">
                     <input type="search" id="spLibrarySearch" data-no-save="1"
                            data-i18n-attr="placeholder,aria-label"
@@ -233,6 +227,7 @@
     <script src="core.js"></script>
     <script src="props.js"></script>
     <script src="draw.js"></script>
+    <script src="guide.js"></script>
     <script src="plan.js"></script>
     <script src="sheets.js"></script>
     <script src="app.js"></script>
