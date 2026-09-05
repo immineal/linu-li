@@ -76,6 +76,8 @@
         'The structure': 'Die Gliederung',
         'Filled': 'Gefüllt',
         'Rename this scene': 'Diese Szene umbenennen',
+        'Choose a file': 'Datei wählen',
+        'None chosen': 'Keine gewählt',
         'This file comes from a later version of the planner. Anything it knows that this one does not will be dropped.':
             'Diese Datei stammt aus einer neueren Fassung des Planers. Was sie kennt und diese Fassung nicht, geht beim Einspielen verloren.',
         'One act, straight through': 'Ein Akt, durchgehend',

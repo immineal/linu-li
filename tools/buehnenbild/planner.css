@@ -164,14 +164,25 @@ body {
 .sp-btn.is-quiet:hover { border-color: var(--sp-line); color: var(--ink); }
 .sp-btn.is-danger:hover { border-color: var(--accent); color: var(--accent); }
 .sp-btn.is-on { border-color: var(--accent); color: var(--accent); background: rgba(196, 77, 60, 0.06); }
-.sp-btn-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+/* Ohne `align-items` streckt sich die Reihe, und das Fragezeichen mit fester
+   Höhe hing dann oben statt auf der Mitte der Knöpfe. */
+.sp-btn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
 .sp-btn-pair { display: inline-flex; align-items: center; gap: 0.35rem; }
 
+/* Dieselbe Gestalt in den Dialogen wie im Programm. Ein Dialog hängt am
+   Dokument und nicht in `#spApp`, bekam diese Regeln also nie — seine Felder
+   waren höher, anders gepolstert und saßen in einer Reihe zehn Pixel über
+   allem anderen. */
 .sp-app select,
 .sp-app input[type="text"],
 .sp-app input[type="number"],
 .sp-app input[type="search"],
-.sp-app textarea {
+.sp-app textarea,
+.sp-modal select,
+.sp-modal input[type="text"],
+.sp-modal input[type="number"],
+.sp-modal input[type="search"],
+.sp-modal textarea {
     font-family: var(--font-heading);
     font-size: 0.85rem;
     padding: 0.4rem 0.5rem;
@@ -189,11 +200,6 @@ body {
 .sp-app textarea::placeholder,
 .sp-modal input::placeholder,
 .sp-modal textarea::placeholder { color: var(--sp-muted); opacity: 1; }
-.sp-modal input[type="text"],
-.sp-modal input[type="number"],
-.sp-modal input[type="search"],
-.sp-modal select,
-.sp-modal textarea { color: var(--ink); }
 .sp-app textarea { resize: vertical; min-height: 62px; line-height: 1.45; }
 .sp-app label { font-size: 0.76rem; color: var(--sp-muted); margin-bottom: 0.25rem; font-weight: 400; }
 .sp-field { margin-bottom: 0.7rem; }
@@ -839,7 +845,9 @@ body {
 /* „Alles Weitere“: was die Tinte auf dem Szenenblatt regelt. Vorne stehen die
    Blätter und der Umfang — siebzehn Kästchen nebeneinander waren siebzehn
    Sachen zu lesen, bevor man drucken konnte. */
-.sp-more { border-top: 1px solid var(--sp-line); }
+/* Die Klappe trennt sich von dem, was über ihr steht — sonst klebt der
+   Strich an der Knopfreihe darüber und sieht aus wie deren Unterkante. */
+.sp-more { border-top: 1px solid var(--sp-line); margin-top: 0.7rem; }
 .sp-more > summary {
     cursor: pointer;
     padding: 0.7rem 0;
@@ -909,6 +917,31 @@ body {
 /* Die drei Handgriffe rücken zusammen und sitzen auf einer Kante mit dem
    Textfeld daneben; einzeln als Knöpfe standen sie auseinander. */
 .sp-wing-list li .sp-tool { width: 1.7rem; height: 1.7rem; }
+.sp-wing-list li .sp-wing-text { align-self: center; }
+
+/* Der Knopf zum Auswählen einer Datei. Der Browser stellt dafür sonst sein
+   eigenes „Durchsuchen … Keine Datei ausgewählt" hin — in eigener Schrift, in
+   eigener Sprache und ohne jeden Bezug zum Rest. Das echte Feld bleibt für
+   die Bedienung mit der Tastatur da, es ist nur nicht zu sehen. */
+.sp-file-row { display: flex; align-items: center; gap: 0.5rem; }
+.sp-file-row input[type="file"] {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.sp-file-name {
+    font-size: 0.78rem;
+    color: var(--sp-muted);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sp-file-row input[type="file"]:focus-visible + .sp-file-button {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
 .sp-wing-list li .sp-tool[disabled] { opacity: 0.35; cursor: default; }
 .sp-wing-list li .sp-tool.is-danger:hover { color: var(--accent); }
 /* Dieselben Handgriffe an jeder Kachel, jeder Szenenzeile, jedem Ort. */
@@ -919,9 +952,14 @@ body {
     width: 44px; height: 40px; padding: 2px;
     border: 1px solid var(--sp-line); border-radius: 3px;
     background: var(--sp-field); cursor: pointer; color: var(--ink);
+    /* Das Plus saß auf der Grundlinie des Knopfes und damit zu tief. Alles in
+       dieser Zeile sitzt auf einer Mitte: Bild, Textfeld, Handgriffe. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .sp-wing-pick:hover { border-color: var(--accent); }
-.sp-wing-nopic { font-size: 1.1rem; color: var(--sp-muted); }
+.sp-wing-nopic { font-size: 1.1rem; line-height: 1; color: var(--sp-muted); }
 .sp-wing-picker { grid-column: 1 / -1; border: 1px solid var(--sp-line); border-radius: 3px; margin: 0.3rem 0 0.5rem; }
 .sp-wing-picker .sp-palette { max-height: 240px; overflow-y: auto; }
 .sp-wing-picker .sp-tile { border: 1px solid transparent; background: none; }
@@ -1239,9 +1277,28 @@ body {
     font-size: 0.66rem;
     line-height: 1;
     cursor: help;
-    vertical-align: 1px;
+    /* Eine Regel für alle: das Fragezeichen sitzt auf der Mitte der Schrift,
+       neben der es steht — nicht auf einem festen Abstand zur Grundlinie.
+       Vorher hing es bei einer großen Überschrift unten und bei einer kleinen
+       Beschriftung oben, weil `vertical-align: 1px` die Schriftgröße daneben
+       nicht kennt. */
+    vertical-align: middle;
 }
 .sp-why:hover, .sp-why:focus-visible { color: var(--ink); border-color: var(--ink); }
+
+/* Steht das Fragezeichen neben einer Überschrift, ist es kein Wort in deren
+   Zeile, sondern ein Zeichen daneben: die beiden bilden zusammen eine Reihe,
+   damit die Mitte des Kreises auf der Mitte der Überschrift liegt. */
+:where(h1, h2, h3) + .sp-why {
+    position: relative;
+    top: -0.05em;
+}
+.sp-places-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.1rem; }
+/* Der Rand unter der Überschrift zählt bei `align-items: center` mit und
+   schob das Fragezeichen um sieben Pixel nach unten. */
+.sp-places-head h2 { margin: 0; }
+.sp-places-head p { margin-top: 0.5rem; }
+.sp-places-head p, .sp-places-head .sp-btn-row { flex: 1 0 100%; }
 
 /* Kästchen und sein "?" bleiben auf einer Zeile. */
 .sp-check-row { display: flex; align-items: center; gap: 0.1rem; margin-bottom: 0.4rem; }
@@ -1324,7 +1381,6 @@ body {
 /* Ein Ort ist ein Bühnenbild. Also ist das Bild die Karte und nicht eine
    Briefmarke neben einem Textfeld — Karten nebeneinander, Bild oben, breit. */
 .sp-places-head { max-width: 760px; margin-bottom: 1rem; }
-.sp-places-head h2 { display: inline-block; margin-right: 0.15rem; }
 .sp-place-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));

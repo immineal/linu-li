@@ -161,7 +161,10 @@
                    der Gassenlinie — die liegt weiter oben, und die Marke ritt
                    dadurch auf der Kante statt in der Gasse zu liegen. */
                 var r = u * 8;
-                var cy = b.y + r + u * 2;
+                /* Luft zwischen Bühnenkante und Marke. Bei zwei Haarlinien
+                   klebte sie an der Kante und sah aus, als gehörte sie zur
+                   Linie statt in die Gasse. */
+                var cy = b.y + r + u * 8;
                 /* Die Marke sagt, wie viele Zettel in dieser Gasse liegen. Als
                    blasses Plus in Haarlinie war sie von einer Bühnenmarkierung
                    nicht zu unterscheiden — die Griffe im Bühne-Reiter sind aus
@@ -203,7 +206,7 @@
                 /* Ein Zettel ist das Bild plus bis zu drei Zeilen Unterschrift.
                    Der Platz darüber gehört der Marke: sie endet bei 18
                    Haarlinien unter der Kante, darunter beginnt der Stapel. */
-                var head = u * 18 + noteSize * 0.6;
+                var head = u * 24 + noteSize * 0.6;
                 var slot = noteSize * 2.0;
                 var room = Math.max(1, Math.floor((wingDepth - head) / slot));
                 var dropped = { left: 0, right: 0 };

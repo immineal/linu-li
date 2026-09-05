@@ -2941,7 +2941,9 @@
                     '1 drawing added. It sits alongside the built-in ones in every production in this browser.',
                     '{n} drawings added. They sit alongside the built-in ones in every production in this browser.')
                 : t('Nothing added yet. A PNG, JPEG or SVG works.')) +
-            '</p>' + why('draw.open') + '</div>' +
+            /* Die Erklärung zu „Requisit zeichnen" hing hier unter einem
+               Absatz und damit an nichts. Sie steht jetzt an ihrem Knopf. */
+            '</p></div>' +
 
             '<div class="sp-section"><h3>' + esc(t('Browser storage')) + '</h3>' +
             '<p class="sp-hint">' + esc(t('Everything you have made takes about {size}. Browsers usually stop somewhere around 5 MB, so keep custom drawings small and take a backup from time to time.', { size: formatBytes(bytes) })) + '</p>' +
@@ -3004,7 +3006,11 @@
                 '<input type="number" id="spPropH" step="0.05" min="0.05" value="' + toField(draft.h) + '"></div>' +
                 '</div>' +
                 '<div class="sp-field"><label for="spPropFile">' + esc(t('Drawing (PNG, JPEG or SVG)')) + '</label>' +
-                '<input type="file" id="spPropFile" accept="image/png,image/jpeg,image/svg+xml,image/webp"></div>' +
+                '<span class="sp-file-row">' +
+                '<input type="file" id="spPropFile" accept="image/png,image/jpeg,image/svg+xml,image/webp">' +
+                '<label class="sp-btn sp-file-button" for="spPropFile">' + esc(t('Choose a file')) + '</label>' +
+                '<span class="sp-file-name" id="spPropFileName">' + esc(t('None chosen')) + '</span>' +
+                '</span></div>' +
                 '<div id="spPropPreview" style="text-align:center;min-height:90px;border:1px solid var(--sp-line);' +
                 'border-radius:3px;padding:0.5rem;background:var(--sp-field)">' +
                 (draft.image ? '<img src="' + esc(draft.image) + '" style="max-height:90px">' :
@@ -3033,6 +3039,8 @@
 
         $('#spPropFile', modal.body).addEventListener('change', function (e) {
             var file = e.target.files && e.target.files[0];
+            var nameSlot = $('#spPropFileName', modal.body);
+            if (nameSlot) nameSlot.textContent = file ? file.name : t('None chosen');
             if (!file) return;
             processImage(file, function (dataUrl) {
                 if (!dataUrl) { toast(t('That file could not be read as a picture.'), 'error'); return; }

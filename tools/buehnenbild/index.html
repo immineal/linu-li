@@ -142,13 +142,15 @@
                         rx="1" stroke-dasharray="2.6 2"/></svg></button>
                     <button type="button" class="sp-why" data-explain="scene.ghosts" aria-label="?">?</button>
                     <!-- Die Achse gestrichelt wie die Mittellinie, links die
-                         Sache, rechts dieselbe seitenverkehrt. -->
+                         Sache voll, rechts dieselbe hohl. Zwei Dreiecke, die
+                         auf die Achse zeigen, lasen sich bei fünfzehn Pixeln
+                         als ein schief stehendes Viereck. -->
                     <button class="sp-tool" id="spMirror" data-i18n-attr="title,aria-label"
                             title="Flip the whole layout across the centre line"
                             aria-label="Flip the whole layout across the centre line"><svg class="sp-icon"
-                        viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.2V14.8" stroke-dasharray="2.2 1.8"/>
-                        <path d="M6.2 3.4L1.6 8l4.6 4.6Z" fill="currentColor" stroke="none"/>
-                        <path d="M9.8 3.4L14.4 8l-4.6 4.6Z"/></svg></button>
+                        viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6V14.4" stroke-dasharray="2 2"/>
+                        <path d="M6.4 4.2H2.3v7.6h4.1Z" fill="currentColor" stroke="none"/>
+                        <path d="M9.6 4.2h4.1v7.6H9.6Z"/></svg></button>
                     <button type="button" class="sp-why" data-explain="scene.mirror" aria-label="?">?</button>
                   </div>
 
@@ -262,6 +264,7 @@
                     <select id="spLibraryCategory" data-no-save="1" style="width: auto"
                             data-i18n-attr="aria-label" aria-label="Filter by category"></select>
                     <button class="sp-btn is-primary" id="spDrawCustomProp" data-act="draw-custom-prop" data-i18n>Draw a prop</button>
+                    <button type="button" class="sp-why" data-explain="draw.open" aria-label="?">?</button>
                     <button class="sp-btn" id="spAddCustomProp" data-act="add-custom-prop" data-i18n>Add your own prop</button>
                   </div>
                   <div class="sp-lib-grid" id="spLibraryGrid"></div>
