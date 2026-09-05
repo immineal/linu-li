@@ -535,6 +535,32 @@ test('every prop can be found under the word that is printed on it', () => {
         'these props cannot be found under their own printed name');
 });
 
+test('a catalogue entry never confuses its preset values with its list of them', () => {
+    /* `params` heißt am Katalogeintrag die voreingestellten Werte, und
+       `makePlacement` kopiert sie in jede Aufstellung. Stünde dort die Liste
+       der möglichen Werte, landete sie unter demselben Namen in den Werten —
+       eine Aufstellung trüge dann `{ "0": { key: "full", … }, full: true }`.
+       Die Liste heißt deshalb `paramSpec`. */
+    Props.LIBRARY.forEach((p) => {
+        assert.ok(!Array.isArray(p.params),
+            p.id + ' carries its list of values under `params`, use `paramSpec`');
+        if (p.paramSpec) {
+            assert.ok(Array.isArray(p.paramSpec), p.id + ' has a paramSpec that is not a list');
+            p.paramSpec.forEach((q) => {
+                assert.ok(q.key && q.label, p.id + ' has a value without a key or a label');
+            });
+        }
+    });
+    /* Und was gestellt wird, trägt nur Werte. */
+    Props.LIBRARY.forEach((p) => {
+        const pl = SP.makePlacement(p, 0, 0);
+        Object.keys(pl.params || {}).forEach((k) => {
+            assert.ok(typeof pl.params[k] !== 'object' || pl.params[k] === null,
+                p.id + ' places a value that is an object: ' + k);
+        });
+    });
+});
+
 test('every prop in the catalogue survives a trip through the prop list', () => {
     /* Die Liste las `prop.art`. Was eine Bauvorschrift ist und kein fertiges
        Bild mitbringt, druckte damit das Wort „undefined“ neben seinen Namen —

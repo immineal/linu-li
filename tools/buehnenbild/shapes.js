@@ -701,7 +701,17 @@
         return b;
     }
 
-    function drawArt(prop, w, h, u) {
+    /* Eine Zeichnung darf Zusätze mitbringen, die an einem Schalter hängen:
+       `artWhen.voll` wird mitgezeichnet, solange „voll" steht. Sie liegen im
+       selben Feld wie die Zeichnung selbst und werden mit ihr gesetzt. */
+    function artExtras(prop, vals) {
+        if (!prop.artWhen || !vals) return '';
+        return Object.keys(prop.artWhen).map(function (key) {
+            return vals[key] ? prop.artWhen[key] : '';
+        }).join('');
+    }
+
+    function drawArt(prop, w, h, u, vals) {
         if (prop.image) {
             /* Ein hochgeladenes Bild ist keine Kontur: es füllt die Fläche. */
             return '<image href="' + esc(prop.image) + '" x="' + n(-w / 2) + '" y="' + n(-h / 2) +
@@ -712,7 +722,7 @@
         var k = Math.min(w / b[2], h / b[3]);
         return '<g class="sp-art" transform="scale(' + p6(k) + ') translate(' +
             p6(-(b[0] + b[2] / 2)) + ' ' + p6(-(b[1] + b[3] / 2)) + ')" stroke-width="' +
-            p6(u * INK * (prop.sw || 1) / k) + '">' + prop.art + '</g>';
+            p6(u * INK * (prop.sw || 1) / k) + '">' + prop.art + artExtras(prop, vals) + '</g>';
     }
 
     /* Manche Vorschriften rechnen ihre Tiefe aus der Breite: bei einer Tür
@@ -738,9 +748,17 @@
         return !!SHAPES[nameOf(prop)];
     }
 
+    /* Woher die Werte kommen: aus der Bauvorschrift, wenn es eine gibt —
+       sonst darf eine Zeichnung ihre eigenen mitbringen. Ein Glas ist keine
+       Vorschrift wert, soll aber trotzdem voll oder leer sein können. Das Feld
+       heißt `paramSpec` und nicht `params`: `params` heißt am Katalogeintrag
+       schon die voreingestellten Werte — der Tisch mit Decke bringt so seine
+       Decke mit —, und `makePlacement` kopiert das in jede Aufstellung. Unter
+       demselben Namen landete die Werteliste selbst in den Werten. */
     function spec(prop) {
         var s = SHAPES[nameOf(prop)];
-        return s ? s.params.slice() : [];
+        if (s) return s.params.slice();
+        return prop && Array.isArray(prop.paramSpec) ? prop.paramSpec.slice() : [];
     }
 
     /* Die eingestellten Werte, mit den Vorgaben der Vorschrift aufgefüllt.
@@ -779,7 +797,7 @@
             Object.keys(extra).forEach(function (k) { vals[k] = extra[k]; });
             inner = s.draw(ww, hh, vals, u);
         } else {
-            inner = drawArt(prop || {}, ww, hh, u);
+            inner = drawArt(prop || {}, ww, hh, u, values(prop, params));
         }
         /* Umdrehen spiegelt die Zeichnung, bevor sie gedreht wird. Beim
            Textfeld nicht: gespiegelte Schrift ist keine Schrift. */
