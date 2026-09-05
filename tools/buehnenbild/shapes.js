@@ -90,6 +90,8 @@
     /* Vier Beine als kurze Diagonalen in den Ecken — die Schreibweise, in der
        die übernommenen Zeichnungen einen Tisch kenntlich machen. Sie sind in
        Metern lang, wachsen also nicht mit der Platte mit. */
+    var CLOTH_ANGLE = 22.5;
+
     function cornerLegs(w, h, len, sw) {
         var d = clamp(len, 0.03, Math.min(w, h) / 2.4);
         var hw = w / 2, hh = h / 2;
@@ -100,20 +102,38 @@
     }
 
     /* Schräg liegende Parallelen in einem Rechteck, auf Abstand geschnitten.
-       Ein Karo auf einer Tischdecke liegt über Eck; gerade Linien sehen aus
-       wie eine Fuge, nicht wie Stoff. `dir` ist +1 oder -1 für die beiden
-       Richtungen. Der Abstand ist senkrecht zur Linie gemessen, deshalb der
-       Faktor Wurzel zwei. */
-    function diagonals(hw, hh, step, dir) {
+       Ein Karo auf einer Tischdecke liegt über Eck; gerade Linien sähen aus
+       wie eine Fuge, nicht wie Stoff. Der Winkel ist frei, weil 45 Grad
+       genau die Richtung der vier Beinmarken ist — dort fiel je eine
+       Karolinie mit einem Bein zusammen, und das Bein verschwand im Muster.
+       Der Abstand wird senkrecht zur Linie gemessen. */
+    function hatch(hw, hh, step, angleDeg) {
+        var a = angleDeg * Math.PI / 180;
+        var dx = Math.cos(a), dy = Math.sin(a);
+        var nx = -dy, ny = dx;                     // Einheitsnormale
+        var reach = Math.abs(hw * nx) + Math.abs(hh * ny);
+        var pitch = Math.max(0.01, step);
         var d = '';
-        var reach = hw + hh;
-        var pitch = Math.max(0.01, step) * Math.SQRT2;
         var first = -reach + ((reach * 2) % pitch) / 2;
-        for (var c = first; c <= reach; c += pitch) {
-            var x1 = Math.max(-hw, c - hh);
-            var x2 = Math.min(hw, c + hh);
-            if (x2 - x1 < 0.002) continue;
-            d += 'M' + n(x1) + ' ' + n(dir * (c - x1)) + 'L' + n(x2) + ' ' + n(dir * (c - x2));
+        for (var c = first; c <= reach + 1e-9; c += pitch) {
+            /* Ein Punkt auf der Linie, dann an den vier Kanten beschneiden. */
+            var px = c * nx, py = c * ny;
+            var lo = -Infinity, hi = Infinity;
+            var ok = true;
+            [[dx, -hw - px, hw - px], [dy, -hh - py, hh - py]].forEach(function (slab) {
+                if (!ok) return;
+                if (Math.abs(slab[0]) < 1e-9) {
+                    if (slab[1] > 0 || slab[2] < 0) ok = false;
+                    return;
+                }
+                var t1 = slab[1] / slab[0], t2 = slab[2] / slab[0];
+                if (t1 > t2) { var swap = t1; t1 = t2; t2 = swap; }
+                if (t1 > lo) lo = t1;
+                if (t2 < hi) hi = t2;
+            });
+            if (!ok || hi - lo < 0.002) continue;
+            d += 'M' + n(px + dx * lo) + ' ' + n(py + dy * lo) +
+                'L' + n(px + dx * hi) + ' ' + n(py + dy * hi);
         }
         return d;
     }
@@ -277,9 +297,13 @@
                 if (!o.cloth) return out;
                 /* Das Karo liegt über Eck und hängt an einer Kantenlänge in
                    Metern, nicht an einer Anzahl — sonst wird aus dem Quadrat
-                   auf einer langen Tafel ein liegendes Rechteck. */
+                   auf einer langen Tafel ein liegendes Rechteck. Es liegt bei
+                   22,5 Grad statt 45: sonst deckt sich je eine Linie mit einer
+                   Beinmarke, und der Tisch sieht aus, als stünde er auf nichts.
+                   Gerade wiederum läse sich das Muster als Hintergrundraster. */
                 var side = clamp(o.check, 0.03, Math.max(w, h));
-                var d = diagonals(hw, hh, side, 1) + diagonals(hw, hh, side, -1);
+                var d = hatch(hw, hh, side, CLOTH_ANGLE) +
+                    hatch(hw, hh, side, CLOTH_ANGLE + 90);
                 return out + (d ? line(d, sw * 0.7) : '');
             }
         },

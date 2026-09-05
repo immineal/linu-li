@@ -522,6 +522,19 @@ test('nothing but the scene sheets comes out unless it is asked for', () => {
         'the sheet lost its scale bar and its audience');
 });
 
+test('every prop can be found under the word that is printed on it', () => {
+    /* Die Kachel sagt „Tür", die Requisite heißt im Quelltext „Doorway", und
+       die Suche sah nur den Quelltext. Wer „Tür" tippte, bekam nichts. */
+    const notFound = Props.LIBRARY.filter((p) => {
+        const shown = I18n.t(p.name).toLowerCase();
+        const haystack = [p.name, I18n.t(p.name), p.tags || '', p.cat, I18n.t(p.cat)]
+            .join(' ').toLowerCase();
+        return haystack.indexOf(shown) === -1;
+    });
+    assert.deepStrictEqual(notFound.map((p) => p.name), [],
+        'these props cannot be found under their own printed name');
+});
+
 test('the worked example only places props that exist', () => {
     /* `put` gab bei einem unbekannten Namen still null zurück, und die Zeile
        fiel aus der Szene. Die Schulklasse im Beispiel stand ohne Pult da, das
@@ -1576,11 +1589,11 @@ test('a value that depends on a switch only shows while the switch is on', () =>
         ['pedestal']);
 });
 
-test('the check on a tablecloth lies across the corner and keeps its pitch', () => {
-    /* Gerade Linien sahen aus wie eine Fuge, nicht wie Stoff, und auf einer
-       langen Tafel wurde aus dem Quadrat ein liegendes Rechteck. Jetzt liegt
-       das Karo über Eck, und sein Abstand steht in Metern — senkrecht zur
-       Linie gemessen, in beiden Richtungen gleich. */
+test('the check on a tablecloth lies across the corner, clear of the legs', () => {
+    /* Gerade Linien sähen aus wie eine Fuge, nicht wie Stoff, und auf einer
+       langen Tafel wurde aus dem Quadrat ein liegendes Rechteck. Über Eck
+       liegt es also — aber nicht auf 45 Grad: dort laufen die vier Beinmarken,
+       und je eine Karolinie verschluckte je ein Bein. */
     const side = 0.3;
     [[0.9, 0.9], [1.6, 0.9], [2.4, 0.8], [3.0, 1.2]].forEach(([w, h]) => {
         const out = Shapes.draw({ shape: 'table' }, w, h, { cloth: true, check: side }, 0.01);
@@ -1588,22 +1601,46 @@ test('the check on a tablecloth lies across the corner and keeps its pitch', () 
         const re = /M(-?[\d.]+) (-?[\d.]+)L(-?[\d.]+) (-?[\d.]+)/g;
         let m;
         while ((m = re.exec(out))) segs.push([+m[1], +m[2], +m[3], +m[4]]);
-        /* Nur die schrägen Züge; die Beinmarken laufen über 'l' und fallen
-           damit nicht in diesen Ausdruck. */
-        const diag = segs.filter((g) => Math.abs(Math.abs(g[2] - g[0]) - Math.abs(g[3] - g[1])) < 0.002
-            && Math.abs(g[2] - g[0]) > 0.002);
-        assert.ok(diag.length >= 4, w + '×' + h + ' has no check at all');
+        assert.ok(segs.length >= 6, w + '×' + h + ' has no check at all');
 
-        const down = diag.filter((g) => (g[3] - g[1]) / (g[2] - g[0]) > 0).map((g) => g[0] - g[1]);
-        const up = diag.filter((g) => (g[3] - g[1]) / (g[2] - g[0]) < 0).map((g) => g[0] + g[1]);
-        assert.ok(down.length && up.length, w + '×' + h + ' only draws the check one way');
+        /* Ganz kurze Züge in einer Ecke tragen ihren Winkel nur auf ein
+           halbes Grad genau — sie werden nach Länge aussortiert, nicht nach
+           Winkel, sonst zählte das Runden als dritte Richtung. */
+        const long = segs.filter((g) => Math.hypot(g[2] - g[0], g[3] - g[1]) > 0.05);
+        const angles = long.map((g) => {
+            const deg = Math.atan2(g[3] - g[1], g[2] - g[0]) * 180 / Math.PI;
+            return ((deg % 180) + 180) % 180;
+        });
+        /* Zwei Richtungen, senkrecht zueinander, und keine davon auf 45 oder
+           135 Grad, wo die Beinmarken liegen. */
+        const families = [];
+        angles.forEach((a) => {
+            if (!families.some((f) => Math.abs(f - a) < 2)) families.push(a);
+        });
+        assert.strictEqual(families.length, 2,
+            w + '×' + h + ' draws the check in ' + families.length + ' directions: ' + families);
+        assert.ok(Math.abs(Math.abs(families[0] - families[1]) - 90) < 0.2,
+            w + '×' + h + ' the two families are not square to each other');
+        families.forEach((a) => {
+            assert.ok(Math.abs(a - 45) > 5 && Math.abs(a - 135) > 5,
+                w + '×' + h + ' a check line runs along the leg marks at ' + a + '°');
+            assert.ok(a > 2 && Math.abs(a - 90) > 2 && a < 178,
+                w + '×' + h + ' the check is square to the table at ' + a + '°, that reads as a grid');
+        });
 
-        [down, up].forEach((family) => {
-            const sorted = family.slice().sort((a, b) => a - b);
-            for (let i = 1; i < sorted.length; i++) {
-                const perpendicular = (sorted[i] - sorted[i - 1]) / Math.SQRT2;
-                assert.ok(Math.abs(perpendicular - side) < 0.02,
-                    w + '×' + h + ' spaces the check at ' + perpendicular.toFixed(3) + ' m');
+        /* Der Abstand steht in Metern, senkrecht zur Linie gemessen, und ist
+           in beiden Richtungen gleich. */
+        families.forEach((a) => {
+            const rad = a * Math.PI / 180;
+            const nx = -Math.sin(rad), ny = Math.cos(rad);
+            const offsets = long
+                .filter((g, i) => Math.abs(angles[i] - a) < 2)
+                .map((g) => g[0] * nx + g[1] * ny)
+                .sort((p, q) => p - q);
+            for (let i = 1; i < offsets.length; i++) {
+                assert.ok(Math.abs((offsets[i] - offsets[i - 1]) - side) < 0.02,
+                    w + '×' + h + ' spaces the check at ' +
+                    (offsets[i] - offsets[i - 1]).toFixed(3) + ' m');
             }
         });
     });

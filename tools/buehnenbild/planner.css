@@ -148,8 +148,21 @@ body {
     border-radius: 3px;
     background: var(--sp-field);
     border: 1px solid var(--sp-line);
+    color: var(--ink);
     width: 100%;
 }
+/* Ohne das nimmt der Browser sein eigenes Grau für den Platzhalter — auf dem
+   dunklen Feld war „Requisiten suchen" schwarz auf fast schwarz. */
+.sp-app select::placeholder,
+.sp-app input::placeholder,
+.sp-app textarea::placeholder,
+.sp-modal input::placeholder,
+.sp-modal textarea::placeholder { color: var(--sp-muted); opacity: 1; }
+.sp-modal input[type="text"],
+.sp-modal input[type="number"],
+.sp-modal input[type="search"],
+.sp-modal select,
+.sp-modal textarea { color: var(--ink); }
 .sp-app textarea { resize: vertical; min-height: 62px; line-height: 1.45; }
 .sp-app label { font-size: 0.76rem; color: var(--sp-muted); margin-bottom: 0.25rem; font-weight: 400; }
 .sp-field { margin-bottom: 0.7rem; }
@@ -534,6 +547,13 @@ body {
     vector-effect: non-scaling-stroke;
     stroke-width: 1.15px;
 }
+/* Mit `non-scaling-stroke` zählt auch die Strichelung in Bildschirmpunkten.
+   Die Vorschriften schreiben sie in Bühnenmetern — ein Hundertstel Meter wird
+   damit zu einem Hundertstel Punkt, und der Schwenkbogen der Tür sah aus wie
+   eine dünne durchgezogene Linie. Hier steht sie deshalb in Punkten. */
+.sp-thumb .sp-swing { stroke-dasharray: 3 2.4; }
+.sp-thumb .sp-mark-zone { stroke-dasharray: 4 2.6; }
+.sp-thumb .sp-art .d { stroke-dasharray: 3 2.4; }
 .sp-tile .sp-tile-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-tile .sp-tile-size { color: var(--sp-muted); font-size: 0.62rem; font-variant-numeric: tabular-nums; }
 .sp-cat-head {
@@ -816,6 +836,11 @@ body {
     border-bottom: 1px solid var(--sp-line);
 }
 .sp-wing-list li:last-child { border-bottom: 0; }
+/* Die drei Handgriffe rücken zusammen und sitzen auf einer Kante mit dem
+   Textfeld daneben; einzeln als Knöpfe standen sie auseinander. */
+.sp-wing-list li .sp-tool { width: 1.7rem; height: 1.7rem; }
+.sp-wing-list li .sp-tool[disabled] { opacity: 0.35; cursor: default; }
+.sp-wing-list li .sp-tool.is-danger:hover { color: var(--accent); }
 .sp-wing-pick {
     width: 44px; height: 40px; padding: 2px;
     border: 1px solid var(--sp-line); border-radius: 3px;
@@ -868,7 +893,23 @@ body {
     border-radius: 5px;
     pointer-events: none;
 }
-.sp-canvas-tools > * { pointer-events: auto; }
+.sp-canvas-tools > *, .sp-canvas-zoom > * { pointer-events: auto; }
+
+/* Derselbe Streifen, nur unten rechts. Der Maßstab liegt unten links, die
+   Zeichnung in der Mitte — hier ist nichts im Weg. */
+.sp-canvas-zoom {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.15rem 0.25rem;
+    background: color-mix(in srgb, var(--sp-panel) 88%, transparent);
+    border: 1px solid var(--sp-line);
+    border-radius: 5px;
+    pointer-events: none;
+}
 .sp-tool-sep {
     width: 1px;
     height: 1.1rem;
@@ -1023,30 +1064,6 @@ body {
     height: calc(297mm * var(--k, 1));
     flex: 0 0 auto;
 }
-/* Das × an einem Blatt in der Vorschau. Es liegt still da, bis man das Blatt
-   überfährt — sonst sähe der Stapel aus wie ein Formular. Für die Tastatur
-   erscheint es, sobald es den Fokus hat. */
-.sp-sheet-drop {
-    position: absolute;
-    top: 0.35rem;
-    right: 0.35rem;
-    width: 1.5rem;
-    height: 1.5rem;
-    padding: 0;
-    line-height: 1;
-    font-size: 1rem;
-    border: 1px solid var(--sp-line);
-    border-radius: 4px;
-    background: var(--sp-panel);
-    color: var(--ink-secondary);
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.12s;
-}
-.sp-preview-slot:hover .sp-sheet-drop,
-.sp-sheet-drop:focus-visible { opacity: 1; }
-.sp-sheet-drop:hover { color: var(--accent); border-color: var(--accent); }
-
 .sp-sheets.is-landscape-preview .sp-preview-slot {
     width: calc(297mm * var(--k, 1));
     height: calc(210mm * var(--k, 1));

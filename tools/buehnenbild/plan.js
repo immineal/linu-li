@@ -157,10 +157,11 @@
                 var edge = line[2][0];
                 var cx = (corner[0] + edge) / 2;
                 /* Ans Kopfende der Gasse, dorthin, wo der erste Zettel
-                   erscheint. Am Rampenende lagen Knopf und Ergebnis an
-                   entgegengesetzten Enden derselben Gasse. */
-                var cy = line[0][1] + u * 10;
+                   erscheint. Gemessen an der Bühnenkante und nicht am Anfang
+                   der Gassenlinie — die liegt weiter oben, und die Marke ritt
+                   dadurch auf der Kante statt in der Gasse zu liegen. */
                 var r = u * 8;
+                var cy = b.y + r + u * 2;
                 /* Die Marke sagt, wie viele Zettel in dieser Gasse liegen. Als
                    blasses Plus in Haarlinie war sie von einer Bühnenmarkierung
                    nicht zu unterscheiden — die Griffe im Bühne-Reiter sind aus
@@ -200,8 +201,9 @@
                    Blattes — und so ging es auch zum Drucker. */
                 var wingDepth = Math.abs(wl[0][1][1] - wl[0][0][1]);
                 /* Ein Zettel ist das Bild plus bis zu drei Zeilen Unterschrift.
-                   Der Platz darüber gehört der Marke. */
-                var head = noteSize * 1.6;
+                   Der Platz darüber gehört der Marke: sie endet bei 18
+                   Haarlinien unter der Kante, darunter beginnt der Stapel. */
+                var head = u * 18 + noteSize * 0.6;
                 var slot = noteSize * 2.0;
                 var room = Math.max(1, Math.floor((wingDepth - head) / slot));
                 var dropped = { left: 0, right: 0 };
@@ -489,11 +491,32 @@
        das schnelle Nachziehen beim Aufziehen einer Ecke dasselbe braucht wie
        der volle Aufbau — liefen die beiden auseinander, sähe das Requisit
        während des Ziehens anders aus als danach. */
+    /* Eine Tasse ist zwölf Zentimeter breit. Auf einer Neun-Meter-Bühne, auf
+       A4 gedruckt, sind das anderthalb Millimeter — ein Fleck, den niemand
+       erkennt. Kleine Sachen werden deshalb wie ein Kartenzeichen gezeichnet:
+       vergrößert, aber nur bis zum Mindestmaß, und nur nach oben. Die
+       angeschriebene Zahl bleibt die wahre; vergrößert wird das Bild, nicht
+       das Requisit. Was schon groß genug ist, rührt die Regel nicht an. */
+    var SYMBOL_MIN = 24;        // in Haarlinien, also etwa 4,3 % der Bühnenbreite
+
+    function symbolScale(w, h, u) {
+        var big = Math.max(w, h);
+        var least = u * SYMBOL_MIN;
+        return big >= least ? 1 : least / big;
+    }
+
     function propInner(placement, prop, u, flags) {
         flags = flags || {};
         var w = Math.max(0.05, placement.w || prop.w);
         var h = Math.max(0.05, placement.h || prop.h);
-        var inner = drawShape(placement, prop, w, h, u, flags);
+        var k = symbolScale(w, h, u);
+        /* Bei einem Bereich, einer Klebemarke, einem Pfeil oder einem Textfeld
+           ist die Größe die Aussage — sie wird nicht aufgeblasen. */
+        if (prop.mark) k = 1;
+        var inner = k > 1
+            ? '<g class="sp-symbol" transform="scale(' + n(k) + ')">' +
+              drawShape(placement, prop, w, h, u / k, flags) + '</g>'
+            : drawShape(placement, prop, w, h, u, flags);
         if (flags.interactive && !flags.ghost) {
             /* Ein Stück Kreide ist 11 × 1,8 cm groß. Als Klickfläche ist das
                ein Strich, den man nicht trifft. Sie bekommt deshalb ein
@@ -596,7 +619,9 @@
                 '" y="' + n(y0) + '" width="' + n(seg) + '" height="' + n(fs * 0.28) +
                 '" stroke-width="' + n(u * 0.9) + '"/>');
         }
-        pieces.push('<text x="' + n(x0 + lengthMetres / 2) + '" y="' + n(y0 + fs * 0.9) +
+        /* Luft zwischen Balken und Zahl. Bei 0,9 saß die Zahl am Balken an
+           und las sich wie ein Teil von ihm. */
+        pieces.push('<text x="' + n(x0 + lengthMetres / 2) + '" y="' + n(y0 + fs * 1.2) +
             '" text-anchor="middle" font-size="' + n(fs * 0.68) + '">' +
             esc(SP.formatLength(lengthMetres)) + '</text>');
         return '<g class="sp-scale">' + pieces.join('') + '</g>';

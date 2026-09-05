@@ -890,7 +890,7 @@
        verbirgt keine Fähigkeit: wo eine Kante festhängt, steht daneben, wie
        man sie löst. */
     var SCALE_HINTS = {
-        free: 'Both edges free · Alt too',
+        free: 'Both edges free',
         derived: 'The depth follows the width · Alt frees it',
         ratio: 'Keeps its proportion · Alt frees the edges',
         square: 'Stays square · Alt frees the edges',
@@ -905,8 +905,14 @@
         var text = '';
         if (mode === 'move') text = t('Shift finer · Alt free');
         else if (mode === 'rotate') text = t('Shift 5° · Alt free');
-        else if (mode === 'scale') text = SCALE_HINTS[(drag && drag.grip) || 'free'] ?
-            t(SCALE_HINTS[(drag && drag.grip) || 'free']) : t('Alt frees the edges');
+        else if (mode === 'scale') {
+            text = SCALE_HINTS[(drag && drag.grip) || 'free'] ?
+                t(SCALE_HINTS[(drag && drag.grip) || 'free']) : t('Alt frees the edges');
+            /* Wo beide Kanten frei sind, ist Strg der Griff, der die Form
+               hält — das steht sonst nirgends. */
+            var free = !drag || drag.grip === 'free' || drag.grip === 'width' || drag.grip === 'depth';
+            if (free) text += ' · ' + t('Ctrl keeps the shape');
+        }
         else if (selectedPlacements().length) text = t('Drag to move · Shift adds to the selection');
         else text = t('Space or middle mouse pans · wheel zooms');
         el.textContent = text;
@@ -1133,10 +1139,15 @@
                 toField(prop.h, 2) + ' ' + lengthLabel() + '</span>') + '</div>';
     }
 
+    /* Gesucht wird in dem, was dasteht — nicht in dem, was im Quelltext
+       steht. „Tür" fand nichts, weil die Requisite intern „Doorway" heißt und
+       die Suche nur den englischen Namen kannte. */
     function matchesSearch(prop, query) {
         if (!query) return true;
         var q = query.toLowerCase();
-        return (prop.name + ' ' + (prop.tags || '') + ' ' + prop.cat).toLowerCase().indexOf(q) !== -1;
+        var haystack = [prop.name, t(prop.name), prop.tags || '', prop.cat, t(prop.cat)]
+            .join(' ').toLowerCase();
+        return haystack.indexOf(q) !== -1;
     }
 
     function categoryOptions(selected) {
@@ -1289,6 +1300,18 @@
     /* Ein Schalter und die Erklärung dazu sind ein Ding. Ohne diese Klammer
        reißt der Zeilenumbruch das „?" von seinem Schalter los, und es steht
        dann neben dem nächsten — wo es etwas anderes zu bedeuten scheint. */
+    /* Kleine Zeichen, an einer Stelle. Als Schriftzeichen kamen sie in jedem
+       Browser anders heraus und saßen auf der Grundlinie statt in der Mitte
+       ihres Knopfes. */
+    var ICON = {
+        up: '<svg class="sp-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+            '<path d="M8 13V3M3.6 7.4L8 3l4.4 4.4"/></svg>',
+        down: '<svg class="sp-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+            '<path d="M8 3v10M3.6 8.6L8 13l4.4-4.4"/></svg>',
+        cross: '<svg class="sp-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+            '<path d="M4 4l8 8M12 4l-8 8"/></svg>'
+    };
+
     function btnWhy(button, key) {
         var mark = why(key);
         return mark ? '<span class="sp-btn-pair">' + button + mark + '</span>' : button;
@@ -2593,8 +2616,8 @@
         });
     }
 
-    function previewPoint(svg, evt) {
-        var matrix = svg.getScreenCTM();
+    function previewPoint(svg, evt, frozenMatrix) {
+        var matrix = frozenMatrix || svg.getScreenCTM();
         if (!matrix) return { x: 0, y: 0 };
         var point = svg.createSVGPoint();
         point.x = evt.clientX;
@@ -2636,6 +2659,13 @@
                laufend veränderte Bühne, schaukelt sich der Wert auf. */
             var frozen = JSON.parse(JSON.stringify(editingStage()));
             var moved = false;
+            /* Auch das Bild einfrieren, nicht nur die Zahlen. Die Vorschau
+               passt sich nach jedem Schritt neu ein; rechnete man den
+               Mauszeiger durch das jeweils neue Bild, wanderte der Griff unter
+               dem Zeiger mit, und die Bühne wuchs von selbst weiter. Bei der
+               halbrunden Bühne, die nur ein einziges Maß hat, hob sich das
+               genau auf: ein Zug, und sie war riesig. */
+            var view = svg.getScreenCTM();
             beginHistory();
 
             /* Am Fenster hängen, nicht am Griff: die Vorschau wird bei jedem
@@ -2645,7 +2675,7 @@
             function move(ev) {
                 var live = $('#spStagePreview svg');
                 if (!live) return;
-                var point = previewPoint(live, ev);
+                var point = previewPoint(live, ev, view);
                 var step = ev.shiftKey ? 0.01 : 0.1;
                 var value = stageHandleValue(spec, frozen, point.x, point.y);
                 applyStageHandle(spec, Math.round(value / step) * step);
@@ -3670,26 +3700,6 @@
     }
 
     var previewTimer = null;
-    /* Was für ein Blatt das ist, steht im Blatt selbst. Wer es nicht drucken
-       will, nimmt es dort weg, wo er es sieht — statt in der Liste das
-       Kästchen zu suchen, das es gemacht hat. */
-    var SHEET_KINDS = {
-        cover: 'The title sheet',
-        actPages: 'The act dividers',
-        scenePages: 'The scene sheets',
-        overview: 'The overview',
-        inventory: 'The prop list'
-    };
-
-    function dropMark(html) {
-        var found = /data-kind="([a-zA-Z]+)"/.exec(html);
-        var kind = found && SHEET_KINDS[found[1]] ? found[1] : null;
-        if (!kind) return '';
-        var label = t('Leave out: {sheet}', { sheet: t(SHEET_KINDS[kind]) });
-        return '<button class="sp-sheet-drop" data-act="print-drop" data-kind="' + kind +
-            '" title="' + esc(label) + '" aria-label="' + esc(label) + '">&times;</button>';
-    }
-
     function renderPrintPreview() {
         clearTimeout(previewTimer);
         previewTimer = setTimeout(function () {
@@ -3712,7 +3722,7 @@
             host.innerHTML = '<div class="sp-sheets is-preview' + (landscape ? ' is-landscape-preview' : '') +
                 '" style="--k:' + k.toFixed(4) + '">' +
                 sheets.map(function (html) {
-                    return '<div class="sp-preview-slot">' + html + dropMark(html) + '</div>';
+                    return '<div class="sp-preview-slot">' + html + '</div>';
                 }).join('') + '</div>';
             /* Die Einführung wurde gesetzt, bevor es hier Blätter gab — sie
                suchte sich eine freie Stelle und landete auf dem ×. */
@@ -4269,6 +4279,10 @@
                es für einen Zug auf — eine Bequemlichkeit, kein Zaun. Im
                Auswahl-Bereich steht ohnehin jede Zahl frei. */
             var grip = SPPlan.gripOf(resolveProp(item.propId));
+            /* Strg hält das Verhältnis fest. Ein Tisch darf jede Kante für
+               sich annehmen — wer ihn aber nur größer will und nicht anders
+               geschnitten, hält Strg und zieht. */
+            if (e.ctrlKey || e.metaKey) grip = 'ratio';
             if (!e.altKey) {
                 if (grip === 'derived') {
                     h = SPShapes.naturalDepth(resolveProp(item.propId), w, item.params);
@@ -4288,7 +4302,7 @@
                 }
             }
             /* Ein Kantengriff bewegt seine Kante und lässt die andere in
-               Ruhe — es sei denn, die Vorschrift zieht sie mit. */
+               Ruhe — es sei denn, die Vorschrift (oder Strg) zieht sie mit. */
             if (drag.mode === 'scale-w' && grip !== 'derived' && grip !== 'ratio' && grip !== 'square') {
                 h = drag.origin.h;
             }
@@ -4662,12 +4676,18 @@
                     (prop ? artThumb(prop) : '<span class="sp-wing-nopic">+</span>') + '</button>' +
                     '<input type="text" class="sp-wing-text" data-note-text="' + esc(note.id) + '" value="' +
                     esc(note.text || '') + '" placeholder="' + esc(t('Hold ready')) + '">' +
-                    '<button class="sp-btn is-quiet" data-move="' + esc(note.id) + '" data-dir="-1"' +
-                    (i === 0 ? ' disabled' : '') + ' aria-label="' + esc(t('Move up')) + '">\u2191</button>' +
-                    '<button class="sp-btn is-quiet" data-move="' + esc(note.id) + '" data-dir="1"' +
-                    (i === mine.length - 1 ? ' disabled' : '') + ' aria-label="' + esc(t('Move down')) + '">\u2193</button>' +
-                    '<button class="sp-btn is-quiet is-danger" data-drop="' + esc(note.id) + '" aria-label="' +
-                    esc(t('Delete')) + '">&times;</button>' +
+                    /* Pfeile und Kreuz als Zeichnung, nicht als Schriftzeichen:
+                       ↑ ↓ × kommen in jeder Schrift anders heraus, sitzen auf
+                       der Grundlinie und stehen damit tiefer als der Text
+                       daneben. */
+                    '<button class="sp-tool" data-move="' + esc(note.id) + '" data-dir="-1"' +
+                    (i === 0 ? ' disabled' : '') + ' aria-label="' + esc(t('Move up')) +
+                    '" title="' + esc(t('Move up')) + '">' + ICON.up + '</button>' +
+                    '<button class="sp-tool" data-move="' + esc(note.id) + '" data-dir="1"' +
+                    (i === mine.length - 1 ? ' disabled' : '') + ' aria-label="' + esc(t('Move down')) +
+                    '" title="' + esc(t('Move down')) + '">' + ICON.down + '</button>' +
+                    '<button class="sp-tool is-danger" data-drop="' + esc(note.id) + '" aria-label="' +
+                    esc(t('Delete')) + '" title="' + esc(t('Delete')) + '">' + ICON.cross + '</button>' +
                     (picking === note.id ? picker() : '') + '</li>';
             }).join('') + '</ul>';
         }
@@ -5386,14 +5406,6 @@
         case 'align': alignSelection(data.axis); break;
         case 'spread': spreadSelection(data.axis); break;
         case 'mirror-selection': mirrorSelection(); break;
-        case 'print-drop': {
-            var off = {};
-            off[data.kind] = false;
-            updatePrint(off);
-            toast(t('{sheet} stays out. The list on the left brings it back.',
-                { sheet: t(SHEET_KINDS[data.kind] || 'The sheet') }));
-            break;
-        }
         case 'place-update': updatePlaceFromScene(); break;
         case 'place-insert': insertPlaceSet(); break;
         case 'duplicate-selection': duplicateSelection(); break;
