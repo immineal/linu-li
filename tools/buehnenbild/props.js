@@ -204,8 +204,11 @@
           art: '<path d="M21.4 24.4L75.1 24.4C77.2 24.4 78.6 25.8 78.6 28L78.6 92.4C78.6 94.6 77.2 96 75.1 96L24.9 96C22.8 96 21.4 94.6 21.4 92.4L21.4 24.4L62.9 5.4C65 4 67.9 5.8 67.9 8.7L67.9 24.4"/><path d="M40.7 35.1L59.7 35.1L63.6 44.8C65.7 50.5 64.3 57 59.7 61.3C54.3 66.3 46.1 66.3 40.7 61.3C36 57.3 34.6 50.5 36.8 44.8ZM40.7 35.1"/><path d="M50 74.9C50 79.9 46.8 84.2 41.8 85.3L58.2 85.3"/><path d="M50 65L50 75.2C50 80.3 53.2 84.2 58.2 85.3"/>' },
         { id: 'glass-water', view: 'front', grip: 'none', name: 'Water glass', cat: 'Tableware', box: [28, 26, 42, 66], w: 0.07, h: 0.11, tags: 'wasserglas glas trinken becher',
           art: '<path d="M28 26L33 87A5 5 0 0 0 38 92H62A5 5 0 0 0 67 87L72 26Z"/><path d="M31 55H69"/>' },
-        { id: 'glass-wine', view: 'front', grip: 'none', name: 'Wine glass', cat: 'Tableware', box: [33, 12, 34, 78], w: 0.08, h: 0.18, tags: 'weinglas glas wein stiel',
-          art: '<path d="M35 12C30 28 36 50 50 56C64 50 70 28 65 12Z"/><path d="M50 56V84"/><ellipse cx="50" cy="86" rx="15" ry="4"/>' },
+        { id: 'glass-wine', view: 'front', grip: 'none', name: 'Wine glass', cat: 'Tableware', box: [31.6, 12, 36.7, 78], w: 0.085, h: 0.18, tags: 'weinglas glas wein stiel',
+          /* Der Kelch lief unten spitz auf den Stiel zu wie ein Cocktailglas.
+             Er baucht jetzt und rundet sich zum Stiel hin ab; der Rand ist
+             ein wenig eingezogen, wie bei einem Tulpenglas. */
+          art: '<path d="M36 12C29 26 30 44 42 53C46 56 54 56 58 53C70 44 71 26 64 12Z"/><path d="M50 56V84"/><ellipse cx="50" cy="86" rx="15" ry="4"/>' },
         { id: 'ill-pot', view: 'front', grip: 'none', name: 'Coffee pot', cat: 'Tableware', box: [4, 8.9, 86.1, 77.5], w: 0.2, h: 0.18, tags: 'kännchen kanne kaffee',
           art: '<path d="M4 20.9C18.6 22.2 23.6 40.7 21 71.7C21 91.3 73.5 91.4 73.5 71.7L73.5 20.9"/><path d="M42.1 8.9C61.3 8.6 73.5 14.3 73.5 20.9C73.5 27.5 61.3 33.1 42.1 32.8C24.2 32.5 21.7 23.2 4 20.9C20.9 16.6 23.7 9.2 42.1 8.9ZM42.1 8.9"/><path d="M73.5 29.6C95.2 29.6 96 65.4 73.5 65.4"/>' }
     ];
