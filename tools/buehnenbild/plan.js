@@ -9,11 +9,11 @@
  */
 (function (root, factory) {
     if (typeof module === 'object' && typeof module.exports === 'object') {
-        module.exports = factory(require('./core.js'), require('./i18n.js'));
+        module.exports = factory(require('./core.js'), require('./i18n.js'), require('./shapes.js'));
     } else {
-        root.SPPlan = factory(root.SP, root.SPI18n);
+        root.SPPlan = factory(root.SP, root.SPI18n, root.SPShapes);
     }
-}(typeof self !== 'undefined' ? self : this, function (SP, I18n) {
+}(typeof self !== 'undefined' ? self : this, function (SP, I18n, Shapes) {
     'use strict';
 
     var t = I18n ? I18n.t : function (key) { return key; };
@@ -56,7 +56,7 @@
      * opts:
      *   stage, scene, resolve(propId) -> prop, units
      *   grid, gridLabels, centreLine, settingLine, curtains, audience,
-     *   scaleBar, labels: 'none' | 'name' | 'custom' | 'both' | 'number'
+     *   scaleBar, labels: 'none' | 'name' | 'custom' | 'both'
      *   ghosts: placements from the previous scene, drawn faintly
      *   interactive: adds hit targets and data-id attributes
      *   emphasise: { added: [id], moved: [id] }
@@ -82,7 +82,14 @@
         var parts = [];
 
         /* ---------------------------------------------------------- grid */
-        if (opts.grid !== false && stage.grid && stage.grid.show) {
+        /* `grid: true` heißt zeichnen, `false` heißt nicht zeichnen, und ohne
+           Angabe entscheidet die Bühne. Vorher galt die Bühne immer mit —
+           „Bodenraster zeigen" im Drucken-Reiter tat dann gar nichts, solange
+           das Raster im Bühne-Reiter ausgeschaltet war. */
+        var wantsGrid = opts.grid === undefined || opts.grid === null
+            ? !!(stage.grid && stage.grid.show)
+            : !!opts.grid;
+        if (wantsGrid && stage.grid) {
             var spacing = SP.num(stage.grid.spacing, 1);
             var lines = SP.gridLines(stage, spacing);
             var g = [];
@@ -127,18 +134,56 @@
             if (sl) {
                 parts.push('<path class="sp-guide" d="M' + n(sl[0]) + ' ' + n(out.frontY) + ' H' + n(sl[1]) +
                     '" stroke-width="' + n(u * 1.1) + '" stroke-dasharray="' + n(u * 7) + ' ' + n(u * 4) + '"/>');
-                parts.push('<text class="sp-guide-label" x="' + n(sl[1] - fs * 0.4) + '" y="' + n(out.frontY - fs * 0.55) +
-                    '" font-size="' + n(fs * 0.62) + '" text-anchor="end">' + esc(t('Setting line')) + '</text>');
+                var onEdge = Math.abs(out.frontY - (b.y + b.h)) < u * 2;
+                parts.push('<text class="sp-guide-label" x="' + n(sl[1] - fs * 1.1) +
+                    '" y="' + n(out.frontY + (onEdge ? fs * 0.95 : -fs * 0.55)) +
+                    '" font-size="' + n(fs * 0.62) + '" text-anchor="end">' +
+                    esc(t('Setting line')) + '</text>');
             }
         }
 
         /* ----------------------------------------------------------- Gassen */
         if (opts.wings !== false) {
-            SP.wingLines(stage).forEach(function (line) {
+            var wingSides = ['left', 'right'];
+            SP.wingLines(stage).forEach(function (line, side) {
                 var d = 'M' + line.map(function (pt) { return n(pt[0]) + ' ' + n(pt[1]); }).join(' L');
                 parts.push('<path class="sp-guide sp-wing" d="' + d +
                     '" stroke-width="' + n(u * 1.4) + '" stroke-dasharray="' +
                     n(u * 3.2) + ' ' + n(u * 3.2) + '" stroke-linecap="butt"/>');
+                /* Ein Zettel gehört in die Gasse, also legt man ihn dort an.
+                   Bisher ging das nur über einen Knopf ganz unten im
+                   Szene-Bereich, den niemand fand. */
+                if (!opts.interactive) return;
+                var corner = line[1];
+                var edge = line[2][0];
+                var cx = (corner[0] + edge) / 2;
+                /* Ans Kopfende der Gasse, dorthin, wo der erste Zettel
+                   erscheint. Am Rampenende lagen Knopf und Ergebnis an
+                   entgegengesetzten Enden derselben Gasse. */
+                var cy = line[0][1] + u * 10;
+                var r = u * 8;
+                /* Die Marke sagt, wie viele Zettel in dieser Gasse liegen. Als
+                   blasses Plus in Haarlinie war sie von einer Bühnenmarkierung
+                   nicht zu unterscheiden — die Griffe im Bühne-Reiter sind aus
+                   demselben Grund kräftig. */
+                var here = (opts.wingNotes || []).filter(function (note) {
+                    return (note.side === 'left' ? 'left' : 'right') === wingSides[side];
+                }).length;
+                parts.push('<g class="sp-wing-add" data-act="wing-add" data-wing-add="' +
+                    wingSides[side] + '">' +
+                    '<circle class="sp-wing-add-ring" cx="' + n(cx) + '" cy="' + n(cy) +
+                    '" r="' + n(r) + '" stroke-width="' + n(u * 1.2) + '"/>' +
+                    (here
+                        ? '<text class="sp-wing-add-count" x="' + n(cx) + '" y="' + n(cy + r * 0.36) +
+                          '" font-size="' + n(r * 1.05) + '" text-anchor="middle">' + here + '</text>'
+                        : '<path class="sp-wing-add-mark" d="M' + n(cx - r * 0.45) + ' ' + n(cy) +
+                          'h' + n(r * 0.9) + 'M' + n(cx) + ' ' + n(cy - r * 0.45) + 'v' + n(r * 0.9) +
+                          '" stroke-width="' + n(u * 1.4) + '"/>') +
+                    '<circle class="sp-wing-add-hit" cx="' + n(cx) + '" cy="' + n(cy) +
+                    '" r="' + n(r * 1.6) + '"><title>' + esc(here
+                        ? I18n.plural(here, '1 thing waiting in this wing', '{n} things waiting in this wing')
+                        : t('Something waiting in this wing')) +
+                    '</title></circle></g>');
             });
         }
 
@@ -148,20 +193,35 @@
         if (opts.wingNotes && opts.wingNotes.length) {
             var wl = SP.wingLines(stage);
             if (wl.length) {
-                var noteSize = Math.min(b.w, b.h) * 0.12;
+                var noteSize = Math.min(b.w, b.h) * 0.09;
                 var stacked = { left: 0, right: 0 };
+                /* Der Stapel beginnt unter der Marke und endet an der
+                   Gassentiefe. Vorher zählte er einfach weiter: der vierte
+                   Zettel lag auf der Bauflucht, der fünfte unterhalb des
+                   Blattes — und so ging es auch zum Drucker. */
+                var wingDepth = Math.abs(wl[0][1][1] - wl[0][0][1]);
+                /* Ein Zettel ist das Bild plus bis zu drei Zeilen Unterschrift.
+                   Der Platz darüber gehört der Marke. */
+                var head = noteSize * 1.6;
+                var slot = noteSize * 2.0;
+                var room = Math.max(1, Math.floor((wingDepth - head) / slot));
+                var dropped = { left: 0, right: 0 };
                 opts.wingNotes.forEach(function (note) {
                     var side = note.side === 'left' ? 'left' : 'right';
+                    if (stacked[side] >= room) { dropped[side] += 1; return; }
                     var edge = side === 'left' ? b.x : b.x + b.w;
                     var inner = side === 'left' ? wl[0][0][0] : wl[1][0][0];
                     var cx = (edge + inner) / 2;
-                    var cy = b.y + noteSize * 0.9 + stacked[side] * noteSize * 2.5;
+                    var cy = b.y + head + stacked[side] * slot;
                     stacked[side] += 1;
 
                     var prop = opts.resolve ? opts.resolve(note.propId) : null;
                     if (prop) {
+                        /* Ohne eigene id: ein Gassenzettel ist keine
+                           Aufstellung auf der Bühne. Vorher trug er ein leeres
+                           data-id und sah anklickbar aus, ohne es zu sein. */
                         parts.push('<g class="sp-wing-note" transform="translate(' + n(cx) + ' ' + n(cy) + ')">' +
-                            drawProp({ x: 0, y: 0, w: noteSize, h: noteSize, rot: 0 }, prop, u, {}) + '</g>');
+                            propInner({ x: 0, y: 0, w: noteSize, h: noteSize, rot: 0 }, prop, u, {}) + '</g>');
                     }
                     var lines = wrapWords(note.text || '', 15);
                     lines.forEach(function (line, i) {
@@ -169,6 +229,18 @@
                             n(cy + noteSize * 0.75 + fs * 0.85 * (i + 1)) + '" font-size="' + n(fs * 0.66) +
                             '" text-anchor="middle">' + esc(line) + '</text>');
                     });
+                });
+                /* Was nicht mehr in die Gasse passt, verschweigt der Plan
+                   nicht — vorher lief der Stapel stumm über das Blatt hinaus. */
+                ['left', 'right'].forEach(function (side) {
+                    if (!dropped[side]) return;
+                    var edge = side === 'left' ? b.x : b.x + b.w;
+                    var inner = side === 'left' ? wl[0][0][0] : wl[1][0][0];
+                    parts.push('<text class="sp-wing-note-label" x="' + n((edge + inner) / 2) +
+                        '" y="' + n(b.y + head + room * slot) + '" font-size="' + n(fs * 0.66) +
+                        '" text-anchor="middle">' +
+                        esc(I18n.plural(dropped[side], '1 more, no room here', '{n} more, no room here')) +
+                        '</text>');
                 });
             }
         }
@@ -197,7 +269,8 @@
                         ' H' + n(span[1] - width) + '" stroke-width="' + n(u * 0.9) +
                         '" stroke-dasharray="' + n(u * 4) + ' ' + n(u * 4) + '"/>');
                 }
-                pieces.push('<text class="sp-curtain-label" x="' + n(span[0] + fs * 1.9) + '" y="' + n(y - fs * 0.5) +
+                pieces.push('<text class="sp-curtain-label" x="' + n(span[0] + fs * 1.9) +
+                    '" y="' + n(y - amp - fs * 0.55) +
                     '" font-size="' + n(fs * 0.62) + '">' + esc(curtain.name || t('Curtain')) +
                     (state === 'closed' ? '' : ', ' + t('curtain state ' + state)) + '</text>');
                 parts.push('<g class="sp-curtain">' + pieces.join('') + '</g>');
@@ -230,6 +303,7 @@
         var emphasise = opts.emphasise || {};
         var body = [];
         var captions = [];
+        var solid = [];
         placements.forEach(function (p, index) {
             var prop = resolve(p.propId);
             if (!prop) return;
@@ -240,39 +314,66 @@
                 interactive: opts.interactive
             };
             body.push(drawProp(p, prop, u, flags));
+            var reach = Math.max(p.w, p.h) / 2;
+            /* Was auf dem Plan steht, ist für eine Beschriftung im Weg. */
+            solid.push({ x: p.x, y: p.y, w: p.w, h: p.h, r: reach });
             var caption = captionFor(p, prop, index, opts.labels);
             if (caption) {
-                captions.push({
-                    x: p.x,
-                    y: p.y + Math.max(p.w, p.h) / 2 + fs * 0.95,
-                    text: caption
-                });
+                captions.push({ x: p.x, y: p.y, reach: reach, text: caption });
             }
         });
         parts.push('<g class="sp-items">' + body.join('') + '</g>');
 
-        /* Vier Tassen auf einem Tisch ergaben bisher einen unlesbaren Klumpen
-           aus übereinander gedruckten Namen. Wer eng steht, rutscht nach
-           unten, bis er frei steht. Die Textbreite wird geschätzt — SVG misst
-           Text nicht, ohne ihn zu setzen —, das reicht zum Ausweichen. */
+        /* Eine Beschriftung wich bisher nur anderen Beschriftungen aus, und
+           immer nach unten — deshalb landete sie auf dem nächsten Requisit,
+           und dessen Name wurde noch weiter geschoben, bis er bei einem
+           dritten stand. Jetzt sind auch die Requisiten selbst im Weg, und
+           gesucht wird ringsherum. Findet sich nichts, bleibt der Name nah
+           dran und ein dünner Strich sagt, wozu er gehört.
+
+           Die Textbreite wird geschätzt: SVG misst Text nicht, ohne ihn zu
+           setzen. Zum Ausweichen reicht das. */
         if (captions.length) {
+            var line = fs * 1.25;
             var taken = [];
-            var line = fs * 1.2;
+            /* unten, oben, rechts, links — und dasselbe eine Zeile weiter weg */
+            var SPOTS = [[0, 1], [0, -1], [1, 0], [-1, 0], [0, 2], [0, -2], [1.6, 0.6], [-1.6, 0.6]];
             captions.sort(function (a, b) { return a.y - b.y || a.x - b.x; });
+
+            var free = function (cx, cy, w) {
+                var hits = function (o) {
+                    return Math.abs(cx - o.x) < (w + o.w) / 2 && Math.abs(cy - o.y) < (line + o.h) / 2;
+                };
+                return !taken.some(hits) && !solid.some(hits);
+            };
+
             var drawn = captions.map(function (label) {
-                var w = label.text.length * fs * 0.52;
-                for (var tries = 0; tries < 8; tries++) {
-                    var clash = taken.some(function (other) {
-                        return Math.abs(label.x - other.x) < (w + other.w) / 2 &&
-                            Math.abs(label.y - other.y) < line;
-                    });
-                    if (!clash) break;
-                    label.y += line;
+                var w = Math.max(label.text.length * fs * 0.52, fs);
+                var best = null;
+                for (var i = 0; i < SPOTS.length && !best; i++) {
+                    var cx = label.x + SPOTS[i][0] * (label.reach + w / 2 + fs * 0.35);
+                    var cy = label.y + SPOTS[i][1] * (label.reach + line * 0.75);
+                    if (free(cx, cy, w)) best = { x: cx, y: cy, far: i > 3 };
                 }
-                taken.push({ x: label.x, y: label.y, w: w });
-                return '<text class="sp-item-label" x="' + n(label.x) + '" y="' + n(label.y) +
-                    '" font-size="' + n(fs) + '" text-anchor="middle" paint-order="stroke">' +
-                    esc(label.text) + '</text>';
+                /* Sind alle acht Plätze besetzt — vier Tassen auf einem Tisch
+                   schaffen das —, wird weiter nach unten gesucht, statt alles
+                   auf denselben Fleck zu legen. Genau das passierte vorher:
+                   drei Namen übereinander und einer davon zweimal. */
+                for (var k = 1; k <= 12 && !best; k++) {
+                    var below = label.y + label.reach + line * (0.75 + k);
+                    if (free(label.x, below, w)) best = { x: label.x, y: below, far: true };
+                }
+                if (!best) best = { x: label.x, y: label.y + label.reach + line * 13, far: true };
+                taken.push({ x: best.x, y: best.y, w: w, h: line });
+                /* Der Strich nur dort, wo der Name nicht mehr offensichtlich
+                   zu seinem Requisit gehört. */
+                var leader = best.far
+                    ? '<path class="sp-label-leader" d="M' + n(label.x) + ' ' + n(label.y) +
+                      'L' + n(best.x) + ' ' + n(best.y) + '" stroke-width="' + n(u * 0.8) + '"/>'
+                    : '';
+                return leader + '<text class="sp-item-label" x="' + n(best.x) + '" y="' +
+                    n(best.y + fs * 0.35) + '" font-size="' + n(fs) +
+                    '" text-anchor="middle" paint-order="stroke">' + esc(label.text) + '</text>';
             });
             parts.push('<g class="sp-labels">' + drawn.join('') + '</g>');
         }
@@ -299,33 +400,39 @@
         try { return SP.spanAt(stage, y); } catch (err) { return null; }
     }
 
-    /* Der Katalogname wird übersetzt, eine eigene Beschriftung nie. */
-    /*
-     * Wie eine Zeichnung auf ihre Standfläche kommt. Einmal geschrieben,
-     * weil sowohl der volle Aufbau des Plans als auch das schnelle Nachziehen
-     * beim Aufziehen einer Ecke danach fragen — liefen die beiden
-     * auseinander, sähe das Requisit während des Ziehens anders aus als
-     * danach.
+    /* ------------------------------------------------------------------ *
+     * Woran man auf der Bühne ziehen darf
      *
-     * Die eingebauten Symbole sind gezeichnet, um auf die Standfläche
-     * gezogen zu werden: die Uhr ist ein Kreis, der auf dem Plan zur flachen
-     * Ellipse wird, und das ist so gemeint. Die übernommenen Zeichnungen
-     * haben ihr eigenes Verhältnis und stehen mittig in einem quadratischen
-     * Feld, dessen längere Seite prop.fit Einheiten misst; sie werden
-     * gleichmäßig skaliert.
-     */
-    function artTransform(prop, w, h, flip) {
-        var sign = flip ? -1 : 1;
-        if (prop && prop.fit) {
-            var unit = Math.max(w, h) / prop.fit;
-            return { sx: sign * unit, sy: unit, unit: unit };
-        }
-        return { sx: sign * w / 100, sy: h / 100, unit: (w + h) / 200 };
+     *   free    beide Kanten frei          gerechnete Möbel, Markierungen
+     *   derived die Tiefe folgt der Breite  Tür
+     *   ratio   das Verhältnis bleibt      Zeichnungen
+     *   square  immer quadratisch          Klebemarke
+     *   width   nur in die Breite          Bank, Bett, Stift
+     *   depth   nur in die Tiefe           Leiter
+     *   none    gar nicht                  was es nur in einer Größe gibt
+     *
+     * Das gilt für die Griffe auf der Bühne und für sonst nichts. Im
+     * Auswahl-Bereich steht jede Zahl weiter frei: eine Kaffeetasse ist keine
+     * Kaffeetasse mehr, wenn sie 80 cm misst, aber wer eine Riesentasse auf
+     * der Bühne hat, muss sie eintragen können. Verstecken tut der Planer
+     * nichts — er macht nur das Übliche leicht und das Ungewöhnliche
+     * ausdrücklich.
+     * ------------------------------------------------------------------ */
+
+    var GRIPS = ['free', 'derived', 'ratio', 'square', 'width', 'depth', 'none'];
+
+    function gripOf(prop) {
+        if (prop && GRIPS.indexOf(prop.grip) !== -1) return prop.grip;
+        if (Shapes.naturalDepth(prop, 1, null) !== null) return 'derived';
+        return Shapes.has(prop) ? 'free' : 'ratio';
     }
 
-    /* Behält eine Zeichnung mit eigenem Verhältnis ihre Form? */
+    /* Behält eine Zeichnung ihre Form, wenn eine Kante eingetragen wird? Jede
+       tut das: gezogen würde aus dem Kreis eine Ellipse und aus der Kontur
+       zwei verschiedene Strichstärken. Was gerechnet wird, hat die Form in
+       der Vorschrift und darf beide Kanten getrennt annehmen. */
     function keepsAspect(prop) {
-        return !!(prop && prop.fit);
+        return !Shapes.has(prop);
     }
 
     /* Bricht eine Bildunterschrift nach Wörtern um, damit sie in die Gasse passt. */
@@ -343,28 +450,66 @@
     }
 
     function captionFor(placement, prop, index, mode) {
-        var custom = (placement.label || '').trim();
+        var custom = SP.oneLine(placement.label);
         var name = t(prop.name);
+        /* Markierungen tragen ihren Namen nicht unter sich her. Beim Textfeld
+           steht der Text schon im Feld, bei Pfeil und Klebemarke sagt das Wort
+           „Pfeil" auf dem Plan nichts, was das Zeichen nicht selbst sagt.
+           Was jemand selbst hineingeschrieben hat, bleibt. */
+        if (prop.mark === 'label') return '';
+        if (prop.mark && !custom) return '';
         switch (mode) {
         case 'none': return '';
-        case 'number': return String(index + 1);
         case 'custom': return custom;
         case 'both': return custom ? name + ' — ' + custom : name;
         default: return custom || name;
         }
     }
 
-    function drawProp(placement, prop, u, flags) {
+    /* ------------------------------------------------------------------ *
+     * Markierungen
+     *
+     * Bereich, Klebemarke, Pfeil und Textfeld sind keine Requisiten. Sie als
+     * Zeichnung in ein 100er-Feld zu legen und auf die Fläche zu ziehen war
+     * falsch: die Strichelung wuchs beim Aufziehen mit, der Pfeilkopf wurde
+     * lang gezogen, und im Textfeld stand nie Text, sondern ein gedehntes
+     * Kästchen. Sie werden deshalb direkt in Bühnenmetern gezeichnet. Alles,
+     * was seine Größe behalten soll — Strichlänge, Pfeilkopf, Schrift —
+     * rechnet in u, der Haarlinie, und nicht in w und h.
+     * ------------------------------------------------------------------ */
+
+    function drawShape(placement, prop, w, h, u, flags) {
+        return Shapes.draw(prop, w, h, placement.params, u, {
+            text: placement.label,
+            flip: !!placement.flip,
+            hint: flags.interactive ? t(prop.name) : ''
+        });
+    }
+
+    /* Das Innere eines Requisits, ohne die Hülle. Es steht für sich, weil
+       das schnelle Nachziehen beim Aufziehen einer Ecke dasselbe braucht wie
+       der volle Aufbau — liefen die beiden auseinander, sähe das Requisit
+       während des Ziehens anders aus als danach. */
+    function propInner(placement, prop, u, flags) {
         flags = flags || {};
         var w = Math.max(0.05, placement.w || prop.w);
         var h = Math.max(0.05, placement.h || prop.h);
-        var fit = artTransform(prop, w, h, placement.flip);
-        var sx = fit.sx;
-        var sy = fit.sy;
-        /* sw dämpft Zeichnungen, die schon mit doppelter Kontur gezeichnet
-           sind — sonst laufen ihre Linien bei voller Stärke ineinander. */
-        var strokeWidth = u / fit.unit * (prop.sw || 1);
+        var inner = drawShape(placement, prop, w, h, u, flags);
+        if (flags.interactive && !flags.ghost) {
+            /* Ein Stück Kreide ist 11 × 1,8 cm groß. Als Klickfläche ist das
+               ein Strich, den man nicht trifft. Sie bekommt deshalb ein
+               Mindestmaß, das an der Haarlinie hängt und damit am Zoom: was
+               klein aussieht, ist trotzdem anfassbar. */
+            var hw = Math.max(w, u * 12) / 2;
+            var hh = Math.max(h, u * 12) / 2;
+            inner += '<rect class="sp-hit" x="' + n(-hw) + '" y="' + n(-hh) +
+                '" width="' + n(hw * 2) + '" height="' + n(hh * 2) + '"/>';
+        }
+        return inner;
+    }
 
+    function drawProp(placement, prop, u, flags) {
+        flags = flags || {};
         var classes = ['sp-item'];
         if (flags.ghost) classes.push('sp-item-ghost');
         if (flags.added) classes.push('is-added');
@@ -372,17 +517,7 @@
         if (flags.selected) classes.push('is-selected');
         if (placement.locked) classes.push('is-locked');
 
-        var art = prop.image
-            ? '<image href="' + esc(prop.image) + '" x="0" y="0" width="100" height="100" preserveAspectRatio="none"/>'
-            : prop.art;
-
-        var inner = '<g class="sp-art" transform="scale(' + n(sx) + ' ' + n(sy) + ') translate(-50 -50)" ' +
-            'stroke-width="' + n(strokeWidth) + '">' + art + '</g>';
-
-        if (flags.interactive && !flags.ghost) {
-            inner += '<rect class="sp-hit" x="' + n(-w / 2) + '" y="' + n(-h / 2) + '" width="' + n(w) +
-                '" height="' + n(h) + '"/>';
-        }
+        var inner = propInner(placement, prop, u, flags);
 
         return '<g class="' + classes.join(' ') + '"' +
             (flags.ghost ? '' : ' data-id="' + esc(placement.id) + '"') +
@@ -456,7 +591,8 @@
             : niceStep(target);
         var segments = 4;
         var x0 = view.x + fs * 0.8;
-        var y0 = view.y + view.h - fs * 0.9;
+        /* Platz für die Beschriftung unter dem Balken, nicht daneben. */
+        var y0 = view.y + view.h - fs * 1.6;
         var seg = lengthMetres / segments;
         var pieces = [];
         for (var i = 0; i < segments; i++) {
@@ -464,8 +600,9 @@
                 '" y="' + n(y0) + '" width="' + n(seg) + '" height="' + n(fs * 0.28) +
                 '" stroke-width="' + n(u * 0.9) + '"/>');
         }
-        pieces.push('<text x="' + n(x0 + lengthMetres + fs * 0.35) + '" y="' + n(y0 + fs * 0.3) +
-            '" font-size="' + n(fs * 0.68) + '">' + esc(SP.formatLength(lengthMetres, units)) + '</text>');
+        pieces.push('<text x="' + n(x0 + lengthMetres / 2) + '" y="' + n(y0 + fs * 0.9) +
+            '" text-anchor="middle" font-size="' + n(fs * 0.68) + '">' +
+            esc(SP.formatLength(lengthMetres, units)) + '</text>');
         return '<g class="sp-scale">' + pieces.join('') + '</g>';
     }
 
@@ -479,5 +616,5 @@
     }
 
     return { build: build, svg: svg, escape: esc, folds: folds, niceStep: niceStep,
-             artTransform: artTransform, keepsAspect: keepsAspect };
+             propInner: propInner, keepsAspect: keepsAspect, gripOf: gripOf, GRIPS: GRIPS };
 }));

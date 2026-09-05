@@ -7,10 +7,12 @@
  * Fehler im Markup fällt auf dem Papier auf, nicht mehr im Browser.
  *
  * Alle Formen leben in einem Quadrat von 100 × 100. Das ist dieselbe Box wie
- * bei den eingebauten Zeichnungen: sie wird auf die Grundfläche der Requisite
- * gezogen, eine Kreisscheibe wird auf einer breiten Fläche also zur Ellipse.
- * Deshalb steht in der Ausgabe nie fit — sonst hielte die Zeichnung ihr
- * Seitenverhältnis fest und ließe sich nicht mehr passend ziehen.
+ * bei den eingebauten Zeichnungen. Wie weit die Formen darin wirklich reichen,
+ * misst boundsOf; das Ergebnis wird beim Speichern als box mitgeschrieben, und
+ * der Plan setzt die Zeichnung danach in Bühnenmetern — in beide Richtungen
+ * mit demselben Faktor. Eine Kreisscheibe bleibt deshalb ein Kreis, auch wenn
+ * die Standfläche breiter ist als tief. Ungleich gezogen würde aus ihr eine
+ * Ellipse und aus jeder Kontur zwei verschiedene Strichstärken.
  *
  * Strichfarbe und Strichstärke kommen von außen, vom umgebenden
  * <g class="sp-art">. Was hier erzeugt wird, trägt daher nie stroke oder

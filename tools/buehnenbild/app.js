@@ -24,6 +24,12 @@
      * ================================================================== */
 
     var db = null;
+    /* Die Zeichnungen sind so gewählt, dass man erkennt, was das Ding ist —
+       darauf beruht der ganze Fundus. Unter jedes Sofa noch „Sofa" zu
+       schreiben arbeitet dagegen: es macht den Plan voll und sagt nichts, was
+       das Bild nicht schon sagt. Geschrieben steht deshalb nur, was jemand
+       selbst hingeschrieben hat. Katalognamen, Nummern und beides zusammen
+       stehen weiter in der Auswahl über dem Plan. */
     var ui = {
         tab: 'scenes',
         inspector: 'props',
@@ -32,12 +38,13 @@
         view: null,
         snap: true,
         ghosts: false,
-        labels: 'name',
+        labels: 'custom',
         propSearch: '',
         propCategory: 'all',
         librarySearch: '',
         libraryCategory: 'all',
         printDoc: 'plans',
+        printMore: false,
         introSeen: {},
         print: null
     };
@@ -97,6 +104,7 @@
             var parsed = JSON.parse(raw);
             if (!parsed || !Array.isArray(parsed.productions) || !parsed.productions.length) return blankDb();
             parsed.library = parsed.library || [];
+            parsed.library.forEach(migrateProp);
             parsed.productions.forEach(migrateProduction);
             if (!parsed.productions.some(function (p) { return p.id === parsed.activeId; })) {
                 parsed.activeId = parsed.productions[0].id;
@@ -108,6 +116,48 @@
         }
     }
 
+    /* Eine selbst gezeichnete Requisite aus einer früheren Fassung trägt noch
+       kein gemessenes Feld. Damals wurde die Zeichnung auf die Standfläche
+       gezogen, heute wird sie gleichmäßig hineingesetzt — ohne das Feld
+       stünde sie plötzlich kleiner da. Aus den gespeicherten Formen lässt es
+       sich nachrechnen; wo die fehlen, bleibt das ganze Feld stehen, und das
+       ist genau das, was vorher galt. */
+    function migrateProp(prop) {
+        if (!prop || prop.box || prop.image || !prop.art) return;
+        var shapes = prop.draft && prop.draft.length ? SPDraw.clean(prop.draft) : null;
+        var b = shapes && shapes.length ? SPDraw.boundsOf(shapes) : null;
+        prop.box = b && b.w > 0 && b.h > 0 ? [b.x, b.y, b.w, b.h] : [0, 0, 100, 100];
+    }
+
+    /* Eingeklappte Katalogeinträge. Zwei Sofas waren dasselbe Sofa, zwei
+       Betten dasselbe Bett, und „Tisch von oben" war der Esstisch noch einmal
+       als Zeichnung — ohne Beinmarke, ohne Rundung, ohne Decke. Ein Plan, der
+       die alten Namen trägt, zeigt weiter dasselbe: die Maße stehen an der
+       Aufstellung und nicht am Katalog. */
+    var PROP_ALIASES = {
+        'sofa-short': 'sofa',
+        'sofa-long': 'sofa',
+        'bed-single': 'bed',
+        'bed-double': 'bed',
+        'ill-table': 'dining-table',
+        'ill-tablecloth': 'table-cloth',
+        /* Der Beistelltisch war der runde Tisch noch einmal, nur von vorn
+           gezeichnet: einbeinig, rund, gleiche Größe. Wer ihn gestellt hat,
+           bekommt den runden Tisch, der sich auch im Maß einstellen lässt. */
+        'ill-sidetable': 'round-table'
+    };
+
+    function migratePlacement(pl) {
+        if (!pl.trackId) pl.trackId = SP.uid('trk');
+        if (typeof pl.rot !== 'number') pl.rot = 0;
+        var to = PROP_ALIASES[pl.propId];
+        if (!to) return true;
+        pl.propId = to;
+        /* Die Decke war vorher die Zeichnung selbst; jetzt ist sie ein Wert. */
+        if (to === 'table-cloth') pl.params = Object.assign({ cloth: true }, pl.params || {});
+        return true;
+    }
+
     /* Fills in anything a plan saved by an earlier version is missing, so an
        old file never lands the editor in a half-built state. */
     function migrateProduction(p) {
@@ -116,12 +166,18 @@
         p.directions = p.directions === 'cast' ? 'cast' : 'audience';
         p.acts = p.acts || [];
         p.places = p.places || [];
-        p.places.forEach(function (place) { place.placements = place.placements || []; });
+        p.places.forEach(function (place) {
+            place.placements = (place.placements || []).filter(migratePlacement);
+        });
         p.transitions = p.transitions || {};
         SP.foldPresetsIntoPlaces(p);
         p.presets = p.presets || [];
         p.scenes = p.scenes || [];
         p.stage = Object.assign({}, SP.DEFAULT_STAGE, p.stage || {});
+        if (!SP.STAGE_SHAPES.some(function (sh) { return sh.id === p.stage.shape; })) {
+            p.stage.shape = 'rect';
+        }
+        delete p.stage.sides;
         p.stage.grid = Object.assign({ show: true, spacing: 1, labels: false }, p.stage.grid || {});
         p.stage.wings = Object.assign({ show: false, inset: 1.2, depth: 3.6 }, p.stage.wings || {});
         p.stage.curtains = p.stage.curtains || [];
@@ -131,14 +187,10 @@
             s.curtains = s.curtains || {};
             if (s.placeId === undefined) s.placeId = null;
             s.wingNotes = s.wingNotes || [];
-            s.placements.forEach(function (pl) {
-                if (!pl.trackId) pl.trackId = SP.uid('trk');
-                if (typeof pl.rot !== 'number') pl.rot = 0;
-            });
-            if (s.stage) {
-                s.stage = Object.assign({}, SP.DEFAULT_STAGE, s.stage);
-                s.stage.wings = Object.assign({ show: false, inset: 1.2, depth: 3.6 }, s.stage.wings || {});
-            }
+            s.placements = s.placements.filter(migratePlacement);
+            /* Wo eine Szene noch eine eigene Bühne trägt, gilt ab jetzt die
+               der Produktion. */
+            delete s.stage;
         });
         return p;
     }
@@ -150,6 +202,16 @@
         } catch (err) { /* preferences are not worth an error message */ }
         ui.selection = [];
         ui.view = null;
+        /* Die Vorgabe für die Beschriftung ist von „Requisitennamen" auf „nur
+           eigene" gewechselt: die Zeichnungen sagen ohnehin, was ein Ding ist,
+           und unter jedes Sofa „Sofa" zu schreiben machte den Plan voll. Eine
+           gespeicherte Einstellung überlebt eine geänderte Vorgabe normalerweise
+           — hier einmal nicht, sonst hätte niemand etwas davon. Wer Namen
+           will, stellt sie über dem Plan wieder ein. */
+        if (!ui.labelDefaultMoved) {
+            if (ui.labels === 'name') ui.labels = 'custom';
+            ui.labelDefaultMoved = true;
+        }
         sanitiseUi();
     }
 
@@ -163,7 +225,10 @@
         if (tabs.indexOf(ui.tab) === -1) ui.tab = tabs[0] || 'scenes';
         if (['props', 'item', 'scene'].indexOf(ui.inspector) === -1) ui.inspector = 'props';
         if (['plans', 'changeover'].indexOf(ui.printDoc) === -1) ui.printDoc = 'plans';
-        if (['name', 'custom', 'both', 'number', 'none'].indexOf(ui.labels) === -1) ui.labels = 'name';
+        if (['name', 'custom', 'both', 'none'].indexOf(ui.labels) === -1) ui.labels = 'custom';
+        /* „Nummern passend zur Liste" gab es einmal und zeigte auf keine
+           Liste. Gespeicherte Einstellungen fallen auf die Namen zurück. */
+        if (ui.print && ui.print.labels === 'number') ui.print.labels = 'name';
         if (!ui.introSeen || typeof ui.introSeen !== 'object') ui.introSeen = {};
         if (ui.print && typeof ui.print === 'object') {
             ['overviewCols', 'overviewRows'].forEach(function (key) {
@@ -180,7 +245,10 @@
             localStorage.setItem(UI_KEY, JSON.stringify({
                 tab: ui.tab, inspector: ui.inspector, snap: ui.snap, ghosts: ui.ghosts,
                 labels: ui.labels, propCategory: ui.propCategory, libraryCategory: ui.libraryCategory,
-                printDoc: ui.printDoc, introSeen: ui.introSeen, print: ui.print
+                printDoc: ui.printDoc, printMore: ui.printMore, introSeen: ui.introSeen, print: ui.print,
+                /* Wer in Szene sieben arbeitet und neu lädt, will in Szene
+                   sieben landen und nicht wieder am Anfang. */
+                sceneId: ui.sceneId, labelDefaultMoved: ui.labelDefaultMoved
             }));
         } catch (err) { /* ignore */ }
     }
@@ -244,7 +312,8 @@
     }
 
     function stageOf(target) {
-        return (target && target.stage) || production().stage;
+        void target;
+        return production().stage;
     }
 
     function units() { return production().units || 'm'; }
@@ -375,7 +444,7 @@
         return t('Closed');
     }
 
-    function lengthLabel() { return units() === 'ft' ? 'ft' : 'm'; }
+    function lengthLabel() { return 'm'; }
 
     /* ================================================================== *
      * A worked example, for anyone who would rather see it than read it
@@ -431,7 +500,6 @@
         var s1 = scene(t('The school'), school.id, act1.id, [
             put('ill-blackboard', -1.6, 1.1),
             put('ill-table', 0.4, 2.5),
-            put('ill-sponge', 0.2, 2.35),
             put('ill-chalk', 0.62, 2.62),
             put('ill-chair', -1.9, 4.4), put('ill-chair', -0.7, 4.4),
             put('ill-chair', 0.8, 4.4), put('ill-chair', 2.0, 4.4)
@@ -449,7 +517,7 @@
             put('ill-chair', -1.6, 3.0, 90, t('Anna’s chair')),
             put('ill-chair', 0.2, 1.9, 180),
             put('ill-coatstand', 3.1, 1.3),
-            put('ill-sidetable', -2.9, 4.6),
+            put('round-table', -2.9, 4.6),
             put('ill-typewriter', -2.9, 4.5),
             put('ill-bottle', 0.15, 3.25)
         ]);
@@ -540,14 +608,52 @@
         if (open) open.remove();
     }
 
+    /* Wie viele Bedienelemente deckt der Kasten zu, wenn er hier steht? Die
+       Einführung zum Requisiten-Reiter legte sich mittig unter die Reiter und
+       damit genau auf „Requisit zeichnen" — den Knopf, von dem sie erzählt. */
+    function introCovers(left, top, w, h) {
+        var hit = 0;
+        $$('.sp-panel.is-active button, .sp-panel.is-active input, ' +
+            '.sp-panel.is-active select, .sp-panel.is-active .sp-tile').forEach(function (el) {
+            var r = el.getBoundingClientRect();
+            if (r.width < 1 || r.height < 1) return;
+            if (r.right <= left || r.left >= left + w) return;
+            if (r.bottom <= top || r.top >= top + h) return;
+            hit++;
+        });
+        return hit;
+    }
+
     function placeIntro(box, tab) {
         var button = $('.sp-tab-btn[data-tab="' + tab + '"]');
         if (!button) return;
         var r = button.getBoundingClientRect();
         var w = box.offsetWidth;
-        var left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8);
-        box.style.left = Math.round(left) + 'px';
-        box.style.top = Math.round(r.bottom + 6) + 'px';
+        var h = box.offsetHeight;
+        var top = Math.round(r.bottom + 6);
+        var centred = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8);
+        var spots = [[centred, top], [window.innerWidth - w - 8, top], [8, top]];
+
+        /* Die Zeichenfläche ist die einzige große Fläche ohne Bedienelemente.
+           Passt der Kasten dort hinein, steht er dort — über dem Plan deckt er
+           nichts zu, was man gerade braucht. */
+        var host = $('.sp-panel.is-active .sp-stage-host') ||
+            $('.sp-panel.is-active .sp-print-preview');
+        if (host) {
+            var hr = host.getBoundingClientRect();
+            if (hr.width > w + 24 && hr.height > h + 24) {
+                spots.push([Math.round(hr.left + hr.width / 2 - w / 2), Math.round(hr.top + 14)]);
+            }
+        }
+
+        var best = spots[0];
+        var least = Infinity;
+        spots.forEach(function (spot) {
+            var covered = introCovers(spot[0], spot[1], w, h);
+            if (covered < least) { least = covered; best = spot; }
+        });
+        box.style.left = Math.round(best[0]) + 'px';
+        box.style.top = Math.round(best[1]) + 'px';
     }
 
     function overlayOpen() {
@@ -772,19 +878,60 @@
     }
 
     /*
-     * Sagt an, was Umschalt und Alt gerade bewirken. Ein gutes Drittel der
+     * Sagt an, was Shift und Alt gerade bewirken. Ein gutes Drittel der
      * Bedienung hängt an diesen beiden Tasten und stand bisher nirgends.
      */
+    /* Was beim Aufziehen gerade gilt, in der Leiste unten rechts. Der Planer
+       verbirgt keine Fähigkeit: wo eine Kante festhängt, steht daneben, wie
+       man sie löst. */
+    var SCALE_HINTS = {
+        free: 'Both edges free · Alt too',
+        derived: 'The depth follows the width · Alt frees it',
+        ratio: 'Keeps its proportion · Alt frees the edges',
+        square: 'Stays square · Alt frees the edges',
+        width: 'Only the width · Alt frees the depth',
+        depth: 'Only the length · Alt frees the width',
+        none: 'This one comes in one size · Alt drags it anyway'
+    };
+
     function setModifierHint(mode) {
         var el = $('#spModifierHint');
         if (!el) return;
         var text = '';
         if (mode === 'move') text = t('Shift finer · Alt free');
         else if (mode === 'rotate') text = t('Shift 5° · Alt free');
-        else if (mode === 'scale') text = t('Shift keeps the proportion off');
+        else if (mode === 'scale') text = SCALE_HINTS[(drag && drag.grip) || 'free'] ?
+            t(SCALE_HINTS[(drag && drag.grip) || 'free']) : t('Alt frees the edges');
         else if (selectedPlacements().length) text = t('Drag to move · Shift adds to the selection');
         else text = t('Space or middle mouse pans · wheel zooms');
         el.textContent = text;
+    }
+
+    /* Ein Pfeil wird nicht aufgezogen, sondern gelegt: man fasst eine Spitze
+       und zieht sie hin, wo sie zeigen soll. Länge und Winkel folgen daraus.
+       Deshalb hängt an beiden Enden ein Griff. */
+    function isArrow(placement) {
+        var prop = placement && resolveProp(placement.propId);
+        return !!(prop && prop.mark === 'arrow');
+    }
+
+    function arrowEnds(p) {
+        var a = (p.rot || 0) * Math.PI / 180;
+        var hx = (p.w / 2) * Math.cos(a);
+        var hy = (p.w / 2) * Math.sin(a);
+        return { tail: { x: p.x - hx, y: p.y - hy }, tip: { x: p.x + hx, y: p.y + hy } };
+    }
+
+    function arrowHandles(p, handle, hair) {
+        if (!isArrow(p)) return '';
+        var hw = p.w / 2;
+        return ['-', ''].map(function (sign, i) {
+            var x = i ? hw : -hw;
+            return '<circle class="sp-handle" cx="' + x + '" cy="0" r="' + handle * 0.45 +
+                '" stroke-width="' + hair * 1.4 + '"/>' +
+                '<circle class="sp-handle-hit" data-handle="arrow-' + (i ? 'tip' : 'tail') +
+                '" cx="' + x + '" cy="0" r="' + handle + '"/>';
+        }).join('');
     }
 
     function renderOverlay(temp) {
@@ -811,10 +958,15 @@
                     '" stroke-width="' + hair * 1.4 + '"/>' +
                     '<circle class="sp-handle-hit" data-handle="rotate" cx="0" cy="' + (-hh - handle * 1.6) +
                     '" r="' + handle + '"/>' +
-                    '<rect class="sp-handle" x="' + (hw - handle * 0.4) + '" y="' + (hh - handle * 0.4) +
-                    '" width="' + handle * 0.8 + '" height="' + handle * 0.8 + '" stroke-width="' + hair * 1.4 + '"/>' +
-                    '<rect class="sp-handle-hit" data-handle="scale" x="' + (hw - handle) + '" y="' + (hh - handle) +
-                    '" width="' + handle * 2 + '" height="' + handle * 2 + '"/>') +
+                    /* Der Griff unten rechts erscheint nur, wo er etwas
+                       bewirkt. Bei einem Stück, das es nur in einer Größe
+                       gibt, sah man ihn und zog daran, und nichts geschah. */
+                    (SPPlan.gripOf(resolveProp(p.propId)) === 'none' ? '' :
+                        '<rect class="sp-handle" x="' + (hw - handle * 0.4) + '" y="' + (hh - handle * 0.4) +
+                        '" width="' + handle * 0.8 + '" height="' + handle * 0.8 + '" stroke-width="' + hair * 1.4 + '"/>' +
+                        '<rect class="sp-handle-hit" data-handle="scale" x="' + (hw - handle) + '" y="' + (hh - handle) +
+                        '" width="' + handle * 2 + '" height="' + handle * 2 + '"/>')) +
+                (p.locked ? '' : arrowHandles(p, handle, hair)) +
                 '</g>');
         } else {
             var xs = [], ys = [];
@@ -833,6 +985,15 @@
     /* --------------------------------------------------------- inspector */
 
     function renderInspector() {
+        /* Nichts ausgewählt heißt: der Auswahl-Bereich hat nichts zu zeigen.
+           Dann gehört die Requisitenliste dorthin, damit man das Nächste
+           gleich hineinziehen kann, statt jedes Mal zurückzuklicken.
+           Wer den Reiter von Hand gewählt hat, behält ihn. */
+        if (selectedPlacements().length) {
+            ui.stickyInspector = false;
+        } else if (ui.inspector === 'item' && !ui.stickyInspector) {
+            ui.inspector = 'props';
+        }
         $$('[data-inspector]').forEach(function (btn) {
             btn.setAttribute('aria-selected', btn.dataset.inspector === ui.inspector ? 'true' : 'false');
         });
@@ -852,14 +1013,58 @@
         setModifierHint(null);
     }
 
+    /* ------------------------------------------------------------------ *
+     * Vorschaubilder der Requisiten
+     *
+     * Ein Requisit wird in Bühnenmetern gezeichnet, also ist das Feld der
+     * Vorschau seine Standfläche — nicht mehr ein Feld von 100 × 100
+     * Einheiten, in dem die Zeichnung irgendwo sitzt und das erst gemessen
+     * werden musste. Wie weit eine übernommene Zeichnung in ihrem eigenen
+     * Feld reicht, steht als box in den Daten; shapes.js rechnet damit, hier
+     * ist nichts mehr zu messen. Die Striche bleiben gleich dick, weil sie in
+     * Bildschirmpunkten gerechnet werden (.sp-thumb in planner.css).
+     * ------------------------------------------------------------------ */
+
+    function round4(n) { return Math.round(n * 10000) / 10000; }
+
+    /* Ein Vorschaubild, wie es in der Palette und im Fundus steht. Es wird
+       mit derselben Rechnung gesetzt wie die Bühne, nur in einem Feld, das
+       genau um das Requisit liegt. Vorher hatte die Vorschau einen eigenen
+       Weg — dann zeigte die Palette das eine und die Bühne das andere, und
+       man traute keiner von beiden. */
+    function artThumb(prop) {
+        var w = Math.max(0.05, SP.num(prop.w, 1));
+        var h = Math.max(0.05, SP.num(prop.h, 1));
+        var seen = SPShapes.extent(prop, w, h);
+        var big = Math.max(seen.w, seen.h);
+        var pad = big * 0.06;
+        return '<svg viewBox="' + round4(-seen.w / 2 - pad) + ' ' + round4(-seen.h / 2 - pad) + ' ' +
+            round4(seen.w + pad * 2) + ' ' + round4(seen.h + pad * 2) + '" class="sp-plan sp-thumb">' +
+            SPShapes.draw(prop, w, h, prop.params, big / 70, { text: '', hint: t(prop.name) }) +
+            '</svg>';
+    }
+
+    /* Was in eine Hand passt: darunter sagt der Abdruck nichts mehr über den
+       Platz auf der Bühne. Vierzig Zentimeter sind die Grenze — ein Stuhl
+       liegt darüber, eine Tasse darunter. */
+    function handProp(prop) {
+        return prop.w < 0.4 && prop.h < 0.4;
+    }
+
     function propTile(prop) {
-        var art = prop.image
-            ? '<img src="' + esc(prop.image) + '" alt="" style="width:100%;height:40px;object-fit:contain">'
-            : '<svg viewBox="0 0 100 100" class="sp-plan"><g class="sp-art" stroke-width="' + (4 * (prop.sw || 1)) + '">' + prop.art + '</g></svg>';
+        var art = artThumb(prop);
         return '<div class="sp-tile" draggable="true" data-act="add-prop" data-prop="' + esc(prop.id) + '" title="' +
             esc(t(prop.name)) + '">' + art +
             '<span class="sp-tile-name">' + esc(t(prop.name)) + '</span>' +
-            '<span class="sp-tile-size">' + toField(prop.w, 2) + ' × ' + toField(prop.h, 2) + ' ' + lengthLabel() + '</span></div>';
+            /* Bei einem Buch oder einem Glas kommt es aufs Erkennen an und
+               nicht auf den Abdruck. Das Maß steht deshalb nur dort, wo man
+               wirklich damit plant — im Auswahl-Bereich steht es bei allem.
+               Entscheidend ist die Größe, nicht ob sich das Stück ziehen
+               lässt: der Kleiderständer und das Klavier kommen in einer Größe
+               und sind trotzdem Möbel, mit denen man den Platz einteilt. */
+            (handProp(prop) ? '' :
+                '<span class="sp-tile-size">' + toField(prop.w, 2) + ' × ' +
+                toField(prop.h, 2) + ' ' + lengthLabel() + '</span>') + '</div>';
     }
 
     function matchesSearch(prop, query) {
@@ -892,7 +1097,16 @@
         });
 
         if (!list.length) {
-            $('#spPalette').innerHTML = '<p class="sp-empty" style="grid-column:1/-1">' + esc(t('Nothing matches that.')) + '</p>';
+            /* Der Augenblick, in dem jemand etwas sucht, das es nicht gibt.
+               Später sagt er es nicht mehr. */
+            $('#spPalette').innerHTML = '<p class="sp-empty" style="grid-column:1/-1">' +
+                esc(t('Nothing matches that.')) +
+                (feedbackAvailable()
+                    ? '<br><button class="sp-btn" style="margin-top:0.6rem" data-act="suggest-prop">' +
+                      esc(ui.propSearch
+                          ? t('Suggest “{word}”', { word: ui.propSearch })
+                          : t('Suggest a prop')) + '</button>'
+                    : '') + '</p>';
             return;
         }
 
@@ -905,7 +1119,178 @@
             }
             html += propTile(prop);
         });
+        if (feedbackAvailable()) {
+            html += '<p class="sp-palette-say" style="grid-column:1/-1">' +
+                '<button class="sp-btn is-quiet" data-act="suggest-prop">' +
+                esc(t('Something missing? Say so.')) + '</button></p>';
+        }
         $('#spPalette').innerHTML = html;
+    }
+
+    /* ================================================================== *
+     * Schieber und Zahlenfeld
+     *
+     * Kein einstellbarer Wert steht im Planer allein da. Der Schieber ist
+     * zum Suchen: man zieht, bis es aussieht, wie es aussehen soll. Das
+     * Zahlenfeld ist zum Wissen: dort steht das Maß, das die Bühne nachher
+     * wirklich hat, und dort trägt man es ein, wenn man es schon kennt.
+     * Beide schreiben denselben Wert, und jeder zeigt sofort, was der andere
+     * getan hat.
+     *
+     * Die Beschriftung steht über beiden, nicht daneben. Bei 312 px Spalte
+     * bricht „Vor der Bühnenkante (m)" neben einem Feld auf drei Zeilen um;
+     * darüber steht es in einer.
+     * ================================================================== */
+
+    function decimalsFor(step) {
+        if (step >= 1) return 0;
+        if (step >= 0.1) return 1;
+        if (step >= 0.01) return 2;
+        return 3;
+    }
+
+    function slideRow(o) {
+        var step = o.step || 0.01;
+        var value = SP.round(SP.num(o.value, 0), decimalsFor(step));
+        /* Ein Wert außerhalb der Skala schiebt die Skala auf, statt sich
+           beschneiden zu lassen. Wer eine Wand 12 m breit zieht, soll den
+           Schieber danach dort finden, wo der Wert steht. */
+        var min = Math.min(SP.num(o.min, 0), value);
+        var max = Math.max(SP.num(o.max, 1), value);
+        /* Ein Schieber rastet vom unteren Ende aus in Schritten ein. Ein
+           Katalogmaß von 0,86 m läge zwischen zwei Rasten und würde als 0,85
+           angezeigt — daneben stünde im Zahlenfeld 0,86, und man wüsste nicht,
+           welchem von beiden zu glauben ist. Also wird das Raster auf den Wert
+           gelegt statt der Wert aufs Raster. Was das Feld unterschreiten darf,
+           steht ohnehin in hardMin und wird beim Schreiben geprüft. */
+        min = SP.round(value - Math.ceil((value - min) / step) * step, 4);
+        max = SP.round(value + Math.ceil((max - value) / step) * step, 4);
+        return '<div class="sp-slide">' +
+            '<label for="' + o.id + '">' + esc(o.label) + (o.why || '') + '</label>' +
+            '<input type="range" class="sp-slide-bar" tabindex="-1"' +
+            ' aria-label="' + esc(o.label) + '"' +
+            ' min="' + min + '" max="' + max + '" step="' + step + '" value="' + value + '"' +
+            ' data-bind="' + esc(o.bind) + '">' +
+            '<input type="number" class="sp-slide-num" id="' + o.id + '"' +
+            (o.hardMin === undefined ? '' : ' min="' + o.hardMin + '"') +
+            ' step="' + step + '" value="' + value + '"' +
+            ' data-bind="' + esc(o.bind) + '"></div>';
+    }
+
+    /* Dasselbe für ein Bühnenmaß. Gespeichert wird immer in Metern; angezeigt
+       wird, was eingestellt ist. In Fuß wäre ein Zentimeterschritt sinnlos
+       fein, also wird die Schrittweite dort gröber. */
+    function lengthSlide(o) {
+        var u = units();
+        var step = o.step || 0.05;
+        return slideRow({
+            id: o.id, bind: o.bind, why: o.why,
+            label: o.label + ' (' + lengthLabel() + ')',
+            value: SP.toUnit(o.value, u),
+            min: SP.toUnit(SP.num(o.min, 0), u),
+            max: SP.toUnit(SP.num(o.max, 1), u),
+            hardMin: o.hardMin === undefined ? undefined : SP.round(SP.toUnit(o.hardMin, u), 3),
+            step: step
+        });
+    }
+
+    /* Ein Schalter und die Erklärung dazu sind ein Ding. Ohne diese Klammer
+       reißt der Zeilenumbruch das „?" von seinem Schalter los, und es steht
+       dann neben dem nächsten — wo es etwas anderes zu bedeuten scheint. */
+    function btnWhy(button, key) {
+        var mark = why(key);
+        return mark ? '<span class="sp-btn-pair">' + button + mark + '</span>' : button;
+    }
+
+    function checkRow(id, bind, label, on, why) {
+        return '<label class="sp-check" for="' + id + '">' +
+            '<input type="checkbox" id="' + id + '" data-toggle="' + esc(bind) + '"' +
+            (on ? ' checked' : '') + '>' + esc(label) + '</label>' + (why || '');
+    }
+
+    /* Was ein Requisit auf der Bühne mit sich machen lässt — und dass es hier
+       trotzdem jede Zahl annimmt. Beides steht da, weil sonst das eine wie ein
+       Verbot aussieht und man den Ausweg nicht fände. */
+    var GRIP_NOTES = {
+        derived: 'The depth is what the leaf sweeps, so it follows the width by itself.',
+        ratio: 'On the stage this drawing keeps its proportion. Here the second edge follows along.',
+        square: 'On the stage this stays square. Here you can write any two numbers.',
+        width: 'On the stage you can only pull this one wider. Here you can write any two numbers.',
+        depth: 'On the stage you can only pull this one longer. Here you can write any two numbers.',
+        none: 'This comes in one size, so the stage will not let you pull it. Here you can write any two numbers.'
+    };
+
+    function gripNote(prop) {
+        var lines = [];
+        /* Eine Ansicht zeigt das Requisit von der Seite, damit man es erkennt.
+           Dann ist „tief" die Höhe des Bildes und nicht die Standfläche — wer
+           das nicht weiß, trägt an der falschen Zahl herum. */
+        if (prop && prop.view === 'front') {
+            lines.push(t('This one is drawn from the side, so you can tell what it is. “Deep” is the height of the picture here, not the floor it stands on.'));
+        }
+        var note = GRIP_NOTES[SPPlan.gripOf(prop)];
+        if (note) lines.push(t(note));
+        if (!lines.length) return '';
+        return '<p class="sp-hint" style="margin-bottom:0.5rem">' + lines.map(esc).join('<br>') + '</p>';
+    }
+
+    /* Die Werte, die dieses eine Requisit hat und kein anderes. Welche das
+       sind, sagt die Bauvorschrift selbst — der Planer weiß nichts über
+       Armlehnen und Sprossen, er baut nur die Bedienelemente dazu. */
+    function buildSection(p, prop) {
+        var live = SPShapes.live(prop, p.params);
+        if (!live.length) return '';
+        var vals = SPShapes.values(prop, p.params);
+        var rows = live.map(function (def) {
+            var id = 'spParam-' + def.key;
+            var bind = 'item.param.' + def.key;
+            var label = t(def.label);
+            if (def.type === 'toggle') return checkRow(id, bind, label, !!vals[def.key]);
+            if (def.unit === 'length') {
+                return lengthSlide({ id: id, bind: bind, label: label,
+                    value: vals[def.key], min: def.min, max: def.max, step: def.step });
+            }
+            return slideRow({ id: id, bind: bind, label: label,
+                value: vals[def.key], min: def.min, max: def.max, step: def.step });
+        }).join('');
+        return '<div class="sp-section"><h3>' + esc(t('How this one is built')) + why('item.build') + '</h3>' +
+            rows + '</div>';
+    }
+
+    /* Was sich beim Ziehen mitschreibt, ohne dass der Bereich neu gebaut wird
+       — sonst verlöre der Schieber unter dem Finger den Halt. */
+    function refreshItemReadouts() {
+        var p = selectedPlacements()[0];
+        if (!p) return;
+        var stage = stageOf(scene());
+        var out = SP.stageOutline(stage);
+        var gridRef = stage.grid && stage.grid.labels
+            ? SP.gridReference(stage, p.x, p.y, SP.num(stage.grid.spacing, 1)) : null;
+        var zone = $('#spItemZone');
+        if (zone) {
+            zone.textContent = SP.zoneName(stage, p.x, p.y) +
+                (gridRef ? ', ' + t('square {ref}', { ref: gridRef }) : '');
+        }
+        var says = $('#spItemSays');
+        if (says) says.textContent = SP.describePosition(stage, p.x, p.y, units());
+        /* Die Tiefe wird von der Bühnenkante aus gezählt: verschiebt man das
+           Requisit über den Plan, muss die Zahl mitgehen. */
+        syncSlide('item.upstage', SP.toUnit(out.frontY - p.y, units()));
+        syncSlide('item.x', SP.toUnit(p.x, units()));
+        syncSlide('item.w', SP.toUnit(p.w, units()));
+        syncSlide('item.h', SP.toUnit(p.h, units()));
+        syncSlide('item.rot', SP.round(p.rot || 0, 1));
+    }
+
+    /* Beide Hälften eines Paares auf denselben Stand bringen, ohne das Feld
+       zu stören, in dem gerade getippt wird. */
+    function syncSlide(bind, value, except) {
+        $$('[data-bind="' + bind + '"]').forEach(function (el) {
+            if (el === except || el === document.activeElement) return;
+            var step = parseFloat(el.step) || 0.01;
+            var text = String(SP.round(value, decimalsFor(step)));
+            if (el.value !== text) el.value = text;
+        });
     }
 
     function renderItemInspector() {
@@ -922,7 +1307,8 @@
             host.innerHTML =
                 '<div class="sp-section"><h3>' + esc(SPI18n.plural(sel.length, '1 prop selected', '{n} props selected')) + '</h3>' +
                 '<div class="sp-btn-row">' +
-                why('item.align') + '<button class="sp-btn" data-act="align" data-axis="x">' + esc(t('Line up across')) + '</button>' +
+                btnWhy('<button class="sp-btn" data-act="align" data-axis="x">' +
+                    esc(t('Line up across')) + '</button>', 'item.align') +
                 '<button class="sp-btn" data-act="align" data-axis="y">' + esc(t('Line up upstage')) + '</button>' +
                 '<button class="sp-btn" data-act="spread" data-axis="x">' + esc(t('Space evenly')) + '</button>' +
                 '<button class="sp-btn" data-act="mirror-selection">' + esc(t('Mirror')) + '</button>' +
@@ -944,57 +1330,68 @@
         var gridRef = stage.grid && stage.grid.labels
             ? SP.gridReference(stage, p.x, p.y, SP.num(stage.grid.spacing, 1)) : null;
 
+        /* Beim Textfeld ist die Beschriftung nicht Beiwerk, sondern der
+           ganze Inhalt. Sie steht deshalb zuoberst und heißt, was sie tut. */
+        var isTextPlate = prop.mark === 'label';
+
+        /* Wie weit die Schieber reichen: quer und tief so weit wie die Bühne,
+           beim Maß so weit, wie das Stück selbst schon ist. Wer darüber
+           hinaus will, tippt die Zahl — die Skala rückt dann nach. */
+        var b = out.bounds;
+        var cap = function (v) { return Math.max(3, Math.ceil(v * 1.6 * 2) / 2); };
+
         host.innerHTML =
             '<div class="sp-section">' +
             '<h3>' + esc(t(prop.name)) + '</h3>' +
-            '<div class="sp-field"><label for="spItemLabel">' + esc(t('Written on the plan')) + why('item.label') + '</label>' +
-            '<input type="text" id="spItemLabel" data-bind="item.label" value="' + esc(p.label || '') +
-            '" placeholder="' + esc(t('e.g. Anna’s chair')) + '"></div>' +
+            '<div class="sp-field"><label for="spItemLabel">' +
+            esc(isTextPlate ? t('Text in the field') : t('Written on the plan')) + why('item.label') + '</label>' +
+            (isTextPlate
+                ? '<textarea id="spItemLabel" class="sp-plate-text" rows="3" data-bind="item.label" placeholder="' +
+                  esc(t('e.g. Sofa goes off here')) + '">' + esc(p.label || '') + '</textarea>'
+                : '<input type="text" id="spItemLabel" data-bind="item.label" value="' + esc(p.label || '') +
+                  '" placeholder="' + esc(t('e.g. Anna’s chair')) + '">') + '</div>' +
+            (isTextPlate ? '<p class="sp-hint">' +
+                esc(t('This is what stands in the field, on screen and on paper. Every line break is one on the plan, and the letters grow to fill the field. Empty prints as an empty field.')) +
+                '</p>' : '') +
             '<div class="sp-field"><label for="spItemNote">' + esc(t('Note for the crew')) + '</label>' +
             '<textarea id="spItemNote" data-bind="item.note" placeholder="' + esc(t('Comes on from stage right')) + '">' +
             esc(p.note || '') + '</textarea></div>' +
             '</div>' +
 
+            buildSection(p, prop) +
+
             '<div class="sp-section"><h3>' + esc(t('Position')) + '</h3>' +
-            '<div class="sp-field-row">' +
-            '<div><label for="spItemX">' + esc(t('Across from centre ({unit})', { unit: lengthLabel() })) + '</label>' +
-            '<input type="number" step="0.05" id="spItemX" data-bind="item.x" value="' + toField(p.x) + '"></div>' +
-            '<div><label for="spItemY">' + esc(t('Upstage of setting line ({unit})', { unit: lengthLabel() })) + '</label>' +
-            '<input type="number" step="0.05" id="spItemY" data-bind="item.upstage" value="' +
-            toField(out.frontY - p.y) + '"></div>' +
-            '</div>' +
-            '<div class="sp-field-row">' +
-            '<div><label for="spItemRot">' + esc(t('Turned (degrees)')) + why('item.rot') + '</label>' +
-            '<input type="number" step="5" id="spItemRot" data-bind="item.rot" value="' + SP.round(p.rot || 0, 1) + '"></div>' +
-            '<div><label>' + esc(t('Reads as')) + '</label><p class="sp-hint" style="margin-top:0.3rem">' +
-            esc(SP.zoneName(stage, p.x, p.y)) +
-            (gridRef ? ', ' + esc(t('square {ref}', { ref: gridRef })) : '') + '</p></div>' +
-            '</div>' +
-            '<p class="sp-hint">' + esc(SP.describePosition(stage, p.x, p.y, units())) + '</p>' +
+            lengthSlide({ id: 'spItemX', bind: 'item.x', label: t('Across from centre'),
+                value: p.x, min: b.x, max: b.x + b.w }) +
+            lengthSlide({ id: 'spItemY', bind: 'item.upstage', label: t('Upstage of setting line'),
+                value: out.frontY - p.y, min: out.frontY - (b.y + b.h), max: out.frontY - b.y }) +
+            slideRow({ id: 'spItemRot', bind: 'item.rot', label: t('Turned (degrees)'), why: why('item.rot'),
+                value: p.rot || 0, min: 0, max: 360, step: 1 }) +
+            '<p class="sp-hint"><span id="spItemZone">' + esc(SP.zoneName(stage, p.x, p.y)) +
+            (gridRef ? ', ' + esc(t('square {ref}', { ref: gridRef })) : '') + '</span><br>' +
+            '<span id="spItemSays">' + esc(SP.describePosition(stage, p.x, p.y, units())) + '</span></p>' +
             '</div>' +
 
             '<div class="sp-section"><h3>' + esc(t('Size')) + why('item.size') + '</h3>' +
-            (SPPlan.keepsAspect(prop)
-                ? '<p class="sp-hint" style="margin-bottom:0.4rem">' +
-                  esc(t('This drawing keeps its proportions — the other side follows.')) + '</p>' : '') +
-            '<div class="sp-field-row">' +
-            '<div><label for="spItemW">' + esc(t('Across ({unit})', { unit: lengthLabel() })) + '</label>' +
-            '<input type="number" step="0.05" min="0.05" id="spItemW" data-bind="item.w" value="' + toField(p.w) + '"></div>' +
-            '<div><label for="spItemH">' + esc(t('Deep ({unit})', { unit: lengthLabel() })) + '</label>' +
-            '<input type="number" step="0.05" min="0.05" id="spItemH" data-bind="item.h" value="' + toField(p.h) + '"></div>' +
-            '</div>' +
+            gripNote(prop) +
+            lengthSlide({ id: 'spItemW', bind: 'item.w', label: t('Across'),
+                value: p.w, min: 0.05, max: cap(p.w), hardMin: 0.05 }) +
+            lengthSlide({ id: 'spItemH', bind: 'item.h', label: t('Deep'),
+                value: p.h, min: 0.05, max: cap(p.h), hardMin: 0.05 }) +
             '<div class="sp-btn-row">' +
             '<button class="sp-btn" data-act="reset-size">' + esc(t('Back to catalogue size')) + '</button>' +
-            '<button class="sp-btn' + (p.flip ? ' is-on' : '') + '" data-act="flip">' + esc(t('Flip')) + '</button>' + why('item.flip') +
-            '<button class="sp-btn' + (p.locked ? ' is-on' : '') + '" data-act="lock">' +
-            (p.locked ? t('Locked') : t('Lock')) + '</button>' + why('item.lock') +
+            btnWhy('<button class="sp-btn' + (p.flip ? ' is-on' : '') + '" data-act="flip">' +
+                esc(t('Flip')) + '</button>', 'item.flip') +
+            btnWhy('<button class="sp-btn' + (p.locked ? ' is-on' : '') + '" data-act="lock">' +
+                esc(p.locked ? t('Locked') : t('Lock')) + '</button>', 'item.lock') +
             '</div></div>' +
 
             '<div class="sp-section"><h3>' + esc(t('Order and copies')) + '</h3><div class="sp-btn-row">' +
             '<button class="sp-btn" data-act="raise">' + esc(t('Bring forward')) + '</button>' +
             '<button class="sp-btn" data-act="lower">' + esc(t('Send back')) + '</button>' +
             '<button class="sp-btn" data-act="duplicate-selection">' + esc(t('Duplicate')) + '</button>' +
-            '<button class="sp-btn" data-act="push-forward">' + esc(t('Carry into later scenes…')) + '</button>' + why('scene.pushForward') +
+            btnWhy('<button class="sp-btn" data-act="push-forward">' +
+                esc(t('Carry into later scenes…')) + '</button>', 'scene.pushForward') +
             '<button class="sp-btn is-danger" data-act="delete-selection">' + esc(t('Delete')) + '</button>' +
             '</div></div>';
     }
@@ -1067,27 +1464,20 @@
 
             transitionPanel(sc) +
 
-            wingNotePanel(sc) +
 
             (curtainRows ? '<div class="sp-section"><h3>' + esc(t('Curtains in this scene')) + '</h3>' + curtainRows + '</div>' : '') +
 
             '<div class="sp-section"><h3>' + esc(t('Layout')) + why('scene.copyLayout') + '</h3><div class="sp-btn-row">' +
-            '<button class="sp-btn" data-act="copy-layout">' + esc(t('Copy from another scene…')) + '</button>' +
-            '<button class="sp-btn" data-act="mirror-scene">' + esc(t('Mirror across the centre')) + '</button>' +
-            '<button class="sp-btn" data-act="update-place-set">' + esc(t('Update the place from this scene')) + '</button>' +
-            '<button class="sp-btn" data-act="insert-place-set">' + esc(t('Insert this place’s set')) + '</button>' +
+            /* „Aus anderer Szene übernehmen", „An der Mitte spiegeln" und die
+               beiden Ort-Knöpfe stehen schon in der Werkzeugleiste über dem
+               Plan — zwei davon hießen dort sogar anders. Hier bleibt, wozu es
+               keinen zweiten Weg gibt. */
             '<button class="sp-btn" data-act="push-layout">' + esc(t('Copy this layout to other scenes…')) + '</button>' +
             '<button class="sp-btn" data-act="export-png">' + esc(t('Save this plan as a picture')) + '</button>' +
             '<button class="sp-btn is-danger" data-act="clear-scene">' + esc(t('Clear the stage')) + '</button>' +
             '</div></div>' +
 
-            '<div class="sp-section"><h3>' + esc(t('Stage for this scene')) + why('stage.perScene') + '</h3>' +
-            (sc.stage
-                ? '<p class="sp-hint">' + esc(t('This scene uses its own stage, set on the Stage tab while the scene is selected.')) + '</p>' +
-                  '<div class="sp-btn-row"><button class="sp-btn" data-act="drop-scene-stage">' + esc(t('Go back to the production stage')) + '</button></div>'
-                : '<p class="sp-hint">' + esc(t('Using the production stage: {shape}.', { shape: t(SP.shapeById(stage.shape).name) })) + '</p>' +
-                  '<div class="sp-btn-row"><button class="sp-btn" data-act="own-scene-stage">' + esc(t('Give this scene its own stage')) + '</button></div>') +
-            '</div>';
+'';
     }
 
     /* Dieselben Zeilen, die auch im Umbauplan stehen — einmal formuliert,
@@ -1098,7 +1488,7 @@
             on: SP.groupByProp(diff.added, nameOf).map(SP.describeGroup),
             off: SP.groupByProp(diff.removed, nameOf).map(SP.describeGroup),
             move: diff.moved.map(function (m) {
-                var label = nameOf(m.to.propId) + (m.to.label ? ' (' + m.to.label + ')' : '');
+                var label = nameOf(m.to.propId) + (m.to.label ? ' (' + SP.oneLine(m.to.label) + ')' : '');
                 if (m.distance <= 0.12 && m.turned > 4) {
                     return label + ' → ' + Math.round(m.to.rot) + '°';
                 }
@@ -1165,6 +1555,127 @@
         var field = $('input:not([type="hidden"]), select, textarea', backdrop);
         var target = field || focusableIn(backdrop)[0];
         if (target) target.focus({ preventScroll: true });
+    }
+
+    /* ================================================================== *
+     * Rückmeldung
+     *
+     * Wer ein Requisit sucht, das es nicht gibt, ist genau in dem Moment
+     * bereit, das zu sagen — nicht später, nicht in einem Formular auf einer
+     * anderen Seite. Deshalb steht der Knopf dort, wo die Suche leer ausgeht,
+     * und das Suchwort steht schon im Feld. Pflicht ist ein einziges Feld.
+     *
+     * Was sonst noch mitgeht, steht am Ende der Nachricht und muss niemand
+     * tippen: welcher Reiter offen war, wie breit das Fenster ist, welcher
+     * Browser. Das sind die Fragen, die man sonst zurückschreiben müsste, und
+     * dann antwortet keiner mehr.
+     * ================================================================== */
+
+    /* Die Formspree-Adresse. Ohne sie bleibt der Knopf verborgen: ein
+       Formular, das ins Leere schickt, ist schlimmer als keines. */
+    var FEEDBACK_FORM = 'mankdzjn';
+
+    var FEEDBACK_KINDS = [
+        { id: 'prop', label: 'A prop is missing' },
+        { id: 'bug', label: 'Something is broken' },
+        { id: 'idea', label: 'Something else' }
+    ];
+
+    function feedbackAvailable() {
+        return /^[A-Za-z0-9]{6,}$/.test(FEEDBACK_FORM);
+    }
+
+    /* Was der Absender nicht tippen soll. Nichts davon benennt eine Person:
+       kein Name, keine Adresse, kein Inhalt einer Produktion. */
+    function feedbackContext() {
+        var sc = scene();
+        return [
+            t('Tab') + ': ' + ui.tab,
+            t('Window') + ': ' + window.innerWidth + '×' + window.innerHeight,
+            t('Props on the stage') + ': ' + ((sc && sc.placements) ? sc.placements.length : 0),
+            t('Units') + ': ' + units(),
+            t('Language') + ': ' + (navigator.language || '?'),
+            'UA: ' + (navigator.userAgent || '?')
+        ].join('\n');
+    }
+
+    function feedbackDialog(kind, prefill) {
+        if (!feedbackAvailable()) return;
+        var chosen = kind || 'prop';
+        var body = document.createElement('div');
+        body.innerHTML =
+            '<div class="sp-seg sp-feedback-kind" role="radiogroup">' +
+            FEEDBACK_KINDS.map(function (k) {
+                return '<button type="button" role="radio" data-kind="' + k.id + '" aria-checked="' +
+                    (k.id === chosen ? 'true' : 'false') + '">' + esc(t(k.label)) + '</button>';
+            }).join('') + '</div>' +
+            '<div class="sp-field" style="margin-top:0.7rem">' +
+            '<textarea id="spSayText" rows="5" class="sp-say-text"></textarea></div>' +
+            '<div class="sp-field"><label for="spSayBack">' +
+            esc(t('Your e-mail, only if you want an answer')) + '</label>' +
+            '<input type="email" id="spSayBack" autocomplete="email" placeholder="' +
+            esc(t('Leave it empty and stay anonymous')) + '"></div>' +
+            '<p class="sp-hint">' + esc(t('Sent with it: which tab was open, how wide the window is and which browser. No names, nothing out of your production.')) + '</p>';
+
+        var placeholders = {
+            prop: t('e.g. A hospital bed on castors, about 1.00 × 2.10 m'),
+            bug: t('e.g. The door swings the wrong way after I mirror the scene'),
+            idea: t('Whatever it is. A sentence is enough.')
+        };
+        var field = $('#spSayText', body);
+        field.value = prefill || '';
+        field.placeholder = placeholders[chosen];
+
+        $('.sp-feedback-kind', body).addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-kind]');
+            if (!btn) return;
+            chosen = btn.dataset.kind;
+            $$('[data-kind]', body).forEach(function (b) {
+                b.setAttribute('aria-checked', b === btn ? 'true' : 'false');
+            });
+            field.placeholder = placeholders[chosen];
+            field.focus();
+        });
+
+        openModal({
+            title: t('Say something'),
+            body: body,
+            actions: [{
+                label: t('Send'),
+                primary: true,
+                onClick: function (host, close) {
+                    var text = $('#spSayText', host).value.trim();
+                    if (!text) { $('#spSayText', host).focus(); return false; }
+                    sendFeedback(chosen, text, $('#spSayBack', host).value.trim());
+                    close();
+                }
+            }]
+        });
+        field.focus();
+    }
+
+    function sendFeedback(kind, text, from) {
+        var label = (FEEDBACK_KINDS.filter(function (k) { return k.id === kind; })[0] || {}).label || kind;
+        var payload = {
+            _subject: 'Bühnenbild-Planer — ' + t(label),
+            kind: kind,
+            message: text,
+            context: feedbackContext()
+        };
+        if (from) payload.email = from;
+        /* Abgeschickt ist abgeschickt: der Dialog schließt sofort und die
+           Nachricht geht im Hintergrund raus. Wer auf eine Bestätigung warten
+           muss, schreibt beim nächsten Mal nichts mehr. */
+        toast(t('Thank you — it is on its way.'), 'success');
+        fetch('https://formspree.io/f/' + FEEDBACK_FORM, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(function (res) {
+            if (!res.ok) throw new Error(res.status);
+        }).catch(function () {
+            toast(t('That did not go through. Is there a connection?'), 'error');
+        });
     }
 
     function openModal(config) {
@@ -1251,10 +1762,22 @@
         renderInspector();
     }
 
-    function addProp(propId, x, y) {
+    function addProp(propId, x, y, stagger) {
         var prop = resolveProp(propId);
         var sc = scene();
         if (!prop || !sc) return;
+        /* Vier Stücke nacheinander angeklickt lagen exakt übereinander und
+           waren nicht auseinanderzuhalten. Jedes weitere rückt eine halbe
+           Rasterweite nach rechts unten, bis wieder Platz ist. */
+        if (stagger) {
+            var step = SP.num((stageOf(sc).grid || {}).spacing, 1) / 2;
+            var taken = function (px, py) {
+                return (sc.placements || []).some(function (pl) {
+                    return Math.abs(pl.x - px) < step * 0.4 && Math.abs(pl.y - py) < step * 0.4;
+                });
+            };
+            for (var n = 0; n < 24 && taken(x, y); n++) { x += step; y += step; }
+        }
         change(function () {
             var placement = SP.makePlacement(prop, snap(x), snap(y));
             sc.placements.push(placement);
@@ -1264,7 +1787,7 @@
     }
 
     /*
-     * Rastet auf halbe Rasterfelder ein. Mit gedrückter Umschalttaste noch
+     * Rastet auf halbe Rasterfelder ein. Mit gedrückter Shift-Taste noch
      * einmal halb so fein — für den Stuhl, der genau neben dem Tisch stehen
      * muss und nicht auf der nächsten Rasterlinie.
      */
@@ -1312,8 +1835,11 @@
         var target = p.scenes.filter(function (s) { return s.id === id; })[0];
         if (!target) return;
         var proceed = !target.placements.length ||
-            window.confirm(t('Delete “{title}” and its {n} props?',
-                { title: target.title || t('this scene'), n: target.placements.length }));
+            window.confirm(target.title
+                ? t('Delete “{title}” and its {n} props?',
+                    { title: target.title, n: target.placements.length })
+                : t('Delete scene {label} and its {n} props?',
+                    { label: SP.sceneNumbers(p)[target.id].label, n: target.placements.length }));
         if (!proceed) return;
         change(function () {
             var index = p.scenes.indexOf(target);
@@ -1366,15 +1892,29 @@
         });
     }
 
+    /* Schieben mit den Pfeiltasten ist eine Bewegung, auch wenn sie aus
+       zwanzig Tastendrücken besteht. Sie wird zu einem Rückgängig-Schritt
+       zusammengefasst, solange nichts anderes dazwischenkommt — genau wie ein
+       Zug mit der Maus und ein Zug am Schieber. */
+    var nudgeTimer = null;
+
     function nudge(dx, dy) {
         var sel = selectedPlacements().filter(function (p) { return !p.locked; });
         if (!sel.length) return;
-        change(function () {
-            sel.forEach(function (p) {
-                p.x = SP.round(p.x + dx, 3);
-                p.y = SP.round(p.y + dy, 3);
-            });
+        if (nudgeTimer === null) beginHistory();
+        else clearTimeout(nudgeTimer);
+        nudgeTimer = setTimeout(function () {
+            nudgeTimer = null;
+            commitHistory();
+            renderTopBar();
+        }, 600);
+        sel.forEach(function (p) {
+            p.x = SP.round(p.x + dx, 3);
+            p.y = SP.round(p.y + dy, 3);
         });
+        persist();
+        renderCanvas(true);
+        refreshItemReadouts();
     }
 
     function rotateSelection(delta) {
@@ -1690,28 +2230,18 @@
         apronDepth: t('Apron depth')
     };
 
+    /* Es gibt eine Bühne, die der Produktion. Eine eigene Bühne pro Szene
+       gab es einmal; sie stand ganz unten im letzten Abschnitt der letzten
+       Spalte, wurde nie gefunden, und wer sie doch fand, hatte danach zwei
+       Bühnen zu pflegen. */
     function editingStage() {
-        var sc = scene();
-        return (sc && sc.stage) || production().stage;
-    }
-
-    function editingStageIsScene() {
-        var sc = scene();
-        return !!(sc && sc.stage);
+        return production().stage;
     }
 
     function renderStageTab() {
         var stage = editingStage();
-        var isScene = editingStageIsScene();
-        var numbers = SP.sceneNumbers(production());
-        var sc = scene();
-
-        $('#spStageHeading').textContent = isScene
-            ? t('Stage for scene {label}', { label: numbers[sc.id].label })
-            : t('The stage');
-        $('#spStageIntro').textContent = isScene
-            ? t('This scene has been given a stage of its own. Every other scene keeps the production stage.')
-            : t('Applies to every scene. A single scene can be given a stage of its own on the Scene panel.');
+        $('#spStageHeading').textContent = t('The stage');
+        $('#spStageIntro').textContent = t('Applies to every scene in this production.');
 
         /* Alle Karten zeigen dieselben Beispielmaße in derselben viewBox.
            Vorher rechnete jede ihre eigene aus, also füllte ein Rund von 10 m
@@ -1719,7 +2249,7 @@
            die Größe, die man gerade auswählt. */
         var samples = SP.STAGE_SHAPES.map(function (shape) {
             return SP.stageOutline(Object.assign({}, SP.DEFAULT_STAGE, {
-                shape: shape.id, width: 12, depth: 9, backWidth: 8, diameter: 10, sides: 6,
+                shape: shape.id, width: 12, depth: 9, backWidth: 8, diameter: 12,
                 apronWidth: 7, apronDepth: 2.5
             }));
         });
@@ -1750,8 +2280,7 @@
             apronWidth: 'stage.apron', apronDepth: 'stage.apron'
         };
         var dimensionFields = shape.fields.map(function (field) {
-            var isCount = field === 'sides';
-            var value = isCount ? SP.num(stage[field], 6) : toField(SP.num(stage[field], 1));
+            var value = toField(SP.num(stage[field], 1));
             return '<div><label for="spDim-' + field + '">' + esc(FIELD_LABELS[field] || field) +
                 (isCount ? '' : ' (' + lengthLabel() + ')') + why(FIELD_EXPLAIN[field] || '') + '</label>' +
                 '<input type="number" id="spDim-' + field + '" data-stage-field="' + field + '"' +
@@ -1801,9 +2330,11 @@
             '<label class="sp-check"><input type="checkbox" data-stage-flag="scaleBar"' +
             (stage.scaleBar ? ' checked' : '') + '> ' + esc(t('Scale bar')) + '</label></div>' +
 
-            '<div class="sp-section"><h3>' + esc(t('Wings')) + why('stage.wings') + '</h3>' +
+            (SP.hasWings(stage) ? '<div class="sp-section"><h3>' + esc(t('Wings')) + why('stage.wings') + '</h3>' +
             '<div class="sp-check-row"><label class="sp-check"><input type="checkbox" data-stage-flag="wings.show"' +
             (stage.wings.show ? ' checked' : '') + '> ' + esc(t('Mark the wings')) + '</label></div>' +
+            (stage.wings.show ? '' : '<p class="sp-hint">' +
+                esc(t('With the wings marked you can put notes in them on the plan — for anything that has to be standing by without being on stage.')) + '</p>') +
             (stage.wings.show ? '<div class="sp-field-row" style="margin-top:0.5rem">' +
                 '<div><label for="spWingInset">' + esc(t('Inset from the side')) +
                 ' (' + esc(lengthLabel()) + ')</label>' +
@@ -1813,7 +2344,7 @@
                 ' (' + esc(lengthLabel()) + ')</label>' +
                 '<input type="number" id="spWingDepth" step="0.1" min="0.05" data-stage-number="wings.depth" value="' +
                 toField(stage.wings.depth, 2) + '"></div></div>' : '') +
-            '</div>' +
+            '</div>' : '') +
 
             '<div class="sp-section"><h3>' + esc(t('Curtains')) + why('stage.curtains') + '</h3>' +
             (curtains ? '<div style="margin-bottom:0.5rem"><div class="sp-curtain-row" style="font-size:0.7rem;color:var(--sp-muted)">' +
@@ -1824,14 +2355,7 @@
             esc(t('Measured upstage from the setting line. Each scene can open or close them on its own.')) +
             '</p></div>' +
 
-            '<div class="sp-section"><h3>' + esc(t('This production')) + '</h3>' +
-            '<div class="sp-field"><label for="spUnits">' + esc(t('Measure in')) + '</label>' +
-            '<select id="spUnits" data-bind="prod.units">' +
-            '<option value="m"' + (units() === 'm' ? ' selected' : '') + '>' + esc(t('Metres')) + '</option>' +
-            '<option value="ft"' + (units() === 'ft' ? ' selected' : '') + '>' + esc(t('Feet and inches')) + '</option></select></div>' +
-            (isScene ? '<div class="sp-btn-row"><button class="sp-btn" data-act="drop-scene-stage">' +
-                esc(t('Use the production stage for this scene')) + '</button></div>' : '') +
-            '</div>';
+            '';
     }
 
     /* ================================================================== *
@@ -1880,7 +2404,7 @@
             specs.push({ key: 'depth', x: 0, y: b.y + SP.num(stage.depth, b.h),
                 cursor: 'ns-resize', label: t('Depth') });
         }
-        if (stage.wings && stage.wings.show) {
+        {
             SP.wingLines(stage).forEach(function (line, side) {
                 specs.push({ key: 'wings.inset', side: side, x: line[0][0],
                     y: b.y + (line[1][1] - b.y) / 2, cursor: 'ew-resize', label: t('Inset from the side') });
@@ -1926,7 +2450,7 @@
         var stage = editingStage();
         SP.shapeById(stage.shape).fields.forEach(function (field) {
             var el = $('#spDim-' + field);
-            if (el && document.activeElement !== el && field !== 'sides') {
+            if (el && document.activeElement !== el) {
                 el.value = toField(SP.num(stage[field], 1));
             }
         });
@@ -2044,7 +2568,20 @@
      * Prop library tab
      * ================================================================== */
 
+    /* Wie oft ein Requisit in dieser Produktion steht. Vorher wurde über alle
+       Produktionen gezählt: der Fundus meldete „Bett 1× verwendet" für einen
+       Abend, in dem kein Bett vorkam. */
     function usageCount(propId) {
+        var total = 0;
+        (production().scenes || []).forEach(function (s) {
+            (s.placements || []).forEach(function (pl) { if (pl.propId === propId) total += 1; });
+        });
+        return total;
+    }
+
+    /* Beim Löschen zählt dagegen alles: ein eigenes Requisit verschwindet aus
+       jeder Produktion, nicht nur aus der offenen. */
+    function usageEverywhere(propId) {
         var total = 0;
         db.productions.forEach(function (p) {
             (p.scenes || []).forEach(function (s) {
@@ -2067,9 +2604,7 @@
 
         $('#spLibraryGrid').innerHTML = list.length ? list.map(function (prop) {
             var uses = usageCount(prop.id);
-            var art = prop.image
-                ? '<img src="' + esc(prop.image) + '" alt="">'
-                : '<svg viewBox="0 0 100 100" class="sp-plan"><g class="sp-art" stroke-width="' + (4 * (prop.sw || 1)) + '">' + prop.art + '</g></svg>';
+            var art = artThumb(prop);
             return '<div class="sp-lib-card">' +
                 (prop.builtin ? '' : '<span class="sp-lib-tools">' +
                     '<button class="sp-btn is-quiet" data-act="edit-prop" data-prop="' + esc(prop.id) + '">' + esc(t('Edit')) + '</button>' +
@@ -2077,8 +2612,13 @@
                     '</span>') +
                 art +
                 '<div>' + esc(t(prop.name)) + '</div>' +
-                '<div class="sp-lib-meta">' + toField(prop.w, 2) + ' × ' + toField(prop.h, 2) + ' ' + lengthLabel() +
-                (prop.builtin ? '' : ' · <span class="sp-badge">' + esc(t('yours')) + '</span>') + '</div>' +
+                '<div class="sp-lib-meta">' +
+                /* Dieselbe Regel wie in der Palette: das Maß steht dort, wo man
+                   damit plant. Bei einem Glas zählt, dass man es erkennt. */
+                (handProp(prop) ? ''
+                    : toField(prop.w, 2) + ' × ' + toField(prop.h, 2) + ' ' + lengthLabel()) +
+                (prop.builtin ? '' : (handProp(prop) ? '' : ' · ') +
+                    '<span class="sp-badge">' + esc(t('yours')) + '</span>') + '</div>' +
                 '<div class="sp-lib-meta">' + (uses ? t('used {n}×', { n: uses }) : t('not used yet')) + '</div>' +
                 '</div>';
         }).join('') : '<p class="sp-empty">' + esc(t('Nothing matches that search.')) + '</p>';
@@ -2092,17 +2632,11 @@
                     '1 drawing added. It sits alongside the built-in ones in every production in this browser.',
                     '{n} drawings added. They sit alongside the built-in ones in every production in this browser.')
                 : t('Nothing added yet. A PNG, JPEG or SVG works.')) +
-            '</p><div class="sp-btn-row"><button class="sp-btn is-primary" data-act="draw-custom-prop">' +
-            esc(t('Draw one yourself')) + '</button>' + why('draw.open') +
-            '<button class="sp-btn" data-act="add-custom-prop">' + esc(t('Add a prop')) + '</button></div></div>' +
-
-            '<div class="sp-section"><h3>' + esc(t('Drawing your own')) + '</h3>' +
-            '<p class="sp-hint">' + esc(t('Draw it seen from straight above. The size fields below set the size on the plan.')) + '</p>' + '</div>' +
+            '</p>' + why('draw.open') + '</div>' +
 
             '<div class="sp-section"><h3>' + esc(t('Browser storage')) + '</h3>' +
             '<p class="sp-hint">' + esc(t('Everything you have made takes about {size}. Browsers usually stop somewhere around 5 MB, so keep custom drawings small and take a backup from time to time.', { size: formatBytes(bytes) })) + '</p>' +
-            '<div class="sp-btn-row"><button class="sp-btn" data-act="export-json">' + esc(t('Export a backup')) + '</button>' +
-            '<button class="sp-btn" data-act="import-json">' + esc(t('Restore from a backup')) + '</button></div></div>';
+            '</div>';
     }
 
     function storageBytes() {
@@ -2200,9 +2734,9 @@
     }
 
     function deleteCustomProp(id) {
-        var uses = usageCount(id);
+        var uses = usageEverywhere(id);
         var message = uses
-            ? t('This prop is used {n} times in this production. Deleting it leaves those places empty. Carry on?', { n: uses })
+            ? t('This prop stands in {n} places across all your productions. Deleting it leaves those places empty. Carry on?', { n: uses })
             : t('Delete this prop?');
         if (!window.confirm(message)) return;
         change(function () {
@@ -2248,8 +2782,18 @@
     /* Zeigerposition im 100er-Quadrat. preserveAspectRatio="none" auf der
        Fläche macht die Umrechnung linear, auch wenn sie einmal nicht ganz
        quadratisch ausfällt. */
+    /* Breite und Tiefe eines selbst gezeichneten Requisits. Die Breite ist,
+       was jemand eintippt; die Tiefe folgt aus dem Verhältnis der Zeichnung,
+       weil sie gleichmäßig gesetzt wird. */
+    function drawnFootprint(shapes, width) {
+        var box = SPDraw.boundsOf(shapes);
+        var w = Math.max(0.05, width);
+        if (!(box.w > 0) || !(box.h > 0)) return { w: w, h: w };
+        return { w: SP.round(w, 3), h: SP.round(Math.max(0.05, w * box.h / box.w), 3) };
+    }
+
     function drawPoint(e) {
-        var box = $('#spDrawBoard', draw.body).getBoundingClientRect();
+        var box = draw.board || $('#spDrawBoard', draw.body).getBoundingClientRect();
         return [
             drawSnap((e.clientX - box.left) / box.width * 100),
             drawSnap((e.clientY - box.top) / box.height * 100)
@@ -2361,8 +2905,14 @@
         var host = $('#spDrawPreview', draw.body);
         if (!host) return;
         var w = Math.max(0.05, fromField($('#spDrawW', draw.body).value, 1));
-        var h = Math.max(0.05, fromField($('#spDrawH', draw.body).value, 1));
-        var prop = { id: 'sp-drawn', name: '', cat: '', w: w, h: h, art: SPDraw.markup(draw.shapes) };
+        /* Die Tiefe wird nicht gelesen, sondern gerechnet — und gleich ins
+           Feld geschrieben, damit dort steht, was später gespeichert wird. */
+        var h = drawnFootprint(draw.shapes, w).h;
+        var depthField = $('#spDrawH', draw.body);
+        if (depthField) depthField.value = toField(h);
+        var seen = SPDraw.boundsOf(draw.shapes);
+        var prop = { id: 'sp-drawn', name: '', cat: '', w: w, h: h,
+            box: [seen.x, seen.y, seen.w, seen.h], art: SPDraw.markup(draw.shapes) };
         var stage = Object.assign({}, SP.DEFAULT_STAGE, {
             shape: 'rect',
             width: Math.max(2, SP.round(w * 3.4, 2)),
@@ -2428,6 +2978,9 @@
 
     function drawPointerDown(e) {
         var board = $('#spDrawBoard', draw.body);
+        /* Vor allem anderen messen: gleich darauf verschiebt das Neuzeichnen
+           des Dialogs das Feld unter dem Finger weg. */
+        draw.board = board.getBoundingClientRect();
         var pt = drawPoint(e);
         board.focus();
 
@@ -2499,6 +3052,7 @@
     }
 
     function drawPointerUp() {
+        draw.board = null;
         if (!draw.drag) return;
         var gesture = draw.drag;
         draw.drag = null;
@@ -2646,8 +3200,16 @@
             '<div><label for="spDrawW">' + esc(t('Across ({unit})', { unit: lengthLabel() })) + why('draw.footprint') + '</label>' +
             '<input type="number" id="spDrawW" step="0.05" min="0.05" value="' + toField(start.w) + '"></div>' +
             '<div><label for="spDrawH">' + esc(t('Deep ({unit})', { unit: lengthLabel() })) + '</label>' +
-            '<input type="number" id="spDrawH" step="0.05" min="0.05" value="' + toField(start.h) + '"></div>' +
+            /* Die Zeichnung wird gleichmäßig gesetzt, damit aus dem Kreis
+               keine Ellipse wird. Die Tiefe folgt also aus der Breite und dem,
+               was gezeichnet ist — als Feld war sie ein Versprechen, das beim
+               Speichern gebrochen wurde. Jetzt steht sie da und rechnet mit. */
+            '<input type="number" id="spDrawH" value="' + toField(start.h) +
+            '" readonly tabindex="-1" title="' +
+            esc(t('Follows the width and the drawing')) + '"></div>' +
             '</div>' +
+            '<p class="sp-hint" style="margin:-0.3rem 0 0">' +
+            esc(t('The depth follows the width, so the drawing keeps its shape.')) + '</p>' +
             '<div class="sp-field"><label for="spDrawTags">' + esc(t('Search words')) + '</label>' +
             '<input type="text" id="spDrawTags" value="' + esc(start.tags || '') + '" placeholder="' +
             esc(t('chair table wooden')) + '"></div>' +
@@ -2671,12 +3233,32 @@
                     var shapes = SPDraw.clean(draw.shapes);
                     if (!name) { toast(t('Give the prop a name.'), 'error'); return false; }
                     if (!shapes.length) { toast(t('Draw something first.'), 'error'); return false; }
+                    /* Wie weit die Zeichnung in ihrem Feld reicht, wird
+                       einmal beim Speichern gemessen und mitgeschrieben. Der
+                       Plan misst nie selbst nach: unter Node gibt es nichts zu
+                       messen, und was auf dem Papier landet, soll nicht davon
+                       abhängen, wie ein Browser rundet. */
+                    var drawnBox = SPDraw.boundsOf(shapes);
+                    var typedW = fromField($('#spDrawW', host).value, 0);
+                    if (!(typedW > 0.04)) {
+                        /* Vorher wurden 0 und −3 stillschweigend zu 0,05 —
+                           man drückte auf Hinzufügen und bekam ein Requisit,
+                           das man nicht gemeint hatte. */
+                        toast(t('Give it a real width, above 5 cm.'), 'error');
+                        return false;
+                    }
+                    /* Eine Zeichnung wird gleichmäßig gesetzt, damit aus dem
+                       Kreis keine Ellipse wird. Die Breite führt, die Tiefe
+                       folgt aus dem Verhältnis der Zeichnung — sonst stand in
+                       jedem Feld „2 m" und auf der Bühne lagen 10 cm. */
+                    var size = drawnFootprint(shapes, typedW);
                     var made = {
                         id: existing ? existing.id : SP.uid('prop'),
                         name: name,
                         cat: $('#spDrawCat', host).value,
-                        w: Math.max(0.05, fromField($('#spDrawW', host).value, 1)),
-                        h: Math.max(0.05, fromField($('#spDrawH', host).value, 1)),
+                        w: size.w,
+                        h: size.h,
+                        box: [drawnBox.x, drawnBox.y, drawnBox.w, drawnBox.h],
                         art: SPDraw.markup(shapes),
                         tags: $('#spDrawTags', host).value.trim(),
                         draft: shapes
@@ -2688,6 +3270,21 @@
                                Bild und nicht die neuen Formen. */
                             delete existing.image;
                             Object.assign(existing, made);
+                            /* Eine geänderte Zeichnung hat ein anderes
+                               Verhältnis. Ohne das hier behielten schon
+                               gestellte Exemplare ihre alte Tiefe und wurden
+                               beim Zeichnen kleiner, während im Feld weiter
+                               die alte Zahl stand. */
+                            db.productions.forEach(function (prod) {
+                                (prod.scenes || []).forEach(function (sc) {
+                                    (sc.placements || []).forEach(function (pl) {
+                                        if (pl.propId !== made.id) return;
+                                        var again = drawnFootprint(shapes, pl.w);
+                                        pl.w = again.w;
+                                        pl.h = again.h;
+                                    });
+                                });
+                            });
                         } else {
                             db.library.push(made);
                         }
@@ -2700,8 +3297,17 @@
             body: modal.body,
             shapes: existing ? SPDraw.clean(existing.draft || []) : [],
             tool: 'rect', mode: 'o', snap: true, sel: -1,
-            undo: [], redo: [], drag: null, run: null, cursor: null
+            undo: [], redo: [], drag: null, run: null, cursor: null, board: null
         };
+
+        /* Escape ist hier geschützt, der Klick daneben war es nicht — also
+           war ausgerechnet die ungenauere Geste die gefährliche. */
+        modal.element.addEventListener('click', function (e) {
+            if (e.target !== modal.element) return;
+            if (!draw.shapes.length) return;
+            if (window.confirm(t('Throw this drawing away?'))) return;
+            e.stopPropagation();
+        }, true);
 
         var board = $('#spDrawBoard', modal.body);
         board.addEventListener('pointerdown', drawPointerDown);
@@ -2827,7 +3433,7 @@
                 esc(t('A4 upright')) + '</option>' +
                 '<option value="landscape"' + (o.orientation === 'landscape' ? ' selected' : '') + '>' +
                 esc(t('A4 on its side')) + '</option></select></div>' +
-                scope + footer + '</div>' +
+                scope + '</div>' +
 
                 '<div class="sp-section" style="padding-left:0;padding-right:0"><h3>' +
                 esc(t('Sheets to print')) + '</h3>' +
@@ -2835,18 +3441,20 @@
                 printCheck('actPages', t('A divider before each act'), o, 'print.actPages') +
                 printCheck('scenePages', t('One sheet per scene'), o, 'print.scenePages') +
                 printCheck('overview', t('Overview sheets'), o, 'print.overview') +
-                printCheck('inventory', t('Prop inventory'), o, 'print.inventory') +
-                '</div>' +
-
-                '<div class="sp-section" style="padding-left:0;padding-right:0"><h3>' +
-                esc(t('Scene sheets')) + '</h3>' +
-                '<div class="sp-field"><label for="spPrintLabels">' + esc(t('Labels on the plan')) +
+                '<div class="sp-field" style="margin-top:0.6rem"><label for="spPrintLabels">' +
+                esc(t('Labels on the plan')) +
                 why('print.labels') + '</label><select id="spPrintLabels" data-print="labels">' +
                 [['name', t('Prop names')], ['custom', t('Written labels only')], ['both', t('Name and label')],
-                 ['number', t('Numbers keyed to the list')], ['none', t('No labels')]].map(function (opt) {
+                 ['none', t('No labels')]].map(function (opt) {
                     return '<option value="' + opt[0] + '"' + (o.labels === opt[0] ? ' selected' : '') + '>' +
                         esc(opt[1]) + '</option>';
                 }).join('') + '</select></div>' +
+                '</div>' +
+
+                '<details class="sp-more"' + (ui.printMore ? ' open' : '') + '>' +
+                '<summary>' + esc(t('Everything else')) + '</summary>' +
+                '<div class="sp-section" style="padding-left:0;padding-right:0"><h3>' +
+                esc(t('What stands on the scene sheet')) + '</h3>' +
                 printCheck('showGrid', t('Show the floor grid'), o, 'print.showGrid') +
                 printCheck('showWings', t('Mark the wings'), o, 'stage.wings') +
                 printCheck('showCurtains', t('Draw the curtains'), o, 'stage.curtains') +
@@ -2857,15 +3465,17 @@
                 printCheck('showPlace', t('Include the place'), o, 'print.showPlace') +
                 printCheck('showNotes', t('Include scene notes'), o, 'print.showNotes') +
                 printCheck('showFooter', t('Footer on every sheet'), o, 'print.showFooter') +
+                (o.showFooter ? footer : '') +
                 printCheck('numberOutside', t('Number only, beside the stage'), o, 'print.numberOutside') +
-                '<div class="sp-btn-row" style="margin-top:0.7rem">' +
-                '<button class="sp-btn" data-act="print-preset-bare">' +
-                esc(t('Set it up like my Umbauplan')) + '</button>' + why('print.presetBare') + '</div>' +
-                '<p class="sp-hint">' + esc(t('Landscape, the number large and alone, wings marked, and nothing else on the sheet.')) + '</p>' +
                 '</div>' +
 
                 '<div class="sp-section" style="padding-left:0;padding-right:0"><h3>' +
+                esc(t('Prop inventory')) + '</h3>' +
+                printCheck('inventory', t('Prop inventory'), o, 'print.inventory') + '</div>' +
+
+                '<div class="sp-section" style="padding-left:0;padding-right:0"><h3>' +
                 esc(t('Overview sheets')) + '</h3>' +
+                printCheck('overviewAuto', t('All the scenes on one sheet'), o, 'print.overviewSize') +
                 '<div class="sp-field"><label for="spOverviewSize">' + esc(t('Scenes to a sheet')) +
                 why('print.overviewSize') + '</label><select id="spOverviewSize" data-act="overview-size">' +
                 [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4], [5, 5], [6, 4]].map(function (g) {
@@ -2884,7 +3494,7 @@
                     '<input type="number" id="spOvRows" min="1" max="8" data-print-number="overviewRows" value="' +
                     o.overviewRows + '"></div></div>' : '') +
                 printCheck('overviewSplitActs', t('Start a fresh sheet for each act'), o, 'print.splitActs') +
-                '</div>';
+                '</div></details>';
         }
 
         $('#spPrintOptions').innerHTML = head + body +
@@ -2893,6 +3503,14 @@
             esc(doc === 'changeover' ? t('Print the Umbauplan') : t('Print the plans')) + '</button></div>' +
             '<p class="sp-page-count" id="spPageCount" style="margin-top:0.5rem"></p>' +
             '<p class="sp-hint">' + esc(t('In the print dialogue: margins to none, background graphics on.')) + '</p></div>';
+
+        var more = $('.sp-more', $('#spPrintOptions'));
+        if (more) {
+            more.addEventListener('toggle', function () {
+                ui.printMore = more.open;
+                persistUi();
+            });
+        }
 
         renderPrintPreview();
     }
@@ -2949,6 +3567,27 @@
                     return '<div class="sp-preview-slot">' + html + '</div>';
                 }).join('') + '</div>';
         }, 120);
+    }
+
+    /* Jeder Weg zum Drucker füllt denselben Vorrat: der Knopf im Reiter, aber
+       auch Strg+P und das Menü des Browsers. Vorher füllte ihn nur der Knopf,
+       und die Druck-CSS blendet alles außer dem Vorrat aus — wer den
+       gewohnten Weg nahm, bekam ein weißes Blatt. */
+    function fillPrintPortal() {
+        var portal = $('#spPrintPortal');
+        if (!portal || portal.innerHTML) return false;
+        var o = printOptions();
+        var style = document.getElementById('spPageStyle');
+        if (!style) {
+            style = document.createElement('style');
+            style.id = 'spPageStyle';
+            document.head.appendChild(style);
+        }
+        var landscape = printDoc() === 'plans' && o.orientation === 'landscape';
+        style.textContent = '@page { size: A4 ' + (landscape ? 'landscape' : 'portrait') + '; margin: 0; }';
+        portal.innerHTML = '<div class="sp-sheets">' + buildSheets().join('') + '</div>';
+        portal.hidden = false;
+        return true;
     }
 
     function doPrint() {
@@ -3057,9 +3696,9 @@
                 '<div class="sp-field"><label for="spNumbering">' + esc(t('Number the scenes')) +
                 why('scene.numbering') + '</label>' +
                 '<select id="spNumbering">' +
-                [['continuous', t('Straight through, 1 to the end')],
-                 ['per-act', t('Restart in each act, as II.3')],
-                 ['per-act-roman', t('Restart in each act, roman (I.I, I.II …)')]].map(function (opt) {
+                [['continuous', t('Straight through (1, 2, 3 …)')],
+                 ['per-act', t('Restart in each act (I.1, I.2, II.1 …)')],
+                 ['per-act-roman', t('Restart in each act, roman (I.I, I.II, II.I …)')]].map(function (opt) {
                     return '<option value="' + opt[0] + '"' +
                         (p.numbering === opt[0] ? ' selected' : '') + '>' + esc(opt[1]) + '</option>';
                 }).join('') + '</select></div>' +
@@ -3153,6 +3792,27 @@
         toast(t('Backup saved to your downloads.'), 'success');
     }
 
+    /* Eine Sicherung einzuspielen war die gefährlichste Stelle des Planers.
+       Die Rückfrage lief über window.confirm, und dort hieß „Abbrechen":
+       alles ersetzen — also löste ausgerechnet die Abbruchgeste, und mit ihr
+       Escape, die einzige unumkehrbare Handlung aus. Geprüft wurde außerdem
+       nur, ob productions ein Array ist: eine Datei mit leerer Liste hat die
+       Oberfläche in einen toten Zustand gebracht, eine mit einem leeren
+       Objekt darin hat kommentarlos alles ersetzt und Erfolg gemeldet. */
+
+    function readableBackup(parsed) {
+        var incoming = parsed && parsed.data ? parsed.data : parsed;
+        if (!incoming || !Array.isArray(incoming.productions)) return null;
+        var usable = incoming.productions.filter(function (p) {
+            return p && typeof p === 'object' && typeof p.id === 'string' && p.id &&
+                Array.isArray(p.scenes);
+        });
+        if (!usable.length) return null;
+        incoming.productions = usable;
+        incoming.library = Array.isArray(incoming.library) ? incoming.library : [];
+        return incoming;
+    }
+
     function importJson() {
         var input = document.createElement('input');
         input.type = 'file';
@@ -3169,42 +3829,89 @@
                     toast(t('That file is not a scene plan.'), 'error');
                     return;
                 }
-                var incoming = parsed && parsed.data ? parsed.data : parsed;
-                if (!incoming || !Array.isArray(incoming.productions)) {
+                var incoming = readableBackup(parsed);
+                if (!incoming) {
                     toast(t('That file is not a scene plan.'), 'error');
                     return;
                 }
-                var mode = window.confirm(
-                    SPI18n.plural(incoming.productions.length,
-                        'Add 1 production from the backup?', 'Add {n} productions from the backup?') + '\n\n' +
-                    t('OK adds them alongside what you have. Cancel replaces everything.'));
-                change(function () {
-                    incoming.productions.forEach(migrateProduction);
-                    if (mode) {
-                        incoming.productions.forEach(function (p) {
-                            if (db.productions.some(function (x) { return x.id === p.id; })) p.id = SP.uid('prod');
-                            db.productions.push(p);
-                        });
-                        (incoming.library || []).forEach(function (prop) {
-                            if (!libraryById(prop.id)) db.library.push(prop);
-                        });
-                        db.activeId = incoming.productions[0].id;
-                    } else {
-                        db.productions = incoming.productions;
-                        db.library = incoming.library || [];
-                        db.activeId = incoming.activeId && incoming.productions.some(function (p) {
-                            return p.id === incoming.activeId;
-                        }) ? incoming.activeId : incoming.productions[0].id;
-                    }
-                    ui.sceneId = (scenes()[0] || {}).id;
-                    ui.selection = [];
-                    ui.view = null;
-                });
-                toast(t('Backup restored.'), 'success');
+                askHowToRestore(incoming);
             };
             reader.readAsText(file);
         });
         input.click();
+    }
+
+    function askHowToRestore(incoming) {
+        var count = incoming.productions.length;
+        var names = incoming.productions.map(function (p) {
+            return p.name || t('Untitled production');
+        });
+        openModal({
+            title: t('Restore from a backup'),
+            cancelLabel: t('Do nothing'),
+            body: '<p style="margin-bottom:0.6rem">' +
+                esc(SPI18n.plural(count, 'The file holds 1 production:', 'The file holds {n} productions:')) +
+                '</p><ul class="sp-hint" style="margin:0 0 0.9rem 1.1rem">' +
+                names.map(function (name) { return '<li>' + esc(name) + '</li>'; }).join('') +
+                '</ul><p class="sp-hint">' +
+                esc(SPI18n.plural(db.productions.length,
+                    'You have 1 production open. Adding leaves it alone; replacing deletes it.',
+                    'You have {n} productions open. Adding leaves them alone; replacing deletes them.')) +
+                '</p>',
+            actions: [
+                {
+                    label: t('Add them alongside'),
+                    primary: true,
+                    onClick: function (body, close) { restoreBackup(incoming, false); close(); }
+                },
+                {
+                    /* Das Ersetzen steht als eigener Knopf da und ist als
+                       gefährlich gekennzeichnet. Vorher war es die Rückseite
+                       von „Abbrechen". */
+                    label: t('Replace everything'),
+                    danger: true,
+                    onClick: function (body, close) {
+                        if (!window.confirm(t('Delete everything in this browser and put the backup in its place?'))) return false;
+                        restoreBackup(incoming, true);
+                        close();
+                    }
+                }
+            ]
+        });
+    }
+
+    function restoreBackup(incoming, replace) {
+        change(function () {
+            incoming.productions.forEach(migrateProduction);
+            (incoming.library || []).forEach(migrateProp);
+            var wanted = incoming.activeId &&
+                incoming.productions.some(function (p) { return p.id === incoming.activeId; })
+                ? incoming.activeId : incoming.productions[0].id;
+            if (replace) {
+                db.productions = incoming.productions;
+                db.library = incoming.library;
+            } else {
+                incoming.productions.forEach(function (p) {
+                    if (db.productions.some(function (x) { return x.id === p.id; })) {
+                        var fresh = SP.uid('prod');
+                        if (p.id === wanted) wanted = fresh;
+                        p.id = fresh;
+                    }
+                    db.productions.push(p);
+                });
+                (incoming.library || []).forEach(function (prop) {
+                    if (!libraryById(prop.id)) db.library.push(prop);
+                });
+            }
+            /* Offen ist danach die Produktion, die beim Sichern offen war —
+               vorher landete man beim Dazunehmen immer auf der ersten der
+               Datei und sah auf eine leere Bühne. */
+            db.activeId = wanted;
+            ui.sceneId = (scenes()[0] || {}).id;
+            ui.selection = [];
+            ui.view = null;
+        });
+        toast(t('Backup restored.'), 'success');
     }
 
     /* ================================================================== *
@@ -3372,6 +4079,29 @@
             return;
         }
 
+        if (drag.mode === 'arrow-tip' || drag.mode === 'arrow-tail') {
+            var arrow = findPlacement(drag.id);
+            if (!arrow) return;
+            var fixed = arrowEnds(drag.origin)[drag.mode === 'arrow-tip' ? 'tail' : 'tip'];
+            var loose = e.altKey
+                ? { x: SP.round(point.x, 3), y: SP.round(point.y, 3) }
+                : { x: snap(point.x, e.shiftKey), y: snap(point.y, e.shiftKey) };
+            var ax = drag.mode === 'arrow-tip' ? loose.x - fixed.x : fixed.x - loose.x;
+            var ay = drag.mode === 'arrow-tip' ? loose.y - fixed.y : fixed.y - loose.y;
+            var len = Math.sqrt(ax * ax + ay * ay);
+            if (len < 0.05) return;
+            arrow.w = SP.round(len, 3);
+            arrow.rot = SP.normaliseAngle(Math.atan2(ay, ax) * 180 / Math.PI);
+            arrow.x = SP.round((fixed.x + loose.x) / 2, 3);
+            arrow.y = SP.round((fixed.y + loose.y) / 2, 3);
+            redrawItem(arrow);
+            renderOverlay();
+            $('#spPointerReadout').textContent = SP.formatLength(arrow.w, units()) + ', ' +
+                t('Turned {n}°', { n: Math.round(arrow.rot) });
+            setModifierHint('move');
+            return;
+        }
+
         if (drag.mode === 'scale') {
             var item = findPlacement(drag.id);
             if (!item) return;
@@ -3382,12 +4112,29 @@
             var localY = Math.abs(dxw * Math.sin(a) + dyw * Math.cos(a));
             var w = Math.max(0.05, localX * 2);
             var h = Math.max(0.05, localY * 2);
-            var scaleProp = resolveProp(item.propId);
-            if (!e.altKey || SPPlan.keepsAspect(scaleProp)) {
-                var factor = Math.max(w / drag.origin.w, h / drag.origin.h);
-                w = drag.origin.w * factor;
-                h = drag.origin.h * factor;
+            /* Was ein Requisit auf der Bühne mit sich machen lässt. Alt hebt
+               es für einen Zug auf — eine Bequemlichkeit, kein Zaun. Im
+               Auswahl-Bereich steht ohnehin jede Zahl frei. */
+            var grip = SPPlan.gripOf(resolveProp(item.propId));
+            if (!e.altKey) {
+                if (grip === 'derived') {
+                    h = SPShapes.naturalDepth(resolveProp(item.propId), w, item.params);
+                } else if (grip === 'none') {
+                    w = drag.origin.w;
+                    h = drag.origin.h;
+                } else if (grip === 'width') {
+                    h = drag.origin.h;
+                } else if (grip === 'depth') {
+                    w = drag.origin.w;
+                } else if (grip === 'square') {
+                    w = h = Math.max(w, h);
+                } else if (grip === 'ratio') {
+                    var factor = Math.max(w / drag.origin.w, h / drag.origin.h);
+                    w = drag.origin.w * factor;
+                    h = drag.origin.h * factor;
+                }
             }
+            drag.grip = grip;
             item.w = SP.round(w, 3);
             item.h = SP.round(h, 3);
             redrawItem(item);
@@ -3412,20 +4159,13 @@
         var prop = resolveProp(placement.propId);
         if (!prop) return;
         var plan = canvasPlan || { unit: 0.02 };
-        var fit = SPPlan.artTransform(prop, placement.w, placement.h, placement.flip);
-        var art = $('.sp-art', node);
-        if (art) {
-            art.setAttribute('transform', 'scale(' + SP.round(fit.sx, 5) + ' ' + SP.round(fit.sy, 5) +
-                ') translate(-50 -50)');
-            art.setAttribute('stroke-width', SP.round(plan.unit / fit.unit * (prop.sw || 1), 5));
-        }
-        var hit = $('.sp-hit', node);
-        if (hit) {
-            hit.setAttribute('x', SP.round(-placement.w / 2, 3));
-            hit.setAttribute('y', SP.round(-placement.h / 2, 3));
-            hit.setAttribute('width', SP.round(placement.w, 3));
-            hit.setAttribute('height', SP.round(placement.h, 3));
-        }
+        /* Dasselbe Markup wie beim vollen Aufbau. Vorher wurde hier nur die
+           Streckung der Zeichnung nachgestellt — ein gerechnetes Requisit
+           blieb dabei stehen, bis man die Ecke losließ. */
+        node.innerHTML = SPPlan.propInner(placement, prop, plan.unit, {
+            interactive: true,
+            selected: node.classList.contains('is-selected')
+        });
     }
 
     function drawMarquee() {
@@ -3595,7 +4335,10 @@
                 : (drifting.length
                     ? '<span class="sp-place-drift">' +
                       esc(SPI18n.plural(drifting.length, '1 scene differs', '{n} scenes differ')) + ' · ' +
-                      esc(drifting.map(function (sc) { return numbers[sc.id].label; }).join(', ')) +
+                      drifting.map(function (sc) {
+                          return '<button class="sp-btn is-quiet sp-place-jump" data-act="go-to-scene" ' +
+                              'data-id="' + esc(sc.id) + '">' + esc(numbers[sc.id].label) + '</button>';
+                      }).join('') +
                       '</span>' + why('place.drift')
                     : '<span class="sp-place-ok">' + esc(t('All scenes match')) + '</span>');
 
@@ -3615,18 +4358,7 @@
                 '<div class="sp-place-body">' +
                 '<div class="sp-place-plan">' + art + '</div>' +
                 '<div class="sp-place-side">' +
-                '<label class="sp-place-label">' + esc(t('Standing props, in your own words')) +
-                why('place.props') + '</label>' +
-                '<textarea class="sp-place-props" rows="3" data-place-field="props" ' +
-                'data-place="' + esc(place.id) + '" placeholder="' +
-                esc(t('Leave empty and the list is read from the set.')) + '">' +
-                esc((place.props || []).join('\n')) + '</textarea>' +
-                (place.placements && place.placements.length
-                    ? '<div class="sp-btn-row" style="margin-top:0.4rem">' +
-                      '<button class="sp-btn is-quiet" data-act="suggest-place-props" data-id="' +
-                      esc(place.id) + '">' + esc(t('Take the wording from the set')) + '</button>' +
-                      why('place.suggest') + '</div>'
-                    : '') +
+
                 (status ? '<div class="sp-place-status">' + status + '</div>' : '') +
                 '</div></div></section>';
         }).join('');
@@ -3709,8 +4441,8 @@
             (trans.critical ? ' checked' : '') + '> ' + esc(t('Mark this change as critical')) +
             '</label>' + why('trans.critical') + '</div>' +
             '<div class="sp-btn-row" style="margin-top:0.6rem">' +
-            '<button class="sp-btn is-quiet" data-act="add-banner">' +
-            esc(t('Break the table here')) + '</button>' + why('trans.banner') + '</div>' +
+            '<button class="sp-btn" data-act="add-banner">' +
+            esc(t('Break the table here…')) + '</button>' + why('trans.banner') + '</div>' +
             (banners.length ? '<ul class="sp-banner-list">' + banners.map(function (b, i) {
                 return '<li><b>' + esc(b.text || '—') + '</b>' +
                     (b.sub ? '<span>' + esc(b.sub) + '</span>' : '') +
@@ -3722,66 +4454,155 @@
 
     /* ------------------------------------------------------ Gassenzettel */
 
-    function wingNotePanel(sc) {
-        var stage = stageOf(sc);
-        var notes = sc.wingNotes || [];
-        var body;
+    /* ================================================================== *
+     * Gassenzettel
+     *
+     * Ein Zettel ist ein kleines Bild mit Unterschrift, das in der Gasse
+     * neben der Bühne aufs Blatt gedruckt wird — für Dinge, die bereitliegen
+     * müssen, ohne auf der Bühne zu stehen. Angelegt wurden sie über einen
+     * Knopf ganz unten im Szene-Bereich; gefunden hat ihn niemand, und wer
+     * sich vertippt hatte, musste löschen und alles neu eingeben, samt
+     * Zeichnung aus einer Liste mit neununddreißig Zeilen.
+     *
+     * Jetzt hängen sie an der Marke in der gezeichneten Gasse: dort, wo sie
+     * hingehören, mit der Seite schon gewählt, und die Liste lässt sich
+     * ändern, umsortieren und leeren.
+     * ================================================================== */
 
-        if (!stage.wings || !stage.wings.show) {
-            body = '<p class="sp-hint">' + esc(t('The wings have to be marked on the Stage tab before a note can sit in one.')) + '</p>';
-        } else {
-            body = (notes.length ? '<ul class="sp-banner-list">' + notes.map(function (note, i) {
-                var prop = note.propId ? resolveProp(note.propId) : null;
-                return '<li><b>' + esc(note.side === 'left' ? t('Left wing') : t('Right wing')) + '</b>' +
-                    '<span>' + esc(note.text || '') + (prop ? ' · ' + esc(t(prop.name)) : '') + '</span>' +
-                    '<button class="sp-btn is-quiet is-danger" data-act="delete-wing-note" ' +
-                    'data-index="' + i + '">' + esc(t('Delete')) + '</button></li>';
-            }).join('') + '</ul>' : '') +
-            '<div class="sp-btn-row" style="margin-top:0.5rem">' +
-            '<button class="sp-btn" data-act="add-wing-note">' + esc(t('Add a wing note')) + '</button></div>';
-        }
-
-        return '<div class="sp-section"><h3>' + esc(t('Wing notes')) + why('scene.wingNotes') + '</h3>' +
-            body + '</div>';
+    function wingNotesOf(sc, side) {
+        return (sc.wingNotes || []).filter(function (note) {
+            return (note.side === 'left' ? 'left' : 'right') === side;
+        });
     }
 
-    function addWingNoteDialog() {
+    function wingNotesDialog(side) {
         var sc = scene();
         if (!sc) return;
-        var props = allProps();
-        openModal({
-            title: t('Add a wing note'),
-            body: '<p class="sp-hint" style="margin-bottom:0.7rem">' +
+        side = side === 'left' ? 'left' : 'right';
+        if (!sc.wingNotes) sc.wingNotes = [];
+
+        var body = document.createElement('div');
+        var picking = null;
+
+        function rows() {
+            var mine = wingNotesOf(sc, side);
+            if (!mine.length) {
+                return '<p class="sp-empty">' + esc(t('Nothing waiting in this wing yet.')) + '</p>';
+            }
+            return '<ul class="sp-wing-list">' + mine.map(function (note, i) {
+                var prop = note.propId ? resolveProp(note.propId) : null;
+                return '<li data-note="' + esc(note.id) + '">' +
+                    '<button class="sp-wing-pick" data-pick="' + esc(note.id) + '" title="' +
+                    esc(t('Choose a drawing')) + '">' +
+                    (prop ? artThumb(prop) : '<span class="sp-wing-nopic">+</span>') + '</button>' +
+                    '<input type="text" class="sp-wing-text" data-note-text="' + esc(note.id) + '" value="' +
+                    esc(note.text || '') + '" placeholder="' + esc(t('Hold ready')) + '">' +
+                    '<button class="sp-btn is-quiet" data-move="' + esc(note.id) + '" data-dir="-1"' +
+                    (i === 0 ? ' disabled' : '') + ' aria-label="' + esc(t('Move up')) + '">\u2191</button>' +
+                    '<button class="sp-btn is-quiet" data-move="' + esc(note.id) + '" data-dir="1"' +
+                    (i === mine.length - 1 ? ' disabled' : '') + ' aria-label="' + esc(t('Move down')) + '">\u2193</button>' +
+                    '<button class="sp-btn is-quiet is-danger" data-drop="' + esc(note.id) + '" aria-label="' +
+                    esc(t('Delete')) + '">&times;</button>' +
+                    (picking === note.id ? picker() : '') + '</li>';
+            }).join('') + '</ul>';
+        }
+
+        /* Die Zeichnung wird aus Kacheln gewählt, wie auf der Bühne auch —
+           vorher aus einer Klappliste mit neununddreißig Textzeilen. */
+        function picker() {
+            return '<div class="sp-wing-picker"><div class="sp-palette">' +
+                '<button class="sp-tile" data-set-prop="">' +
+                '<span class="sp-tile-name">' + esc(t('No drawing')) + '</span></button>' +
+                allProps().map(function (pr) {
+                    return '<button class="sp-tile" data-set-prop="' + esc(pr.id) + '">' +
+                        artThumb(pr) + '<span class="sp-tile-name">' + esc(t(pr.name)) + '</span></button>';
+                }).join('') + '</div></div>';
+        }
+
+        function draw() {
+            body.innerHTML =
+                '<p class="sp-hint" style="margin-bottom:0.7rem">' +
                 esc(SPI18n.explain('scene.wingNotes').body) + '</p>' +
-                '<div class="sp-field"><label for="spWingText">' + esc(t('What has to be ready')) + '</label>' +
-                '<input type="text" id="spWingText" placeholder="' +
-                esc(t('Hold ready')) + '"></div>' +
-                '<div class="sp-field"><label for="spWingSide">' + esc(t('Which side')) + '</label>' +
-                '<select id="spWingSide">' +
-                '<option value="right">' + esc(t('Right wing')) + '</option>' +
-                '<option value="left">' + esc(t('Left wing')) + '</option></select></div>' +
-                '<div class="sp-field"><label for="spWingProp">' + esc(t('Drawing to show')) + '</label>' +
-                '<select id="spWingProp"><option value="">' + esc(t('No drawing')) + '</option>' +
-                props.map(function (pr) {
-                    return '<option value="' + esc(pr.id) + '">' + esc(t(pr.name)) + '</option>';
-                }).join('') + '</select></div>',
-            actions: [{
-                label: t('Apply'), primary: true,
-                onClick: function (body) {
-                    var text = $('#spWingText', body).value.trim();
-                    var propId = $('#spWingProp', body).value;
-                    if (!text && !propId) return false;
-                    change(function () {
-                        if (!sc.wingNotes) sc.wingNotes = [];
-                        sc.wingNotes.push({
-                            id: SP.uid('wn'),
-                            text: text,
-                            side: $('#spWingSide', body).value,
-                            propId: propId || null
-                        });
-                    });
-                }
-            }]
+                rows() +
+                '<div class="sp-btn-row" style="margin-top:0.7rem">' +
+                '<button class="sp-btn is-primary" data-add="1">' + esc(t('Add a wing note')) + '</button></div>';
+        }
+
+        function byId(id) {
+            return (sc.wingNotes || []).filter(function (x) { return x.id === id; })[0];
+        }
+
+        body.addEventListener('click', function (e) {
+            var add = e.target.closest('[data-add]');
+            if (add) {
+                change(function () {
+                    sc.wingNotes.push({ id: SP.uid('wn'), text: '', side: side, propId: null });
+                });
+                picking = null;
+                draw();
+                var fields = $$('.sp-wing-text', body);
+                if (fields.length) fields[fields.length - 1].focus();
+                return;
+            }
+            var drop = e.target.closest('[data-drop]');
+            if (drop) {
+                change(function () {
+                    sc.wingNotes = sc.wingNotes.filter(function (x) { return x.id !== drop.dataset.drop; });
+                });
+                draw();
+                return;
+            }
+            var move = e.target.closest('[data-move]');
+            if (move) {
+                change(function () {
+                    var mine = wingNotesOf(sc, side);
+                    var here = mine.map(function (x) { return x.id; }).indexOf(move.dataset.move);
+                    var there = here + Number(move.dataset.dir);
+                    if (there < 0 || there >= mine.length) return;
+                    /* Umsortiert wird innerhalb der Gasse; die Reihenfolge der
+                       anderen Seite bleibt, wie sie war. */
+                    var order = sc.wingNotes.map(function (x) { return x.id; });
+                    var a = order.indexOf(mine[here].id), b = order.indexOf(mine[there].id);
+                    var swap = sc.wingNotes[a];
+                    sc.wingNotes[a] = sc.wingNotes[b];
+                    sc.wingNotes[b] = swap;
+                });
+                draw();
+                return;
+            }
+            var pick = e.target.closest('[data-pick]');
+            if (pick) {
+                picking = picking === pick.dataset.pick ? null : pick.dataset.pick;
+                draw();
+                return;
+            }
+            var set = e.target.closest('[data-set-prop]');
+            if (set && picking) {
+                var id = picking;
+                change(function () {
+                    var note = byId(id);
+                    if (note) note.propId = set.dataset.setProp || null;
+                });
+                picking = null;
+                draw();
+            }
+        });
+
+        body.addEventListener('input', function (e) {
+            var field = e.target.closest('[data-note-text]');
+            if (!field) return;
+            var note = byId(field.dataset.noteText);
+            if (!note) return;
+            note.text = field.value;
+            persist();
+            renderCanvas(true);
+        });
+
+        draw();
+        openModal({
+            title: side === 'left' ? t('Waiting in the left wing') : t('Waiting in the right wing'),
+            cancelLabel: t('Close'),
+            body: body
         });
     }
 
@@ -3800,7 +4621,7 @@
                 '<div class="sp-field"><label for="spBannerWhere">' + esc(t('Position')) + '</label>' +
                 '<select id="spBannerWhere">' +
                 '<option value="before">' + esc(t('Before the show')) + '</option>' +
-                '<option value="after">' + esc(t('Next')) + '</option></select></div>',
+                '<option value="after">' + esc(t('After this changeover')) + '</option></select></div>',
             actions: [{
                 label: t('Apply'), primary: true,
                 onClick: function (body) {
@@ -3866,6 +4687,9 @@
                 '<div class="sp-btn-row"><button class="sp-btn" data-act="intros-on">' +
                 esc(t('Show the introductions again')) + '</button></div></div>' +
                 '<div class="sp-section" style="padding-left:0;padding-right:0">' +
+                '<h3>' + esc(t('Backup')) + why('store.backup') + '</h3>' +
+                '<p class="sp-hint">' + esc(t('The planner keeps everything in this browser and uploads nothing. Back-up writes a file with all of it, to bring along or to put back.')) + '</p></div>' +
+                '<div class="sp-section" style="padding-left:0;padding-right:0">' +
                 '<h3>' + esc(t('Where things live')) + '</h3>' +
                 '<p class="sp-hint">' + esc(t('Scene numbering, units and the direction convention are under Settings, next to the production name. The stage shape, the grid, the wings and the curtains are on the Stage tab.')) + '</p></div>'
         });
@@ -3883,6 +4707,12 @@
         var modal = openModal({
             title: t('What brings you here?'),
             cancelLabel: t('Set up later'),
+            /* Erst als gesehen abhaken, wenn jemand geantwortet hat — auch
+               „später“ ist eine Antwort. Vorher stand der Haken schon beim
+               Öffnen: wer neu lud, bevor er sich entschieden hatte, bekam die
+               Frage nie wieder und fand die Einrichtung nur noch über das
+               Hilfemenü. */
+            onClose: markWelcomed,
             body: '<div class="sp-choice-grid">' +
                 '<button type="button" class="sp-choice" data-choose="setup">' +
                 '<b>' + esc(t('I am planning a real production')) + '</b>' +
@@ -3893,7 +4723,6 @@
                 '<span>' + esc(t('Opens a worked example you can pull apart.')) + '</span>' +
                 '</button></div>'
         });
-        markWelcomed();
 
         modal.body.addEventListener('click', function (e) {
             var choice = e.target.closest('[data-choose]');
@@ -3907,6 +4736,20 @@
     /* --------------------------------------------------------- Einrichtung */
 
     var WIZARD_STEPS = ['piece', 'structure', 'stage', 'places', 'scenes', 'ready'];
+
+    /* Eine Produktion, in die noch niemand etwas eingetragen hat. Genau eine
+       solche entsteht beim allerersten Öffnen, damit der Planer nicht leer
+       dasteht — sie ist zum Überschreiben da und nicht zum Sammeln. */
+    function untouchedProduction() {
+        var p = production();
+        if (!p || db.productions.length !== 1) return null;
+        var bare = !p.name || p.name === t('Untitled production');
+        var empty = (p.scenes || []).length <= 1 &&
+            !(p.scenes || []).some(function (sc) {
+                return (sc.placements || []).length || sc.title || sc.notes;
+            });
+        return bare && empty && !(p.places || []).length && !(p.acts || []).length ? p : null;
+    }
 
     function startSetup() {
         var draft = {
@@ -3964,13 +4807,11 @@
                 draft.numbering = $('#spWizNumbering', body).value;
             } else if (step === 'stage') {
                 draft.shape = $('#spWizShape', body).value;
-                draft.units = $('#spWizUnits', body).value;
                 draft.directions = $('#spWizDirections', body).value;
                 $$('[data-dim]', body).forEach(function (input) {
                     var value = parseFloat(input.value);
                     if (isFinite(value)) {
-                        draft.dims[input.dataset.dim] = input.dataset.dim === 'sides'
-                            ? Math.round(value) : SP.toMetres(value, draft.units);
+                        draft.dims[input.dataset.dim] = value;
                     }
                 });
             } else if (step === 'places') {
@@ -3995,12 +4836,11 @@
                 apronWidth: t('Apron width'), apronDepth: t('Apron depth')
             };
             return '<div class="sp-field-row">' + shape.fields.map(function (field) {
-                var value = field === 'sides' ? draft.dims[field]
-                    : SP.round(SP.toUnit(draft.dims[field], draft.units), 2);
+                var value = SP.round(draft.dims[field], 2);
                 return '<div><label>' + esc(labels[field] || field) +
-                    (field === 'sides' ? '' : ' (' + esc(SP.unitSuffix(draft.units)) + ')') + '</label>' +
-                    '<input type="number" step="' + (field === 'sides' ? '1' : '0.1') +
-                    '" data-dim="' + field + '" value="' + value + '"></div>';
+                    ' (' + esc(SP.unitSuffix()) + ')</label>' +
+                    '<input type="number" step="0.1" data-dim="' + field +
+                    '" value="' + value + '"></div>';
             }).join('') + '</div>';
         }
 
@@ -4056,10 +4896,6 @@
                             (draft.shape === shape.id ? ' selected' : '') + '>' + esc(t(shape.name)) + '</option>';
                     }).join('') + '</select>' +
                     '<p class="sp-hint">' + esc(t(SP.shapeById(draft.shape).blurb)) + '</p></div>' +
-                    '<div class="sp-field"><label for="spWizUnits">' + esc(t('Units')) + '</label>' +
-                    '<select id="spWizUnits"><option value="m"' + (draft.units === 'm' ? ' selected' : '') + '>' +
-                    esc(t('Metres')) + '</option><option value="ft"' + (draft.units === 'ft' ? ' selected' : '') +
-                    '>' + esc(t('Feet and inches')) + '</option></select></div>' +
                     '<div id="spWizDims">' + dimensionInputs() + '</div>' +
                     '<div class="sp-field"><label for="spWizDirections">' + esc(t('Directions as seen by')) +
                     why('stage.directions') + '</label><select id="spWizDirections">' +
@@ -4070,11 +4906,6 @@
                 $('#spWizShape', body).addEventListener('change', function (e) {
                     readStep();
                     draft.shape = e.target.value;
-                    renderStep();
-                });
-                $('#spWizUnits', body).addEventListener('change', function (e) {
-                    readStep();
-                    draft.units = e.target.value;
                     renderStep();
                 });
             } else if (step === 'places') {
@@ -4116,11 +4947,39 @@
             if (focus) focus.focus({ preventScroll: true });
         }
 
+        /* Was beim Abbrechen erhalten bleibt. „Später einrichten" hieß bisher
+           „alles weg": Titel, Untertitel, Haus und Bühnenmaße waren ohne
+           Rückfrage verloren. Jetzt landet in der offenen Produktion, was
+           schon dasteht — einrichten kann man später weiter. */
+        function keepDraft() {
+            var p = untouchedProduction();
+            if (!p) return;
+            var touched = false;
+            if (draft.name) { p.name = draft.name; touched = true; }
+            if (draft.subtitle) { p.subtitle = draft.subtitle; touched = true; }
+            if (draft.venue) { p.venue = draft.venue; touched = true; }
+            if (Object.keys(draft.dims).length || draft.shape !== 'rect') {
+                p.stage = Object.assign(defaultStage(), draft.dims, { shape: draft.shape });
+                touched = true;
+            }
+            if (!touched) return;
+            saveNow();
+            ui.view = null;
+            render();
+            fitView();
+            toast(t('Kept what you had typed. Carry on setting up whenever you like.'), 'info');
+        }
+
         function finish() {
-            var p = newProduction(draft.name || t('Untitled production'));
+            /* Ist die offene Produktion noch unberührt — kein Name, eine leere
+               Szene, nichts darauf —, wird sie eingerichtet statt eine zweite
+               danebenzustellen. Sonst bliebe die leere „Unbenannte Produktion"
+               vom ersten Öffnen für immer in der Liste. */
+            var reuse = untouchedProduction();
+            var p = reuse || newProduction('');
+            p.name = draft.name || t('Untitled production');
             p.subtitle = draft.subtitle;
             p.venue = draft.venue;
-            p.units = draft.units;
             p.numbering = draft.numbering;
             p.directions = draft.directions;
             p.stage = Object.assign(defaultStage(), draft.dims, { shape: draft.shape });
@@ -4148,14 +5007,18 @@
             }
             if (!p.scenes.length) p.scenes.push(newScene(''));
 
-            db.productions.push(p);
+            if (!reuse) db.productions.push(p);
             db.activeId = p.id;
             ui.sceneId = p.scenes[0].id;
             ui.tab = 'scenes';
+            ui.view = null;
             undoStack = [];
             redoStack = [];
             saveNow();
             render();
+            /* Ohne das steht der Plan nach dem Einrichten außerhalb des
+               Bildes — bei einer 18-m-Bühne sieht man nur Raster. */
+            fitView();
             close();
         }
 
@@ -4165,7 +5028,12 @@
             var btn = e.target.closest('[data-wiz]');
             if (!btn) return;
             var action = btn.dataset.wiz;
-            if (action === 'cancel') { close(); return; }
+            if (action === 'cancel') {
+                readStep();
+                keepDraft();
+                close();
+                return;
+            }
             readStep();
             if (action === 'back') {
                 draft.step = Math.max(0, draft.step - 1);
@@ -4323,6 +5191,10 @@
 
     function setInspector(name) {
         ui.inspector = name;
+        /* Von Hand gewählt heißt: dabei bleiben. Sonst würde der Reiter
+           „Auswahl" sofort wieder wegspringen, wenn nichts ausgewählt ist,
+           und man käme nie an den Hinweis, was dort stünde. */
+        ui.stickyInspector = (name === 'item');
         persistUi();
         renderInspector();
     }
@@ -4344,7 +5216,7 @@
         case 'delete-scene': deleteScene(data.id); break;
         case 'load-example': loadExample(); break;
         case 'add-prop':
-            if (ui.view) addProp(data.prop, ui.view.x + ui.view.w / 2, ui.view.y + ui.view.h / 2);
+            if (ui.view) addProp(data.prop, ui.view.x + ui.view.w / 2, ui.view.y + ui.view.h / 2, true);
             break;
         case 'align': alignSelection(data.axis); break;
         case 'spread': spreadSelection(data.axis); break;
@@ -4384,13 +5256,6 @@
                 change(function () { scene().placements = []; ui.selection = []; });
             }
             break;
-        case 'own-scene-stage':
-            change(function () { scene().stage = JSON.parse(JSON.stringify(production().stage)); });
-            setTab('stage');
-            break;
-        case 'drop-scene-stage':
-            change(function () { delete scene().stage; });
-            break;
         case 'set-shape':
             change(function () { editingStage().shape = data.shape; ui.view = null; });
             break;
@@ -4429,18 +5294,20 @@
         case 'delete-production': deleteProduction(); break;
         case 'export-json': exportJson(); break;
         case 'import-json': importJson(); break;
+        case 'suggest-prop': feedbackDialog('prop', ui.propSearch || ui.librarySearch || ''); break;
+        case 'wing-add': wingNotesDialog(data.wingAdd); break;
+        case 'say-something': feedbackDialog(data.kind || 'idea', ''); break;
         case 'do-print': doPrint(); break;
         case 'overview-size': break;
+        case 'go-to-scene':
+            ui.sceneId = data.id;
+            ui.selection = [];
+            setTab('scenes');
+            break;
         case 'add-place': addPlace(); break;
         case 'delete-place': deletePlace(data.id); break;
         case 'suggest-place-props': suggestPlaceProps(data.id); break;
         case 'add-banner': addBannerDialog(); break;
-        case 'add-wing-note': addWingNoteDialog(); break;
-        case 'delete-wing-note':
-            change(function () {
-                (scene().wingNotes || []).splice(Number(data.index), 1);
-            });
-            break;
         case 'delete-banner': {
             var prevBanner = previousScene();
             if (prevBanner) {
@@ -4455,21 +5322,14 @@
         case 'intro-done': dismissIntro(data.tab); break;
         case 'intro-off': introsOff(); break;
         case 'intros-on': introsOn(); break;
-        case 'print-preset-bare':
-            updatePrint({
-                orientation: 'landscape',
-                cover: false, actPages: false, overview: false, inventory: false,
-                scenePages: true, labels: 'none',
-                showGrid: false, showGuides: false, showScaleBar: false, showAudience: false,
-                showTitle: false, showPlace: false, showNotes: false, showFooter: false,
-                showWings: true, showCurtains: false, numberOutside: true
-            });
-            renderPrintTab();
-            break;
         case 'print-doc':
             ui.printDoc = data.doc;
             persistUi();
             renderPrintTab();
+            /* Sonst landet man beim Wechsel unterhalb der Tabelle auf leerem
+               Papier und hält das Dokument für leer. */
+            var paper = $('#spPrintPreview');
+            if (paper) paper.scrollTop = 0;
             break;
         default: break;
         }
@@ -4478,6 +5338,18 @@
 
     /* Eine Kante ändern. Zeichnungen mit eigenem Verhältnis ziehen die
        andere Kante mit, sonst passte das Bild nicht mehr in seine Fläche. */
+    /* Eine Zahl unter dem kleinsten sinnvollen Maß wurde stillschweigend
+       heraufgesetzt: man tippte 0 und bekam wortlos 5 cm. Jetzt steht es
+       dabei, warum im Feld etwas anderes steht als das Getippte. */
+    function clampSaid(value, least) {
+        if (!(value < least)) return value;
+        toast(t('{typed} is too small — kept at {least}.', {
+            typed: SP.formatLength(Math.max(0, value), units()),
+            least: SP.formatLength(least, units())
+        }));
+        return least;
+    }
+
     function resize(placement, axis, next) {
         var value = Math.max(0.05, next);
         var prop = resolveProp(placement.propId);
@@ -4486,6 +5358,15 @@
             placement[other] = SP.round(Math.max(0.05, placement[other] * (value / placement[axis])), 3);
         }
         placement[axis] = SP.round(value, 3);
+        followNaturalDepth(placement);
+    }
+
+    /* Wo die Tiefe aus der Breite folgt, wird sie nachgezogen — beim Ziehen
+       auf der Bühne wie beim Eintragen einer Zahl. Sonst stünde bei einer
+       breiteren Tür ein Schwenkbogen, der aus seinem Feld läuft. */
+    function followNaturalDepth(placement) {
+        var natural = SPShapes.naturalDepth(resolveProp(placement.propId), placement.w, placement.params);
+        if (natural !== null) placement.h = natural;
     }
 
     function setBound(path, value) {
@@ -4505,7 +5386,6 @@
             if (prevScene) SP.ensureTransition(production(), prevScene, sc).note = value;
             break;
         }
-        case 'prod.units': production().units = value; break;
         case 'prod.numbering': production().numbering = value; break;
         case 'item.label': sel.forEach(function (p) { p.label = value; }); break;
         case 'item.note': sel.forEach(function (p) { p.note = value; }); break;
@@ -4514,8 +5394,35 @@
         case 'item.rot': sel.forEach(function (p) { p.rot = SP.normaliseAngle(parseFloat(value) || 0); }); break;
         case 'item.w': sel.forEach(function (p) { resize(p, 'w', fromField(value, p.w)); }); break;
         case 'item.h': sel.forEach(function (p) { resize(p, 'h', fromField(value, p.h)); }); break;
-        default: break;
+        default:
+            /* Werte, die eine Bauvorschrift selbst nennt. Wie sie zu lesen
+               sind, weiß nur die Vorschrift — ob Meter, Anzahl oder Schalter
+               steht dort und nicht hier. */
+            if (path.indexOf('item.param.') === 0) {
+                var key = path.slice(11);
+                sel.forEach(function (p) {
+                    var def = SPShapes.spec(resolveProp(p.propId)).filter(function (q) {
+                        return q.key === key;
+                    })[0];
+                    if (!def) return;
+                    if (!p.params) p.params = {};
+                    p.params[key] = readParam(def, value);
+                    followNaturalDepth(p);
+                });
+            }
+            break;
         }
+    }
+
+    function readParam(def, raw) {
+        if (def.type === 'toggle') return raw === true || raw === 'true' || raw === 'on';
+        var num = parseFloat(String(raw).replace(',', '.'));
+        if (!isFinite(num)) return def.def;
+        if (def.unit === 'length') num = SP.toMetres(num, units());
+        if (def.step >= 1) num = Math.round(num);
+        if (def.min !== undefined) num = Math.max(def.min, num);
+        if (def.max !== undefined) num = Math.min(def.max, num);
+        return SP.round(num, 4);
     }
 
     function wire() {
@@ -4542,24 +5449,55 @@
             handleAction(actor.dataset.act, actor.dataset, e);
         });
 
-        /* text fields: one undo step per visit, saved as you type */
+        /* Text- und Schieberfelder: ein Rückgängig-Schritt je Besuch, nicht
+           je Tastendruck und nicht je Pixel, den der Schieber wandert. */
+        function livePair(el) {
+            return el.matches && el.matches('.sp-slide input');
+        }
+        function editable(el) {
+            return el.matches('[data-bind]') &&
+                (el.tagName === 'TEXTAREA' || el.type === 'text' || livePair(el));
+        }
         app.addEventListener('focusin', function (e) {
-            var el = e.target;
-            if (el.matches('[data-bind]') && (el.tagName === 'TEXTAREA' || el.type === 'text')) {
-                el.dataset.previous = el.value;
-                beginHistory();
-            }
+            if (!editable(e.target)) return;
+            e.target.dataset.previous = e.target.value;
+            beginHistory();
         });
         app.addEventListener('focusout', function (e) {
-            var el = e.target;
-            if (el.matches('[data-bind]') && (el.tagName === 'TEXTAREA' || el.type === 'text')) {
-                if (el.dataset.previous !== el.value) commitHistory();
-                else cancelHistory();
-            }
+            if (!editable(e.target)) return;
+            if (e.target.dataset.previous !== e.target.value) commitHistory();
+            else cancelHistory();
+        });
+        /* Ein Schieber bekommt den Fokus erst beim Loslassen; ohne das hier
+           stünde der erste Zug schon geschrieben, bevor der Ausgangszustand
+           gesichert wäre. */
+        app.addEventListener('pointerdown', function (e) {
+            if (!livePair(e.target) || e.target === document.activeElement) return;
+            e.target.dataset.previous = e.target.value;
+            beginHistory();
         });
 
         app.addEventListener('input', function (e) {
             var el = e.target;
+            /* Schieber und Zahlenfeld schreiben denselben Wert und zeigen
+               ihn einander sofort. Neu gebaut wird dabei nur die Bühne, nicht
+               der Bereich — sonst verlöre der Schieber unter dem Finger den
+               Halt, und im Zahlenfeld verschwände die halb getippte Zahl. */
+            if (livePair(el)) {
+                var one = selectedPlacements()[0];
+                setBound(el.dataset.bind, el.value);
+                syncSlide(el.dataset.bind, parseFloat(el.value.replace(',', '.')), el);
+                /* Bei den maßstäblichen Zeichnungen geht die zweite Kante
+                   mit; sie steht sonst als alte Zahl neben der neuen. */
+                if (one && (el.dataset.bind === 'item.w' || el.dataset.bind === 'item.h')) {
+                    syncSlide('item.w', SP.toUnit(one.w, units()), el.dataset.bind === 'item.w' ? el : null);
+                    syncSlide('item.h', SP.toUnit(one.h, units()), el.dataset.bind === 'item.h' ? el : null);
+                }
+                persist();
+                renderCanvas(true);
+                refreshItemReadouts();
+                return;
+            }
             if (el.id === 'spSceneTitle') {
                 if (!scene()) return;
                 scene().title = el.value;
@@ -4590,30 +5528,43 @@
                 if (el.dataset.bind === 'item.label') renderCanvas(true);
                 return;
             }
-            /* Beim Tippen zeigt die zweite Kante schon mit, was passieren wird.
-               Geschrieben wird erst beim Verlassen des Feldes — sonst stünde
-               für jeden Tastendruck ein Schritt in der Rückgängig-Liste. */
-            if (el.dataset.bind === 'item.w' || el.dataset.bind === 'item.h') {
-                var one = selectedPlacements()[0];
-                var partner = el.dataset.bind === 'item.w' ? $('#spItemH') : $('#spItemW');
-                var typed = parseFloat(el.value);
-                if (one && partner && isFinite(typed) && typed > 0 &&
-                    SPPlan.keepsAspect(resolveProp(one.propId))) {
-                    var from = el.dataset.bind === 'item.w' ? one.w : one.h;
-                    var other = el.dataset.bind === 'item.w' ? one.h : one.w;
-                    if (from > 0) {
-                        partner.value = toField(Math.max(0.05, other * (fromField(typed, from) / from)), 2);
-                    }
-                }
-                return;
-            }
             if (el.id === 'spPropSearch') { ui.propSearch = el.value; renderPalette(); return; }
             if (el.id === 'spLibrarySearch') { ui.librarySearch = el.value; renderLibraryTab(); return; }
-            if (el.id === 'spPrintFooter') { updatePrint({ footer: el.value }); return; }
+            if (el.id === 'spPrintFooter') {
+                printOptions().footer = el.value;
+                persist();
+                /* Nur die Vorschau, nicht die Spalte: sonst verschwindet das
+                   Feld unter dem Finger und der Fokus mit ihm. */
+                renderPrintPreview();
+                return;
+            }
         });
 
         app.addEventListener('change', function (e) {
             var el = e.target;
+
+            /* Der Wert steht schon; hier wird nur der Rückgängig-Schritt
+               abgeschlossen, damit ein ganzer Zug am Schieber einer ist. */
+            if (livePair(el)) {
+                if (el.dataset.previous !== el.value) {
+                    commitHistory();
+                    el.dataset.previous = el.value;
+                    beginHistory();
+                    /* Der Bereich bleibt stehen, damit der Schieber unter dem
+                       Finger nicht verschwindet — aber „Rückgängig" muss
+                       trotzdem aufwachen, sonst sieht der Zug aus wie nichts,
+                       was man zurücknehmen könnte. */
+                    renderTopBar();
+                }
+                return;
+            }
+            /* Ein Schalter aus einer Bauvorschrift kann andere Werte ein- und
+               ausblenden — „Falten" gibt es nur unter einer Decke. Also wird
+               der Bereich hier ganz neu gebaut. */
+            if (el.dataset.toggle) {
+                change(function () { setBound(el.dataset.toggle, el.checked); });
+                return;
+            }
 
             if (el.id === 'spProductionSelect') {
                 db.activeId = el.value;
@@ -4668,9 +5619,12 @@
                 change(function () {
                     var stage = editingStage();
                     var field = el.dataset.stageField;
-                    if (field === 'grid.spacing') stage.grid.spacing = Math.max(0.1, fromField(el.value, 1));
-                    else if (field === 'sides') stage.sides = SP.clamp(Math.round(Number(el.value) || 6), 3, 24);
-                    else stage[field] = Math.max(0.5, fromField(el.value, SP.num(stage[field], 1)));
+                    var least = field === 'grid.spacing' ? 0.1 : 0.5;
+                    var typed = fromField(el.value,
+                        field === 'grid.spacing' ? 1 : SP.num(stage[field], 1));
+                    var kept = clampSaid(typed, least);
+                    if (field === 'grid.spacing') stage.grid.spacing = kept;
+                    else stage[field] = kept;
                     ui.view = null;
                 });
                 return;
@@ -4711,6 +5665,12 @@
                 return;
             }
             if (el.matches('[data-bind]')) {
+                /* Beim Verlassen des Feldes, nicht beim Tippen: wer 0 einträgt,
+                   soll erfahren, dass daraus das kleinste Maß wird. */
+                if (el.dataset.bind === 'item.w' || el.dataset.bind === 'item.h') {
+                    var typedSize = fromField(el.value, NaN);
+                    if (!isNaN(typedSize)) clampSaid(typedSize, 0.05);
+                }
                 change(function () { setBound(el.dataset.bind, el.value); });
                 return;
             }
@@ -4788,6 +5748,9 @@
 
         var svg = $('#spCanvas');
         svg.addEventListener('pointerdown', function (e) {
+            /* Das Plus in der Gasse ist ein Knopf, kein Stück Bühne — ohne
+               das hier begänne beim Anklicken ein Auswahlrahmen. */
+            if (e.target.closest && e.target.closest('.sp-wing-add')) return;
             /* Den Fokus mitnehmen. Sonst bleibt er in dem Feld, das zuletzt
                angefasst wurde, und jede Tastenabfrage steigt bei isTyping()
                aus — die Pfeiltasten, Entf und Kopieren wirken dann einfach
@@ -4835,6 +5798,24 @@
         $('#spBackup').addEventListener('click', exportJson);
         $('#spGuide').addEventListener('click', openGuide);
         $('#spHelp').addEventListener('click', helpDialog);
+
+        /* Strg+P und das Browsermenü gehen an doPrint vorbei. Hier bekommen
+           sie dieselben Blätter. */
+        var filledForBrowser = false;
+        window.addEventListener('beforeprint', function () {
+            filledForBrowser = fillPrintPortal();
+        });
+        window.addEventListener('afterprint', function () {
+            if (!filledForBrowser) return;
+            filledForBrowser = false;
+            var portal = $('#spPrintPortal');
+            portal.hidden = true;
+            portal.innerHTML = '';
+        });
+        if (feedbackAvailable()) {
+            $('#spFeedback').hidden = false;
+            $('#spFeedback').addEventListener('click', function () { feedbackDialog('prop', ''); });
+        }
         $('#spUndo').addEventListener('click', undo);
         $('#spRedo').addEventListener('click', redo);
 
@@ -4921,9 +5902,9 @@
                 return;
             }
             if (meta && e.key.toLowerCase() === 'p') {
-                /* Nicht abfangen: Strg+P heißt überall drucken. Der Reiter
-                   wird gewechselt, der Druckdialog des Browsers geht trotzdem
-                   auf, und dahinter steht dann die richtige Vorschau. */
+                /* Strg+P heißt überall drucken, also wird es nicht abgefangen.
+                   Damit dahinter etwas steht, füllt beforeprint den Vorrat —
+                   vorher kam auf diesem Weg ein weißes Blatt heraus. */
                 setTab('print');
                 return;
             }
@@ -4973,6 +5954,72 @@
      * Start
      * ================================================================== */
 
+    /* ------------------------------------------------------------------ *
+     * Breite der rechten Spalte
+     *
+     * Dort stehen Requisitenauswahl, Auswahl und Szene. Wie viel Platz die
+     * brauchen, hängt an der Arbeit: eine lange Requisitenliste will breit
+     * sein, ein Bühnenbild will die Bühne groß. Also zieht man selbst.
+     * ------------------------------------------------------------------ */
+
+    var ASIDE_KEY = 'sp.planner.aside.v1';
+    var ASIDE_MIN = 240;
+    var ASIDE_MAX = 720;
+
+    function asideWidth() {
+        var saved = 0;
+        try { saved = parseInt(localStorage.getItem(ASIDE_KEY), 10) || 0; } catch (err) { saved = 0; }
+        return saved;
+    }
+
+    function setAsideWidth(px, save) {
+        var app = $('#spApp');
+        if (!app) return;
+        var limit = Math.min(ASIDE_MAX, Math.max(ASIDE_MIN, Math.round(px)));
+        app.style.setProperty('--sp-aside', limit + 'px');
+        if (save) { try { localStorage.setItem(ASIDE_KEY, String(limit)); } catch (err) { /* egal */ } }
+        return limit;
+    }
+
+    function wireAsideGrip() {
+        var grip = $('#spAsideGrip');
+        var aside = grip && grip.parentNode;
+        if (!grip || !aside) return;
+
+        var stored = asideWidth();
+        if (stored) setAsideWidth(stored, false);
+
+        grip.addEventListener('pointerdown', function (e) {
+            e.preventDefault();
+            var startX = e.clientX;
+            var startW = aside.getBoundingClientRect().width;
+            grip.classList.add('is-dragging');
+            grip.setPointerCapture(e.pointerId);
+
+            function move(ev) { setAsideWidth(startW - (ev.clientX - startX), false); }
+            function up(ev) {
+                grip.classList.remove('is-dragging');
+                window.removeEventListener('pointermove', move);
+                window.removeEventListener('pointerup', up);
+                setAsideWidth(startW - (ev.clientX - startX), true);
+                renderCanvas(true);
+            }
+            window.addEventListener('pointermove', move);
+            window.addEventListener('pointerup', up);
+        });
+
+        /* Mit der Tastatur in Zehnerschritten, damit der Griff nicht nur
+           für die Maus da ist. */
+        grip.addEventListener('keydown', function (e) {
+            var step = e.shiftKey ? 40 : 10;
+            var now = aside.getBoundingClientRect().width;
+            if (e.key === 'ArrowLeft') { setAsideWidth(now + step, true); e.preventDefault(); }
+            else if (e.key === 'ArrowRight') { setAsideWidth(now - step, true); e.preventDefault(); }
+            else return;
+            renderCanvas(true);
+        });
+    }
+
     function init() {
         if (!$('#spApp')) return;
         db = load();
@@ -4981,6 +6028,7 @@
         if (!ui.print) ui.print = null;
         translateMarkup();
         wire();
+        wireAsideGrip();
         render();
         setSaveState(t('Saved locally'));
 

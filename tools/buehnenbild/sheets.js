@@ -29,23 +29,38 @@
 
     /* ------------------------------------------------------------ Optionen */
 
+    /* Wer eine Produktion mit fünf Szenen anlegt und auf Drucken geht, bekam
+       zehn Blätter: Titelblatt, Trennblätter, fünf Szenenblätter,
+       Übersichtsblätter. Wer eine Szene nachdrucken wollte, druckte zehn.
+       Voreingestellt sind jetzt die Szenenblätter, sonst nichts — alles
+       andere hakt man an.
+
+       Und auf dem Szenenblatt steht, was die Sache ausmacht: Nummer, Titel,
+       Ort, Bühne mit Gassen und Vorhängen, Publikum, Maßstab. Kein
+       Bodenraster (es macht das Blatt unruhig) und keine Fußzeile (sie ist
+       leer, bis jemand sie füllt). */
     var DEFAULT_OPTIONS = {
         /* Die Pläne. Der Umbauplan steht immer hoch, das regelt buildChangeover. */
         orientation: 'landscape',
-        cover: true,
-        actPages: true,
+        cover: false,
+        actPages: false,
         scenePages: true,
-        overview: true,
+        overview: false,
         inventory: false,
+        /* Ein Überblick, der auf zwei Blättern steht, ist keiner. Ab Werk
+           rechnet der Planer das Raster so, dass alle Szenen auf ein Blatt
+           passen; wer ein bestimmtes Raster will, stellt es ein. */
+        overviewAuto: true,
         overviewCols: 3,
         overviewRows: 3,
-        overviewSplitActs: true,
-        labels: 'name',
-        showGrid: true,
+        /* Ein Überblick auf mehreren Blättern ist keiner. */
+        overviewSplitActs: false,
+        labels: 'custom',
+        showGrid: false,
         showNotes: false,
         showPlace: true,
         showTitle: true,
-        showFooter: true,
+        showFooter: false,
         showScaleBar: true,
         showAudience: true,
         showGuides: true,
@@ -116,20 +131,38 @@
             '<span>' + esc(t('Page {n} of {total}', { n: '%%PAGE%%', total: '%%PAGES%%' })) + '</span></div>';
     }
 
-    function coverSheet(ctx) {
+    /*
+     * Das Titelblatt zählt, was auch gedruckt wird. Vorher stand bei einem
+     * einzeln gedruckten Akt die Zahl der Szenen der ganzen Produktion auf dem
+     * Blatt — der Satz Papier darunter hatte eine andere.
+     */
+    function coverSheet(ctx, scenes) {
         var p = ctx.production;
         var stage = p.stage;
         var out = SP.stageOutline(stage);
         var shape = SP.shapeById(stage.shape);
-        var places = SP.referenceRows(p, function (id) { return nameOf(ctx, id); });
+        var onlyAct = null;
+        if (ctx.options.scope && ctx.options.scope !== 'all') {
+            (p.acts || []).forEach(function (a) {
+                if (a.id === ctx.options.scope) onlyAct = a;
+            });
+        }
+        var acts = {};
+        scenes.forEach(function (s) { if (s.actId) acts[s.actId] = true; });
+        var places = SP.referenceRows({ scenes: scenes, places: p.places },
+            function (id) { return nameOf(ctx, id); });
         var rows = [
-            [t('Scenes'), String((p.scenes || []).length)],
-            [t('Act'), String((p.acts || []).length || '—')],
+            [t('Scenes'), String(scenes.length)],
+            [t('Act'), String(Object.keys(acts).length || '—')],
             [t('Stage'), t(shape.name) + ', ' + SP.formatLength(out.bounds.w, ctx.units) +
                 ' × ' + SP.formatLength(out.bounds.h, ctx.units)],
-            [t('Distinct props'), String(SP.propInventory(p).length)],
+            [t('Distinct props'), String(SP.propInventory({ scenes: scenes }).length)],
             [t('Drawn'), ctx.today]
         ];
+        if (onlyAct) {
+            rows.splice(1, 1, [t('Act'), onlyAct.name ||
+                t('Act {n}', { n: SP.roman((p.acts || []).indexOf(onlyAct) + 1) })]);
+        }
         if (places.length) rows.splice(3, 0, [t('Places'), String(places.length)]);
         if (p.venue) rows.splice(2, 0, [t('Venue'), p.venue]);
 
@@ -146,6 +179,13 @@
             '</div>' + foot(ctx));
     }
 
+    /* Der Name eines Akts, und wenn keiner dasteht, seine Nummer. Ohne das
+       stand über der Übersicht eine leere Zeile. */
+    function actTitle(ctx, act) {
+        var index = (ctx.production.acts || []).indexOf(act) + 1;
+        return act.name || t('Act {n}', { n: SP.roman(index || 1) });
+    }
+
     function actSheet(ctx, group, numbers) {
         var act = group.act;
         var index = (ctx.production.acts || []).indexOf(act) + 1;
@@ -155,8 +195,10 @@
         }).join('');
 
         return sheet(ctx, 'sp-act-sheet',
-            '<p class="sp-act-kicker">' + esc(t('Act {n}', { n: SP.roman(index || 1) })) + '</p>' +
-            '<h2>' + esc(act.name || t('Act {n}', { n: SP.roman(index || 1) })) + '</h2>' +
+            /* Bei einem Akt ohne Namen stand „Akt I" zweimal untereinander. */
+            (act.name ? '<p class="sp-act-kicker">' +
+                esc(t('Act {n}', { n: SP.roman(index || 1) })) + '</p>' : '') +
+            '<h2>' + esc(actTitle(ctx, act)) + '</h2>' +
             (act.notes ? '<p style="font-size:3.6mm; max-width:130mm; margin-bottom:8mm; line-height:1.6">' +
                 esc(act.notes) + '</p>' : '') +
             '<section><h3>' + esc(t('Scenes in this act')) + '</h3>' +
@@ -221,10 +263,33 @@
             (o.showFooter ? foot(ctx) : ''));
     }
 
+    /* Das Raster, in das alle Szenen auf ein Blatt gehen. Gesucht ist nicht
+       das Raster mit den wenigsten leeren Zellen, sondern das, in dem der
+       Grundriss am größten herauskommt: eine fast quadratische Zelle nützt
+       einem querformatigen Plan nichts, sie lässt ihn nur schwimmen. Also
+       jedes Raster durchrechnen und das nehmen, bei dem der Plan den meisten
+       Platz bekommt — bei Gleichstand das mit den wenigeren Spalten, weil die
+       Zeilen dann höher sind und die Nummer darüber Luft hat. */
+    function fittingGrid(count) {
+        var n = Math.max(1, count);
+        var sheet = 1.68;   /* Breite zu Höhe der Rasterfläche, A4 quer */
+        var plan = 1.33;    /* Breite zu Tiefe einer üblichen Bühne */
+        var best = null;
+        for (var cols = 1; cols <= n; cols++) {
+            var rows = Math.ceil(n / cols);
+            var scale = Math.min((sheet / cols) / plan, 1 / rows);
+            if (!best || scale > best.scale + 1e-9) best = { cols: cols, rows: rows, scale: scale };
+        }
+        return { cols: best.cols, rows: best.rows };
+    }
+
     function overviewSheets(ctx, scenes, numbers) {
         var o = ctx.options;
-        var cols = Math.max(1, Math.round(o.overviewCols));
-        var rows = Math.max(1, Math.round(o.overviewRows));
+        var fit = o.overviewAuto && !o.overviewSplitActs
+            ? fittingGrid(scenes.length)
+            : { cols: Math.max(1, Math.round(o.overviewCols)), rows: Math.max(1, Math.round(o.overviewRows)) };
+        var cols = fit.cols;
+        var rows = fit.rows;
         var labels = cols <= 2 ? 'name' : 'none';
         var pages = SP.overviewPages({ scenes: scenes, acts: ctx.production.acts },
             cols, rows, o.overviewSplitActs);
@@ -238,17 +303,21 @@
                     labels: labels, grid: cols <= 3 && o.showGrid, scaleBar: false,
                     audience: cols <= 3, settingLine: cols <= 3
                 });
+                /* Nur die Nummer. Bei fünfundzwanzig Bühnenbildern auf einem
+                   Blatt ist der Titel nicht mehr zu lesen und nimmt dem Bild
+                   den Platz, den es braucht. */
                 return '<div class="sp-overview-cell"><div class="sp-overview-cell-head">' +
-                    '<b>' + esc(numbers[scene.id].label) + '</b>' +
-                    '<span>' + esc(scene.title || t('Untitled scene')) + '</span></div>' +
+                    '<b>' + esc(numbers[scene.id].label) + '</b></div>' +
                     '<div class="sp-overview-plan">' + svg + '</div></div>';
             }).join('');
 
             return sheet(ctx, '',
                 '<div class="sp-sheet-head"><div class="sp-sheet-titles">' +
-                '<h2>' + esc(page.act ? page.act.name : t('Overview')) + '</h2>' +
-                '<p>' + esc(t('{cols} by {rows} overview, sheet {n} of {total}',
-                    { cols: cols, rows: rows, n: pageIndex + 1, total: pages.length })) + '</p>' +
+                '<h2>' + esc(page.act ? actTitle(ctx, page.act) : t('Overview')) + '</h2>' +
+                '<p>' + esc(pages.length > 1
+                    ? t('{cols} by {rows} overview, sheet {n} of {total}',
+                        { cols: cols, rows: rows, n: pageIndex + 1, total: pages.length })
+                    : I18n.plural(scenes.length, 'All 1 scene at a glance', 'All {n} scenes at a glance')) + '</p>' +
                 '</div><div class="sp-sheet-meta">' + esc(ctx.production.name || '') + '</div></div>' +
                 '<div class="sp-overview-grid" style="grid-template-columns: repeat(' + cols +
                 ', 1fr); grid-template-rows: repeat(' + rows + ', 1fr)">' + cells + '</div>' +
@@ -300,7 +369,7 @@
         var scenes = scopedScenes(ctx);
         var sheets = [];
 
-        if (o.cover) sheets.push(coverSheet(ctx));
+        if (o.cover) sheets.push(coverSheet(ctx, scenes));
 
         if (o.scenePages || o.actPages) {
             SP.groupScenesByAct({ acts: ctx.production.acts, scenes: scenes })
@@ -366,7 +435,18 @@
         var lines = Math.max(1, row.strike.length, row.setup.length, row.move.length);
         var height = lines * PAGE.line + 2 * PAGE.rowPadding;
         if (row.note) {
-            height += Math.max(1, Math.ceil(row.note.length / 60)) * PAGE.noteLine;
+            /* Die Notizspalte ist schmal: gemessen bricht sie bei etwa
+               dreißig Zeichen um, nicht bei sechzig. Mit der doppelt zu
+               großzügigen Schätzung lief die Tabelle über den Blattrand, die
+               Fußzeile wurde überdruckt, und bei einer langen Notiz fielen
+               ein Balken und ein ganzer Umbau vom Blatt — ausgerechnet die
+               Auskunft, für die der Umbauplan da ist. Eigene Zeilenumbrüche
+               zählen mit. */
+            var noteLines = 0;
+            String(row.note).split('\n').forEach(function (part) {
+                noteLines += Math.max(1, Math.ceil(part.length / 30));
+            });
+            height += noteLines * PAGE.noteLine;
         }
         return Math.max(PAGE.minRow, height);
     }

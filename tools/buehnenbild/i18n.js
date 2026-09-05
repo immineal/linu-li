@@ -45,7 +45,7 @@
         'Next': 'Weiter',
         'Apply': 'Übernehmen',
         'Undo (Ctrl+Z)': 'Rückgängig (Strg+Z)',
-        'Redo (Ctrl+Shift+Z)': 'Wiederherstellen (Strg+Umschalt+Z)',
+        'Redo (Ctrl+Shift+Z)': 'Wiederherstellen (Strg+Shift+Z)',
         'Production settings': 'Einstellungen der Produktion',
         'What is this?': 'Was ist das?',
 
@@ -85,8 +85,6 @@
         'What shape is the playing area?': 'Welche Form hat die Spielfläche?',
         'Measurements': 'Maße',
         'Units': 'Maßeinheit',
-        'Metres': 'Meter',
-        'Feet and inches': 'Fuß und Zoll',
 
         'The places': 'Die Orte',
         'A place is a set that comes back — the kitchen, the market, the café. Name them now and every scene can simply pick one.':
@@ -136,7 +134,6 @@
         'Prop names': 'Requisitennamen',
         'Written labels only': 'Nur eigene Beschriftung',
         'Name and label': 'Name und Beschriftung',
-        'Numbers keyed to the list': 'Nummern passend zur Liste',
         'No labels': 'Ohne Beschriftung',
         'Previous scene': 'Vorige Szene',
         'Show where things stood in the previous scene':
@@ -220,21 +217,17 @@
         '\u201c{what}\u201d could not be found on screen.':
             '„{what}“ ist gerade nicht auf dem Schirm.',
         'Drag the dots to change a measurement. Hold Shift for finer steps.':
-            'Die Punkte im Bild lassen sich ziehen. Umschalt für feinere Schritte.',
+            'Die Punkte im Bild lassen sich ziehen. Shift für feinere Schritte.',
         'This scene already starts an act.': 'Diese Szene beginnt schon einen Akt.',
         'Add a scene first.': 'Leg zuerst eine Szene an.',
         'Side table': 'Kaffeetisch',
-        'Shift finer · Alt free': 'Umschalt feiner · Alt frei',
-        'Shift 5° · Alt free': 'Umschalt 5° · Alt frei',
-        'Shift keeps the proportion off': 'Umschalt hält das Verhältnis',
-        'Drag to move · Shift adds to the selection': 'Ziehen verschiebt · Umschalt wählt dazu',
+        'Shift finer · Alt free': 'Shift feiner · Alt frei',
+        'Shift 5° · Alt free': 'Shift 5° · Alt frei',
+        'Drag to move · Shift adds to the selection': 'Ziehen verschiebt · Shift wählt dazu',
         'Space or middle mouse pans · wheel zooms': 'Leertaste oder mittlere Maustaste schiebt · Rad zoomt',
-        'Take the wording from the set': 'Wortlaut aus dem Bühnenbild holen',
         'Mirror it across the centre line': 'Dabei an der Mittelachse spiegeln',
         'Measured upstage from the setting line. Each scene can open or close them on its own.':
             'Gemessen von der Bauflucht nach hinten. Ob ein Vorhang offen oder zu ist, entscheidet jede Szene für sich.',
-        'Add {n} productions from the backup?': '{n} Produktionen aus der Sicherung dazunehmen?',
-        'Add 1 production from the backup?': '1 Produktion aus der Sicherung dazunehmen?',
         '1 prop copied.': '1 Requisit kopiert.',
         '{n} props copied.': '{n} Requisiten kopiert.',
         'Kitchen\nMarket\nCafé': 'Schule\nMarkt\nWohnzimmer\nPark\nCafé',
@@ -259,11 +252,6 @@
         'Set taken from this scene.': 'Bühnenbild aus dieser Szene übernommen.',
         'Set inserted.': 'Bühnenbild eingesetzt.',
         'This scene has no place yet.': 'Diese Szene hat noch keinen Ort.',
-        'Standing props, in your own words': 'Feste Requisiten, in deinen Worten',
-        'Leave empty and the list is read from the set.':
-            'Leer lassen, dann wird die Liste aus dem Bühnenbild gelesen.',
-        'This drawing keeps its proportions — the other side follows.':
-            'Diese Zeichnung behält ihr Verhältnis. Die andere Seite geht mit.',
         'Act added, with 1 scene in it.': 'Akt angelegt, mit 1 Szene darin.',
         'Act added, with {n} scenes in it.': 'Akt angelegt, mit {n} Szenen darin.',
         'Act added. It is empty for now.': 'Akt angelegt. Er ist vorerst leer.',
@@ -288,7 +276,7 @@
             'Neben jeder Einstellung steht ein ?. Es sagt, was sie auf dem gedruckten Blatt bewirkt.',
         'Where things live': 'Wo was steckt',
         'Scene numbering, units and the direction convention are under Settings, next to the production name. The stage shape, the grid, the wings and the curtains are on the Stage tab.':
-            'Szenennummerierung und Richtungssicht stehen unter „Einstellungen“, neben dem Namen der Produktion. Bühnenform, Maße, Maßeinheit, Raster, Gassen und Vorhänge stehen im Reiter „Bühne“.',
+            'Szenennummerierung und Richtungssicht stehen unter „Einstellungen“, neben dem Namen der Produktion. Bühnenform, Maße, Raster, Gassen und Vorhänge stehen im Reiter „Bühne“.',
         'A play in two acts, for trying things out': 'Ein Stück in zwei Akten, zum Ausprobieren',
         'School hall': 'Aula',
         'Before the interval': 'Vor der Pause',
@@ -327,15 +315,177 @@
         'Right wing': 'Rechte Gasse',
         'Drawing to show': 'Zeichnung dazu',
         'No drawing': 'Ohne Zeichnung',
-        'The wings have to be marked on the Stage tab before a note can sit in one.':
-            'Die Gassen müssen im Reiter „Bühne“ eingezeichnet sein, damit ein Zettel darin stehen kann.',
+        'This stage shape has no wings to stand in.':
+            'Diese Bühnenform hat keine Gassen, in denen ein Zettel stehen könnte.',
+        /* --------------------------------------------- neue Requisiten */
+        'Sofa': 'Sofa',
+        'Dining table': 'Esstisch',
+        'Round table': 'Runder Tisch',
+        'Rug': 'Teppich',
+        'Folding screen': 'Paravent',
+        'Upright piano': 'Klavier',
+        'Grand piano': 'Flügel',
+
+        'Drag to widen the panel': 'Ziehen ändert die Breite der Spalte',
+        'Text in the field': 'Text im Feld',
+        'e.g. Sofa goes off here': 'z. B. Sofa geht hier ab',
+        'This is what stands in the field, on screen and on paper. Empty prints as an empty field.':
+            'Das steht im Feld, am Bildschirm wie auf dem Papier. Leer druckt ein leeres Feld.',
+        'This is what stands in the field, on screen and on paper. Every line break is one on the plan, and the letters grow to fill the field. Empty prints as an empty field.':
+            'Das steht im Feld, am Bildschirm wie auf dem Papier. Jeder Zeilenumbruch ist auch auf dem Plan einer, und die Schrift wächst mit, bis sie das Feld füllt. Leer druckt ein leeres Feld.',
+
+        /* ------------------------------------------------------------ *
+         * Bauvorschriften
+         *
+         * Die Werte, die eine Bauvorschrift selbst nennt. Sie stehen im
+         * Quelltext englisch, weil sie dort neben der Rechnung stehen, die
+         * sie steuern; hier bekommen sie das Wort, das eine Bühnencrew
+         * benutzt.
+         * ------------------------------------------------------------ */
+        /* ------------------------------------------------------------ *
+         * Rückmeldung
+         * ------------------------------------------------------------ */
+        'Say something': 'Rückmeldung',
+        'Suggest a prop or report a fault': 'Ein Requisit vorschlagen oder einen Fehler melden',
+        'Something missing? Say so.': 'Fehlt etwas? Sag Bescheid.',
+        'Suggest a prop': 'Ein Requisit vorschlagen',
+        'Suggest “{word}”': '„{word}“ vorschlagen',
+        'A prop is missing': 'Ein Requisit fehlt',
+        'Something is broken': 'Etwas geht nicht',
+        'Your e-mail, only if you want an answer': 'Deine Mailadresse, nur falls du eine Antwort willst',
+        'Leave it empty and stay anonymous': 'Leer lassen und anonym bleiben',
+        'Sent with it: which tab was open, how wide the window is and which browser. No names, nothing out of your production.':
+            'Mitgeschickt wird: welcher Reiter offen war, wie breit das Fenster ist und welcher Browser. Keine Namen, nichts aus deiner Produktion.',
+        'e.g. A hospital bed on castors, about 1.00 × 2.10 m': 'z. B. Ein Krankenbett auf Rollen, etwa 1,00 × 2,10 m',
+        'e.g. The door swings the wrong way after I mirror the scene': 'z. B. Die Tür schlägt falsch herum auf, nachdem ich die Szene gespiegelt habe',
+        'Whatever it is. A sentence is enough.': 'Was auch immer. Ein Satz reicht.',
+        'Send': 'Abschicken',
+        'Thank you — it is on its way.': 'Danke — ist unterwegs.',
+        'That did not go through. Is there a connection?': 'Das ist nicht durchgegangen. Steht die Verbindung?',
+        'Tab': 'Reiter',
+        'Window': 'Fenster',
+        'Props on the stage': 'Requisiten auf der Bühne',
+        'Language': 'Sprache',
+
+        /* Was auf der Bühne gilt — und dass im Auswahl-Bereich nichts gilt. */
+        'On the stage this drawing keeps its proportion. Here the second edge follows along.':
+            'Auf der Bühne behält die Zeichnung ihr Verhältnis. Hier zieht die zweite Kante mit.',
+        'On the stage this stays square. Here you can write any two numbers.':
+            'Auf der Bühne bleibt es quadratisch. Hier kannst du zwei beliebige Zahlen eintragen.',
+        'On the stage you can only pull this one wider. Here you can write any two numbers.':
+            'Auf der Bühne lässt sich das nur in die Breite ziehen. Hier kannst du zwei beliebige Zahlen eintragen.',
+        'This comes in one size, so the stage will not let you pull it. Here you can write any two numbers.':
+            'Das gibt es nur in einer Größe, deshalb lässt die Bühne es nicht ziehen. Hier kannst du zwei beliebige Zahlen eintragen.',
+        'The depth is what the leaf sweeps, so it follows the width by itself.':
+            'Die Tiefe ist der Schwenkbereich des Flügels und folgt deshalb von selbst der Breite.',
+        'The depth follows the width · Alt frees it': 'Die Tiefe folgt der Breite · Alt löst sie',
+        'Both edges free · Alt too': 'Beide Kanten frei · Alt auch',
+        'Keeps its proportion · Alt frees the edges': 'Behält sein Verhältnis · Alt löst die Kanten',
+        'Stays square · Alt frees the edges': 'Bleibt quadratisch · Alt löst die Kanten',
+        'Only the width · Alt frees the depth': 'Nur die Breite · Alt löst die Tiefe',
+        'Only the length · Alt frees the width': 'Nur die Länge · Alt löst die Breite',
+        'On the stage you can only pull this one longer. Here you can write any two numbers.':
+            'Auf der Bühne lässt sich das nur in die Länge ziehen. Hier kannst du zwei beliebige Zahlen eintragen.',
+        'This one comes in one size · Alt drags it anyway': 'Gibt es nur in einer Größe · Alt zieht trotzdem',
+        'Alt frees the edges': 'Alt löst die Kanten',
+
+        'This one is drawn from the side, so you can tell what it is. \u201cDeep\u201d is the height of the picture here, not the floor it stands on.':
+            'Dieses Stück ist von der Seite gezeichnet, damit man es erkennt. „Tief“ ist hier die Höhe des Bildes, nicht die Standfläche.',
+
+        'Break the table here…': 'Tabelle hier unterbrechen …',
+        'Back-up': 'Back-up',
+        'The planner keeps everything in this browser and uploads nothing. Back-up writes a file with all of it, to bring along or to put back.':
+            'Der Planer behält alles in diesem Browser und lädt nichts hoch. „Back-up“ schreibt eine Datei mit allem darin — zum Mitnehmen oder zum Wiedereinspielen.',
+        'Applies to every scene in this production.': 'Gilt für jede Szene dieser Produktion.',
+        'These only print while the wings are marked on the Stage tab.':
+            'Die werden nur gedruckt, solange im Bühne-Reiter Gassen eingezeichnet sind.',
+        'Something waiting in this wing': 'Etwas, das in dieser Gasse bereitliegt',
+        '1 more, no room here': 'noch 1, kein Platz mehr',
+        '{n} more, no room here': 'noch {n}, kein Platz mehr',
+        '1 thing waiting in this wing': '1 Zettel in dieser Gasse',
+        '{n} things waiting in this wing': '{n} Zettel in dieser Gasse',
+        'With the wings marked you can put notes in them on the plan — for anything that has to be standing by without being on stage.':
+            'Mit eingezeichneten Gassen kannst du im Plan Zettel hineinstellen — für alles, was bereitliegen muss, ohne auf der Bühne zu stehen.',
+        'Throw this drawing away?': 'Diese Zeichnung verwerfen?',
+        'All 1 scene at a glance': 'Das eine Bühnenbild auf einen Blick',
+        'All {n} scenes at a glance': 'Alle {n} Bühnenbilder auf einen Blick',
+        'Give it a real width, above 5 cm.': 'Trag eine wirkliche Breite ein, über 5 cm.',
+        'Follows the width and the drawing': 'Folgt der Breite und der Zeichnung',
+        'The depth follows the width, so the drawing keeps its shape.':
+            'Die Tiefe folgt der Breite, damit die Zeichnung ihre Form behält.',
+        '{typed} is too small — kept at {least}.':
+            '{typed} ist zu klein — bleibt bei {least}.',
+        'Everything else': 'Alles Weitere',
+        'What stands on the scene sheet': 'Was auf dem Szenenblatt steht',
+        'All the scenes on one sheet': 'Alle Szenen auf ein Blatt',
+        'Do nothing': 'Nichts tun',
+        'Add them alongside': 'Dazunehmen',
+        'Replace everything': 'Alles ersetzen',
+        'Delete everything in this browser and put the backup in its place?':
+            'Alles in diesem Browser löschen und die Sicherung an seine Stelle setzen?',
+        'The file holds 1 production:': 'In der Datei steht 1 Produktion:',
+        'The file holds {n} productions:': 'In der Datei stehen {n} Produktionen:',
+        'You have 1 production open. Adding leaves it alone; replacing deletes it.':
+            'Du hast 1 Produktion offen. Dazunehmen lässt sie stehen, Ersetzen löscht sie.',
+        'You have {n} productions open. Adding leaves them alone; replacing deletes them.':
+            'Du hast {n} Produktionen offen. Dazunehmen lässt sie stehen, Ersetzen löscht sie.',
+        'Waiting in the left wing': 'Bereit in der linken Gasse',
+        'Waiting in the right wing': 'Bereit in der rechten Gasse',
+        'Nothing waiting in this wing yet.': 'In dieser Gasse liegt noch nichts bereit.',
+        'Choose a drawing': 'Zeichnung wählen',
+        'Move up': 'Nach oben',
+        'Move down': 'Nach unten',
+        'Water glass': 'Wasserglas',
+        'Wine glass': 'Weinglas',
+        'After this changeover': 'Nach diesem Umbau',
+        'Kept what you had typed. Carry on setting up whenever you like.':
+            'Was du eingetragen hattest, ist gesichert. Einrichten kannst du später weiter.',
+
+        'How this one is built': 'Wie dieses Stück gebaut ist',
+        'Across from centre': 'Quer von der Mitte',
+        'Upstage of setting line': 'Hinter der Bauflucht',
+        'Deep': 'Tief',
+
+        'Arm width': 'Armlehne breit',
+        'Back depth': 'Lehne tief',
+        'Corner radius': 'Ecken gerundet',
+        'Show the seat cushion': 'Sitzkissen zeigen',
+        'Boards in the seat': 'Latten im Sitz',
+        'Gap between the boards': 'Fuge zwischen den Latten',
+        'With a backrest': 'Mit Rückenlehne',
+        'Depth of the backrest': 'Rückenlehne tief',
+        'Backrest stands out by': 'Lehne steht hinten über',
+        'Legs set in from the end': 'Beine eingerückt vom Ende',
+        'Leg mark': 'Beinmarke',
+        'With a tablecloth': 'Mit Tischdecke',
+        'Size of one square': 'Karo, Kantenlänge',
+        'On a single foot': 'Auf einem Mittelfuß',
+        'Pillow depth': 'Kissen tief',
+        'Two pillows from this width on': 'Zwei Kissen ab dieser Breite',
+        'Turn-down line': 'Decke aufgeschlagen',
+        'Width of one panel': 'Ein Flügel breit',
+        'Opening angle': 'Öffnungswinkel',
+        'Hinged on the right': 'Anschlag rechts',
+        'Width of one jamb': 'Zarge breit',
+        'Oval instead of rectangular': 'Oval statt eckig',
+        'Length of the fringe': 'Fransen lang',
+        'Space between the threads': 'Abstand der Fäden',
+        'Border inside the edge': 'Borte innen',
+        'Border set in by': 'Borte eingerückt um',
+        'Depth of the keyboard': 'Klaviatur tief',
+        'Key spacing on the plan': 'Tastenabstand im Plan',
+        'Draw the black keys': 'Schwarze Tasten zeichnen',
+        'Space between the rungs': 'Sprossenabstand',
+        'Width of a stile': 'Holm breit',
+        'Taper towards the tip': 'Zur Spitze verjüngt',
+        'Rounded ends': 'Enden gerundet',
+        'Print the border': 'Rand mitdrucken',
+        'Air around the text': 'Luft um den Text',
+        'Letters at most this high': 'Buchstaben höchstens so hoch',
         'Wings': 'Gassen',
         'Mark the wings': 'Gassen einzeichnen',
         'Inset from the side': 'Abstand von der Seite',
         'How far forward': 'Wie weit nach vorne',
-        'Set it up like my Umbauplan': 'Wie mein Umbauplan',
-        'Landscape, the number large and alone, wings marked, and nothing else on the sheet.':
-            'Quer, die Nummer groß und allein, Gassen eingezeichnet, sonst nichts auf dem Blatt.',
         'replace what is here': 'ersetzt, was hier steht',
         'add to what is here': 'kommt zu dem dazu, was hier steht',
         'replace the layout': 'ersetzt den Aufbau dort',
@@ -352,8 +502,6 @@
         '{title} ({n} props)': '{title} ({n} Requisiten)',
         'curtain state open': 'offen',
         'curtain state half': 'halb offen',
-        'Applies to every scene. A single scene can be given a stage of its own on the Scene panel.':
-            'Gilt für alle Szenen. Einzelne Szenen können im Szenen-Tab eine eigene Bühne bekommen.',
         'Include the place': 'Ort mitdrucken',
         'Scene {label}': 'Szene {label}',
         'Across ({unit})': 'Quer ({unit})',
@@ -374,11 +522,9 @@
         'This is the first scene, so everything here is a preset before the house opens.':
             'Das ist die erste Szene. Alles hier gehört zum Grundaufbau vor dem Einlass.',
         '{label} (worked out automatically)': '{label} (automatisch ermittelt)',
-        'This scene uses its own stage, set on the Stage tab while the scene is selected.':
-            'Diese Szene hat eine eigene Bühne. Sie wird im Reiter „Bühne“ eingestellt, solange die Szene ausgewählt ist.',
-        'Using the production stage: {shape}.': 'Bühne der Produktion: {shape}.',
         '{title} (copy)': '{title} (Kopie)',
         'Delete “{title}” and its {n} props?': '„{title}“ mit {n} Requisiten löschen?',
+        'Delete scene {label} and its {n} props?': 'Szene {label} mit {n} Requisiten löschen?',
         'this scene': 'diese Szene',
         'Props keep their identity, so the change list will say “moved” rather than “struck and brought back on”.':
             'Requisiten behalten ihre Identität. Im Umbauplan steht dann „umgestellt“ statt „abgebaut und wieder aufgebaut“.',
@@ -393,24 +539,21 @@
             'Die Spielfläche misst {w} in der Breite und {h} in der Tiefe.',
         'Lettered squares give the crew something to call out: “the trunk goes in C4”.':
             'Beschriftete Felder geben der Mannschaft etwas zum Zurufen: „die Truhe kommt auf C4“.',
-        'Use the production stage for this scene': 'Für diese Szene die Bühne der Produktion nehmen',
         'used {n}×': '{n}× verwendet',
         'not used yet': 'noch nicht verwendet',
         'Nothing added yet. A PNG, JPEG or SVG works.':
             'Noch nichts hinzugefügt. PNG, JPEG oder SVG geht.',
         'Draw it seen from straight above. The size fields below set the size on the plan.':
-            'Von oben gesehen zeichnen. Die Maßfelder darunter bestimmen die Größe im Plan.',
+            'Zeichne so, dass die Mannschaft erkennt, was es sein soll — größere Sachen, auf denen etwas stehen kann, von oben; Kleinkram lieber von der Seite. Die Maßfelder darunter bestimmen die Größe im Plan.',
         'Everything you have made takes about {size}. Browsers usually stop somewhere around 5 MB, so keep custom drawings small and take a backup from time to time.':
             'Alles Angelegte belegt etwa {size}. Browser machen meist bei rund 5 MB Schluss. Halte eigene Zeichnungen also klein und sichere ab und zu.',
         'Edit prop': 'Requisit bearbeiten',
         'Add a prop of your own': 'Eigenes Requisit hinzufügen',
-        'This prop is used {n} times in this production. Deleting it leaves those places empty. Carry on?':
-            'Dieses Requisit wird in dieser Produktion {n}× verwendet. Beim Löschen bleiben diese Stellen leer. Trotzdem löschen?',
+        'This prop stands in {n} places across all your productions. Deleting it leaves those places empty. Carry on?':
+            'Dieses Requisit steht in {n} Aufstellungen über alle deine Produktionen. Beim Löschen bleiben diese Stellen leer. Trotzdem löschen?',
         'Delete this prop?': 'Dieses Requisit löschen?',
         'Delete “{name}” with its {n} scenes?': '„{name}“ mit {n} Szenen löschen?',
         'Backup saved to your downloads.': 'Sicherung in deinen Downloads gespeichert.',
-        'OK adds them alongside what you have. Cancel replaces everything.':
-            'OK fügt sie zu dem hinzu, was da ist. Abbrechen ersetzt alles.',
         'Turned {n}°': '{n}° gedreht',
         'Useful for a set that comes back later in the evening. Tick the scenes that should look like this one.':
             'Nützlich für ein Bühnenbild, das später wiederkommt. Hak die Szenen an, die so aussehen sollen.',
@@ -605,7 +748,6 @@
         'Flat': 'Wand',
         'Folding flats': 'Paravent',
         'Picture on a stand': 'Bild auf Ständer',
-        'Table from above': 'Tisch von oben',
         'Sponge': 'Schwamm',
         'Chalk': 'Stift',
         'Menu card': 'Karte',
@@ -614,8 +756,7 @@
         /* -------------------------------------------------------- Prop names */
         'Armchair': 'Sessel',
         'Suitcase': 'Koffer',
-        'Single bed': 'Einzelbett',
-        'Double bed': 'Doppelbett',
+        'Bed': 'Bett',
         'Doorway': 'Tür',
         'Ladder': 'Leiter',
         'Rock': 'Fels',
@@ -629,13 +770,11 @@
         'Unknown prop': 'Unbekanntes Requisit',
 
         /* ------------------------------------------- Weitere Oberfläche */
-        'Add a prop': 'Requisit hinzufügen',
         'Add the first scene': 'Erste Szene anlegen',
         'Back to catalogue size': 'Zurück auf Katalogmaß',
         'Carry into later scenes…': 'In spätere Szenen übernehmen …',
         'Changes from the scene before': 'Änderungen zur Szene davor',
         'Clear the stage': 'Bühne leeren',
-        'Copy from another scene…': 'Aus anderer Szene übernehmen …',
         'Copy this layout to other scenes…': 'Diesen Aufbau in andere Szenen kopieren …',
         'Copy this layout to other scenes': 'Diesen Aufbau in andere Szenen kopieren',
         'Copy a layout into this scene': 'Aufbau in diese Szene übernehmen',
@@ -647,8 +786,6 @@
         'Duplicate this one': 'Diese duplizieren',
         'Edit': 'Bearbeiten',
         'Every category': 'Alle Kategorien',
-        'Give this scene its own stage': 'Dieser Szene eine eigene Bühne geben',
-        'Go back to the production stage': 'Zurück zur Bühne der Produktion',
         'Grid': 'Raster',
         'Guides': 'Hilfslinien',
         'In this selection': 'In dieser Auswahl',
@@ -657,8 +794,6 @@
         'Layout': 'Aufbau',
         'Line up across': 'Quer ausrichten',
         'Line up upstage': 'Längs ausrichten',
-        'Measure in': 'Maßeinheit',
-        'Mirror across the centre': 'An der Mitte spiegeln',
         'No curtain marked.': 'Kein Vorhang eingetragen.',
         'No drawing chosen yet': 'Noch keine Zeichnung gewählt',
         'No scene selected.': 'Keine Szene ausgewählt.',
@@ -684,7 +819,6 @@
         'Save this plan as a picture': 'Diesen Plan als Bild sichern',
         'Scene sheets': 'Szenenblätter',
         'Send back': 'Nach hinten',
-        'Stage for this scene': 'Bühne dieser Szene',
         'Start another production': 'Weitere Produktion anlegen',
         'Browser storage': 'Speicher im Browser',
         'Straight through, 1 to the end': 'Durchgehend, 1 bis zum Schluss',
@@ -709,14 +843,11 @@
         'The picture could not be made.': 'Das Bild konnte nicht erzeugt werden.',
         'There is only one scene so far.': 'Es gibt bisher nur eine Szene.',
         'This is the last scene.': 'Das ist die letzte Szene.',
-        'This scene has been given a stage of its own. Every other scene keeps the production stage.':
-            'Diese Szene hat eine eigene Bühne bekommen. Alle anderen behalten die Bühne der Produktion.',
         'Width at the back': 'Breite hinten',
         'Width, wall to wall': 'Breite, Wand zu Wand',
         'Include scene notes': 'Notizen zur Szene mitdrucken',
         'This prop is used {n} times': 'Dieses Requisit wird {n}× verwendet',
         'Delete “{name}”?': '„{name}“ löschen?',
-        'Stage for scene {label}': 'Bühne für Szene {label}',
         'Traveller {n}': 'Vorhang {n}',
 
         /* ----------------------------------------------- Beispielstück */
@@ -733,7 +864,6 @@
 
         /* ------------------------------------------------ Requisiten-Zeichner */
         'Draw a prop': 'Requisit zeichnen',
-        'Draw one yourself': 'Selbst zeichnen',
         'Draw your own prop': 'Eigenes Requisit zeichnen',
         'Edit the drawing': 'Zeichnung bearbeiten',
         'Pick': 'Auswählen',
@@ -834,10 +964,6 @@
             title: 'Abstand nach hinten',
             body: 'Wie weit hinter der Bauflucht der Vorhang hängt. Null heißt: direkt auf der Bauflucht.'
         },
-        'stage.perScene': {
-            title: 'Eigene Bühne für diese Szene',
-            body: 'Löst diese eine Szene von der Bühne der Produktion. Sinnvoll, wenn sich in der Pause die Form ändert, etwa wenn die Vorbühne abgebaut wird. Alle anderen Szenen bleiben unberührt.'
-        },
         'stage.directions': {
             title: 'Richtungen aus welcher Sicht?',
             body: 'Ob „links“ auf dem Blatt die linke Seite der Zeichnung meint (also aus Sicht des Publikums) oder die linke Hand der Spielenden. Die beiden sind gegenläufig. Das wird an jedem Haus anders gehandhabt. Nimm, was deine Leute ohnehin sagen; die Wahl gilt für den ganzen Umbauplan.'
@@ -902,6 +1028,10 @@
             title: 'Umdrehen',
             body: 'Spiegelt nur die Zeichnung dieses einen Requisits. Für alles, was eine Vorder- und eine Rückseite hat, etwa eine Treppe oder ein Sofa.'
         },
+        'item.build': {
+            title: 'Wie dieses Stück gebaut ist',
+            body: 'Requisiten mit einer Bauvorschrift werden bei jeder Größe neu gerechnet, in Bühnenmetern. Die Armlehne bleibt 18 cm breit, ob das Sofa 1,40 m oder 2,40 m misst, und die Leiter bekommt Sprossen dazu, statt gedehnte zu bekommen. Was hier steht, hängt davon ab, was ausgewählt ist \u2014 jede Vorschrift nennt ihre Werte selbst.'
+        },
         'item.size': {
             title: 'Größe',
             body: 'Die echte Grundfläche in Metern. Ändert sie sich zwischen zwei Szenen, gilt das als Umstellung, praktisch bei einem Tisch, der ausgezogen wird. Bei den schräg gezeichneten Requisiten geht die zweite Kante immer mit. Sie sind maßstäblich gezeichnet und würden sonst verzerrt.'
@@ -920,10 +1050,6 @@
             title: 'Was ist ein Ort?',
             body: 'Ein Bühnenbild, das im Lauf des Abends wiederkehrt: die Schule, der Markt, das Café. Szenen verweisen darauf, statt die Requisitenliste jedes Mal zu wiederholen.'
         },
-        'place.props': {
-            title: 'Feste Requisiten',
-            body: 'Was im Referenzkasten des Umbauplans steht. Lässt du das Feld leer, wird die Liste aus dem Bühnenbild des Orts gelesen. Schreib nur dann selbst etwas hinein, wenn es genauer sein soll, als der Plan hergibt, etwa „Gläser (1× leer, 1× leicht gefüllt)“.'
-        },
         'place.set': {
             title: 'Das Bühnenbild',
             body: 'Der Aufbau, der zu diesem Ort gehört. Von selbst landet er nie in einer Szene. Du setzt ihn ein, wenn du ihn brauchst. Umgekehrt kannst du den Ort aus einer eingerichteten Szene aktualisieren, wenn sich der Aufbau geändert hat.'
@@ -931,10 +1057,6 @@
         'place.drift': {
             title: 'Abweichung',
             body: 'Eine Szene, die sich seit dem Einsetzen verändert hat. Meist ist das Absicht, denn oft steht in einer Szene eben ein Stuhl anders. Der Planer zeigt es an, damit dir eine ungewollte Abweichung vor der Aufführung auffällt. Ändern kannst du es in beide Richtungen, aber nur von Hand.'
-        },
-        'place.suggest': {
-            title: 'Wortlaut aus den Szenen holen',
-            body: 'Liest zusammen, was in den Szenen dieses Orts tatsächlich steht, und schreibt es als Vorschlag in das Feld. Du siehst das Ergebnis, bevor es gilt, und kannst jede Zeile ändern.'
         },
 
         /* -------------------------------------------------------- Umbau */
@@ -1036,10 +1158,6 @@
             title: 'Nur die Nummer, neben der Bühne',
             body: 'Stellt die Szenennummer groß links neben die Zeichnung, außerhalb des Bühnenrahmens, und lässt alles andere weg. So liegen die Blätter, die auf dieser Bühne schon benutzt wurden.'
         },
-        'print.presetBare': {
-            title: 'Wie mein Umbauplan',
-            body: 'Setzt in einem Zug alles so, wie die Blätter dieser Produktion bisher aussahen: quer, ein Blatt pro Szene, die Nummer groß und allein daneben, Gassen eingezeichnet, kein Raster, kein Maßstab, kein Titel, keine Fußzeile. Jeder einzelne Schalter bleibt danach änderbar.'
-        },
         'scene.wingNotes': {
             title: 'Gassenzettel',
             body: 'Ein kleines Bild mit Bildunterschrift, in die Gasse gestellt: was dort bereitliegen muss, ohne dass es auf der Bühne steht, etwa „Kaffeetasse mit einem Schluck Wasser“. Es steht auf dem Planblatt, wo die Mannschaft ohnehin hinsieht, und nicht bloß im Umbauplan.'
@@ -1118,7 +1236,7 @@
             body: 'Jede Szene ist ein Standbild. Was zwischen zwei Szenen getragen werden muss, rechnet der Planer selbst aus.',
             steps: [
                 'Das Ergebnis steht im Feld „Szene“ unter „Änderungen zur Szene davor“ und wird später zum Umbauplan.',
-                'Beim Ziehen macht Umschalt das Raster feiner, Alt hebt es ganz auf.',
+                'Beim Ziehen macht Shift das Raster feiner, Alt hebt es ganz auf.',
                 'Was die Tasten gerade tun, steht unten rechts in der Leiste.'
             ]
         },

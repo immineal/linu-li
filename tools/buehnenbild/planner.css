@@ -46,6 +46,29 @@ body {
 .sp-tabs { flex: 0 0 auto; }
 .sp-bar-right { flex: 0 0 auto; margin-left: auto; }
 .sp-bar-left > select { flex: 0 1 auto; min-width: 0; }
+.sp-bar-select { width: auto; min-width: 7rem; max-width: 14rem; }
+
+/* Unter etwa 1200 px liefen Produktionsauswahl, „Einstellungen" und die Reiter
+   ineinander — Buchstabe über Buchstabe, teils nicht mehr anklickbar. Ein
+   angedocktes Fenster auf einem 1280er-Laptop liegt genau dort. Der Titel
+   gibt zuerst nach, dann die Auswahl, dann der Zustandstext; die Reiter
+   bleiben bis zuletzt lesbar, weil ohne sie nichts mehr geht. */
+@media (max-width: 1240px) {
+    .sp-wordmark { display: none; }
+    .sp-bar-select { min-width: 5rem; max-width: 9rem; }
+    .sp-tab-btn { padding-left: 0.6rem; padding-right: 0.6rem; }
+    .sp-bar { gap: 0.5rem; padding: 0 0.6rem; }
+}
+@media (max-width: 1180px) {
+    /* Ab hier wird nichts mehr gestaucht, sondern geschoben: die Leiste
+       scrollt waagerecht. Gestaucht liefen die Beschriftungen sonst
+       buchstabenweise ineinander und waren teils nicht mehr anklickbar. */
+    .sp-bar { overflow-x: auto; }
+    .sp-bar > * { flex: 0 0 auto; }
+    .sp-bar-left { min-width: 0; }
+    .sp-bar-right { margin-left: auto; }
+    .sp-bar-right .sp-status { display: none; }
+}
 
 .sp-wordmark {
     font-size: 0.95rem;
@@ -96,10 +119,22 @@ body {
 .sp-btn.is-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .sp-btn.is-primary:hover { background: #a83f31; border-color: #a83f31; color: #fff; }
 .sp-btn.is-quiet { border-color: transparent; color: var(--sp-muted); padding: 0.35rem 0.45rem; }
+/* Gezeichnete Zeichen in Knöpfen. Das Unicode-⌕ war in der Leiste kaum zu
+   sehen — es sitzt hoch, ist dünn und schrumpft mit der Schriftgröße. */
+.sp-icon {
+    width: 1.05em;
+    height: 1.05em;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+}
 .sp-btn.is-quiet:hover { border-color: var(--sp-line); color: var(--ink); }
 .sp-btn.is-danger:hover { border-color: var(--accent); color: var(--accent); }
 .sp-btn.is-on { border-color: var(--accent); color: var(--accent); background: rgba(196, 77, 60, 0.06); }
 .sp-btn-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.sp-btn-pair { display: inline-flex; align-items: center; gap: 0.35rem; }
 
 .sp-app select,
 .sp-app input[type="text"],
@@ -118,6 +153,89 @@ body {
 .sp-app textarea { resize: vertical; min-height: 62px; line-height: 1.45; }
 .sp-app label { font-size: 0.76rem; color: var(--sp-muted); margin-bottom: 0.25rem; font-weight: 400; }
 .sp-field { margin-bottom: 0.7rem; }
+
+/* ------------------------------------------------------ Schieber und Zahl
+
+   Jeder einstellbare Wert hat beides: einen Schieber zum Suchen und ein
+   Zahlenfeld zum Wissen. Die Beschriftung steht über beiden und nicht
+   daneben — in einer Spalte von 312 px bräche „Hinter der Bauflucht (m)"
+   neben einem Feld sonst auf drei Zeilen um, und genau daran waren Position
+   und Größe vorher nicht zu lesen. */
+.sp-slide {
+    display: grid;
+    grid-template-columns: 1fr 4.5rem;
+    align-items: center;
+    gap: 0.15rem 0.5rem;
+    margin-bottom: 0.6rem;
+}
+.sp-slide > label { grid-column: 1 / -1; margin-bottom: 0; }
+.sp-slide-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Die kleinen Pfeilchen an einem Zahlenfeld sehen in jedem Browser anders aus
+   und in keinem gut. Sie sitzen außerdem genau dort, wo die Zahl steht, und
+   erscheinen erst beim Überfahren — die Spalte springt dann. Sie fallen weg:
+   geschoben wird am Schieber, geschrieben im Feld, und die Pfeiltasten tun
+   dort weiter, was sie immer taten. */
+.sp-app input[type="number"],
+.sp-modal input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.sp-app input[type="number"]::-webkit-outer-spin-button,
+.sp-app input[type="number"]::-webkit-inner-spin-button,
+.sp-modal input[type="number"]::-webkit-outer-spin-button,
+.sp-modal input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.sp-app input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 1.15rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+.sp-app input[type="range"]::-webkit-slider-runnable-track {
+    height: 3px; border-radius: 2px; background: var(--sp-line);
+}
+.sp-app input[type="range"]::-moz-range-track {
+    height: 3px; border-radius: 2px; background: var(--sp-line);
+}
+.sp-app input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 13px; height: 13px; margin-top: -5px;
+    border-radius: 50%;
+    background: var(--sp-panel);
+    border: 1px solid var(--sp-muted);
+}
+.sp-app input[type="range"]::-moz-range-thumb {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--sp-panel);
+    border: 1px solid var(--sp-muted);
+}
+.sp-app input[type="range"]:hover::-webkit-slider-thumb,
+.sp-app input[type="range"]:active::-webkit-slider-thumb { background: var(--accent); border-color: var(--accent); }
+.sp-app input[type="range"]:hover::-moz-range-thumb,
+.sp-app input[type="range"]:active::-moz-range-thumb { background: var(--accent); border-color: var(--accent); }
+
+/* Das Textfeld einer Beschriftung trägt echte Zeilen, also braucht es Platz
+   für mehr als eine. */
+.sp-plate-text { min-height: 78px; }
+
+/* ------------------------------------------------------------ Rückmeldung
+   Ein Feld, groß genug, dass man hineinschreibt statt abzubrechen. */
+.sp-say-text { min-height: 118px; }
+.sp-feedback-kind { width: 100%; }
+.sp-feedback-kind button { flex: 1 1 0; }
+.sp-palette-say { padding: 0.4rem 0 0.2rem; text-align: center; }
+.sp-palette-say .sp-btn { font-size: 0.76rem; }
+
 .sp-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; align-items: end; }
 .sp-field-row > div { display: flex; flex-direction: column; justify-content: flex-end; }
 .sp-field-row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
@@ -184,7 +302,27 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    position: relative;
 }
+/* Die rechte Spalte trägt Requisitenauswahl, Auswahl und Szene. Wie breit
+   die sein darf, hängt davon ab, woran gerade gearbeitet wird — also zieht
+   man sie sich selbst zurecht. Die Breite überlebt den Neustart. */
+.sp-aside-grip {
+    position: absolute;
+    left: -3px; top: 0; bottom: 0; width: 7px;
+    cursor: col-resize;
+    z-index: 3;
+    background: transparent;
+    border: 0; padding: 0;
+}
+.sp-aside-grip::before {
+    content: ''; position: absolute; left: 3px; top: 0; bottom: 0; width: 1px;
+    background: transparent; transition: background 0.12s;
+}
+.sp-aside-grip:hover::before,
+.sp-aside-grip:focus-visible::before,
+.sp-aside-grip.is-dragging::before { background: var(--accent); }
+.sp-aside-grip:focus-visible { outline: none; }
 .sp-centre { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 
 .sp-rail-head,
@@ -378,6 +516,19 @@ body {
 }
 .sp-tile:hover { border-color: var(--accent); }
 .sp-tile svg { width: 100%; height: 40px; display: block; margin-bottom: 0.2rem; }
+.sp-tile img { width: 100%; height: 40px; object-fit: contain; display: block; margin-bottom: 0.2rem; }
+/* Vorschaubilder sind auf die Zeichnung zugeschnitten, damit sie das Feld
+   fuellen. Der Strich rechnet daher in Bildschirmpunkten und bleibt bei
+   jeder Vergroesserung gleich dick. */
+/* Jede Vorschau wird auf dieselbe Kachelgröße gerechnet, aber ein hohes
+   schmales Requisit wird dabei stärker vergrößert als ein breites flaches —
+   und sein Strich mit. In der Kachel sahen deshalb die Striche verschieden
+   dick aus, obwohl sie auf der Bühne alle gleich sind. Hier zählt die
+   Strichstärke in Bildschirmpunkten und macht die Vergrößerung nicht mit. */
+.sp-thumb :where(path, rect, circle, ellipse, line, polygon) {
+    vector-effect: non-scaling-stroke;
+    stroke-width: 1.15px;
+}
 .sp-tile .sp-tile-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-tile .sp-tile-size { color: var(--sp-muted); font-size: 0.62rem; font-variant-numeric: tabular-nums; }
 .sp-cat-head {
@@ -563,17 +714,82 @@ body {
 .sp-curtain-track { opacity: 0.6; }
 .sp-audience { stroke: var(--sp-muted); opacity: 0.8; }
 .sp-audience text { fill: var(--sp-muted); }
+/* Der blasse Hinweis in einem leeren Textfeld. Er sagt, was hineingehört,
+   und darf deshalb nicht wie Inhalt aussehen — gedruckt wird er nie. */
+.sp-mark-hint { fill: var(--sp-muted); stroke: none; opacity: 0.75; font-style: italic; }
+/* Der Bogen, den ein Türflügel beim Aufschlagen beschreibt. Er zeigt Platz,
+   der frei bleiben muss, ist aber selbst nichts, was dort steht. */
+.sp-swing { opacity: 0.55; }
+/* Der Strich von einer ausgewichenen Beschriftung zu ihrem Requisit. */
+.sp-label-leader { stroke: var(--sp-muted); opacity: 0.5; fill: none; }
 .sp-art .f { fill: rgba(107, 144, 128, 0.2); }
 .sp-art .d { stroke-dasharray: 3.5 3; }
 /* In der Vorlage gefüllte Flächen bleiben gefüllt. */
 .sp-art .s { fill: currentColor; stroke: none; }
+/* Die schwarzen Tasten eines Klaviers sind schwarz. */
+.sp-key { fill: currentColor; stroke: none; }
 .sp-art .fs { fill: currentColor; }
 .sp-hit { fill: transparent; stroke: none; }
+/* Das Plus in der Gasse. Es steht dort, wo der Zettel hinkommt, und ist
+   blass, solange niemand darauf zeigt — die Gasse ist eine Hilfslinie und
+   soll nicht mit der Bühne konkurrieren. */
+.sp-wing-add { cursor: pointer; }
+.sp-wing-add-ring, .sp-wing-add-mark { stroke: var(--sp-muted); fill: none; opacity: 0.55; }
+.sp-wing-add-hit { fill: transparent; stroke: none; }
+.sp-wing-add-count { fill: var(--sp-muted); stroke: none; font-weight: 500; }
+/* Die Szenennummern, die von ihrem Ort abweichen, führen dorthin. */
+.sp-place-jump { padding: 0.1rem 0.3rem; font-size: inherit; text-decoration: underline; }
+.sp-place-jump + .sp-place-jump { margin-left: 0.1rem; }
+
+/* „Alles Weitere“: was die Tinte auf dem Szenenblatt regelt. Vorne stehen die
+   Blätter und der Umfang — siebzehn Kästchen nebeneinander waren siebzehn
+   Sachen zu lesen, bevor man drucken konnte. */
+.sp-more { border-top: 1px solid var(--sp-line); }
+.sp-more > summary {
+    cursor: pointer;
+    padding: 0.7rem 0;
+    font-size: 0.8rem;
+    color: var(--sp-muted);
+    list-style: none;
+}
+.sp-more > summary::-webkit-details-marker { display: none; }
+.sp-more > summary::before { content: '\25B8'; margin-right: 0.4rem; display: inline-block; }
+.sp-more[open] > summary::before { transform: rotate(90deg); }
+.sp-more > summary:hover { color: var(--ink); }
+.sp-wing-add:hover .sp-wing-add-count { fill: var(--accent); }
+
+/* Die Zettel einer Gasse, zum Ändern. Bild links, Text in der Mitte, die
+   drei Handgriffe rechts. */
+.sp-wing-list { list-style: none; margin: 0; padding: 0; }
+.sp-wing-list li {
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto auto;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--sp-line);
+}
+.sp-wing-list li:last-child { border-bottom: 0; }
+.sp-wing-pick {
+    width: 44px; height: 40px; padding: 2px;
+    border: 1px solid var(--sp-line); border-radius: 3px;
+    background: var(--sp-field); cursor: pointer; color: var(--ink);
+}
+.sp-wing-pick:hover { border-color: var(--accent); }
+.sp-wing-nopic { font-size: 1.1rem; color: var(--sp-muted); }
+.sp-wing-picker { grid-column: 1 / -1; border: 1px solid var(--sp-line); border-radius: 3px; margin: 0.3rem 0 0.5rem; }
+.sp-wing-picker .sp-palette { max-height: 240px; overflow-y: auto; }
+.sp-wing-picker .sp-tile { border: 1px solid transparent; background: none; }
+.sp-wing-add:hover .sp-wing-add-ring,
+.sp-wing-add:hover .sp-wing-add-mark { stroke: var(--accent); opacity: 1; }
 .sp-items .sp-item { cursor: move; }
 .sp-items .sp-item.is-locked { cursor: default; }
 /* Recolouring the group is enough: the artwork strokes with currentColor. */
-.sp-item.is-added { color: var(--accent-secondary); }
-.sp-item.is-moved { color: #b0873a; }
+/* Der Szenenvergleich färbte, was dazukommt, grün und was sich verschoben hat
+   orange. Ab Szene 2 war damit fast alles bunt, weil gegenüber Szene 1 fast
+   alles neu ist — und was es bedeutete, stand nirgends. Was sich ändert, steht
+   im Umbauplan und im Szene-Bereich unter „Bringen · Räumen · Rücken".
+   Die Klassen bleiben stehen, damit man sie zum Suchen greifen kann. */
 .sp-item-ghost { opacity: 0.3; }
 .sp-item-ghost .sp-art * { stroke-dasharray: 3 3; }
 .sp-item-ghost .f { fill: none; }
@@ -788,7 +1004,7 @@ body {
  * um nicht im Weg zu stehen, groß genug, um getroffen zu werden.
  * ====================================================================== */
 
-/* Was die Umschalt- und Alt-Taste gerade tun. Steht rechts in der Statuszeile,
+/* Was die Shift- und Alt-Taste gerade tun. Steht rechts in der Statuszeile,
    weil die halbe Bedienung sonst nirgends steht. */
 .sp-hintbar {
     margin-left: auto;
@@ -1271,10 +1487,16 @@ body {
 .sp-modal.is-guide { width: min(680px, 92vw); }
 .sp-guide-query {
     width: 100%;
+    font-family: var(--font-heading);
     font-size: 1rem;
     padding: 0.55rem 0.7rem;
     margin-bottom: 0.7rem;
+    color: var(--ink);
+    background: var(--sp-field);
+    border: 1px solid var(--sp-line);
+    border-radius: 3px;
 }
+.sp-guide-query::-webkit-search-cancel-button { filter: grayscale(1) opacity(0.6); }
 .sp-guide-hits { max-height: min(52vh, 460px); overflow-y: auto; }
 .sp-guide-hit {
     display: block;

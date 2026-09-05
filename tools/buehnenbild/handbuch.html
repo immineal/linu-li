@@ -13,7 +13,22 @@
       h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2.5rem; }
       .hb-lead { font-size: 1.05rem; max-width: 42em; }
       .hb-search { margin: 1.5rem 0 0.5rem; }
-      .hb-search input { width: 100%; max-width: 32em; padding: 0.6rem 0.75rem; font-size: 1rem; }
+      /* Das Feld hing an keiner Regel: diese Seite lädt planner.css nicht, und
+         das Stylesheet der Website fasst nackte Eingabefelder nicht an. Es
+         stand weiß und in Arial auf einer dunklen Seite. */
+      .hb-search input {
+          width: 100%;
+          max-width: 32em;
+          padding: 0.6rem 0.75rem;
+          font-size: 1rem;
+          font-family: inherit;
+          color: var(--ink);
+          background: var(--input-bg);
+          border: 1px solid var(--border);
+          border-radius: 3px;
+      }
+      .hb-search input:focus { outline: none; border-color: var(--accent); }
+      .hb-search input::-webkit-search-cancel-button { filter: grayscale(1) opacity(0.6); }
       .hb-count { font-size: 0.85rem; color: var(--text-secondary, #888); margin-top: 0.4rem; }
       .hb-toc { columns: 2; column-gap: 2rem; max-width: 40em; padding-left: 1.1rem; }
       .hb-entry { margin: 0 0 1.25rem; max-width: 46em; }
@@ -49,7 +64,7 @@
 
         <div class="hb-search">
           <label for="hbQuery" class="sr-only">Im Handbuch suchen</label>
-          <input type="search" id="hbQuery" placeholder="Suchen — etwa „Gassen“, „Raster“, „Umbauplan“"
+          <input type="search" id="hbQuery" placeholder="Im Handbuch suchen"
                  autocomplete="off" />
           <p class="hb-count" id="hbCount"></p>
         </div>
@@ -68,16 +83,35 @@
             Tabelle.</li>
         </ol>
 
+        <h2>Schieber und Zahl</h2>
+        <p>
+          Jeder Wert, den du einstellen kannst, hat beides: einen Schieber und
+          ein Zahlenfeld. Der Schieber ist zum Suchen, wenn du das Maß noch
+          nicht kennst und siehst, wann es stimmt. Das Zahlenfeld ist zum
+          Wissen, wenn du nachgemessen hast. Beide meinen denselben Wert und
+          zeigen sofort, was der andere getan hat; ein Zug am Schieber ist ein
+          Schritt in der Rückgängig-Liste, nicht hundert.
+        </p>
+        <p>
+          Was ein Requisit an Werten hat, hängt davon ab, was es ist. Ein Sofa
+          hat eine Armlehnenbreite, eine Leiter einen Sprossenabstand, ein
+          Teppich Fransen. Diese Stücke werden bei jeder Größe neu gerechnet,
+          in Bühnenmetern: die Armlehne bleibt 18 cm breit, ob das Sofa
+          1,40 m oder 2,40 m misst, und die Leiter bekommt Sprossen dazu,
+          statt gedehnte zu bekommen. Wer seine eigenen Möbel nachstellt,
+          braucht genau das.
+        </p>
+
         <h2>Tastatur und Maus</h2>
         <p>Ein guter Teil davon steht nirgends auf dem Bildschirm, darum hier:</p>
         <table class="hb-keys">
           <tbody>
             <tr><td><kbd>Strg</kbd>+<kbd>K</kbd> oder <kbd>F1</kbd></td><td>Handbuch durchsuchen</td></tr>
             <tr><td>Ziehen</td><td>Requisit verschieben</td></tr>
-            <tr><td><kbd>Umschalt</kbd> beim Ziehen</td><td>halbes Raster, feinere Schritte</td></tr>
+            <tr><td><kbd>Shift</kbd> beim Ziehen</td><td>halbes Raster, feinere Schritte</td></tr>
             <tr><td><kbd>Alt</kbd> beim Ziehen</td><td>frei, ohne Raster</td></tr>
             <tr><td>Pfeiltasten</td><td>um ein Raster schieben</td></tr>
-            <tr><td><kbd>Umschalt</kbd>+Klick</td><td>zur Auswahl hinzunehmen</td></tr>
+            <tr><td><kbd>Shift</kbd>+Klick</td><td>zur Auswahl hinzunehmen</td></tr>
             <tr><td>Ziehen auf leerer Fläche</td><td>Auswahlrahmen</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>A</kbd></td><td>alles auswählen</td></tr>
             <tr><td><kbd>Strg</kbd>+<kbd>C</kbd> / <kbd>V</kbd></td><td>kopieren und einsetzen</td></tr>
@@ -91,6 +125,41 @@
           </tbody>
         </table>
 
+        <h2>Was sich ziehen lässt und was nicht</h2>
+        <p>
+          Nicht jedes Requisit lässt sich auf der Bühne aufziehen, und das ist
+          Absicht. Eine Bank wird nur länger, ein Bett nur breiter, eine
+          Klebemarke bleibt quadratisch, und was es nur in einer Größe gibt —
+          eine Tasse, ein Buch, eine Uhr — lässt sich gar nicht ziehen; dort
+          erscheint auch kein Griff. Bei einer Tür rechnet sich die Tiefe aus
+          der Breite, weil sie der Schwenkbereich des Flügels ist.
+        </p>
+        <p>
+          <strong>Verboten ist davon nichts.</strong> Im Auswahl-Bereich rechts
+          steht bei jedem Stück jede Zahl frei, und dort steht auch, was auf der
+          Bühne gerade gilt. Wer eine Riesentasse braucht, trägt sie ein. Und
+          wer einmal quer ziehen will, hält beim Ziehen <kbd>Alt</kbd>.
+        </p>
+
+        <h2>Beschriftung</h2>
+        <p>
+          Auf dem Plan steht standardmäßig nur, was du selbst hineinschreibst.
+          Die Zeichnungen sind so gewählt, dass man erkennt, was ein Ding ist —
+          unter jedes Sofa noch „Sofa“ zu schreiben macht den Plan voll und
+          sagt nichts dazu. Über dem Plan kannst du auf Requisitennamen,
+          Nummern oder gar nichts umstellen.
+        </p>
+
+        <h2>Was in der Gasse bereitliegt</h2>
+        <p>
+          Sind im Reiter <strong>Bühne</strong> Gassen eingezeichnet, steht in
+          jeder ein <strong>+</strong>. Damit legst du einen Zettel an: ein
+          kleines Bild mit Unterschrift für etwas, das bereitliegen muss, ohne
+          auf der Bühne zu stehen — „Kaffeetasse mit einem Schluck Wasser“. Er
+          wird in der Gasse mitgedruckt, dort, wo die Mannschaft ohnehin
+          hinsieht.
+        </p>
+
         <h2>Wo steckt was</h2>
         <p class="hb-lead">
           Die stehende Antwort auf „wo stelle ich das ein?“. Alles, was der
@@ -103,7 +172,7 @@
         <p>
           Der Planer speichert im Browser dieses Rechners und lädt nichts hoch.
           Das heißt auch: ein geleerter Browser ist ein geleerter Planer.
-          Über <strong>Sicherung</strong> oben rechts holst du dir eine Datei
+          Über <strong>Back-up</strong> oben rechts holst du dir eine Datei
           mit allem darin und spielst sie anderswo wieder ein.
         </p>
       </div>

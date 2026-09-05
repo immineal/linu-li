@@ -49,25 +49,22 @@
      * Units
      * ------------------------------------------------------------------ */
 
-    function toUnit(metres, units) {
-        return units === 'ft' ? metres / FOOT : metres;
+    /* Der Planer rechnet in Metern und in nichts sonst. Fuß und Zoll gab es
+       einmal als Umschalter pro Produktion; er stand unauffindbar unten im
+       Bühne-Reiter, kostete an jedem Zahlenfeld eine Umrechnung und war die
+       Ursache dafür, dass im Feld „59.06" stand und in der Zeile darunter
+       „59′–11″". Die beiden Funktionen bleiben als Durchreiche stehen, damit
+       die Aufrufstellen nicht alle auf einmal umgebaut werden müssen. */
+    function toUnit(metres) {
+        return metres;
     }
 
-    function toMetres(value, units) {
-        return units === 'ft' ? value * FOOT : value;
+    function toMetres(value) {
+        return value;
     }
 
-    /* Human-readable length. Feet are written the way a stage crew writes
-       them (12'-6"), metres with one decimal place. */
-    function formatLength(metres, units) {
-        if (units === 'ft') {
-            var totalInches = Math.round(metres / FOOT * 12);
-            var sign = totalInches < 0 ? '-' : '';
-            totalInches = Math.abs(totalInches);
-            var feet = Math.floor(totalInches / 12);
-            var inches = totalInches % 12;
-            return sign + feet + '′' + (inches ? '–' + inches + '″' : '');
-        }
+    /* Ein Maß, wie es eine Bühnenmannschaft schreibt. */
+    function formatLength(metres) {
         var m = round(metres, 2);
         var text = Math.abs(m) < 10 ? m.toFixed(2) : m.toFixed(1);
         text = text.replace(/(\.\d*[1-9])0+$/, '$1').replace(/\.0+$/, '');
@@ -75,8 +72,8 @@
         return text.replace('.', sep) + ' m';
     }
 
-    function unitSuffix(units) {
-        return units === 'ft' ? 'ft' : 'm';
+    function unitSuffix() {
+        return 'm';
     }
 
     /* ------------------------------------------------------------------ *
@@ -89,26 +86,26 @@
      * reported as frontY.
      * ------------------------------------------------------------------ */
 
+    /* Fünf Formen. Rund, Rundumbühne und Vieleck standen einmal dabei; an
+       echten Häusern kommen sie kaum vor, und jede kostete eine Karte, ein
+       eigenes Maßfeld und einen Zweig in der Geometrie. Wer doch eine hat,
+       kommt mit dem Vieleck-Umriss ohnehin nicht weit — der zeichnet keinen
+       Zuschauerraum. */
     var STAGE_SHAPES = [
         {
             id: 'rect', name: 'Rectangular',
-            fields: ['width', 'depth'],
+            fields: ['width', 'depth'], wings: true,
             blurb: 'End-on or proscenium. Audience downstage.'
         },
         {
             id: 'trapezoid', name: 'Trapezoid',
-            fields: ['backWidth', 'width', 'depth'],
+            fields: ['backWidth', 'width', 'depth'], wings: true,
             blurb: 'Narrower upstage than down, or the other way round.'
         },
         {
             id: 'thrust', name: 'Thrust',
-            fields: ['width', 'depth', 'apronWidth', 'apronDepth'],
+            fields: ['width', 'depth', 'apronWidth', 'apronDepth'], wings: true,
             blurb: 'Main stage plus an apron the audience sits around.'
-        },
-        {
-            id: 'circle', name: 'Circular',
-            fields: ['diameter'],
-            blurb: 'Round stage, audience on the downstage side.'
         },
         {
             id: 'halfround', name: 'Half round',
@@ -116,19 +113,9 @@
             blurb: 'Flat upstage wall, curved front edge.'
         },
         {
-            id: 'arena', name: 'Arena, in the round',
-            fields: ['diameter'],
-            blurb: 'Round stage with audience on every side.'
-        },
-        {
             id: 'traverse', name: 'Traverse, alley',
             fields: ['width', 'depth'],
             blurb: 'Long playing strip, audience on both long sides.'
-        },
-        {
-            id: 'polygon', name: 'Polygon',
-            fields: ['diameter', 'sides'],
-            blurb: 'Regular polygon with a flat edge facing the audience.'
         }
     ];
 
@@ -138,7 +125,6 @@
         depth: 9,
         backWidth: 8,
         diameter: 10,
-        sides: 6,
         apronWidth: 7,
         apronDepth: 2.5,
         grid: { show: true, spacing: 1, labels: false },
@@ -155,17 +141,6 @@
             if (STAGE_SHAPES[i].id === id) return STAGE_SHAPES[i];
         }
         return STAGE_SHAPES[0];
-    }
-
-    function polygonPoints(stage) {
-        var r = Math.max(0.5, num(stage.diameter, 10) / 2);
-        var n = Math.max(3, Math.min(24, Math.round(num(stage.sides, 6))));
-        var pts = [];
-        for (var k = 0; k < n; k++) {
-            var a = (2 * Math.PI * k / n) + Math.PI / n;
-            pts.push([r * Math.sin(a), r - r * Math.cos(a)]);
-        }
-        return pts;
     }
 
     function boundsOfPoints(pts) {
@@ -212,18 +187,6 @@
                 audience: ['front', 'left', 'right']
             };
         }
-        case 'circle':
-        case 'arena': {
-            var dd = 'M' + (-r) + ',' + r +
-                ' A' + r + ',' + r + ' 0 0 1 ' + r + ',' + r +
-                ' A' + r + ',' + r + ' 0 0 1 ' + (-r) + ',' + r + ' Z';
-            return {
-                d: dd,
-                bounds: { x: -r, y: 0, w: 2 * r, h: 2 * r },
-                frontY: 2 * r,
-                audience: stage.shape === 'arena' ? ['ring'] : ['front']
-            };
-        }
         case 'halfround': {
             return {
                 d: 'M' + (-r) + ',0 H' + r + ' A' + r + ',' + r + ' 0 0 1 ' + (-r) + ',0 Z',
@@ -238,17 +201,6 @@
                 bounds: { x: -W / 2, y: 0, w: W, h: D },
                 frontY: D,
                 audience: ['left', 'right']
-            };
-        }
-        case 'polygon': {
-            var pp = polygonPoints(stage);
-            var b = boundsOfPoints(pp);
-            return {
-                d: 'M' + pp.map(function (p) { return round(p[0], 4) + ',' + round(p[1], 4); }).join(' L') + ' Z',
-                bounds: b,
-                frontY: b.y + b.h,
-                audience: ['front'],
-                polygon: pp
             };
         }
         default: {
@@ -291,28 +243,9 @@
             var halfA = (AW / 2) * Math.sqrt(Math.max(0, 1 - k * k));
             return halfA > 1e-6 ? [-halfA, halfA] : null;
         }
-        case 'circle':
-        case 'arena': {
-            var dy = y - r;
-            var halfC = Math.sqrt(Math.max(0, r * r - dy * dy));
-            return halfC > 1e-6 ? [-halfC, halfC] : null;
-        }
         case 'halfround': {
             var halfH = Math.sqrt(Math.max(0, r * r - y * y));
             return halfH > 1e-6 ? [-halfH, halfH] : null;
-        }
-        case 'polygon': {
-            var pts = polygonPoints(stage);
-            var xs = [];
-            for (var i = 0; i < pts.length; i++) {
-                var a = pts[i], c = pts[(i + 1) % pts.length];
-                if ((a[1] - y) * (c[1] - y) > 0) continue;
-                if (a[1] === c[1]) { xs.push(a[0], c[0]); continue; }
-                var t2 = (y - a[1]) / (c[1] - a[1]);
-                xs.push(a[0] + (c[0] - a[0]) * t2);
-            }
-            if (!xs.length) return null;
-            return [Math.min.apply(null, xs), Math.max.apply(null, xs)];
         }
         default:
             return [-W / 2, W / 2];
@@ -335,9 +268,13 @@
      * nicht — dort steht, was noch auf seinen Auftritt wartet.
      * ------------------------------------------------------------------ */
 
+    function hasWings(stage) {
+        return !!shapeById(stage && stage.shape).wings;
+    }
+
     function wingLines(stage) {
         var w = (stage && stage.wings) || {};
-        if (!w.show) return [];
+        if (!w.show || !hasWings(stage)) return [];
         var out = stageOutline(stage);
         var b = out.bounds;
         var inset = clamp(num(w.inset, 1.2), 0.05, Math.max(0.06, b.w / 2 - 0.05));
@@ -477,7 +414,7 @@
      * ------------------------------------------------------------------ */
 
     function makePlacement(prop, x, y) {
-        return {
+        var placement = {
             id: uid('pl'),
             trackId: uid('trk'),
             propId: prop.id,
@@ -491,6 +428,12 @@
             note: '',
             locked: false
         };
+        /* Ein Katalogeintrag darf Werte seiner Bauvorschrift mitbringen — so
+           ist „Tisch mit Decke" derselbe Tisch wie „Tisch", nur mit
+           aufgelegter Decke, und nicht ein zweiter Eintrag mit eigener
+           Zeichnung, der irgendwann auseinanderläuft. */
+        if (prop.params) placement.params = Object.assign({}, prop.params);
+        return placement;
     }
 
     /* Mirror a whole layout across the centre line (or across the mid-depth
@@ -942,9 +885,16 @@
      * ------------------------------------------------------------------ */
 
     /* "3 × Stuhl (Anna)" */
+    /* Ein mehrzeiliger Text in einer Zeile. Ein Textfeld auf der Bühne darf
+       so viele Zeilen tragen, wie jemand hineinschreibt; in einer Liste und
+       in der Spalte eines Umbauplans muss eine Zeile eine Zeile bleiben. */
+    function oneLine(text) {
+        return String(text == null ? '' : text).replace(/\s*\n+\s*/g, ' \u00b7 ').trim();
+    }
+
     function describeGroup(group) {
         return (group.count > 1 ? group.count + ' \u00d7 ' : '') + group.name +
-            (group.label ? ' (' + group.label + ')' : '');
+            (group.label ? ' (' + oneLine(group.label) + ')' : '');
     }
 
     /*
@@ -1032,6 +982,7 @@
         stageOutline: stageOutline,
         spanAt: spanAt,
         containsPoint: containsPoint,
+        hasWings: hasWings,
         wingLines: wingLines,
         inWing: inWing,
         gridLines: gridLines,
@@ -1056,6 +1007,7 @@
         ensureTransition: ensureTransition,
         pruneTransitions: pruneTransitions,
         describeGroup: describeGroup,
+        oneLine: oneLine,
         changeoverRows: changeoverRows,
         changeoverIsEmpty: changeoverIsEmpty,
         makePlacement: makePlacement,
