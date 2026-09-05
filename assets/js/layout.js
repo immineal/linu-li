@@ -178,13 +178,20 @@ function setupDropZone(dropZone, fileInput, onFilesSelected) {
     });
 }
 
+const PAGE_TITLE = document.title;
+
 function setupSEO() {
     // 1. Get Page Details
     const h1 = document.querySelector('h1');
     const descP = document.querySelector('.tool-header p') || document.querySelector('p'); // Fallback to first p
     
     // Default values if H1 is missing
-    const titleText = h1 ? h1.innerText + ' | Linus Linhof' : 'Linus Linhof Toolbox';
+    // An h1 can be present but render to nothing — the scene planner's wordmark
+    // collapses to 0x0, so innerText is empty and the tab was called "| Linus
+    // Linhof". Fall back to the page's own <title>, read once at load so a
+    // second pass never sees a title this function already rewrote.
+    const heading = (h1 && h1.innerText.trim()) || PAGE_TITLE.split('|')[0].trim();
+    const titleText = heading ? heading + ' | Linus Linhof' : 'Linus Linhof Toolbox';
     const descText = descP ? descP.innerText : 'A privacy-first suite of web utilities.';
     const currentUrl = window.location.href;
     
