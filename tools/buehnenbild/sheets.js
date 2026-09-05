@@ -91,7 +91,6 @@
         return {
             production: input.production,
             resolve: input.resolve,
-            units: input.units || input.production.units || 'm',
             options: options(input.options),
             today: input.today || new Date().toLocaleDateString(
                 I18n && I18n.language() === 'en' ? 'en-GB' : 'de-DE',
@@ -154,8 +153,8 @@
         var rows = [
             [t('Scenes'), String(scenes.length)],
             [t('Act'), String(Object.keys(acts).length || '—')],
-            [t('Stage'), t(shape.name) + ', ' + SP.formatLength(out.bounds.w, ctx.units) +
-                ' × ' + SP.formatLength(out.bounds.h, ctx.units)],
+            [t('Stage'), t(shape.name) + ', ' + SP.formatLength(out.bounds.w) +
+                ' × ' + SP.formatLength(out.bounds.h)],
             [t('Distinct props'), String(SP.propInventory({ scenes: scenes }).length)],
             [t('Drawn'), ctx.today]
         ];
@@ -224,7 +223,6 @@
             stage: stage,
             scene: scene,
             resolve: ctx.resolve,
-            units: ctx.units,
             idPrefix: 'sheet-' + (sceneSheet.counter = (sceneSheet.counter || 0) + 1),
             labels: o.labels,
             grid: o.showGrid,
@@ -298,7 +296,7 @@
             var cells = page.map(function (scene) {
                 var svg = SPPlan.svg({
                     stage: stageFor(ctx.production, scene), scene: scene,
-                    resolve: ctx.resolve, units: ctx.units,
+                    resolve: ctx.resolve,
                     idPrefix: 'ov-' + (sceneSheet.counter = (sceneSheet.counter || 0) + 1),
                     labels: labels, grid: cols <= 3 && o.showGrid, scaleBar: false,
                     audience: cols <= 3, settingLine: cols <= 3
@@ -549,10 +547,9 @@
         var scoped = scopedScenes(ctx);
         var rows = SP.changeoverRows(
             { scenes: scoped, acts: p.acts, places: p.places, stage: p.stage,
-              transitions: p.transitions, numbering: p.numbering, units: p.units },
+              transitions: p.transitions, numbering: p.numbering },
             {
                 nameOf: function (id) { return nameOf(ctx, id); },
-                units: ctx.units,
                 positions: o.positions
             });
 

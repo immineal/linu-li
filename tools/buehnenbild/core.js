@@ -396,16 +396,16 @@
     }
 
     /* "2,40 m nach links, 3,10 m nach hinten" */
-    function describePosition(stage, x, y, units) {
+    function describePosition(stage, x, y) {
         var out = stageOutline(stage);
         var lateral = Math.abs(x) < 0.05
             ? t('on the centre line')
-            : t('{len} to the ' + sideKey(x), { len: formatLength(Math.abs(x), units) });
+            : t('{len} to the ' + sideKey(x), { len: formatLength(Math.abs(x)) });
         var depth = out.frontY - y;
         var depthText = Math.abs(depth) < 0.05
             ? t('on the setting line')
             : t(depth >= 0 ? '{len} upstage' : '{len} downstage',
-                { len: formatLength(Math.abs(depth), units) });
+                { len: formatLength(Math.abs(depth)) });
         return lateral + ', ' + depthText;
     }
 
@@ -906,7 +906,6 @@
     function changeoverRows(production, opts) {
         opts = opts || {};
         var nameOf = opts.nameOf || function (id) { return id; };
-        var units = opts.units || production.units || 'm';
         var withPositions = !!opts.positions;
         var scenes = production.scenes || [];
         var numbers = sceneNumbers(production);
@@ -929,7 +928,7 @@
                 ? gridReference(stage, m.to.x, m.to.y, num(stage.grid.spacing, 1))
                 : zoneName(stage, m.to.x, m.to.y);
             if (withPositions) {
-                where += ' (' + describePosition(stage, m.to.x, m.to.y, units) + ')';
+                where += ' (' + describePosition(stage, m.to.x, m.to.y) + ')';
             }
             return name + ' \u2192 ' + where;
         }

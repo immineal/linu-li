@@ -275,7 +275,7 @@
         'Every setting has a ? beside it. It says what the setting does on the printed sheet.':
             'Neben jeder Einstellung steht ein ?. Es sagt, was sie auf dem gedruckten Blatt bewirkt.',
         'Where things live': 'Wo was steckt',
-        'Scene numbering, units and the direction convention are under Settings, next to the production name. The stage shape, the grid, the wings and the curtains are on the Stage tab.':
+        'Scene numbering and the direction convention are under Settings, next to the production name. The stage shape, the grid, the wings and the curtains are on the Stage tab.':
             'Szenennummerierung und Richtungssicht stehen unter „Einstellungen“, neben dem Namen der Produktion. Bühnenform, Maße, Raster, Gassen und Vorhänge stehen im Reiter „Bühne“.',
         'A play in two acts, for trying things out': 'Ein Stück in zwei Akten, zum Ausprobieren',
         'School hall': 'Aula',

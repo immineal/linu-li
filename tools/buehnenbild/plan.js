@@ -54,7 +54,7 @@
 
     /*
      * opts:
-     *   stage, scene, resolve(propId) -> prop, units
+     *   stage, scene, resolve(propId) -> prop
      *   grid, gridLabels, centreLine, settingLine, curtains, audience,
      *   scaleBar, labels: 'none' | 'name' | 'custom' | 'both'
      *   ghosts: placements from the previous scene, drawn faintly
@@ -65,7 +65,6 @@
         var stage = opts.stage || SP.DEFAULT_STAGE;
         var scene = opts.scene || { placements: [] };
         var resolve = opts.resolve || function () { return null; };
-        var units = opts.units || 'm';
         var out = SP.stageOutline(stage);
         var b = out.bounds;
 
@@ -380,7 +379,7 @@
 
         /* ------------------------------------------------------ scale bar */
         if (opts.scaleBar !== false && stage.scaleBar) {
-            parts.push(scaleBar(view, b, u, fs, units));
+            parts.push(scaleBar(view, b, u, fs));
         }
 
         var clip = '<clipPath id="' + (opts.idPrefix || 'sp') + '-clip"><path d="' + out.d + '"/></clipPath>';
@@ -584,11 +583,8 @@
         return '<g class="sp-audience">' + pieces.join('') + '</g>';
     }
 
-    function scaleBar(view, b, u, fs, units) {
-        var target = b.w * 0.18;
-        var lengthMetres = units === 'ft'
-            ? SP.toMetres(niceStep(SP.toUnit(target, 'ft')), 'ft')
-            : niceStep(target);
+    function scaleBar(view, b, u, fs) {
+        var lengthMetres = niceStep(b.w * 0.18);
         var segments = 4;
         var x0 = view.x + fs * 0.8;
         /* Platz für die Beschriftung unter dem Balken, nicht daneben. */
@@ -602,7 +598,7 @@
         }
         pieces.push('<text x="' + n(x0 + lengthMetres / 2) + '" y="' + n(y0 + fs * 0.9) +
             '" text-anchor="middle" font-size="' + n(fs * 0.68) + '">' +
-            esc(SP.formatLength(lengthMetres, units)) + '</text>');
+            esc(SP.formatLength(lengthMetres)) + '</text>');
         return '<g class="sp-scale">' + pieces.join('') + '</g>';
     }
 

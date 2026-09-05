@@ -316,7 +316,6 @@
         return production().stage;
     }
 
-    function units() { return production().units || 'm'; }
 
     function libraryById(id) {
         for (var i = 0; i < db.library.length; i++) {
@@ -423,16 +422,16 @@
         render();
     }
 
-    /* ------------------------------------------------------------ units */
+    /* --------------------------------------------------------- measures */
 
     function fromField(value, fallback) {
         var n = parseFloat(String(value).replace(',', '.'));
         if (!isFinite(n)) return fallback;
-        return SP.toMetres(n, units());
+        return SP.toMetres(n);
     }
 
     function toField(metres, digits) {
-        var v = SP.toUnit(metres, units());
+        var v = SP.toUnit(metres);
         return String(SP.round(v, digits === undefined ? 2 : digits));
     }
 
@@ -793,7 +792,6 @@
             stage: stageOf(sc),
             scene: sc,
             resolve: resolveProp,
-            units: units(),
             labels: ui.labels,
             idPrefix: 'edit',
             interactive: true,
@@ -1008,7 +1006,7 @@
         var sel = selectedPlacements();
         $('#spSelectionReadout').textContent = sel.length === 1
             ? t((resolveProp(sel[0].propId) || { name: t('Unknown prop') }).name) + ', ' +
-              SP.describePosition(stageOf(scene()), sel[0].x, sel[0].y, units())
+              SP.describePosition(stageOf(scene()), sel[0].x, sel[0].y)
             : (sel.length ? SPI18n.plural(sel.length, '1 prop selected', '{n} props selected') : '');
         setModifierHint(null);
     }
@@ -1178,18 +1176,16 @@
     }
 
     /* Dasselbe für ein Bühnenmaß. Gespeichert wird immer in Metern; angezeigt
-       wird, was eingestellt ist. In Fuß wäre ein Zentimeterschritt sinnlos
-       fein, also wird die Schrittweite dort gröber. */
+       wird, was eingestellt ist. */
     function lengthSlide(o) {
-        var u = units();
         var step = o.step || 0.05;
         return slideRow({
             id: o.id, bind: o.bind, why: o.why,
             label: o.label + ' (' + lengthLabel() + ')',
-            value: SP.toUnit(o.value, u),
-            min: SP.toUnit(SP.num(o.min, 0), u),
-            max: SP.toUnit(SP.num(o.max, 1), u),
-            hardMin: o.hardMin === undefined ? undefined : SP.round(SP.toUnit(o.hardMin, u), 3),
+            value: SP.toUnit(o.value),
+            min: SP.toUnit(SP.num(o.min, 0)),
+            max: SP.toUnit(SP.num(o.max, 1)),
+            hardMin: o.hardMin === undefined ? undefined : SP.round(SP.toUnit(o.hardMin), 3),
             step: step
         });
     }
@@ -1272,13 +1268,13 @@
                 (gridRef ? ', ' + t('square {ref}', { ref: gridRef }) : '');
         }
         var says = $('#spItemSays');
-        if (says) says.textContent = SP.describePosition(stage, p.x, p.y, units());
+        if (says) says.textContent = SP.describePosition(stage, p.x, p.y);
         /* Die Tiefe wird von der Bühnenkante aus gezählt: verschiebt man das
            Requisit über den Plan, muss die Zahl mitgehen. */
-        syncSlide('item.upstage', SP.toUnit(out.frontY - p.y, units()));
-        syncSlide('item.x', SP.toUnit(p.x, units()));
-        syncSlide('item.w', SP.toUnit(p.w, units()));
-        syncSlide('item.h', SP.toUnit(p.h, units()));
+        syncSlide('item.upstage', SP.toUnit(out.frontY - p.y));
+        syncSlide('item.x', SP.toUnit(p.x));
+        syncSlide('item.w', SP.toUnit(p.w));
+        syncSlide('item.h', SP.toUnit(p.h));
         syncSlide('item.rot', SP.round(p.rot || 0, 1));
     }
 
@@ -1369,7 +1365,7 @@
                 value: p.rot || 0, min: 0, max: 360, step: 1 }) +
             '<p class="sp-hint"><span id="spItemZone">' + esc(SP.zoneName(stage, p.x, p.y)) +
             (gridRef ? ', ' + esc(t('square {ref}', { ref: gridRef })) : '') + '</span><br>' +
-            '<span id="spItemSays">' + esc(SP.describePosition(stage, p.x, p.y, units())) + '</span></p>' +
+            '<span id="spItemSays">' + esc(SP.describePosition(stage, p.x, p.y)) + '</span></p>' +
             '</div>' +
 
             '<div class="sp-section"><h3>' + esc(t('Size')) + why('item.size') + '</h3>' +
@@ -1492,7 +1488,7 @@
                 if (m.distance <= 0.12 && m.turned > 4) {
                     return label + ' → ' + Math.round(m.to.rot) + '°';
                 }
-                return label + ' → ' + SP.describePosition(stage, m.to.x, m.to.y, units());
+                return label + ' → ' + SP.describePosition(stage, m.to.x, m.to.y);
             })
         };
     }
@@ -1593,7 +1589,6 @@
             t('Tab') + ': ' + ui.tab,
             t('Window') + ': ' + window.innerWidth + '×' + window.innerHeight,
             t('Props on the stage') + ': ' + ((sc && sc.placements) ? sc.placements.length : 0),
-            t('Units') + ': ' + units(),
             t('Language') + ': ' + (navigator.language || '?'),
             'UA: ' + (navigator.userAgent || '?')
         ].join('\n');
@@ -2281,11 +2276,12 @@
         };
         var dimensionFields = shape.fields.map(function (field) {
             var value = toField(SP.num(stage[field], 1));
+            /* Seit dem Vieleck ist jedes Bühnenmaß eine Länge; die Zahl der
+               Ecken war das einzige Feld, das gezählt statt gemessen hat. */
             return '<div><label for="spDim-' + field + '">' + esc(FIELD_LABELS[field] || field) +
-                (isCount ? '' : ' (' + lengthLabel() + ')') + why(FIELD_EXPLAIN[field] || '') + '</label>' +
+                ' (' + lengthLabel() + ')' + why(FIELD_EXPLAIN[field] || '') + '</label>' +
                 '<input type="number" id="spDim-' + field + '" data-stage-field="' + field + '"' +
-                ' step="' + (isCount ? '1' : '0.1') + '" min="' + (isCount ? '3' : '0.5') + '"' +
-                (isCount ? ' max="24"' : '') + ' value="' + value + '"></div>';
+                ' step="0.1" min="0.5" value="' + value + '"></div>';
         }).join('');
 
         var curtains = (stage.curtains || []).map(function (c) {
@@ -2307,8 +2303,8 @@
             '<div class="' + (shape.fields.length > 2 ? 'sp-field-row' : 'sp-field-row') + '">' + dimensionFields + '</div>' +
             '<p class="sp-hint" id="spStageReadout" style="margin-top:0.5rem">' +
             esc(t('The playing area comes out {w} across by {h} deep.', {
-                w: SP.formatLength(SP.stageOutline(stage).bounds.w, units()),
-                h: SP.formatLength(SP.stageOutline(stage).bounds.h, units())
+                w: SP.formatLength(SP.stageOutline(stage).bounds.w),
+                h: SP.formatLength(SP.stageOutline(stage).bounds.h)
             })) + '</p></div>' +
 
             '<div class="sp-section"><h3>' + esc(t('Grid')) + '</h3>' +
@@ -2376,7 +2372,6 @@
             stage: editingStage(),
             scene: scene() || { placements: [] },
             resolve: resolveProp,
-            units: units(),
             labels: 'none',
             idPrefix: 'stage-preview'
         });
@@ -2559,8 +2554,8 @@
         if (!el) return;
         var b = SP.stageOutline(editingStage()).bounds;
         el.textContent = t('The playing area comes out {w} across by {h} deep.', {
-            w: SP.formatLength(b.w, units()),
-            h: SP.formatLength(b.h, units())
+            w: SP.formatLength(b.w),
+            h: SP.formatLength(b.h)
         });
     }
 
@@ -2925,7 +2920,7 @@
             stage: stage,
             scene: { placements: [SP.makePlacement(prop, 0, stage.depth / 2)], curtains: {} },
             resolve: function () { return prop; },
-            units: units(), labels: 'none', idPrefix: 'spdrawn',
+            labels: 'none', idPrefix: 'spdrawn',
             centreLine: false, settingLine: false, wings: false,
             curtains: false, audience: false, scaleBar: false,
             ariaLabel: t('On the plan')
@@ -3533,7 +3528,6 @@
         var input = {
             production: production(),
             resolve: resolveProp,
-            units: units(),
             options: printOptions()
         };
         return printDoc() === 'changeover'
@@ -4026,7 +4020,7 @@
             var stage = stageOf(sc);
             var ref = stage.grid && stage.grid.labels
                 ? SP.gridReference(stage, here.x, here.y, SP.num(stage.grid.spacing, 1)) + ' · ' : '';
-            readout.textContent = ref + SP.describePosition(stage, here.x, here.y, units());
+            readout.textContent = ref + SP.describePosition(stage, here.x, here.y);
             return;
         }
 
@@ -4058,7 +4052,7 @@
                 setNodeTransform(itemNode(entry.ref.id), entry.ref);
             });
             renderOverlay();
-            $('#spPointerReadout').textContent = SP.describePosition(stageOf(sc), lead.ref.x, lead.ref.y, units());
+            $('#spPointerReadout').textContent = SP.describePosition(stageOf(sc), lead.ref.x, lead.ref.y);
             setModifierHint('move');
             return;
         }
@@ -4096,7 +4090,7 @@
             arrow.y = SP.round((fixed.y + loose.y) / 2, 3);
             redrawItem(arrow);
             renderOverlay();
-            $('#spPointerReadout').textContent = SP.formatLength(arrow.w, units()) + ', ' +
+            $('#spPointerReadout').textContent = SP.formatLength(arrow.w) + ', ' +
                 t('Turned {n}°', { n: Math.round(arrow.rot) });
             setModifierHint('move');
             return;
@@ -4139,8 +4133,8 @@
             item.h = SP.round(h, 3);
             redrawItem(item);
             renderOverlay();
-            $('#spPointerReadout').textContent = SP.formatLength(item.w, units()) + ' × ' +
-                SP.formatLength(item.h, units());
+            $('#spPointerReadout').textContent = SP.formatLength(item.w) + ' × ' +
+                SP.formatLength(item.h);
             setModifierHint('scale');
             return;
         }
@@ -4323,7 +4317,7 @@
                 ? SPPlan.svg({
                     stage: p.stage,
                     scene: { placements: place.placements, curtains: {} },
-                    resolve: resolveProp, units: units(),
+                    resolve: resolveProp,
                     idPrefix: 'place-' + place.id,
                     labels: 'none', grid: false, scaleBar: false, audience: false,
                     settingLine: false, centreLine: false, curtains: false
@@ -4691,7 +4685,7 @@
                 '<p class="sp-hint">' + esc(t('The planner keeps everything in this browser and uploads nothing. Back-up writes a file with all of it, to bring along or to put back.')) + '</p></div>' +
                 '<div class="sp-section" style="padding-left:0;padding-right:0">' +
                 '<h3>' + esc(t('Where things live')) + '</h3>' +
-                '<p class="sp-hint">' + esc(t('Scene numbering, units and the direction convention are under Settings, next to the production name. The stage shape, the grid, the wings and the curtains are on the Stage tab.')) + '</p></div>'
+                '<p class="sp-hint">' + esc(t('Scene numbering and the direction convention are under Settings, next to the production name. The stage shape, the grid, the wings and the curtains are on the Stage tab.')) + '</p></div>'
         });
         modal.body.addEventListener('click', function (e) {
             var choice = e.target.closest('[data-choose]');
@@ -5344,8 +5338,8 @@
     function clampSaid(value, least) {
         if (!(value < least)) return value;
         toast(t('{typed} is too small — kept at {least}.', {
-            typed: SP.formatLength(Math.max(0, value), units()),
-            least: SP.formatLength(least, units())
+            typed: SP.formatLength(Math.max(0, value)),
+            least: SP.formatLength(least)
         }));
         return least;
     }
@@ -5418,7 +5412,7 @@
         if (def.type === 'toggle') return raw === true || raw === 'true' || raw === 'on';
         var num = parseFloat(String(raw).replace(',', '.'));
         if (!isFinite(num)) return def.def;
-        if (def.unit === 'length') num = SP.toMetres(num, units());
+        if (def.unit === 'length') num = SP.toMetres(num);
         if (def.step >= 1) num = Math.round(num);
         if (def.min !== undefined) num = Math.max(def.min, num);
         if (def.max !== undefined) num = Math.min(def.max, num);
@@ -5490,8 +5484,8 @@
                 /* Bei den maßstäblichen Zeichnungen geht die zweite Kante
                    mit; sie steht sonst als alte Zahl neben der neuen. */
                 if (one && (el.dataset.bind === 'item.w' || el.dataset.bind === 'item.h')) {
-                    syncSlide('item.w', SP.toUnit(one.w, units()), el.dataset.bind === 'item.w' ? el : null);
-                    syncSlide('item.h', SP.toUnit(one.h, units()), el.dataset.bind === 'item.h' ? el : null);
+                    syncSlide('item.w', SP.toUnit(one.w), el.dataset.bind === 'item.w' ? el : null);
+                    syncSlide('item.h', SP.toUnit(one.h), el.dataset.bind === 'item.h' ? el : null);
                 }
                 persist();
                 renderCanvas(true);
