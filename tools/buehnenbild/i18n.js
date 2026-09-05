@@ -73,6 +73,7 @@
             'Der Titel steht auf jedem Blatt, das du druckst.',
 
         'How is the evening divided?': 'Wie ist der Abend gegliedert?',
+        'The structure': 'Die Gliederung',
         'One act, straight through': 'Ein Akt, durchgehend',
         'Several acts': 'Mehrere Akte',
         'How many acts?': 'Wie viele Akte?',

@@ -496,8 +496,13 @@
        erkennt. Kleine Sachen werden deshalb wie ein Kartenzeichen gezeichnet:
        vergrößert, aber nur bis zum Mindestmaß, und nur nach oben. Die
        angeschriebene Zahl bleibt die wahre; vergrößert wird das Bild, nicht
-       das Requisit. Was schon groß genug ist, rührt die Regel nicht an. */
-    var SYMBOL_MIN = 24;        // in Haarlinien, also etwa 4,3 % der Bühnenbreite
+       das Requisit. Was schon groß genug ist, rührt die Regel nicht an.
+
+       Das Maß ist so gewählt, dass die Tasse auf einem quer gedruckten
+       Szenenblatt bei einer Neun-Meter-Bühne rund sechs Millimeter breit
+       wird. Bei zwölf lagen vier Sachen auf einem Cafétisch als Traube
+       übereinander; bei drei ist die Tasse wieder ein Fleck. */
+    var SYMBOL_MIN = 12;        // in Haarlinien, also etwa 2,4 % der Bühnenbreite
 
     function symbolScale(w, h, u) {
         var big = Math.max(w, h);

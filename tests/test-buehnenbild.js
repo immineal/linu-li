@@ -535,6 +535,28 @@ test('every prop can be found under the word that is printed on it', () => {
         'these props cannot be found under their own printed name');
 });
 
+test('every prop in the catalogue survives a trip through the prop list', () => {
+    /* Die Liste las `prop.art`. Was eine Bauvorschrift ist und kein fertiges
+       Bild mitbringt, druckte damit das Wort „undefined“ neben seinen Namen —
+       der Tisch mit der Decke tat das, und jede künftige Vorschrift auch. */
+    const placements = Props.LIBRARY.map((p, i) =>
+        SP.makePlacement(p, (i % 6) - 3, 1 + (i % 4)));
+    const production = {
+        name: 'Alle', stage: SP.DEFAULT_STAGE, acts: [], places: [],
+        scenes: [{ id: 's1', title: 'Alles', actId: null, placeId: null,
+            placements, curtains: {}, wingNotes: [] }]
+    };
+    const all = Sheets.buildPlans({
+        production, resolve,
+        options: { inventory: true, overview: true, scenePages: true, cover: true }
+    }).join('');
+    assert.ok(!/undefined/.test(all), 'a prop prints the word undefined');
+    assert.ok(!/NaN/.test(all), 'a prop prints NaN');
+    Props.LIBRARY.forEach((p) => {
+        assert.ok(all.indexOf(I18n.t(p.name)) !== -1, p.id + ' never reaches the paper');
+    });
+});
+
 test('the worked example only places props that exist', () => {
     /* `put` gab bei einem unbekannten Namen still null zurück, und die Zeile
        fiel aus der Szene. Die Schulklasse im Beispiel stand ohne Pult da, das

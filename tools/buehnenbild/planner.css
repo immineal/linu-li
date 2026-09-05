@@ -60,15 +60,46 @@ body {
     .sp-bar { gap: 0.5rem; padding: 0 0.6rem; }
 }
 @media (max-width: 1180px) {
-    /* Ab hier wird nichts mehr gestaucht, sondern geschoben: die Leiste
-       scrollt waagerecht. Gestaucht liefen die Beschriftungen sonst
-       buchstabenweise ineinander und waren teils nicht mehr anklickbar. */
-    .sp-bar { overflow-x: auto; }
     .sp-bar > * { flex: 0 0 auto; }
     .sp-bar-left { min-width: 0; }
     .sp-bar-right { margin-left: auto; }
     .sp-bar-right .sp-status { display: none; }
 }
+
+/* Die Leiste weicht in zwei Stufen zurück, und `fitBar()` misst, wann. Erst
+   werden „Rückgängig" und „Wiederherstellen" zu Pfeilen, dann wandert das
+   Seltene ins Menü. Vorher schob sich die Leiste waagerecht, und bei 1024 px
+   standen Rückmeldung und Hilfe außerhalb des Fensters. */
+.sp-bar .sp-only-icon { display: none; }
+.sp-bar.is-tight .sp-word { display: none; }
+.sp-bar.is-tight .sp-only-icon { display: block; }
+.sp-bar-rare { display: inline-flex; align-items: center; gap: 0.35rem; }
+.sp-bar-rare[hidden] { display: none; }
+.sp-bar-menu {
+    position: fixed;
+    z-index: 120;
+    min-width: 12rem;
+    padding: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    background: var(--sp-panel);
+    border: 1px solid var(--sp-line);
+    border-radius: 4px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+.sp-bar-menu-item {
+    text-align: left;
+    padding: 0.45rem 0.6rem;
+    border: 0;
+    border-radius: 3px;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+.sp-bar-menu-item:hover { background: var(--sp-field); }
+.sp-bar-menu-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 .sp-wordmark {
     font-size: 0.95rem;
@@ -1264,9 +1295,19 @@ body {
     padding: 0.8rem 0.9rem;
     background: var(--sp-panel);
 }
-.sp-place-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
-.sp-place-name { flex: 1 1 auto; font-weight: 600; }
-.sp-place-count { font-size: 0.75rem; color: var(--sp-muted); white-space: nowrap; }
+/* Der Name steht auf eigener Zeile und bekommt die ganze Karte. Neben Anzahl
+   und Löschen blieben ihm 147 px, und „Wohnzimmer der Familie Zachanassian"
+   brauchte 268 — man tippte einen Namen, den man danach nicht mehr lesen
+   konnte. */
+.sp-place-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.35rem 0.6rem;
+    margin-bottom: 0.6rem;
+}
+.sp-place-name { grid-column: 1 / -1; font-weight: 600; }
+.sp-place-count { font-size: 0.75rem; color: var(--sp-muted); }
 .sp-place-label {
     display: block;
     font-size: 0.75rem;

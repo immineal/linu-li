@@ -43,19 +43,37 @@
           <div class="sp-bar-right">
             <span class="sp-status" id="spSaveState" data-i18n>Saved locally</span>
             <button class="sp-btn is-quiet" id="spUndo"
-                    data-i18n-attr="title" title="Undo (Ctrl+Z)" disabled data-i18n>Undo</button>
+                    data-i18n-attr="title" title="Undo (Ctrl+Z)" disabled><span
+                    class="sp-word" data-i18n>Undo</span><svg class="sp-icon sp-only-icon"
+                    viewBox="0 0 16 16" aria-hidden="true"><path
+                    d="M3 8h7a3.2 3.2 0 0 1 0 6.4H6M3 8l3.2-3.2M3 8l3.2 3.2"/></svg></button>
             <button class="sp-btn is-quiet" id="spRedo"
-                    data-i18n-attr="title" title="Redo (Ctrl+Shift+Z)" disabled data-i18n>Redo</button>
-            <button class="sp-btn" id="spBackup" data-i18n>Back-up</button>
+                    data-i18n-attr="title" title="Redo (Ctrl+Shift+Z)" disabled><span
+                    class="sp-word" data-i18n>Redo</span><svg class="sp-icon sp-only-icon"
+                    viewBox="0 0 16 16" aria-hidden="true"><path
+                    d="M13 8H6a3.2 3.2 0 0 0 0 6.4h4M13 8L9.8 4.8M13 8l-3.2 3.2"/></svg></button>
             <button class="sp-btn is-quiet" id="spGuide"
                     data-i18n-attr="title,aria-label" title="Search the manual (Ctrl+K)"
                     aria-label="Search the manual (Ctrl+K)"><svg class="sp-icon" viewBox="0 0 16 16"
                       aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.4 10.4L14 14"/></svg></button>
-            <button class="sp-btn is-quiet" id="spFeedback" hidden
-                    data-i18n-attr="title" title="Suggest a prop or report a fault"
-                    data-i18n>Say something</button>
-            <button class="sp-btn is-quiet" id="spHelp"
-                    data-i18n-attr="title" title="Help and setup">?</button>
+
+            <!-- Was man selten braucht. Passt die Leiste nicht mehr, wandert
+                 dieser Block in das Menü darunter — gemessen wird zur
+                 Laufzeit, nicht an einer festen Breite. -->
+            <span class="sp-bar-rare" id="spBarRare">
+              <button class="sp-btn" id="spBackup" data-i18n>Back-up</button>
+              <button class="sp-btn is-quiet" id="spFeedback" hidden
+                      data-i18n-attr="title" title="Suggest a prop or report a fault"
+                      data-i18n>Say something</button>
+              <button class="sp-btn is-quiet" id="spHelp"
+                      data-i18n-attr="title" title="Help and setup">?</button>
+            </span>
+
+            <button class="sp-btn is-quiet sp-bar-more" id="spBarMore" hidden
+                    aria-haspopup="true" aria-expanded="false"
+                    data-i18n-attr="title,aria-label" title="More" aria-label="More"><svg
+                    class="sp-icon" viewBox="0 0 16 16" aria-hidden="true"><path
+                    d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg></button>
           </div>
         </header>
 

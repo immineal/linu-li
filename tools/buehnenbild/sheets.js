@@ -335,10 +335,23 @@
         return SP.chunk(inventory, perPage).map(function (page, index, all) {
             var body = page.map(function (entry) {
                 var prop = ctx.resolve(entry.propId);
-                var art = prop && !prop.image
-                    ? '<svg viewBox="0 0 100 100" width="7mm" height="7mm" class="sp-plan">' +
-                      '<g class="sp-art" stroke-width="' + (4 * (prop.sw || 1)) + '">' + prop.art + '</g></svg>'
-                    : (prop && prop.image ? '<img src="' + esc(prop.image) + '" width="26" height="26" alt="">' : '');
+                /* Gezeichnet wird über dieselbe Stelle wie auf dem Plan. Vorher
+                   stand hier `prop.art` — was eine Bauvorschrift ist und kein
+                   fertiges Bild hat, druckte damit das Wort „undefined“ in die
+                   Liste. Der Tisch mit der Decke tat das. */
+                var art = '';
+                if (prop && prop.image) {
+                    art = '<img src="' + esc(prop.image) + '" width="26" height="26" alt="">';
+                } else if (prop) {
+                    var big = Math.max(prop.w, prop.h) || 1;
+                    var pad = big * 0.06;
+                    var r4 = function (v) { return SP.round(v, 4); };
+                    art = '<svg viewBox="' + r4(-big / 2 - pad) + ' ' + r4(-big / 2 - pad) + ' ' +
+                        r4(big + pad * 2) + ' ' + r4(big + pad * 2) +
+                        '" width="7mm" height="7mm" class="sp-plan">' +
+                        SPPlan.propInner({ x: 0, y: 0, w: prop.w, h: prop.h, rot: 0 },
+                            prop, big / 70, {}) + '</svg>';
+                }
                 var where = entry.scenes.map(function (s) {
                     return numbers[s.sceneId].label + (s.count > 1 ? '×' + s.count : '');
                 }).join(', ');

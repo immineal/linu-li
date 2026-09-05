@@ -205,7 +205,7 @@
         { id: 'glass-water', view: 'front', grip: 'none', name: 'Water glass', cat: 'Tableware', box: [28, 26, 42, 66], w: 0.07, h: 0.11, tags: 'wasserglas glas trinken becher',
           art: '<path d="M28 26L33 87A5 5 0 0 0 38 92H62A5 5 0 0 0 67 87L72 26Z"/><path d="M31 55H69"/>' },
         { id: 'glass-wine', view: 'front', grip: 'none', name: 'Wine glass', cat: 'Tableware', box: [33, 12, 34, 78], w: 0.08, h: 0.18, tags: 'weinglas glas wein stiel',
-          art: '<path d="M33 12H67C67 38 59 52 50 55C41 52 33 38 33 12Z"/><path d="M50 55V84"/><ellipse cx="50" cy="86" rx="15" ry="4"/>' },
+          art: '<path d="M35 12C30 28 36 50 50 56C64 50 70 28 65 12Z"/><path d="M50 56V84"/><ellipse cx="50" cy="86" rx="15" ry="4"/>' },
         { id: 'ill-pot', view: 'front', grip: 'none', name: 'Coffee pot', cat: 'Tableware', box: [4, 8.9, 86.1, 77.5], w: 0.2, h: 0.18, tags: 'kännchen kanne kaffee',
           art: '<path d="M4 20.9C18.6 22.2 23.6 40.7 21 71.7C21 91.3 73.5 91.4 73.5 71.7L73.5 20.9"/><path d="M42.1 8.9C61.3 8.6 73.5 14.3 73.5 20.9C73.5 27.5 61.3 33.1 42.1 32.8C24.2 32.5 21.7 23.2 4 20.9C20.9 16.6 23.7 9.2 42.1 8.9ZM42.1 8.9"/><path d="M73.5 29.6C95.2 29.6 96 65.4 73.5 65.4"/>' }
     ];

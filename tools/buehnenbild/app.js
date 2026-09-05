@@ -1312,6 +1312,78 @@
             '<path d="M4 4l8 8M12 4l-8 8"/></svg>'
     };
 
+    /* ---------------------------------------------------------- Kopfleiste
+     *
+     * Die Leiste weicht in zwei Stufen zurück, und zwar erst dann, wenn sie
+     * wirklich nicht mehr passt — gemessen, nicht an einer festen Breite
+     * geraten. Zuerst werden aus „Rückgängig" und „Wiederherstellen" zwei
+     * Pfeile. Reicht das nicht, wandert das Seltene in ein Menü.
+     *
+     * Vorher schob sich die Leiste waagerecht: bei 1024 px standen
+     * „Rückmeldung" und die Hilfe außerhalb des Fensters, ohne dass man sah,
+     * dass dort noch etwas ist — und ohne dass man hinscrollen konnte.
+     */
+    function barOverflows(bar) {
+        return bar.scrollWidth > bar.clientWidth + 1;
+    }
+
+    function fitBar() {
+        var bar = $('.sp-bar');
+        if (!bar) return;
+        var rare = $('#spBarRare');
+        var settings = $('#spProductionMenu');
+        var more = $('#spBarMore');
+        if (!rare || !more) return;
+
+        /* Erst alles zeigen, dann messen — sonst bliebe die Leiste in der
+           Stufe hängen, in die sie einmal gefallen ist. */
+        bar.classList.remove('is-tight');
+        rare.hidden = false;
+        settings.hidden = false;
+        more.hidden = true;
+
+        if (barOverflows(bar)) bar.classList.add('is-tight');
+        if (barOverflows(bar)) {
+            rare.hidden = true;
+            settings.hidden = true;
+            more.hidden = false;
+        }
+        if (more.hidden) closeBarMenu();
+    }
+
+    function closeBarMenu() {
+        var open = $('.sp-bar-menu');
+        if (open) open.remove();
+        var more = $('#spBarMore');
+        if (more) more.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleBarMenu() {
+        if ($('.sp-bar-menu')) { closeBarMenu(); return; }
+        var more = $('#spBarMore');
+        var box = document.createElement('div');
+        box.className = 'sp-bar-menu';
+        box.setAttribute('role', 'menu');
+        box.innerHTML = [
+            ['menu-settings', t('Settings')],
+            ['menu-backup', t('Back-up')],
+            ['menu-feedback', t('Say something')],
+            ['menu-help', t('Help and setup')]
+        ].map(function (row) {
+            /* Das Rückmeldeformular gibt es nur, wo eine Adresse dafür steht. */
+            if (row[0] === 'menu-feedback' && !FEEDBACK_FORM) return '';
+            return '<button class="sp-bar-menu-item" role="menuitem" data-act="' +
+                row[0] + '">' + esc(row[1]) + '</button>';
+        }).join('');
+        $('#spApp').appendChild(box);
+        var r = more.getBoundingClientRect();
+        box.style.top = Math.round(r.bottom + 4) + 'px';
+        box.style.right = Math.round(window.innerWidth - r.right) + 'px';
+        more.setAttribute('aria-expanded', 'true');
+        var first = $('.sp-bar-menu-item', box);
+        if (first) first.focus();
+    }
+
     function btnWhy(button, key) {
         var mark = why(key);
         return mark ? '<span class="sp-btn-pair">' + button + mark + '</span>' : button;
@@ -5028,8 +5100,11 @@
             $('#spWizStep', backdrop).textContent =
                 t('Step {n} of {total}', { n: draft.step + 1, total: WIZARD_STEPS.length });
 
+            /* Jeder Schritt heißt nach seiner Sache, die Frage steht am Feld.
+               Bei „Gliederung" stand die Frage vorher zweimal untereinander:
+               einmal als Überschrift, einmal als Beschriftung des Feldes. */
             var titles = {
-                piece: t('The piece'), structure: t('How is the evening divided?'),
+                piece: t('The piece'), structure: t('The structure'),
                 stage: t('The stage'), places: t('The places'),
                 scenes: t('The scenes'), ready: t('Ready')
             };
@@ -5399,6 +5474,10 @@
         case 'align': alignSelection(data.axis); break;
         case 'spread': spreadSelection(data.axis); break;
         case 'mirror-selection': mirrorSelection(); break;
+        case 'menu-settings': closeBarMenu(); productionDialog(); break;
+        case 'menu-backup': closeBarMenu(); exportJson(); break;
+        case 'menu-feedback': closeBarMenu(); feedbackDialog('prop', ''); break;
+        case 'menu-help': closeBarMenu(); helpDialog(); break;
         case 'place-update': updatePlaceFromScene(); break;
         case 'place-insert': insertPlaceSet(); break;
         case 'duplicate-selection': duplicateSelection(); break;
@@ -5982,6 +6061,22 @@
         $('#spCopyLayout').addEventListener('click', copyLayoutDialog);
         $('#spMirror').addEventListener('click', mirrorScene);
         $('#spProductionMenu').addEventListener('click', productionDialog);
+        $('#spBarMore').addEventListener('click', function (e) {
+            e.stopPropagation();
+            toggleBarMenu();
+        });
+        window.addEventListener('resize', fitBar);
+        /* Ein Klick daneben und Escape schließen das Menü — sonst bliebe es
+           offen stehen, während man schon woanders arbeitet. */
+        document.addEventListener('click', function (e) {
+            if (!$('.sp-bar-menu')) return;
+            if (e.target.closest('.sp-bar-menu, #spBarMore')) return;
+            closeBarMenu();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && $('.sp-bar-menu')) closeBarMenu();
+        });
+        fitBar();
         $('#spBackup').addEventListener('click', exportJson);
         $('#spGuide').addEventListener('click', openGuide);
         $('#spHelp').addEventListener('click', helpDialog);
