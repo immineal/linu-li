@@ -346,6 +346,11 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    /* Ohne das rechnet der Browser die Spalte so breit, wie ihr längster
+       umbruchloser Inhalt sie haben will: die Zusammenfassung im Kopf der
+       Aufbau-Klappe zog sie bei der Bank auf 1052 px und ließ vom Plan
+       59 px übrig. `flex-basis` allein hält das nicht. */
+    min-width: 0;
     position: relative;
 }
 /* Die rechte Spalte trägt Requisitenauswahl, Auswahl und Szene. Wie breit
@@ -843,7 +848,7 @@ body {
     justify-content: center;
 }
 .sp-build-thumb svg { width: 100%; height: 100%; }
-.sp-build-head { display: flex; flex-direction: column; min-width: 0; }
+.sp-build-head { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 .sp-build-head b { color: var(--ink); font-weight: 600; }
 .sp-build-says {
     font-size: 0.74rem;

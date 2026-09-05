@@ -1470,7 +1470,10 @@
     }
 
     /* Was sich beim Ziehen mitschreibt, ohne dass der Bereich neu gebaut wird
-       — sonst verlöre der Schieber unter dem Finger den Halt. */
+       — sonst verlöre das halb getippte Feld unter dem Finger den Inhalt.
+       Aufgerufen wird das aus jedem Zug: Wertschild und Statuszeile liefen
+       sonst mit, die Zahlen im Auswahl-Bereich standen bis zum Loslassen auf
+       dem alten Wert und widersprachen dem Schild daneben. */
     function refreshItemReadouts() {
         var p = selectedPlacements()[0];
         if (!p) return;
@@ -1528,7 +1531,7 @@
                 '<button class="sp-btn is-danger" data-act="delete-selection">' + esc(t('Delete')) + '</button>' +
                 '</div></div>' +
                 '<div class="sp-section"><h3>' + esc(t('In this selection')) + '</h3><ul style="list-style:none;padding:0;margin:0">' +
-                SP.groupByProp(sel, function (id) { return (resolveProp(id) || {}).name || id; }).map(function (g) {
+                SP.groupByProp(sel, function (id) { return t((resolveProp(id) || {}).name || id); }).map(function (g) {
                     return '<li style="font-size:0.82rem;padding:0.15rem 0">' +
                         (g.count > 1 ? g.count + ' × ' : '') + esc(g.name) + '</li>';
                 }).join('') + '</ul></div>';
@@ -4285,6 +4288,7 @@
                 setNodeTransform(itemNode(entry.ref.id), entry.ref);
             });
             renderOverlay();
+            refreshItemReadouts();
             $('#spPointerReadout').textContent = SP.describePosition(stageOf(sc), lead.ref.x, lead.ref.y);
             setModifierHint('move');
             return;
@@ -4302,6 +4306,7 @@
             setNodeTransform(itemNode(target.id), target);
             drag.badge = Math.round(target.rot) + '°';
             renderOverlay();
+            refreshItemReadouts();
             $('#spPointerReadout').textContent = t('Turned {n}°', { n: Math.round(target.rot) });
             setModifierHint('rotate');
             return;
@@ -4324,6 +4329,7 @@
             arrow.y = SP.round((fixed.y + loose.y) / 2, 3);
             redrawItem(arrow);
             renderOverlay();
+            refreshItemReadouts();
             $('#spPointerReadout').textContent = SP.formatLength(arrow.w) + ', ' +
                 t('Turned {n}°', { n: Math.round(arrow.rot) });
             setModifierHint('move');
@@ -4383,6 +4389,7 @@
                 : drag.mode === 'scale-h' ? SP.formatLength(item.h)
                 : SP.formatLength(item.w) + ' × ' + SP.formatLength(item.h);
             renderOverlay();
+            refreshItemReadouts();
             $('#spPointerReadout').textContent = SP.formatLength(item.w) + ' × ' +
                 SP.formatLength(item.h);
             setModifierHint('scale');
