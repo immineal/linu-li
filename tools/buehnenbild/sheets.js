@@ -412,7 +412,6 @@
     /* Spaltenbreiten, zusammen die Satzbreite von 174 mm. */
     var COLUMNS = [22, 48, 54, 50];
 
-    function contentWidth() { return PAGE.width - 2 * PAGE.marginX; }
     function contentHeight() { return PAGE.height - 2 * PAGE.marginY; }
 
     /*

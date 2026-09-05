@@ -28,7 +28,12 @@
 	<url>
 		<loc>https://www.linu.li/tools/buehnenbild/</loc>
 		<priority>0.5</priority>
-		<lastmod>2026-09-03</lastmod>
+		<lastmod>2026-09-05</lastmod>
+	</url>
+	<url>
+		<loc>https://www.linu.li/tools/buehnenbild/handbuch.html</loc>
+		<priority>0.33</priority>
+		<lastmod>2026-09-05</lastmod>
 	</url>
 	<url>
 		<loc>https://www.linu.li/tools/future-bank-notes/</loc>

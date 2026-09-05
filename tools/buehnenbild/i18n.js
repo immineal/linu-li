@@ -417,7 +417,7 @@
         '{typed} is too small — kept at {least}.':
             '{typed} ist zu klein — bleibt bei {least}.',
         'Where and how big': 'Wo und wie groß',
-        'Back from the front': 'Nach hinten',
+        'Back from the front': 'Hinten',
         'Turned (°)': 'Gedreht (°)',
         'Wide': 'Breit',
         'Order, copies, catalogue size': 'Reihenfolge, Kopien, Katalogmaß',

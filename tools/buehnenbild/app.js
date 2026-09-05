@@ -1907,13 +1907,6 @@
      * Editing actions
      * ================================================================== */
 
-    function selectOnly(ids) {
-        ui.selection = ids;
-        if (ids.length) ui.inspector = 'item';
-        renderCanvas(true);
-        renderInspector();
-    }
-
     function addProp(propId, x, y, stagger) {
         var prop = resolveProp(propId);
         var sc = scene();
@@ -6117,6 +6110,11 @@
             case 'ArrowDown': e.preventDefault(); nudge(0, step); break;
             case 'f': case 'F': fitView(); break;
             case 'm': case 'M': mirrorSelection(); break;
+            /* Drehen ging nur mit der Maus am Griff. Am Probentisch, wo der
+               Plan neben dem Regiebuch liegt, ist das der eine Handgriff, für
+               den man sonst jedes Mal zur Maus greift. */
+            case 'r': rotateSelection(15); break;
+            case 'R': rotateSelection(-15); break;
             default: break;
             }
         });
