@@ -416,6 +416,11 @@ body {
     font-weight: 500;
     border-color: transparent !important;
     background: transparent !important;
+    /* Der Titel nimmt, was übrig ist, und gibt es wieder her, wenn es eng
+       wird. Als starre 22 rem schob er bei 1440 px den letzten Knopf in eine
+       zweite Zeile, obwohl daneben Platz war. */
+    flex: 1 1 8rem;
+    min-width: 7rem;
     max-width: 22rem;
 }
 .sp-scene-name-input:hover { border-color: var(--sp-line) !important; }
@@ -756,6 +761,47 @@ body {
 .sp-more > summary::before { content: '\25B8'; margin-right: 0.4rem; display: inline-block; }
 .sp-more[open] > summary::before { transform: rotate(90deg); }
 .sp-more > summary:hover { color: var(--ink); }
+
+/* Zwei oder drei Zahlen nebeneinander. Gleich breite Spalten, damit die
+   Beschriftungen eine Kante bilden und man die Zeile als eine Sache liest. */
+.sp-nums {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin-bottom: 0.6rem;
+}
+.sp-num > label {
+    display: block;
+    margin-bottom: 0.15rem;
+    font-size: 0.74rem;
+    color: var(--sp-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sp-num > input { width: 100%; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Der Kopf der Aufbau-Klappe: das Stück, wie es gerade gebaut ist, und
+   daneben in Worten, was eingestellt ist. */
+.sp-build > summary { display: flex; align-items: center; gap: 0.55rem; }
+.sp-build-thumb {
+    flex: 0 0 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sp-build-thumb svg { width: 100%; height: 100%; }
+.sp-build-head { display: flex; flex-direction: column; min-width: 0; }
+.sp-build-head b { color: var(--ink); font-weight: 600; }
+.sp-build-says {
+    font-size: 0.74rem;
+    color: var(--sp-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sp-build > summary::before { align-self: center; }
 .sp-wing-add:hover .sp-wing-add-count { fill: var(--accent); }
 
 /* Die Zettel einer Gasse, zum Ändern. Bild links, Text in der Mitte, die
@@ -801,6 +847,53 @@ body {
 
 /* editor-only overlay */
 .sp-select-box { stroke: var(--accent); fill: none; }
+
+/* Der mitlaufende Wert beim Ziehen. Er liegt über der Zeichnung, also braucht
+   er einen eigenen Grund; die Maus geht durch ihn hindurch. */
+.sp-badge-drag { pointer-events: none; }
+
+/* Die Handgriffe an der Zeichnung. Sie liegen auf dem Plan, also brauchen sie
+   einen eigenen Grund — und dürfen dem Zeichnen darunter nicht im Weg sein:
+   der Streifen selbst nimmt keine Klicks an, nur seine Knöpfe. */
+.sp-canvas-tools {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.15rem 0.25rem;
+    background: color-mix(in srgb, var(--sp-panel) 88%, transparent);
+    border: 1px solid var(--sp-line);
+    border-radius: 5px;
+    pointer-events: none;
+}
+.sp-canvas-tools > * { pointer-events: auto; }
+.sp-tool-sep {
+    width: 1px;
+    height: 1.1rem;
+    margin: 0 0.25rem;
+    background: var(--sp-line);
+}
+.sp-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.85rem;
+    height: 1.7rem;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: var(--ink-secondary);
+    cursor: pointer;
+}
+.sp-tool:hover { background: var(--sp-field); color: var(--ink); }
+.sp-tool:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sp-tool.is-on { background: var(--sp-field); color: var(--accent); }
+.sp-tool .sp-icon { width: 15px; height: 15px; }
+.sp-badge-drag rect { fill: var(--sp-panel); stroke: var(--accent); }
+.sp-badge-drag text { fill: var(--ink); font-variant-numeric: tabular-nums; }
 .sp-handle { fill: var(--paper); stroke: var(--accent); }
 .sp-handle-hit { fill: transparent; stroke: none; }
 .sp-marquee { fill: rgba(196, 77, 60, 0.08); stroke: var(--accent); }

@@ -522,6 +522,18 @@ test('nothing but the scene sheets comes out unless it is asked for', () => {
         'the sheet lost its scale bar and its audience');
 });
 
+test('the worked example only places props that exist', () => {
+    /* `put` gab bei einem unbekannten Namen still null zurück, und die Zeile
+       fiel aus der Szene. Die Schulklasse im Beispiel stand ohne Pult da, das
+       Wohnzimmer ohne Tisch — beides monatelang unbemerkt. */
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, '../tools/buehnenbild/app.js'), 'utf8');
+    const ids = [...src.matchAll(/put\('([^']+)'/g)].map((m) => m[1]);
+    assert.ok(ids.length > 10, 'the example places barely anything, did put() get renamed?');
+    const gone = [...new Set(ids)].filter((id) => !Props.get(id));
+    assert.deepStrictEqual(gone, [], 'the example places props that are no longer in the catalogue');
+});
+
 test('a drawing fills the size it is written down as', () => {
     /* `drawArt` setzt gleichmäßig um: passt das Feld der Zeichnung nicht zum
        angeschriebenen Maß, wird das Ding kleiner gezeichnet, als es dasteht.

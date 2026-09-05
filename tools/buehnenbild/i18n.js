@@ -415,6 +415,11 @@
             'Die Tiefe folgt der Breite, damit die Zeichnung ihre Form behält.',
         '{typed} is too small — kept at {least}.':
             '{typed} ist zu klein — bleibt bei {least}.',
+        'Where and how big': 'Wo und wie groß',
+        'Back from the front': 'Nach hinten',
+        'Turned (°)': 'Gedreht (°)',
+        'Wide': 'Breit',
+        'Order, copies, catalogue size': 'Reihenfolge, Kopien, Katalogmaß',
         'Everything else': 'Alles Weitere',
         'What stands on the scene sheet': 'Was auf dem Szenenblatt steht',
         'All the scenes on one sheet': 'Alle Szenen auf ein Blatt',

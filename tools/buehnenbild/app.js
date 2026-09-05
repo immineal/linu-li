@@ -45,6 +45,8 @@
         libraryCategory: 'all',
         printDoc: 'plans',
         printMore: false,
+        buildMore: false,
+        itemMore: false,
         introSeen: {},
         print: null
     };
@@ -245,7 +247,8 @@
             localStorage.setItem(UI_KEY, JSON.stringify({
                 tab: ui.tab, inspector: ui.inspector, snap: ui.snap, ghosts: ui.ghosts,
                 labels: ui.labels, propCategory: ui.propCategory, libraryCategory: ui.libraryCategory,
-                printDoc: ui.printDoc, printMore: ui.printMore, introSeen: ui.introSeen, print: ui.print,
+                printDoc: ui.printDoc, printMore: ui.printMore, buildMore: ui.buildMore,
+                itemMore: ui.itemMore, introSeen: ui.introSeen, print: ui.print,
                 /* Wer in Szene sieben arbeitet und neu lädt, will in Szene
                    sieben landen und nicht wieder am Anfang. */
                 sceneId: ui.sceneId, labelDefaultMoved: ui.labelDefaultMoved
@@ -480,12 +483,16 @@
         var park = place(t('Park'), t('Bench, bin'));
         var cafe = place(t('Café'), t('Table, 3 chairs, mugs, pot, menu'));
 
-        function put(propId, x, y, rot, label) {
+        function put(propId, x, y, rot, label, over) {
             var prop = SPProps.get(propId);
-            if (!prop) return null;
+            /* Ein Tippfehler oder ein umbenanntes Requisit ließ die Sache hier
+               wortlos verschwinden: das Beispiel druckte eine Schulklasse ohne
+               Pult. Ein Test wacht jetzt darüber, hier fällt es trotzdem auf. */
+            if (!prop) throw new Error('the example places a prop that is gone: ' + propId);
             var pl = SP.makePlacement(prop, x, y);
             pl.rot = rot || 0;
             if (label) pl.label = label;
+            if (over) Object.assign(pl, over);
             return pl;
         }
         function scene(title, placeId, actId, items) {
@@ -498,21 +505,21 @@
 
         var s1 = scene(t('The school'), school.id, act1.id, [
             put('ill-blackboard', -1.6, 1.1),
-            put('ill-table', 0.4, 2.5),
+            put('dining-table', 0.4, 2.5, 0, null, { w: 1.3, h: 0.6 }),
             put('ill-chalk', 0.62, 2.62),
             put('ill-chair', -1.9, 4.4), put('ill-chair', -0.7, 4.4),
             put('ill-chair', 0.8, 4.4), put('ill-chair', 2.0, 4.4)
         ]);
 
         var s2 = scene(t('The market'), market.id, act1.id, [
-            put('ill-table', -0.4, 2.3),
+            put('dining-table', -0.4, 2.3, 0, null, { w: 1.4, h: 0.7 }),
             put('ill-pot', -0.55, 2.1),
             put('ill-crate', -2.5, 3.7, -12),
             put('ill-crate', 1.5, 3.1, 6)
         ]);
 
         var s3 = scene(t('The living room'), living.id, act1.id, [
-            put('ill-tablecloth', 0, 3.2, -12),
+            put('table-cloth', 0, 3.2, -12, null, { params: { cloth: true } }),
             put('ill-chair', -1.6, 3.0, 90, t('Anna’s chair')),
             put('ill-chair', 0.2, 1.9, 180),
             put('ill-coatstand', 3.1, 1.3),
@@ -527,7 +534,7 @@
         ]);
 
         var s5 = scene(t('The café'), cafe.id, act2.id, [
-            put('ill-table', 0, 3.4),
+            put('round-table', 0, 3.4, 0, null, { w: 0.75, h: 0.75 }),
             put('ill-pot', -0.28, 3.15),
             put('ill-mug', 0.25, 3.15),
             put('ill-menu', 0.25, 3.62),
@@ -932,6 +939,67 @@
         }).join('');
     }
 
+    /* Welche Kanten sich ziehen lassen, sagt die Bauvorschrift. Was sie
+       hergibt, bekommt einen Griff — und was nicht, bekommt keinen. */
+    function scaleHandles(p, handle, hair) {
+        var grip = SPPlan.gripOf(resolveProp(p.propId));
+        if (grip === 'none') return '';
+        var hw = p.w / 2, hh = p.h / 2;
+        var out = [];
+        var corner = grip !== 'width' && grip !== 'depth';
+        if (corner) {
+            out.push('<rect class="sp-handle" x="' + (hw - handle * 0.4) + '" y="' + (hh - handle * 0.4) +
+                '" width="' + handle * 0.8 + '" height="' + handle * 0.8 + '" stroke-width="' + hair * 1.4 + '"/>' +
+                '<rect class="sp-handle-hit" data-handle="scale" x="' + (hw - handle) + '" y="' + (hh - handle) +
+                '" width="' + handle * 2 + '" height="' + handle * 2 + '"/>');
+        }
+        /* Bei „Verhältnis" und „quadratisch" gehen beide Kanten ohnehin
+           zusammen — eine einzelne Kante wäre dort eine leere Zusage. */
+        var edges = grip === 'free' ? ['w', 'h']
+            : grip === 'derived' || grip === 'width' ? ['w']
+            : grip === 'depth' ? ['h'] : [];
+        edges.forEach(function (axis) {
+            var x = axis === 'w' ? hw : 0;
+            var y = axis === 'w' ? 0 : hh;
+            var long = handle * 0.9, thick = handle * 0.3;
+            out.push('<rect class="sp-handle" x="' + (x - (axis === 'w' ? thick : long) / 2) +
+                '" y="' + (y - (axis === 'w' ? long : thick) / 2) +
+                '" width="' + (axis === 'w' ? thick : long) +
+                '" height="' + (axis === 'w' ? long : thick) +
+                '" stroke-width="' + hair * 1.4 + '"/>' +
+                '<rect class="sp-handle-hit" data-handle="scale-' + axis +
+                '" x="' + (x - handle) + '" y="' + (y - handle) +
+                '" width="' + handle * 2 + '" height="' + handle * 2 + '"/>');
+        });
+        return out.join('');
+    }
+
+    /* Der mitlaufende Wert neben dem Stück: heller Grund, damit er über der
+       Zeichnung lesbar bleibt. Er dreht sich nicht mit — eine Zahl auf dem
+       Kopf liest niemand. */
+    function dragBadge(p, text, scale, hair) {
+        var fs = scale / 46;
+        var pad = fs * 0.42;
+        var w = text.length * fs * 0.56 + pad * 2;
+        var h = fs * 1.5;
+        /* Wie hoch das Stück gedreht wirklich baut — mit `max(w, h)` sprang
+           das Schild bei einer breit gezogenen Wand quer über die Bühne. */
+        var a = (p.rot || 0) * Math.PI / 180;
+        var halfY = (Math.abs(p.w * Math.sin(a)) + Math.abs(p.h * Math.cos(a))) / 2;
+        var x = p.x - w / 2;
+        var y = p.y - halfY - h - fs * 0.9;
+        /* Am Rand rutscht es nach innen, statt aus dem Bild zu laufen. */
+        if (ui.view) {
+            x = Math.min(Math.max(x, ui.view.x + fs * 0.3), ui.view.x + ui.view.w - w - fs * 0.3);
+            y = Math.max(y, ui.view.y + fs * 0.3);
+        }
+        return '<g class="sp-badge-drag">' +
+            '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h +
+            '" rx="' + (h * 0.22) + '" stroke-width="' + hair + '"/>' +
+            '<text x="' + (x + w / 2) + '" y="' + (y + h * 0.72) +
+            '" text-anchor="middle" font-size="' + fs + '">' + esc(text) + '</text></g>';
+    }
+
     function renderOverlay(temp) {
         var layer = $('#spOverlay');
         if (!layer) return;
@@ -956,16 +1024,16 @@
                     '" stroke-width="' + hair * 1.4 + '"/>' +
                     '<circle class="sp-handle-hit" data-handle="rotate" cx="0" cy="' + (-hh - handle * 1.6) +
                     '" r="' + handle + '"/>' +
-                    /* Der Griff unten rechts erscheint nur, wo er etwas
-                       bewirkt. Bei einem Stück, das es nur in einer Größe
-                       gibt, sah man ihn und zog daran, und nichts geschah. */
-                    (SPPlan.gripOf(resolveProp(p.propId)) === 'none' ? '' :
-                        '<rect class="sp-handle" x="' + (hw - handle * 0.4) + '" y="' + (hh - handle * 0.4) +
-                        '" width="' + handle * 0.8 + '" height="' + handle * 0.8 + '" stroke-width="' + hair * 1.4 + '"/>' +
-                        '<rect class="sp-handle-hit" data-handle="scale" x="' + (hw - handle) + '" y="' + (hh - handle) +
-                        '" width="' + handle * 2 + '" height="' + handle * 2 + '"/>')) +
+                    /* Griffe erscheinen nur, wo sie etwas bewirken: an der
+                       Ecke, was beide Kanten bewegt, an der Kante, was nur
+                       eine bewegt. Bei einem Stück in einer Größe gab es
+                       vorher trotzdem einen Griff, an dem nichts geschah. */
+                    scaleHandles(p, handle, hair)) +
                 (p.locked ? '' : arrowHandles(p, handle, hair)) +
                 '</g>');
+            /* Was gerade herauskommt, steht am Stück und nicht nur unten in
+               der Leiste — dort sucht man es beim Ziehen nicht. */
+            if (drag && drag.badge) parts.push(dragBadge(p, drag.badge, scale, hair));
         } else {
             var xs = [], ys = [];
             sel.forEach(function (item) {
@@ -1175,6 +1243,34 @@
             ' data-bind="' + esc(o.bind) + '"></div>';
     }
 
+    /* Zwei oder drei Zahlen nebeneinander statt untereinander. Ein Schieber
+       braucht eine ganze Zeile für sich und gibt dafür nur ungefähre Zahlen;
+       bei „quer" und „tief" weiß man aber, was man will, und tippt es. Was
+       sich wirklich ziehen lässt, zieht man auf der Bühne. */
+    function numRow(cells) {
+        return '<div class="sp-nums">' + cells.filter(Boolean).map(function (c) {
+            var step = c.step || 0.05;
+            var value = SP.round(SP.num(c.value, 0), decimalsFor(step));
+            return '<div class="sp-num"><label for="' + c.id + '">' + esc(c.label) +
+                (c.why || '') + '</label>' +
+                '<input type="number" id="' + c.id + '"' +
+                (c.min === undefined ? '' : ' min="' + c.min + '"') +
+                (c.max === undefined ? '' : ' max="' + c.max + '"') +
+                ' step="' + step + '" value="' + value + '"' +
+                ' data-bind="' + esc(c.bind) + '"></div>';
+        }).join('') + '</div>';
+    }
+
+    function lengthNum(o) {
+        return {
+            id: o.id, bind: o.bind, why: o.why,
+            label: o.label + ' (' + lengthLabel() + ')',
+            value: SP.toUnit(o.value),
+            min: o.min === undefined ? undefined : SP.round(SP.toUnit(o.min), 3),
+            step: o.step || 0.05
+        };
+    }
+
     /* Dasselbe für ein Bühnenmaß. Gespeichert wird immer in Metern; angezeigt
        wird, was eingestellt ist. */
     function lengthSlide(o) {
@@ -1249,8 +1345,33 @@
             return slideRow({ id: id, bind: bind, label: label,
                 value: vals[def.key], min: def.min, max: def.max, step: def.step });
         }).join('');
-        return '<div class="sp-section"><h3>' + esc(t('How this one is built')) + why('item.build') + '</h3>' +
-            rows + '</div>';
+        /* Zugeklappt, aber nicht versteckt: im Kopf der Klappe steht das
+           Stück, wie es gerade gebaut ist, und daneben in Worten, was
+           eingestellt ist. Wer nichts ändern will, sieht trotzdem, dass es
+           hier etwas zu ändern gäbe — und was. */
+        return '<div class="sp-section">' +
+            '<details class="sp-more sp-build"' + (ui.buildMore ? ' open' : '') +
+            ' data-fold="buildMore">' +
+            '<summary><span class="sp-build-thumb">' + artThumb(propAsBuilt(prop, p)) + '</span>' +
+            '<span class="sp-build-head"><b>' + esc(t('How this one is built')) + '</b>' +
+            '<span class="sp-build-says">' + esc(buildSummary(live, vals)) + '</span></span>' +
+            why('item.build') + '</summary>' + rows + '</details></div>';
+    }
+
+    /* Das Requisit so, wie es dieses eine Mal gebaut ist — für das Bild im
+       Kopf der Klappe. */
+    function propAsBuilt(prop, placement) {
+        return Object.assign({}, prop, { params: placement.params, w: prop.w, h: prop.h });
+    }
+
+    /* „Mit Decke · 4 Beine · 1,2 m" — was eingestellt ist, in einer Zeile. */
+    function buildSummary(live, vals) {
+        return live.map(function (def) {
+            var v = vals[def.key];
+            if (def.type === 'toggle') return v ? t(def.label) : '';
+            if (def.unit === 'length') return t(def.label) + ' ' + SP.formatLength(v);
+            return t(def.label) + ' ' + SP.round(v, 2);
+        }).filter(Boolean).join(' · ');
     }
 
     /* Was sich beim Ziehen mitschreibt, ohne dass der Bereich neu gebaut wird
@@ -1330,12 +1451,6 @@
            ganze Inhalt. Sie steht deshalb zuoberst und heißt, was sie tut. */
         var isTextPlate = prop.mark === 'label';
 
-        /* Wie weit die Schieber reichen: quer und tief so weit wie die Bühne,
-           beim Maß so weit, wie das Stück selbst schon ist. Wer darüber
-           hinaus will, tippt die Zahl — die Skala rückt dann nach. */
-        var b = out.bounds;
-        var cap = function (v) { return Math.max(3, Math.ceil(v * 1.6 * 2) / 2); };
-
         host.innerHTML =
             '<div class="sp-section">' +
             '<h3>' + esc(t(prop.name)) + '</h3>' +
@@ -1356,40 +1471,48 @@
 
             buildSection(p, prop) +
 
-            '<div class="sp-section"><h3>' + esc(t('Position')) + '</h3>' +
-            lengthSlide({ id: 'spItemX', bind: 'item.x', label: t('Across from centre'),
-                value: p.x, min: b.x, max: b.x + b.w }) +
-            lengthSlide({ id: 'spItemY', bind: 'item.upstage', label: t('Upstage of setting line'),
-                value: out.frontY - p.y, min: out.frontY - (b.y + b.h), max: out.frontY - b.y }) +
-            slideRow({ id: 'spItemRot', bind: 'item.rot', label: t('Turned (degrees)'), why: why('item.rot'),
-                value: p.rot || 0, min: 0, max: 360, step: 1 }) +
+            /* Steht, wo es steht, und ist so groß, wie es ist — beides in
+               einem Abschnitt und in je einer Zeile. Vorher waren das zwei
+               Abschnitte mit fünf Schiebern und über 500 px. */
+            '<div class="sp-section"><h3>' + esc(t('Where and how big')) + why('item.size') + '</h3>' +
+            numRow([
+                lengthNum({ id: 'spItemX', bind: 'item.x', label: t('Across'), value: p.x }),
+                /* Nicht „tief" — das steht eine Zeile darunter und meint dort
+                   das Maß des Stücks und nicht seinen Platz. */
+                lengthNum({ id: 'spItemY', bind: 'item.upstage', label: t('Back from the front'),
+                    value: out.frontY - p.y }),
+                { id: 'spItemRot', bind: 'item.rot', label: t('Turned (°)'), why: why('item.rot'),
+                  value: p.rot || 0, step: 1 }
+            ]) +
+            numRow([
+                lengthNum({ id: 'spItemW', bind: 'item.w', label: t('Wide'), value: p.w, min: 0.05 }),
+                lengthNum({ id: 'spItemH', bind: 'item.h', label: t('Deep'), value: p.h, min: 0.05 })
+            ]) +
+            gripNote(prop) +
             '<p class="sp-hint"><span id="spItemZone">' + esc(SP.zoneName(stage, p.x, p.y)) +
             (gridRef ? ', ' + esc(t('square {ref}', { ref: gridRef })) : '') + '</span><br>' +
             '<span id="spItemSays">' + esc(SP.describePosition(stage, p.x, p.y)) + '</span></p>' +
             '</div>' +
 
-            '<div class="sp-section"><h3>' + esc(t('Size')) + why('item.size') + '</h3>' +
-            gripNote(prop) +
-            lengthSlide({ id: 'spItemW', bind: 'item.w', label: t('Across'),
-                value: p.w, min: 0.05, max: cap(p.w), hardMin: 0.05 }) +
-            lengthSlide({ id: 'spItemH', bind: 'item.h', label: t('Deep'),
-                value: p.h, min: 0.05, max: cap(p.h), hardMin: 0.05 }) +
-            '<div class="sp-btn-row">' +
-            '<button class="sp-btn" data-act="reset-size">' + esc(t('Back to catalogue size')) + '</button>' +
+            '<div class="sp-section"><div class="sp-btn-row">' +
             btnWhy('<button class="sp-btn' + (p.flip ? ' is-on' : '') + '" data-act="flip">' +
                 esc(t('Flip')) + '</button>', 'item.flip') +
             btnWhy('<button class="sp-btn' + (p.locked ? ' is-on' : '') + '" data-act="lock">' +
                 esc(p.locked ? t('Locked') : t('Lock')) + '</button>', 'item.lock') +
-            '</div></div>' +
-
-            '<div class="sp-section"><h3>' + esc(t('Order and copies')) + '</h3><div class="sp-btn-row">' +
+            '<button class="sp-btn" data-act="duplicate-selection">' + esc(t('Duplicate')) + '</button>' +
+            '<button class="sp-btn is-danger" data-act="delete-selection">' + esc(t('Delete')) + '</button>' +
+            '</div>' +
+            /* Was man selten braucht, steht hinter einer Klappe — aber es
+               steht da, und man sieht auf einen Blick, was drin ist. */
+            '<details class="sp-more"' + (ui.itemMore ? ' open' : '') + ' data-fold="itemMore">' +
+            '<summary>' + esc(t('Order, copies, catalogue size')) + '</summary>' +
+            '<div class="sp-btn-row">' +
             '<button class="sp-btn" data-act="raise">' + esc(t('Bring forward')) + '</button>' +
             '<button class="sp-btn" data-act="lower">' + esc(t('Send back')) + '</button>' +
-            '<button class="sp-btn" data-act="duplicate-selection">' + esc(t('Duplicate')) + '</button>' +
+            '<button class="sp-btn" data-act="reset-size">' + esc(t('Back to catalogue size')) + '</button>' +
             btnWhy('<button class="sp-btn" data-act="push-forward">' +
                 esc(t('Carry into later scenes…')) + '</button>', 'scene.pushForward') +
-            '<button class="sp-btn is-danger" data-act="delete-selection">' + esc(t('Delete')) + '</button>' +
-            '</div></div>';
+            '</div></details></div>';
     }
 
     function renderSceneInspector() {
@@ -1446,6 +1569,17 @@
                 return '<option value="' + esc(pl.id) + '"' + (sc.placeId === pl.id ? ' selected' : '') + '>' +
                     esc(pl.name || t('Place')) + '</option>';
             }).join('') + '</select></div>' +
+            /* Was mit dem Ort zu tun ist, steht beim Ort. In der Werkzeugleiste
+               nahmen die beiden Knöpfe 474 px und standen weit weg von der
+               Auswahl, auf die sie sich beziehen. Ohne Ort gibt es nichts zu
+               übernehmen und nichts einzusetzen — dann stehen sie nicht da. */
+            (sc.placeId
+                ? '<div class="sp-btn-row" style="margin-top:-0.2rem">' +
+                  '<button class="sp-btn" data-act="place-update">' +
+                  esc(t('Update the place from this scene')) + '</button>' +
+                  '<button class="sp-btn" data-act="place-insert">' +
+                  esc(t('Insert this place’s set')) + '</button></div>'
+                : '') +
             '<div class="sp-field"><label for="spSceneLabel">' + esc(t('Number shown on the sheet')) + why('scene.label') + '</label>' +
             '<input type="text" id="spSceneLabel" data-bind="scene.label" value="' + esc(sc.label || '') +
             '" placeholder="' + esc(t('{label} (worked out automatically)', { label: numbers[sc.id].label })) + '"></div>' +
@@ -4067,6 +4201,7 @@
             }
             target.rot = SP.normaliseAngle(angle);
             setNodeTransform(itemNode(target.id), target);
+            drag.badge = Math.round(target.rot) + '°';
             renderOverlay();
             $('#spPointerReadout').textContent = t('Turned {n}°', { n: Math.round(target.rot) });
             setModifierHint('rotate');
@@ -4096,7 +4231,7 @@
             return;
         }
 
-        if (drag.mode === 'scale') {
+        if (drag.mode === 'scale' || drag.mode === 'scale-w' || drag.mode === 'scale-h') {
             var item = findPlacement(drag.id);
             if (!item) return;
             var a = -(drag.origin.rot || 0) * Math.PI / 180;
@@ -4128,10 +4263,22 @@
                     h = drag.origin.h * factor;
                 }
             }
-            drag.grip = grip;
+            /* Ein Kantengriff bewegt seine Kante und lässt die andere in
+               Ruhe — es sei denn, die Vorschrift zieht sie mit. */
+            if (drag.mode === 'scale-w' && grip !== 'derived' && grip !== 'ratio' && grip !== 'square') {
+                h = drag.origin.h;
+            }
+            if (drag.mode === 'scale-h' && grip !== 'ratio' && grip !== 'square') {
+                w = drag.origin.w;
+            }
+            drag.grip = drag.mode === 'scale-w' && grip === 'free' ? 'width'
+                : drag.mode === 'scale-h' && grip === 'free' ? 'depth' : grip;
             item.w = SP.round(w, 3);
             item.h = SP.round(h, 3);
             redrawItem(item);
+            drag.badge = drag.mode === 'scale-w' ? SP.formatLength(item.w)
+                : drag.mode === 'scale-h' ? SP.formatLength(item.h)
+                : SP.formatLength(item.w) + ' × ' + SP.formatLength(item.h);
             renderOverlay();
             $('#spPointerReadout').textContent = SP.formatLength(item.w) + ' × ' +
                 SP.formatLength(item.h);
@@ -5215,6 +5362,8 @@
         case 'align': alignSelection(data.axis); break;
         case 'spread': spreadSelection(data.axis); break;
         case 'mirror-selection': mirrorSelection(); break;
+        case 'place-update': updatePlaceFromScene(); break;
+        case 'place-insert': insertPlaceSet(); break;
         case 'duplicate-selection': duplicateSelection(); break;
         case 'delete-selection': deleteSelection(); break;
         case 'reset-size':
@@ -5421,6 +5570,15 @@
 
     function wire() {
         var app = $('#spApp');
+
+        /* Jede Klappe mit `data-fold` merkt sich, ob sie offen war. `toggle`
+           steigt nicht auf, also wird in der Erfassungsphase zugehört. */
+        app.addEventListener('toggle', function (e) {
+            var key = e.target.dataset && e.target.dataset.fold;
+            if (!key) return;
+            ui[key] = e.target.open;
+            persistUi();
+        }, true);
 
         app.addEventListener('click', function (e) {
             var tab = e.target.closest('.sp-tab-btn');
@@ -5786,8 +5944,6 @@
         $('#spAddPlace').addEventListener('click', addPlace);
         $('#spCopyLayout').addEventListener('click', copyLayoutDialog);
         $('#spMirror').addEventListener('click', mirrorScene);
-        $('#spPresetSave').addEventListener('click', updatePlaceFromScene);
-        $('#spPresetApply').addEventListener('click', insertPlaceSet);
         $('#spProductionMenu').addEventListener('click', productionDialog);
         $('#spBackup').addEventListener('click', exportJson);
         $('#spGuide').addEventListener('click', openGuide);
