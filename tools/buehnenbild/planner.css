@@ -1023,6 +1023,30 @@ body {
     height: calc(297mm * var(--k, 1));
     flex: 0 0 auto;
 }
+/* Das × an einem Blatt in der Vorschau. Es liegt still da, bis man das Blatt
+   überfährt — sonst sähe der Stapel aus wie ein Formular. Für die Tastatur
+   erscheint es, sobald es den Fokus hat. */
+.sp-sheet-drop {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    line-height: 1;
+    font-size: 1rem;
+    border: 1px solid var(--sp-line);
+    border-radius: 4px;
+    background: var(--sp-panel);
+    color: var(--ink-secondary);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.12s;
+}
+.sp-preview-slot:hover .sp-sheet-drop,
+.sp-sheet-drop:focus-visible { opacity: 1; }
+.sp-sheet-drop:hover { color: var(--accent); border-color: var(--accent); }
+
 .sp-sheets.is-landscape-preview .sp-preview-slot {
     width: calc(297mm * var(--k, 1));
     height: calc(210mm * var(--k, 1));

@@ -118,10 +118,14 @@
      * Dokument 1 — Die Pläne
      * ============================================================ */
 
-    function sheet(ctx, className, body) {
+    /* `kind` sagt, welches Kästchen dieses Blatt gemacht hat. Die Vorschau
+       hängt daran ihr × — damit man ein Blatt dort wegnimmt, wo man es sieht,
+       statt es in einer Liste von Kästchen zu suchen. */
+    function sheet(ctx, className, body, kind) {
         return '<article class="sp-sheet' +
             (ctx.options.orientation === 'landscape' ? ' is-landscape' : '') +
-            (className ? ' ' + className : '') + '">' + body + '</article>';
+            (className ? ' ' + className : '') + '"' +
+            (kind ? ' data-kind="' + kind + '"' : '') + '>' + body + '</article>';
     }
 
     function foot(ctx, left) {
@@ -175,7 +179,7 @@
             }).join('') + '</dl>' +
             (p.notes ? '<p style="font-size:3.4mm; max-width:120mm; line-height:1.6">' +
                 esc(p.notes) + '</p>' : '') +
-            '</div>' + foot(ctx));
+            '</div>' + foot(ctx), 'cover');
     }
 
     /* Der Name eines Akts, und wenn keiner dasteht, seine Nummer. Ohne das
@@ -202,7 +206,7 @@
                 esc(act.notes) + '</p>' : '') +
             '<section><h3>' + esc(t('Scenes in this act')) + '</h3>' +
             '<ul class="sp-act-scenes">' + items + '</ul></section>' +
-            foot(ctx));
+            foot(ctx), 'actPages');
     }
 
     /*
@@ -245,7 +249,7 @@
                 '<div class="sp-plan-sheet-plan">' + svg + '</div></div>' +
                 (o.showNotes && scene.notes
                     ? '<p class="sp-plan-sheet-note">' + esc(scene.notes) + '</p>' : '') +
-                (o.showFooter ? foot(ctx) : ''));
+                (o.showFooter ? foot(ctx) : ''), 'scenePages');
         }
 
         return sheet(ctx, 'sp-plan-sheet',
@@ -258,7 +262,7 @@
             '<div class="sp-plan-sheet-plan">' + svg + '</div>' +
             (o.showNotes && scene.notes
                 ? '<p class="sp-plan-sheet-note">' + esc(scene.notes) + '</p>' : '') +
-            (o.showFooter ? foot(ctx) : ''));
+            (o.showFooter ? foot(ctx) : ''), 'scenePages');
     }
 
     /* Das Raster, in das alle Szenen auf ein Blatt gehen. Gesucht ist nicht
@@ -319,7 +323,7 @@
                 '</div><div class="sp-sheet-meta">' + esc(ctx.production.name || '') + '</div></div>' +
                 '<div class="sp-overview-grid" style="grid-template-columns: repeat(' + cols +
                 ', 1fr); grid-template-rows: repeat(' + rows + ', 1fr)">' + cells + '</div>' +
-                foot(ctx));
+                foot(ctx), 'overview');
         });
     }
 
@@ -355,7 +359,7 @@
                 '<div style="flex:1 1 auto; padding-top:4mm"><table><thead><tr>' +
                 '<th></th><th>' + esc(t('Props')) + '</th><th>' + esc(t('Most at once')) + '</th>' +
                 '<th>' + esc(t('Scenes')) + '</th><th>' + esc(t('Appears in')) + '</th>' +
-                '</tr></thead><tbody>' + body + '</tbody></table></div>' + foot(ctx));
+                '</tr></thead><tbody>' + body + '</tbody></table></div>' + foot(ctx), 'inventory');
         });
     }
 

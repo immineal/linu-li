@@ -3670,6 +3670,26 @@
     }
 
     var previewTimer = null;
+    /* Was für ein Blatt das ist, steht im Blatt selbst. Wer es nicht drucken
+       will, nimmt es dort weg, wo er es sieht — statt in der Liste das
+       Kästchen zu suchen, das es gemacht hat. */
+    var SHEET_KINDS = {
+        cover: 'The title sheet',
+        actPages: 'The act dividers',
+        scenePages: 'The scene sheets',
+        overview: 'The overview',
+        inventory: 'The prop list'
+    };
+
+    function dropMark(html) {
+        var found = /data-kind="([a-zA-Z]+)"/.exec(html);
+        var kind = found && SHEET_KINDS[found[1]] ? found[1] : null;
+        if (!kind) return '';
+        var label = t('Leave out: {sheet}', { sheet: t(SHEET_KINDS[kind]) });
+        return '<button class="sp-sheet-drop" data-act="print-drop" data-kind="' + kind +
+            '" title="' + esc(label) + '" aria-label="' + esc(label) + '">&times;</button>';
+    }
+
     function renderPrintPreview() {
         clearTimeout(previewTimer);
         previewTimer = setTimeout(function () {
@@ -3692,8 +3712,12 @@
             host.innerHTML = '<div class="sp-sheets is-preview' + (landscape ? ' is-landscape-preview' : '') +
                 '" style="--k:' + k.toFixed(4) + '">' +
                 sheets.map(function (html) {
-                    return '<div class="sp-preview-slot">' + html + '</div>';
+                    return '<div class="sp-preview-slot">' + html + dropMark(html) + '</div>';
                 }).join('') + '</div>';
+            /* Die Einführung wurde gesetzt, bevor es hier Blätter gab — sie
+               suchte sich eine freie Stelle und landete auf dem ×. */
+            var open = $('.sp-intro');
+            if (open) placeIntro(open, open.dataset.tab);
         }, 120);
     }
 
@@ -5362,6 +5386,14 @@
         case 'align': alignSelection(data.axis); break;
         case 'spread': spreadSelection(data.axis); break;
         case 'mirror-selection': mirrorSelection(); break;
+        case 'print-drop': {
+            var off = {};
+            off[data.kind] = false;
+            updatePrint(off);
+            toast(t('{sheet} stays out. The list on the left brings it back.',
+                { sheet: t(SHEET_KINDS[data.kind] || 'The sheet') }));
+            break;
+        }
         case 'place-update': updatePlaceFromScene(); break;
         case 'place-insert': insertPlaceSet(); break;
         case 'duplicate-selection': duplicateSelection(); break;
