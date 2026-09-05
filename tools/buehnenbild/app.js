@@ -779,10 +779,14 @@
                 return '<div class="sp-scene-row' + (s.id === (scene() || {}).id ? ' is-active' : '') +
                     '" data-act="pick-scene" data-id="' + esc(s.id) + '" draggable="true">' +
                     '<span class="sp-scene-no">' + esc(numbers[s.id].label) + '</span>' +
-                    '<span class="sp-scene-main"><span class="sp-scene-title">' +
+                    '<span class="sp-scene-main"><span class="sp-scene-title"' +
+                    (s.title ? '' : ' data-leer="1"') + '>' +
                     esc(s.title || t('Untitled scene')) + '</span>' +
                     '<span class="sp-scene-sub">' + sub + '</span></span>' +
                     '<span class="sp-scene-tools">' +
+                    '<button class="sp-tool" data-act="rename-scene" data-id="' + esc(s.id) +
+                    '" title="' + esc(t('Rename this scene')) + '" aria-label="' +
+                    esc(t('Rename this scene')) + '">' + ICON.pencil + '</button>' +
                     '<button class="sp-tool" data-act="duplicate-scene" data-id="' + esc(s.id) +
                     '" title="' + esc(t('Duplicate this scene')) + '" aria-label="' +
                     esc(t('Duplicate this scene')) + '">' + ICON.copy + '</button>' +
@@ -794,6 +798,66 @@
         }).join('');
 
         host.innerHTML = html;
+    }
+
+    /* Den Namen dort ändern, wo er steht. Vorher lag dafür ein Feld in der
+       Werkzeugleiste, das die Zeile für alles andere schmaler machte — und
+       weit weg von der Zeile stand, die es benannte. Doppelklick öffnet es,
+       der Stift daneben auch; Enter schreibt, Escape lässt es. */
+    function renameSceneInRow(id) {
+        var row = $('.sp-scene-row[data-id="' + id + '"]');
+        if (!row) return;
+        var slot = $('.sp-scene-title', row);
+        if (!slot || $('input', slot)) return;
+        var sc = (scenes() || []).filter(function (x) { return x.id === id; })[0];
+        if (!sc) return;
+
+        var field = document.createElement('input');
+        field.type = 'text';
+        field.className = 'sp-scene-rename';
+        field.value = sc.title || '';
+        field.placeholder = t('Untitled scene');
+        field.setAttribute('aria-label', t('Rename this scene'));
+        slot.textContent = '';
+        slot.appendChild(field);
+        field.focus();
+        field.select();
+
+        var done = false;
+        function commit(keep) {
+            if (done) return;
+            done = true;
+            var typed = field.value;
+            /* Ist die Szene inzwischen weg — gelöscht, oder durch Rückgängig
+               oder einen Produktionswechsel ersetzt —, gibt es nichts mehr zu
+               benennen. Sie hier wieder anzulegen wäre das Gegenteil dessen,
+               was gerade geschehen ist. */
+            var lebt = (scenes() || []).some(function (x) { return x === sc; });
+            if (keep && lebt && typed !== (sc.title || '')) {
+                change(function () { sc.title = typed; });
+                return;
+            }
+            if (lebt) { renderSceneList(); renderCanvas(true); }
+        }
+        /* Beim Verlassen wird erst der laufende Aufbau zu Ende gebracht.
+           `blur` feuert genau in dem Augenblick, in dem die Liste ersetzt
+           wird; ein zweiter Aufbau von hier aus riss dem ersten die Knoten
+           unter den Händen weg — sechsmal „NotFoundError" beim Löschen,
+           Rückgängigmachen und Produktionswechsel. */
+        function finishLater(keep) {
+            if (done) return;
+            setTimeout(function () { commit(keep); }, 0);
+        }
+        field.addEventListener('keydown', function (e) {
+            e.stopPropagation();
+            if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+            else if (e.key === 'Escape') { e.preventDefault(); commit(false); }
+        });
+        field.addEventListener('blur', function () { finishLater(true); });
+        /* Ein Klick ins Feld darf die Zeile nicht auswählen oder ziehen. */
+        field.addEventListener('click', function (e) { e.stopPropagation(); });
+        field.addEventListener('dblclick', function (e) { e.stopPropagation(); });
+        field.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
     }
 
     /* ------------------------------------------------------------ canvas */
@@ -829,12 +893,12 @@
             svg.innerHTML = '';
             note.hidden = false;
             note.textContent = t('No scene selected. Add one on the left to start placing props.');
-            $('#spSceneTitle').value = '';
-            $('#spSceneTitle').disabled = true;
+            $('#spSceneTitle').textContent = '';
             return;
         }
-        $('#spSceneTitle').disabled = false;
-        if (document.activeElement !== $('#spSceneTitle')) $('#spSceneTitle').value = sc.title || '';
+        /* Der volle Name hängt am Titel, weil die Überschrift ihn kürzt. */
+        $('#spSceneTitle').textContent = sc.title || t('Untitled scene');
+        $('#spSceneTitle').title = sc.title || t('Untitled scene');
 
         var plan = SPPlan.build(planSettings(sc));
         svg.innerHTML = plan.inner + '<g id="spOverlay"></g>';
@@ -5596,6 +5660,7 @@
         case 'say-something': feedbackDialog(data.kind || 'idea', ''); break;
         case 'do-print': doPrint(); break;
         case 'overview-size': break;
+        case 'rename-scene': renameSceneInRow(data.id); break;
         case 'go-to-scene':
             ui.sceneId = data.id;
             ui.selection = [];
@@ -5734,6 +5799,15 @@
             persistUi();
         }, true);
 
+        /* Doppelklick auf eine Szenenzeile benennt sie um — dieselbe Geste,
+           mit der man auf der Bühne eine Beschriftung ändert. */
+        app.addEventListener('dblclick', function (e) {
+            var row = e.target.closest ? e.target.closest('.sp-scene-row') : null;
+            if (!row || e.target.closest('button')) return;
+            e.preventDefault();
+            renameSceneInRow(row.dataset.id);
+        });
+
         app.addEventListener('click', function (e) {
             var tab = e.target.closest('.sp-tab-btn');
             if (tab) { setTab(tab.dataset.tab); return; }
@@ -5802,13 +5876,6 @@
                 persist();
                 renderCanvas(true);
                 refreshItemReadouts();
-                return;
-            }
-            if (el.id === 'spSceneTitle') {
-                if (!scene()) return;
-                scene().title = el.value;
-                persist();
-                renderSceneList();
                 return;
             }
             if (el.matches('[data-bound]')) {

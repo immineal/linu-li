@@ -102,9 +102,10 @@
                      den Ort betrifft, steht im Szene-Bereich, wo der Ort
                      eingestellt wird. -->
                 <div class="sp-toolbar">
-                  <input type="text" class="sp-scene-name-input" id="spSceneTitle" data-no-save="1"
-                         data-i18n-attr="placeholder,aria-label"
-                         placeholder="Untitled scene" aria-label="Scene title" />
+                  <!-- Nur noch die Auskunft, welche Szene auf dem Plan liegt.
+                       Umbenannt wird links in der Liste, per Doppelklick oder
+                       Stift — dort steht der Name ohnehin. -->
+                  <h2 class="sp-scene-name" id="spSceneTitle"></h2>
                   <span class="sp-sep"></span>
                   <select id="spLabelMode" data-no-save="1" style="width: auto"
                           data-i18n-attr="aria-label" aria-label="Plan labels">
