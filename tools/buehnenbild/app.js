@@ -758,7 +758,9 @@
             var head = '';
             if (group.act) {
                 head = '<div class="sp-act-head"><strong>' + esc(actName(group.act)) + '</strong>' +
-                    '<button class="sp-btn is-quiet" data-act="edit-act" data-id="' + esc(group.act.id) + '" title="' + esc(t('Rename this act')) + '">' + esc(t('Edit')) + '</button></div>';
+                    '<button class="sp-tool" data-act="edit-act" data-id="' + esc(group.act.id) +
+                    '" title="' + esc(t('Rename this act')) + '" aria-label="' +
+                    esc(t('Rename this act')) + '">' + ICON.pencil + '</button></div>';
             } else if (groups.length > 1 || p.acts.length) {
                 head = '<div class="sp-act-head"><strong>' + esc(t('Not in an act')) + '</strong></div>';
             }
@@ -781,8 +783,12 @@
                     esc(s.title || t('Untitled scene')) + '</span>' +
                     '<span class="sp-scene-sub">' + sub + '</span></span>' +
                     '<span class="sp-scene-tools">' +
-                    '<button class="sp-btn is-quiet" data-act="duplicate-scene" data-id="' + esc(s.id) + '" title="' + esc(t('Duplicate this scene')) + '">' + esc(t('Copy')) + '</button>' +
-                    '<button class="sp-btn is-quiet is-danger" data-act="delete-scene" data-id="' + esc(s.id) + '" title="' + esc(t('Delete this scene')) + '">&times;</button>' +
+                    '<button class="sp-tool" data-act="duplicate-scene" data-id="' + esc(s.id) +
+                    '" title="' + esc(t('Duplicate this scene')) + '" aria-label="' +
+                    esc(t('Duplicate this scene')) + '">' + ICON.copy + '</button>' +
+                    '<button class="sp-tool is-danger" data-act="delete-scene" data-id="' + esc(s.id) +
+                    '" title="' + esc(t('Delete this scene')) + '" aria-label="' +
+                    esc(t('Delete this scene')) + '">' + ICON.cross + '</button>' +
                     '</span></div>';
             }).join('');
         }).join('');
@@ -1309,7 +1315,13 @@
         down: '<svg class="sp-icon" viewBox="0 0 16 16" aria-hidden="true">' +
             '<path d="M8 3v10M3.6 8.6L8 13l4.4-4.4"/></svg>',
         cross: '<svg class="sp-icon" viewBox="0 0 16 16" aria-hidden="true">' +
-            '<path d="M4 4l8 8M12 4l-8 8"/></svg>'
+            '<path d="M4 4l8 8M12 4l-8 8"/></svg>',
+        pencil: '<svg class="sp-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+            '<path d="M2.5 13.5l0.7-2.8 7-7 2.1 2.1-7 7z"/>' +
+            '<path d="M10.2 3.7l1.4-1.4a1 1 0 0 1 1.4 0l0.7 0.7a1 1 0 0 1 0 1.4l-1.4 1.4"/></svg>',
+        copy: '<svg class="sp-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+            '<rect x="5.5" y="5.5" width="8" height="8" rx="1"/>' +
+            '<path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg>'
     };
 
     /* ---------------------------------------------------------- Kopfleiste
@@ -2834,8 +2846,14 @@
             var art = artThumb(prop);
             return '<div class="sp-lib-card">' +
                 (prop.builtin ? '' : '<span class="sp-lib-tools">' +
-                    '<button class="sp-btn is-quiet" data-act="edit-prop" data-prop="' + esc(prop.id) + '">' + esc(t('Edit')) + '</button>' +
-                    '<button class="sp-btn is-quiet is-danger" data-act="delete-prop" data-prop="' + esc(prop.id) + '">&times;</button>' +
+                    /* Ein Stift und ein Kreuz, weil beide an jeder Kachel
+                       hängen: als Wörter tragen sie den Namen der Requisite
+                       zu, und das Kreuz war ein Schriftzeichen, das in jeder
+                       Schrift anders sitzt. */
+                    '<button class="sp-tool" data-act="edit-prop" data-prop="' + esc(prop.id) +
+                    '" title="' + esc(t('Edit')) + '" aria-label="' + esc(t('Edit')) + '">' + ICON.pencil + '</button>' +
+                    '<button class="sp-tool is-danger" data-act="delete-prop" data-prop="' + esc(prop.id) +
+                    '" title="' + esc(t('Delete')) + '" aria-label="' + esc(t('Delete')) + '">' + ICON.cross + '</button>' +
                     '</span>') +
                 art +
                 '<div>' + esc(t(prop.name)) + '</div>' +
@@ -4030,6 +4048,8 @@
        Oberfläche in einen toten Zustand gebracht, eine mit einem leeren
        Objekt darin hat kommentarlos alles ersetzt und Erfolg gemeldet. */
 
+    var BACKUP_VERSION = 1;
+
     function readableBackup(parsed) {
         var incoming = parsed && parsed.data ? parsed.data : parsed;
         if (!incoming || !Array.isArray(incoming.productions)) return null;
@@ -4040,6 +4060,11 @@
         if (!usable.length) return null;
         incoming.productions = usable;
         incoming.library = Array.isArray(incoming.library) ? incoming.library : [];
+        /* Eine Datei aus einer späteren Fassung wird gelesen, aber nicht
+           stillschweigend: was diese Fassung nicht kennt, fällt beim
+           Einspielen weg, und das soll dabeistehen, bevor jemand „Alles
+           ersetzen" drückt. */
+        incoming.fromLater = !!(parsed && parsed.version > BACKUP_VERSION);
         return incoming;
     }
 
@@ -4087,7 +4112,12 @@
                 esc(SPI18n.plural(db.productions.length,
                     'You have 1 production open. Adding leaves it alone; replacing deletes it.',
                     'You have {n} productions open. Adding leaves them alone; replacing deletes them.')) +
-                '</p>',
+                '</p>' +
+                (incoming.fromLater
+                    ? '<p class="sp-hint" style="margin-top:0.6rem"><strong>' +
+                      esc(t('This file comes from a later version of the planner. Anything it knows that this one does not will be dropped.')) +
+                      '</strong></p>'
+                    : ''),
             actions: [
                 {
                     label: t('Add them alongside'),
@@ -4602,8 +4632,9 @@
                 (used.length ? ' · ' + esc(used.map(function (sc) {
                     return numbers[sc.id].label;
                 }).join(', ')) : '') + '</span>' +
-                '<button class="sp-btn is-quiet is-danger" data-act="delete-place" ' +
-                'data-id="' + esc(place.id) + '">' + esc(t('Delete')) + '</button>' +
+                '<button class="sp-tool is-danger" data-act="delete-place" ' +
+                'data-id="' + esc(place.id) + '" title="' + esc(t('Delete')) +
+                '" aria-label="' + esc(t('Delete')) + '">' + ICON.cross + '</button>' +
                 '</div>' +
 
                 '<div class="sp-place-body">' +

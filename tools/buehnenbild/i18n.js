@@ -75,6 +75,8 @@
         'How is the evening divided?': 'Wie ist der Abend gegliedert?',
         'The structure': 'Die Gliederung',
         'Filled': 'Gefüllt',
+        'This file comes from a later version of the planner. Anything it knows that this one does not will be dropped.':
+            'Diese Datei stammt aus einer neueren Fassung des Planers. Was sie kennt und diese Fassung nicht, geht beim Einspielen verloren.',
         'One act, straight through': 'Ein Akt, durchgehend',
         'Several acts': 'Mehrere Akte',
         'How many acts?': 'Wie viele Akte?',

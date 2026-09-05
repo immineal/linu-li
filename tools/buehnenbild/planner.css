@@ -877,6 +877,10 @@ body {
 .sp-wing-list li .sp-tool { width: 1.7rem; height: 1.7rem; }
 .sp-wing-list li .sp-tool[disabled] { opacity: 0.35; cursor: default; }
 .sp-wing-list li .sp-tool.is-danger:hover { color: var(--accent); }
+/* Dieselben Handgriffe an jeder Kachel, jeder Szenenzeile, jedem Ort. */
+.sp-tool[disabled] { opacity: 0.35; cursor: default; }
+.sp-tool.is-danger:hover { color: var(--accent); }
+.sp-lib-tools .sp-tool, .sp-scene-tools .sp-tool { width: 1.7rem; height: 1.7rem; }
 .sp-wing-pick {
     width: 44px; height: 40px; padding: 2px;
     border: 1px solid var(--sp-line); border-radius: 3px;
