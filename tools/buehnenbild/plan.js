@@ -196,41 +196,60 @@
         if (opts.wingNotes && opts.wingNotes.length) {
             var wl = SP.wingLines(stage);
             if (wl.length) {
-                var noteSize = Math.min(b.w, b.h) * 0.09;
-                var stacked = { left: 0, right: 0 };
-                /* Der Stapel beginnt unter der Marke und endet an der
-                   Gassentiefe. Vorher zählte er einfach weiter: der vierte
-                   Zettel lag auf der Bauflucht, der fünfte unterhalb des
-                   Blattes — und so ging es auch zum Drucker. */
+                /* Ein Zettelbild ist ein Zeichen, kein Maß: es sagt „diese
+                   Sache", nicht „so groß". Bei neun Prozent der Bühne wurde
+                   daraus ein halber Meter Papier für eine Tasse. Fünfeinhalb
+                   Prozent sind auf A4 rund zehn Millimeter — doppelt so viel,
+                   wie zum Erkennen nötig ist, und halb so viel wie vorher. */
+                var noteSize = Math.min(b.w, b.h) * 0.055;
+                /* Ein Maß für jeden Abstand in der Gasse: unter der Kante,
+                   zwischen Marke und Bild, zwischen Bild und Unterschrift,
+                   zwischen zwei Zetteln. Vorher war jeder davon eine eigene
+                   Zahl, und keine passte zur anderen. */
+                var gap = noteSize * 0.34;
+                var lineH = fs * 0.85;
                 var wingDepth = Math.abs(wl[0][1][1] - wl[0][0][1]);
-                /* Ein Zettel ist das Bild plus bis zu drei Zeilen Unterschrift.
-                   Der Platz darüber gehört der Marke: sie endet bei 18
+                /* Der Platz oben gehört der Marke: sie endet bei 24
                    Haarlinien unter der Kante, darunter beginnt der Stapel. */
-                var head = u * 24 + noteSize * 0.6;
-                var slot = noteSize * 2.0;
-                var room = Math.max(1, Math.floor((wingDepth - head) / slot));
+                var top = b.y + u * 24 + gap;
+                var cursor = { left: top, right: top };
                 var dropped = { left: 0, right: 0 };
                 opts.wingNotes.forEach(function (note) {
                     var side = note.side === 'left' ? 'left' : 'right';
-                    if (stacked[side] >= room) { dropped[side] += 1; return; }
+                    var prop = opts.resolve ? opts.resolve(note.propId) : null;
+                    var lines = wrapWords(note.text || '', 15);
+                    /* Ein Bild behält seine Form: aus einem Stück Kreide von
+                       elf mal zwei Zentimetern wurde sonst ein Quadrat, weil
+                       der Zettel jedem Bild dieselbe Kantenlänge gab. */
+                    var big = prop ? Math.max(prop.w, prop.h) || 1 : 1;
+                    var nw = prop ? prop.w * (noteSize / big) : 0;
+                    var nh = prop ? prop.h * (noteSize / big) : 0;
+                    var need = (prop ? nh + gap : 0) + lines.length * lineH + gap;
+                    /* Der Stapel endet an der Gassentiefe. Vorher zählte er
+                       einfach weiter: der vierte Zettel lag auf der Bauflucht,
+                       der fünfte unterhalb des Blattes. */
+                    if (cursor[side] > top && cursor[side] + need > b.y + wingDepth) {
+                        dropped[side] += 1;
+                        return;
+                    }
                     var edge = side === 'left' ? b.x : b.x + b.w;
                     var inner = side === 'left' ? wl[0][0][0] : wl[1][0][0];
                     var cx = (edge + inner) / 2;
-                    var cy = b.y + head + stacked[side] * slot;
-                    stacked[side] += 1;
+                    var y = cursor[side];
+                    cursor[side] += need;
 
-                    var prop = opts.resolve ? opts.resolve(note.propId) : null;
                     if (prop) {
                         /* Ohne eigene id: ein Gassenzettel ist keine
                            Aufstellung auf der Bühne. Vorher trug er ein leeres
                            data-id und sah anklickbar aus, ohne es zu sein. */
-                        parts.push('<g class="sp-wing-note" transform="translate(' + n(cx) + ' ' + n(cy) + ')">' +
-                            propInner({ x: 0, y: 0, w: noteSize, h: noteSize, rot: 0 }, prop, u, {}) + '</g>');
+                        parts.push('<g class="sp-wing-note" transform="translate(' + n(cx) + ' ' +
+                            n(y + nh / 2) + ')">' +
+                            propInner({ x: 0, y: 0, w: nw, h: nh, rot: 0 }, prop, u, {}) + '</g>');
+                        y += nh + gap;
                     }
-                    var lines = wrapWords(note.text || '', 15);
                     lines.forEach(function (line, i) {
                         parts.push('<text class="sp-wing-note-label" x="' + n(cx) + '" y="' +
-                            n(cy + noteSize * 0.75 + fs * 0.85 * (i + 1)) + '" font-size="' + n(fs * 0.66) +
+                            n(y + lineH * (i + 0.8)) + '" font-size="' + n(fs * 0.66) +
                             '" text-anchor="middle">' + esc(line) + '</text>');
                     });
                 });
@@ -241,7 +260,7 @@
                     var edge = side === 'left' ? b.x : b.x + b.w;
                     var inner = side === 'left' ? wl[0][0][0] : wl[1][0][0];
                     parts.push('<text class="sp-wing-note-label" x="' + n((edge + inner) / 2) +
-                        '" y="' + n(b.y + head + room * slot) + '" font-size="' + n(fs * 0.66) +
+                        '" y="' + n(cursor[side] + lineH * 0.8) + '" font-size="' + n(fs * 0.66) +
                         '" text-anchor="middle">' +
                         esc(I18n.plural(dropped[side], '1 more, no room here', '{n} more, no room here')) +
                         '</text>');

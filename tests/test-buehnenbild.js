@@ -1384,7 +1384,11 @@ test('wing notes stop at the edge of the wing and say so', () => {
        Bauflucht, der fünfte unterhalb des Blattes — und sheets.js reichte
        dieselbe Liste an den Drucker weiter. Jetzt endet er an der Gassentiefe
        und sagt, wie viele nicht mehr hineinpassten. */
-    const notes = [1, 2, 3, 4, 5, 6].map((i) => ({ side: 'left', text: 'Zettel ' + i, propId: 'ill-mug' }));
+    /* Genug Zettel, dass keine Gasse sie fasst — die Zahl selbst ist nicht
+       die Zusage. Als die Bilder kleiner wurden, passten sechs plötzlich alle
+       hinein, und der Test schlug an, obwohl nichts kaputt war. */
+    const notes = Array.from({ length: 30 },
+        (_, i) => ({ side: 'left', text: 'Zettel ' + (i + 1), propId: 'ill-mug' }));
     const drawnIn = (depth) => {
         const stage = Object.assign({}, SP.DEFAULT_STAGE, {
             shape: 'rect', width: 12, depth: 9, wings: { show: true, inset: 1.2, depth: depth }
@@ -1401,7 +1405,7 @@ test('wing notes stop at the edge of the wing and say so', () => {
     assert.ok(flat.count >= 1, 'even a shallow wing holds one');
     assert.ok(normal.count > flat.count, 'a deeper wing holds no more');
     assert.ok(deep.count > normal.count, 'a still deeper wing holds no more');
-    assert.ok(deep.count < notes.length, 'six notes cannot all fit');
+    assert.ok(deep.count < notes.length, 'thirty notes cannot all fit');
     [flat, normal, deep].forEach((r) => assert.ok(r.told, 'the ones that did not fit are passed over in silence'));
 });
 
