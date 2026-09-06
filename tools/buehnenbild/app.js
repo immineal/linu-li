@@ -2088,7 +2088,12 @@
         function onKey(e) {
             if (e.key !== 'Escape') return;
             e.stopPropagation();
-            /* Ein Dialog darf Escape zuerst selbst verwerten — der Zeichner
+            /* Von innen nach außen: steht ein Erklärkasten offen, gilt Escape
+               ihm. Vorher hing dieser Zuhörer in der Fangphase und hielt das
+               Ereignis auf — der Dialog schloss sich, und der Kasten blieb
+               frei über der Seite stehen, mitten auf einem anderen Reiter. */
+            if ($('.sp-explainer')) { closeExplainer(); return; }
+            /* Dann darf der Dialog Escape selbst verwerten — der Zeichner
                bricht damit den angefangenen Zug ab, statt alles wegzuwerfen. */
             if (config.onEscape && config.onEscape() === false) return;
             close();
@@ -2096,9 +2101,17 @@
 
         backdrop.addEventListener('click', function (e) {
             if (e.target === backdrop || e.target.dataset.close) { close(); return; }
-            // Shortcut buttons are run by the document-level handler; close up first
-            // so the modal's own key listener goes with it.
-            if (e.target.closest('[data-act]')) { close(); return; }
+            /* Knöpfe im Rumpf führen aus dem Dialog heraus; er schließt sich
+               vorher, damit sein Tastenzuhörer mitgeht. Vorher ging dabei
+               auch das Getippte verloren: wer den Namen ändert und dann
+               „Diese duplizieren" drückt, bekam die Kopie unter dem alten
+               Namen und keine Meldung. `onLeave` schreibt die Felder erst
+               weg. */
+            if (e.target.closest('[data-act]')) {
+                if (config.onLeave) config.onLeave(backdrop);
+                close();
+                return;
+            }
             var btn = e.target.closest('[data-action-index]');
             if (!btn) return;
             var action = config.actions[Number(btn.dataset.actionIndex)];
@@ -4129,8 +4142,27 @@
 
     function productionDialog() {
         var p = production();
+
+        /* Einmal geschrieben, zweimal gebraucht: beim Speichern und beim
+           Verlassen über einen der Knöpfe im Rumpf. */
+        function readFields(host) {
+            change(function () {
+                p.name = $('#spProdName', host).value.trim() || t('Untitled production');
+                p.subtitle = $('#spProdSub', host).value;
+                p.venue = $('#spProdVenue', host).value;
+                p.notes = $('#spProdNotes', host).value;
+                p.directions = $('#spProdDirections', host).value;
+                p.numbering = $('#spNumbering', host).value;
+                SP.setDirections(p.directions);
+            });
+        }
+
         openModal({
             title: t('Production'),
+            /* „Diese duplizieren" führt aus dem Dialog heraus. Wer vorher den
+               Namen geändert hatte, bekam die Kopie unter dem alten Namen und
+               keine Meldung — das Getippte war weg. */
+            onLeave: readFields,
             body: '<div class="sp-field"><label for="spProdName">' + esc(t('Name')) + '</label>' +
                 '<input type="text" id="spProdName" value="' + esc(p.name) + '"></div>' +
                 '<div class="sp-field"><label for="spProdSub">' + esc(t('Subtitle')) + '</label>' +
@@ -4168,17 +4200,7 @@
                 '</div>',
             actions: [{
                 label: t('Save'), primary: true,
-                onClick: function (body) {
-                    change(function () {
-                        p.name = $('#spProdName', body).value.trim() || t('Untitled production');
-                        p.subtitle = $('#spProdSub', body).value;
-                        p.venue = $('#spProdVenue', body).value;
-                        p.notes = $('#spProdNotes', body).value;
-                        p.directions = $('#spProdDirections', body).value;
-                        p.numbering = $('#spNumbering', body).value;
-                        SP.setDirections(p.directions);
-                    });
-                }
+                onClick: readFields
             }]
         });
     }
@@ -4746,7 +4768,22 @@
     function fitView() {
         var sc = scene();
         if (!sc) return;
-        ui.view = Object.assign({}, SPPlan.build(planSettings(sc)).view);
+        var view = Object.assign({}, SPPlan.build(planSettings(sc)).view);
+        /* Der Ausschnitt richtete sich allein nach dem Bühnenumriss. Ein
+           Requisit, das neben der Bühne steht, lag damit hinter dem Rand der
+           Zeichenfläche — unsichtbar wegen `overflow: hidden`, mit der Maus
+           nicht mehr zu fassen, und „Einpassen" holte es nicht zurück. Jetzt
+           nimmt der Ausschnitt alles mit, was in der Szene steht. */
+        (sc.placements || []).forEach(function (p) {
+            var hw = Math.max(p.w, p.h) / 2;
+            var x0 = Math.min(view.x, p.x - hw);
+            var y0 = Math.min(view.y, p.y - hw);
+            view.w = Math.max(view.x + view.w, p.x + hw) - x0;
+            view.h = Math.max(view.y + view.h, p.y + hw) - y0;
+            view.x = x0;
+            view.y = y0;
+        });
+        ui.view = view;
         applyView();
         renderOverlay();
     }
@@ -5560,7 +5597,20 @@
         });
 
         backdrop.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') { close(); return; }
+            if (e.key === 'Escape') {
+                /* Steht ein Erklärkasten offen, gilt Escape ihm — von innen
+                   nach außen. Vorher schloss es beide auf einmal. */
+                if ($('.sp-explainer')) { closeExplainer(); return; }
+                /* Und dann dasselbe wie „Später einrichten": beides sind
+                   Abbruchgesten. Vorher rettete die eine den Entwurf und die
+                   andere warf ihn weg, ohne zu fragen — nach drei Feldern und
+                   zwei Schritten stand die Produktion wieder auf
+                   „Unbenannte Produktion". */
+                readStep();
+                keepDraft();
+                close();
+                return;
+            }
             /* Eingabetaste in einem Feld schaltet weiter. In einem Formular
                erwartet das jeder; ohne es muss man zur Maus greifen. */
             if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' &&
