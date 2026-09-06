@@ -4553,9 +4553,12 @@
                 ui.inspector = 'item';
                 renderCanvas(true);
                 renderInspector();
-                return;
-            }
-            if (ui.selection.indexOf(id) === -1) {
+                /* Abgewählt heißt: nichts zu ziehen. Dazugenommen heißt: ziehen
+                   wie sonst auch — das Handbuch verspricht „beim Ziehen macht
+                   Shift das Raster feiner", und wer Shift schon hält, bevor er
+                   aufsetzt, zog vorher gar nicht. */
+                if (at !== -1) return;
+            } else if (ui.selection.indexOf(id) === -1) {
                 ui.selection = [id];
                 ui.inspector = 'item';
                 renderCanvas(true);
@@ -4563,11 +4566,15 @@
             }
             var moving = selectedPlacements().filter(function (p) { return !p.locked; });
             if (!moving.length) return;
-            drag = {
-                mode: 'move',
-                start: point,
-                items: moving.map(function (p) { return { ref: p, x: p.x, y: p.y }; })
-            };
+            var items = moving.map(function (p) { return { ref: p, x: p.x, y: p.y }; });
+            /* Am Raster hängt der, den man anfasst. Vorher war es der erste in
+               der Auswahl: wer vier Stühle wählt und den zweiten anfasst,
+               rastete den ersten ein, und der Stuhl unter der Maus landete um
+               den Versatz daneben. Die Abstände untereinander bleiben. */
+            var grabbed = 0;
+            items.forEach(function (entry, i) { if (entry.ref.id === id) grabbed = i; });
+            if (grabbed) items.unshift(items.splice(grabbed, 1)[0]);
+            drag = { mode: 'move', start: point, items: items };
             svg.setPointerCapture(e.pointerId);
             e.preventDefault();
             return;
