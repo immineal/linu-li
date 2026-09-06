@@ -35,16 +35,21 @@ body {
     gap: 1rem;
     border-bottom: 1px solid var(--sp-line);
     background: var(--sp-panel);
-    padding: 0 1rem;
+    /* Ein Haar oben: die Leiste ist 52 px hoch, aber ihre untere Linie gehört
+       dazu. Ohne das Haar sitzt alles einen halben Bildpunkt zu hoch — an den
+       runden Zeichen sieht man es. */
+    padding: 1px 1rem 0;
     flex: 0 0 auto;
     min-height: 52px;
 }
 .sp-bar > * { display: flex; align-items: center; gap: 0.5rem; }
-/* Der Titel gibt als Erstes nach, damit die Reiter nie unter die Knöpfe
-   links rutschen — mit dem fünften Reiter wird es sonst eng. */
-.sp-bar-left { flex: 1 1 auto; min-width: 0; }
-.sp-tabs { flex: 0 0 auto; }
-.sp-bar-right { flex: 0 0 auto; margin-left: auto; }
+/* Die Reiter stehen in der Mitte zwischen dem, was links steht, und dem, was
+   rechts steht — gleich viel Luft nach beiden Seiten. Vorher wuchs die linke
+   Gruppe in den freien Platz hinein und schob sie nach rechts: 134 px Abstand
+   zum Zahnrad gegen 16 px zum Zustandstext. */
+.sp-bar-left { flex: 0 1 auto; min-width: 0; }
+.sp-tabs { flex: 1 1 auto; justify-content: center; }
+.sp-bar-right { flex: 0 0 auto; }
 .sp-bar-left > select { flex: 0 1 auto; min-width: 0; }
 .sp-bar-select { width: auto; min-width: 7rem; max-width: 14rem; }
 
@@ -1279,6 +1284,9 @@ body {
     text-overflow: ellipsis;
 }
 @media (max-width: 1100px) { .sp-hintbar { display: none; } }
+
+/* Knopf und sein Fragezeichen bleiben zusammen, auch wenn die Reihe umbricht. */
+.sp-with-why { display: inline-flex; align-items: center; flex: 0 0 auto; }
 
 .sp-why {
     appearance: none;

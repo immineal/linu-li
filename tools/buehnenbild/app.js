@@ -4323,8 +4323,11 @@
                 '<button class="sp-btn" data-act="duplicate-production">' + esc(t('Duplicate this one')) + '</button>' +
                 '<button class="sp-btn" data-act="load-example">' + esc(t('Open the example')) + '</button>' +
                 '<button class="sp-btn" data-act="export-json">' + esc(t('Export a backup')) + '</button>' +
-                '<button class="sp-btn" data-act="import-json">' + esc(t('Restore a backup')) + '</button>' +
-                why('store.restore') +
+                /* Das Fragezeichen gehört an seinen Knopf, nicht frei zwischen
+                   die Knöpfe: allein in der Reihe stand es wie ein Zeichen,
+                   das zu nichts gehört. */
+                '<span class="sp-with-why"><button class="sp-btn" data-act="import-json">' +
+                esc(t('Restore a backup')) + '</button>' + why('store.restore') + '</span>' +
                 (db.productions.length > 1
                     ? '<button class="sp-btn is-danger" data-act="delete-production">' + esc(t('Delete this production')) + '</button>' : '') +
                 '</div>',

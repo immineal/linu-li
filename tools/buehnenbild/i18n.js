@@ -964,7 +964,7 @@
         },
         'stage.width': {
             title: 'Breite',
-            body: 'Von Wand zu Wand, quer zur Blickrichtung des Publikums. Miss die wirklich bespielbare Fläche, nicht den Raum.'
+            body: 'Von Wand zu Wand, quer zur Blickrichtung des Publikums. Miss die wirklich bespielbare Fläche, nicht den Raum. Zwischen einem halben und sechzig Metern — darüber sagt der Planer Bescheid und bleibt beim größten Maß.'
         },
         'stage.depth': {
             title: 'Tiefe',
@@ -1008,7 +1008,7 @@
         },
         'stage.curtain.offset': {
             title: 'Abstand nach hinten',
-            body: 'Wie weit hinter der Bauflucht der Vorhang hängt. Null heißt: direkt auf der Bauflucht.'
+            body: 'Wie weit hinter der Bauflucht der Vorhang hängt. Null heißt: direkt auf der Bauflucht, weiter als bis zur Rückwand geht nicht. Mehr als sechs Züge fasst ein Plan nicht.'
         },
         'stage.directions': {
             title: 'Richtungen aus welcher Sicht?',
@@ -1080,7 +1080,7 @@
         },
         'item.size': {
             title: 'Größe',
-            body: 'Die echte Grundfläche in Metern. Ändert sie sich zwischen zwei Szenen, gilt das als Umstellung, praktisch bei einem Tisch, der ausgezogen wird. Bei den schräg gezeichneten Requisiten geht die zweite Kante immer mit. Sie sind maßstäblich gezeichnet und würden sonst verzerrt.'
+            body: 'Die echte Grundfläche in Metern, höchstens so groß wie die Bühne. Ändert sie sich zwischen zwei Szenen, steht das im Umbauplan mit dem neuen Maß — praktisch bei einem Tisch, der ausgezogen wird. Bei den schräg gezeichneten Requisiten geht die zweite Kante immer mit. Sie sind maßstäblich gezeichnet und würden sonst verzerrt.'
         },
         'item.label': {
             title: 'Eigene Beschriftung',
@@ -1198,7 +1198,7 @@
         },
         'print.showTitle': {
             title: 'Titel neben der Nummer',
-            body: 'Setzt Szenentitel und Ort neben die große Nummer. Aus, wenn das Blatt nur die Zeichnung tragen soll.'
+            body: 'Setzt den Szenentitel neben die große Nummer. Aus, wenn das Blatt nur die Zeichnung tragen soll. Ob der Ort dazukommt, ist ein eigenes Häkchen.'
         },
         'print.showFooter': {
             title: 'Fußzeile',
