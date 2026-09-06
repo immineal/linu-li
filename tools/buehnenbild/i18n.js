@@ -48,6 +48,8 @@
         'Undo': 'Rückgängig',
         'Redo': 'Wiederherstellen',
         'Backup': 'Back-up',
+        '1 means straight through, without act headings.':
+            '1 heißt durchgehend, ohne Aktüberschriften.',
         'Six curtains is as many as this plan holds.':
             'Mehr als sechs Vorhänge fasst ein Plan nicht.',
         'The drawing remembers sixty steps back, no further.':

@@ -5522,8 +5522,11 @@
                 draft.subtitle = $('#spWizSub', body).value.trim();
                 draft.venue = $('#spWizVenue', body).value.trim();
             } else if (step === 'structure') {
-                draft.hasActs = $('#spWizHasActs', body).value === 'yes';
+                /* Eine Zahl statt „ein Akt oder mehrere" und danach noch
+                   einmal die Zahl. Die Eins heißt durchgehend: ein Einakter
+                   braucht keine Überschrift, die nichts trennt. */
                 draft.actCount = Math.max(1, Math.min(12, parseInt($('#spWizActs', body).value, 10) || 1));
+                draft.hasActs = draft.actCount > 1;
                 draft.numbering = $('#spWizNumbering', body).value;
             } else if (step === 'stage') {
                 draft.shape = $('#spWizShape', body).value;
@@ -5597,14 +5600,13 @@
                     '<p class="sp-hint">' + esc(t('The name goes on every sheet you print.')) + '</p>';
             } else if (step === 'structure') {
                 body.innerHTML =
-                    '<div class="sp-field"><label for="spWizHasActs">' + esc(t('How is the evening divided?')) + '</label>' +
-                    '<select id="spWizHasActs"><option value="no"' + (draft.hasActs ? '' : ' selected') + '>' +
-                    esc(t('One act, straight through')) + '</option><option value="yes"' +
-                    (draft.hasActs ? ' selected' : '') + '>' + esc(t('Several acts')) + '</option></select></div>' +
-                    '<div class="sp-field" id="spWizActWrap"' + (draft.hasActs ? '' : ' hidden') + '>' +
-                    '<label for="spWizActs">' + esc(t('How many acts?')) + '</label>' +
-                    '<input type="number" id="spWizActs" min="1" max="12" value="' + draft.actCount + '"></div>' +
-                    '<div class="sp-field"><label for="spWizNumbering">' + esc(t('Scene numbering')) +
+                    '<div class="sp-field"><label for="spWizActs">' + esc(t('How many acts?')) + '</label>' +
+                    '<input type="number" id="spWizActs" min="1" max="12" value="' +
+                    (draft.hasActs ? draft.actCount : 1) + '">' +
+                    '<p class="sp-hint">' + esc(t('1 means straight through, without act headings.')) + '</p></div>' +
+                    '<div class="sp-field" id="spWizNumberWrap"' +
+                    (draft.hasActs ? '' : ' hidden') + '><label for="spWizNumbering">' +
+                    esc(t('Scene numbering')) +
                     why('scene.numbering') + '</label><select id="spWizNumbering">' +
                     '<option value="continuous"' + (draft.numbering === 'continuous' ? ' selected' : '') + '>' +
                     esc(t('Straight through (1, 2, 3 …)')) + '</option>' +
@@ -5612,8 +5614,11 @@
                     esc(t('Restart in each act (I.1, I.2, II.1 …)')) + '</option>' +
                     '<option value="per-act-roman"' + (draft.numbering === 'per-act-roman' ? ' selected' : '') + '>' +
                     esc(t('Restart in each act, roman (I.I, I.II, II.I …)')) + '</option></select></div>';
-                $('#spWizHasActs', body).addEventListener('change', function (e) {
-                    $('#spWizActWrap', body).hidden = e.target.value !== 'yes';
+                /* Ohne Akte gibt es nichts, worin die Zählung neu beginnen
+                   könnte — dann steht die Frage gar nicht erst da. */
+                $('#spWizActs', body).addEventListener('input', function (e) {
+                    $('#spWizNumberWrap', body).hidden =
+                        (parseInt(e.target.value, 10) || 1) <= 1;
                 });
             } else if (step === 'stage') {
                 body.innerHTML =
@@ -6010,22 +6015,21 @@
             change(function () {
                 var stage = editingStage();
                 stage.curtains = stage.curtains || [];
-                /* Jeder neue Zug legte sich fest auf drei Meter: zwanzig
-                   Vorhänge waren neunzehn Zeichnungen, neunzehn
-                   Beschriftungen und neunzehn Griffe auf demselben
-                   Bildpunkt, und nur der oberste war zu fassen. Jetzt teilen
-                   sie sich die Tiefe gleichmäßig — und mehr als sechs Züge
-                   hängt kein Haus, das hier plant. */
+                /* Ein Zug hängt an der Stelle, an der er im Haus hängt. Der
+                   Planer denkt sich dafür nichts aus: der Hauptvorhang steht
+                   kurz hinter der Bauflucht, jeder weitere auf demselben
+                   Vorschlag, und die Mannschaft trägt ihr wirkliches Maß ein.
+                   Begrenzt ist nur die Zahl — mehr als sechs Züge plant hier
+                   niemand, und zwanzig lagen ohnehin aufeinander. */
                 if (stage.curtains.length >= CURTAIN_MAX) {
                     toast(t('Six curtains is as many as this plan holds.'));
                     return;
                 }
                 var bound = SP.stageBound('curtain.offset', stage);
-                var slot = (bound.most - 0.4) / CURTAIN_MAX;
                 stage.curtains.push({
                     id: SP.uid('cur'),
                     name: stage.curtains.length ? t('Traveller {n}', { n: stage.curtains.length }) : t('House curtain'),
-                    offset: SP.round(SP.clamp(0.4 + stage.curtains.length * slot,
+                    offset: SP.round(SP.clamp(stage.curtains.length ? 3 : 0.4,
                         bound.least, bound.most), 3),
                     state: 'closed'
                 });
