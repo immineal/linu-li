@@ -4981,10 +4981,15 @@
     /* Ein gezeichnetes Zeichen wie alle anderen der Leiste, kein Schriftzeichen
        in einem Rahmen: das sah aus wie eine Hilfeschaltfläche von 2005 und
        fiel zwischen den Strichzeichnungen ringsum auf. */
+    /* Der Ring steht ein Stück weiter vom Haken ab, als er es von selbst täte:
+       eng beieinander lasen sich Kreis und Zeichen bei siebzehn Bildpunkten
+       als ein Klumpen. Der Haken behält dabei sein Maß, das Zeichen wird
+       insgesamt etwas größer. */
     var WHY_ICON = '<svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true">' +
         '<circle cx="8" cy="8" r="6.4"/>' +
+        '<g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.8">' +
         '<path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/>' +
-        '<path d="M7.75 12.05h.02"/></svg>';
+        '<path d="M7.75 12.05h.02"/></g></svg>';
 
     function why(key) {
         if (!SPI18n.explain(key)) return '';
