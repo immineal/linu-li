@@ -1162,7 +1162,7 @@
         },
         'print.showNotes': {
             title: 'Notizen mitdrucken',
-            body: 'Setzt die Notizen der Szene unter die Zeichnung. Standardmäßig aus, damit das Planblatt eine Zeichnung bleibt.'
+            body: 'Setzt die Notizen der Szene unter die Zeichnung. Standardmäßig aus, damit das Planblatt eine Zeichnung bleibt. Auf dem Blatt, das nur die Nummer trägt, stehen sie nicht — das ist dort der Sinn.'
         },
         'print.showPlace': {
             title: 'Ort mitdrucken',
@@ -1202,7 +1202,7 @@
         },
         'print.showFooter': {
             title: 'Fußzeile',
-            body: 'Stück, eigene Fußzeile und Seitenzahl am unteren Rand jedes Blatts.'
+            body: 'Stück, eigene Fußzeile und Seitenzahl am unteren Rand jedes Blatts. Auf dem Blatt, das nur die Nummer trägt, bleibt sie weg.'
         },
         'print.numberOutside': {
             title: 'Nur die Nummer, neben der Bühne',
