@@ -14,6 +14,17 @@ if ('serviceWorker' in navigator) {
         .catch(() => {});
 }
 
+// The manifest is what makes the site installable. Only the front page
+// carried a link to it, so a visitor who arrived straight at a tool was
+// never offered the install. index.html still has its own link in the
+// markup, which is better than waiting for this script — hence the check.
+if (!document.querySelector('link[rel="manifest"]')) {
+    const manifestLink = document.createElement('link');
+    manifestLink.rel = 'manifest';
+    manifestLink.href = '/assets/manifest.json';
+    document.head.appendChild(manifestLink);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Determine paths based on current location
     // Check if we are inside the 'tools' directory
