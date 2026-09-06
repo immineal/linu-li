@@ -553,6 +553,13 @@
         '{label} (worked out automatically)': '{label} (automatisch ermittelt)',
         '{title} (copy)': '{title} (Kopie)',
         'Delete “{title}” and its {n} props?': '„{title}“ mit {n} Requisiten löschen?',
+        'Delete “{title}” and the one prop in it?': '„{title}“ mit dem einen Requisit darin löschen?',
+        'Delete scene {label} and the one prop in it?': 'Szene {label} mit dem einen Requisit darin löschen?',
+        '{title} (one prop)': '{title} (ein Requisit)',
+        '{cols} by {rows}, one scene': '{cols} × {rows}, eine Szene',
+        'Delete “{name}” with its one scene?': '„{name}“ mit seiner einen Szene löschen?',
+        'This prop stands in one place across all your productions. Deleting it leaves that place empty. Carry on?':
+            'Dieses Requisit steht an einer Stelle über alle deine Produktionen. Beim Löschen bleibt diese Stelle leer. Trotzdem löschen?',
         'Delete scene {label} and its {n} props?': 'Szene {label} mit {n} Requisiten löschen?',
         'this scene': 'diese Szene',
         'Props keep their identity, so the change list will say “moved” rather than “struck and brought back on”.':
@@ -1025,7 +1032,7 @@
         },
         'scene.labels': {
             title: 'Beschriftung im Plan',
-            body: 'Was neben jedem Requisit im Plan steht. „Nummern“ ist am ruhigsten und passt zu einem Blatt, das nur die Zeichnung zeigt; „Requisitennamen“ ist ohne Nachschlagen lesbar, wird aber bei vollen Bühnen eng.'
+            body: 'Was neben jedem Requisit im Plan steht. „Keine Beschriftung“ ist am ruhigsten und passt zu einem Blatt, das nur die Zeichnung zeigt; „Requisitennamen“ ist ohne Nachschlagen lesbar, wird aber bei vollen Bühnen eng. „Nur eigene Beschriftung“ zeigt allein, was du selbst hineingeschrieben hast, „Name und Beschriftung“ beides.'
         },
         'scene.ghosts': {
             title: 'Vorige Szene andeuten',

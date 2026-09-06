@@ -1498,7 +1498,21 @@ body {
     font-weight: 500;
     letter-spacing: -0.02em;
 }
-.sp-plan-sheet-sub { font-size: 3.4mm; color: #554d44; margin-left: auto; white-space: nowrap; }
+/* Der Ortsname stand mit `nowrap` und ohne Grenze rechts neben dem Titel und
+   lief bei einem langen Namen über den Blattrand hinaus. Er bekommt jetzt
+   höchstens die halbe Zeile und endet dort mit einem Auslassungszeichen —
+   abgeschnitten sieht man wenigstens, dass da mehr steht. */
+.sp-plan-sheet-sub {
+    font-size: 3.4mm;
+    color: #554d44;
+    margin-left: auto;
+    white-space: nowrap;
+    max-width: 50%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 1 auto;
+    min-width: 0;
+}
 .sp-plan-sheet-plan { flex: 1 1 auto; min-height: 0; position: relative; }
 .sp-plan-sheet-plan > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* Bloßes Blatt: weiße Bühne, kein Grauschleier — so liegen die Vorlagen. */

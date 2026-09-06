@@ -28,8 +28,8 @@
        darauf beruht der ganze Fundus. Unter jedes Sofa noch „Sofa" zu
        schreiben arbeitet dagegen: es macht den Plan voll und sagt nichts, was
        das Bild nicht schon sagt. Geschrieben steht deshalb nur, was jemand
-       selbst hingeschrieben hat. Katalognamen, Nummern und beides zusammen
-       stehen weiter in der Auswahl über dem Plan. */
+       selbst hingeschrieben hat. Katalognamen und beides zusammen stehen
+       weiter in der Auswahl über dem Plan; Nummern gibt es dort nicht mehr. */
     var ui = {
         tab: 'scenes',
         inspector: 'props',
@@ -2193,10 +2193,13 @@
         if (!target) return;
         var proceed = !target.placements.length ||
             window.confirm(target.title
-                ? t('Delete “{title}” and its {n} props?',
-                    { title: target.title, n: target.placements.length })
-                : t('Delete scene {label} and its {n} props?',
-                    { label: SP.sceneNumbers(p)[target.id].label, n: target.placements.length }));
+                ? SPI18n.plural(target.placements.length,
+                    'Delete “{title}” and the one prop in it?',
+                    'Delete “{title}” and its {n} props?', { title: target.title })
+                : SPI18n.plural(target.placements.length,
+                    'Delete scene {label} and the one prop in it?',
+                    'Delete scene {label} and its {n} props?',
+                    { label: SP.sceneNumbers(p)[target.id].label }));
         if (!proceed) return;
         change(function () {
             var index = p.scenes.indexOf(target);
@@ -2347,7 +2350,8 @@
             body: '<div class="sp-field"><label for="spCopySource">' + esc(t('Take the layout from')) + '</label>' +
                 '<select id="spCopySource">' + others.map(function (s) {
                     return '<option value="' + esc(s.id) + '">' + esc(numbers[s.id].label) + ' · ' +
-                        esc(t('{title} ({n} props)', { title: s.title || t('Untitled scene'), n: s.placements.length })) + '</option>';
+                        esc(SPI18n.plural(s.placements.length, '{title} (one prop)', '{title} ({n} props)',
+                            { title: s.title || t('Untitled scene') })) + '</option>';
                 }).join('') + '</select></div>' +
                 '<div class="sp-field"><label for="spCopyMode">' + esc(t('And')) + '</label>' +
                 '<select id="spCopyMode">' +
@@ -3139,7 +3143,9 @@
     function deleteCustomProp(id) {
         var uses = usageEverywhere(id);
         var message = uses
-            ? t('This prop stands in {n} places across all your productions. Deleting it leaves those places empty. Carry on?', { n: uses })
+            ? SPI18n.plural(uses,
+                'This prop stands in one place across all your productions. Deleting it leaves that place empty. Carry on?',
+                'This prop stands in {n} places across all your productions. Deleting it leaves those places empty. Carry on?')
             : t('Delete this prop?');
         if (!window.confirm(message)) return;
         change(function () {
@@ -3896,8 +3902,9 @@
                 [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4], [5, 5], [6, 4]].map(function (g) {
                     return '<option value="' + g[0] + 'x' + g[1] + '"' +
                         (o.overviewCols === g[0] && o.overviewRows === g[1] ? ' selected' : '') + '>' +
-                        esc(t('{cols} by {rows}, {n} scenes',
-                            { cols: g[0], rows: g[1], n: g[0] * g[1] })) + '</option>';
+                        esc(SPI18n.plural(g[0] * g[1], '{cols} by {rows}, one scene',
+                            '{cols} by {rows}, {n} scenes',
+                            { cols: g[0], rows: g[1] })) + '</option>';
                 }).join('') +
                 '<option value="custom"' + (isCustomGrid(o) ? ' selected' : '') + '>' +
                 esc(t('Something else')) + '</option></select></div>' +
@@ -4176,7 +4183,9 @@
     function deleteProduction() {
         if (db.productions.length < 2) return;
         var p = production();
-        if (!window.confirm(t('Delete “{name}” with its {n} scenes?', { name: p.name, n: p.scenes.length }))) return;
+        if (!window.confirm(SPI18n.plural(p.scenes.length,
+        'Delete “{name}” with its one scene?',
+        'Delete “{name}” with its {n} scenes?', { name: p.name }))) return;
         change(function () {
             db.productions = db.productions.filter(function (x) { return x.id !== p.id; });
             db.activeId = db.productions[0].id;
