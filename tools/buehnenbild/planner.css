@@ -1337,7 +1337,12 @@ body {
 /* Nur im Erklär-Knopf füllt das Zeichen die Fläche. Frei stehend — etwa im
    Hilfeknopf der Leiste — behält es das Maß aller anderen Zeichen. */
 .sp-why > .sp-why-icon { width: 100%; height: 100%; }
-.sp-why-icon { stroke-width: 1.5; }
+/* Dünner als die anderen Zeichen: das Fragezeichen steht neben Text, nicht
+   zwischen Zeichen. Mit der Strichstärke der Werkzeugleiste stach es aus einer
+   Zeile heraus wie ein Ausrufezeichen — im Drucken-Reiter, wo zwanzig davon
+   untereinander stehen, besonders. Ein Viertel weniger legt es auf das
+   Gewicht der Schrift daneben. */
+.sp-why-icon { stroke-width: 1.12; }
 
 /* Steht das Fragezeichen neben einer Überschrift, ist es kein Wort in deren
    Zeile, sondern ein Zeichen daneben: die beiden bilden zusammen eine Reihe,

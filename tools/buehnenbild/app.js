@@ -4983,7 +4983,7 @@
        insgesamt etwas größer. */
     var WHY_ICON = '<svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true">' +
         '<circle cx="8" cy="8" r="6.4"/>' +
-        '<g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.8">' +
+        '<g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.35">' +
         '<path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/>' +
         '<path d="M7.75 12.05h.02"/></g></svg>';
 
