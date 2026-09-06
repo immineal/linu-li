@@ -1732,8 +1732,12 @@
                    das Maß des Stücks und nicht seinen Platz. */
                 lengthNum({ id: 'spItemY', bind: 'item.upstage', label: t('Back from the front'),
                     value: out.frontY - p.y }),
+                /* Ein Zehntelgrad Schrittweite, weil frei gedreht auch
+                   Zehntelgrade herauskommen. Mit `step="1"` stand 38° im Feld,
+                   während das Modell 37,6° hielt und der Plan auch so
+                   gezeichnet wurde. */
                 { id: 'spItemRot', bind: 'item.rot', label: t('Turned (°)'), why: why('item.rot'),
-                  value: p.rot || 0, step: 1 }
+                  value: SP.round(p.rot || 0, 1), step: 0.1 }
             ]) +
             numRow([
                 lengthNum({ id: 'spItemW', bind: 'item.w', label: t('Wide'), value: p.w, min: 0.05 }),
@@ -4588,10 +4592,12 @@
             }
             target.rot = SP.normaliseAngle(angle);
             setNodeTransform(itemNode(target.id), target);
-            drag.badge = Math.round(target.rot) + '°';
+            /* Auf ein Zehntel wie das Zahlenfeld: gerundet stand 38° am
+               Schild, während 37,6° gedreht wurde. */
+            drag.badge = SP.round(target.rot, 1) + '°';
             renderOverlay();
             refreshItemReadouts();
-            $('#spPointerReadout').textContent = t('Turned {n}°', { n: Math.round(target.rot) });
+            $('#spPointerReadout').textContent = t('Turned {n}°', { n: SP.round(target.rot, 1) });
             setModifierHint('rotate');
             return;
         }
@@ -4615,7 +4621,7 @@
             renderOverlay();
             refreshItemReadouts();
             $('#spPointerReadout').textContent = SP.formatLength(arrow.w) + ', ' +
-                t('Turned {n}°', { n: Math.round(arrow.rot) });
+                t('Turned {n}°', { n: SP.round(arrow.rot, 1) });
             setModifierHint('move');
             return;
         }
@@ -4760,10 +4766,30 @@
 
     var pendingDragState = null;
 
+    /* Ein Wisch auf dem Trackpad erzeugt Dutzende Radrasten. Ohne Grenze fiel
+       der Ausschnitt nach 88 davon unter einen halben Millimeter, wurde beim
+       Runden auf drei Stellen zu `0 0` — und die Zeichenfläche war leer, ohne
+       Weg zurück außer „Einpassen". Nach oben genauso: irgendwann ist die
+       Bühne ein Punkt in der Mitte. */
+    function zoomLimit(sc) {
+        var b = SP.stageOutline(stageOf(sc || scene())).bounds;
+        var widest = Math.max(b.w, b.h);
+        return { least: widest / 200, most: widest * 12 };
+    }
+
+    function holdZoom(factor) {
+        var limit = zoomLimit();
+        var wide = ui.view.w * factor;
+        if (wide < limit.least) return limit.least / ui.view.w;
+        if (wide > limit.most) return limit.most / ui.view.w;
+        return factor;
+    }
+
     function onCanvasWheel(e) {
         if (!ui.view) return;
         e.preventDefault();
-        var factor = e.deltaY > 0 ? 1.12 : 1 / 1.12;
+        var factor = holdZoom(e.deltaY > 0 ? 1.12 : 1 / 1.12);
+        if (factor === 1) return;
         var point = stagePoint(e);
         ui.view.x = point.x - (point.x - ui.view.x) * factor;
         ui.view.y = point.y - (point.y - ui.view.y) * factor;
@@ -4775,6 +4801,8 @@
 
     function zoomBy(factor) {
         if (!ui.view) return;
+        factor = holdZoom(factor);
+        if (factor === 1) return;
         var cx = ui.view.x + ui.view.w / 2;
         var cy = ui.view.y + ui.view.h / 2;
         ui.view.w *= factor;
@@ -6035,7 +6063,15 @@
             });
             break;
         }
-        case 'item.rot': sel.forEach(function (p) { p.rot = SP.normaliseAngle(parseFloat(value) || 0); }); break;
+        case 'item.rot': {
+            /* Wie bei Quer, Hinten, Breit und Tief: Unsinn lässt den alten
+               Wert stehen. Nur hier machte `parseFloat('abc') || 0` aus einer
+               Drehung von 45° eine von 0°, und ein leeres Feld ebenso. */
+            var typed = parseFloat(value);
+            if (isNaN(typed)) break;
+            sel.forEach(function (p) { p.rot = SP.normaliseAngle(typed); });
+            break;
+        }
         case 'item.w': {
             var wLimit = propLimits();
             sel.forEach(function (p) {
