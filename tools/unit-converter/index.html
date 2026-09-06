@@ -7,10 +7,9 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     <style>
-        /* Fix 2: Custom Flex Layout to center the Equals sign correctly */
         .converter-layout {
             display: flex;
-            align-items: center;
+            align-items: flex-start; /* Beschriftungszeilen oben bündig */
             gap: 2rem;
         }
         
@@ -19,10 +18,42 @@
             width: 100%; /* Ensures inputs take full width inside flex item */
         }
 
+        /* Das Gleichheitszeichen soll auf Höhe der beiden Wertefelder stehen.
+           Statt es mit einem festen Pixelwert dorthin zu schieben, bekommt
+           seine Spalte denselben Aufbau wie eine Feldspalte: eine unsichtbare
+           Beschriftung darüber und darunter ein Kasten mit denselben
+           senkrechten Maßen wie ein Eingabefeld. Ändern sich Innenabstand,
+           Rahmen oder Schriftgröße der Felder, wandert das Zeichen mit. */
+        .equals-column label {
+            visibility: hidden;
+        }
+
         .equals-sign {
+            position: relative;
+            width: 2rem;                     /* Platz für das Zeichen selbst */
+            padding: 0.8rem 0;               /* wie input in style.css */
+            border: 1px solid transparent;   /* wie input, nur unsichtbar */
+            font-size: 1.5rem;               /* wie die Wertefelder */
+            font-family: var(--font-mono);   /* wie die Wertefelder */
+            line-height: normal;             /* wie im Feld, nicht die 1.6 der Seite */
+        }
+
+        /* Ein schmalloses Leerzeichen: unsichtbar, spannt aber die Zeile eines
+           Wertefeldes auf. Der Kasten ist damit exakt so hoch wie ein Feld —
+           auch dann, wenn die Systemschrift eine andere Zeilenhöhe mitbringt. */
+        .equals-strut {
+            font-size: 1.5rem;
+        }
+
+        .equals-glyph {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            font-family: var(--font-body);
             font-size: 2rem;
+            line-height: 1;
             opacity: 0.5;
-            padding-top: 1rem; /* Visual alignment with inputs */
             user-select: none;
         }
 
@@ -30,11 +61,26 @@
         @media (max-width: 768px) {
             .converter-layout {
                 flex-direction: column;
+                align-items: stretch;
                 gap: 1rem;
             }
+            /* Übereinander gestapelt gibt es keine Feldhöhe mehr zu treffen:
+               das Zeichen steht für sich zwischen den beiden Spalten, wie
+               bisher um eine Vierteldrehung gekippt. */
+            .equals-column {
+                align-self: center;
+            }
+            .equals-column label,
+            .equals-strut {
+                display: none;
+            }
             .equals-sign {
-                padding-top: 0;
-                transform: rotate(90deg); /* Optional: rotates = to || if preferred, or keep as = */
+                padding: 0;
+                border: 0;
+                height: 2rem;
+            }
+            .equals-glyph {
+                transform: rotate(90deg);
             }
         }
     </style>
@@ -79,7 +125,10 @@
                     </div>
 
                     <!-- EQUALS ICON -->
-                    <div class="equals-sign">=</div>
+                    <div class="equals-column" aria-hidden="true">
+                        <label>&nbsp;</label>
+                        <div class="equals-sign"><span class="equals-strut">&#8203;</span><span class="equals-glyph">=</span></div>
+                    </div>
 
                     <!-- TO (Right Side) -->
                     <div class="input-group">
