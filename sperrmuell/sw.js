@@ -16,7 +16,17 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      // Only this app's own caches. linu.li serves a second worker from the
+      // site root (/sw.js) with its own cache, on this same origin, and this
+      // line used to delete it — so opening the map wiped whatever the
+      // toolbox had stored for offline use. The root worker has the matching
+      // restriction; without both, the two of them take turns clearing each
+      // other out.
+      .then((keys) => Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME && key.startsWith("sperrmuell-"))
+          .map((key) => caches.delete(key)),
+      ))
       .then(() => self.clients.claim()),
   );
 });

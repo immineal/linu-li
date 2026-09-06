@@ -119,6 +119,46 @@ test('the vendored libraries keep their year, and only they', () => {
         'directory is governed by its own file');
 });
 
+test('the manifest is not held for a month', () => {
+    /* Es entscheidet Name, Symbol und Startseite der installierten App.
+       Bilder und Schriften behalten ihr Jahr — die sind zahlreich und
+       ändern sich nicht. */
+    const block = htaccess.match(/<Files "manifest\.json">[\s\S]*?<\/Files>/g) || [];
+    assert.ok(block.some((b) => /Cache-Control "no-cache"/.test(b)),
+        'manifest.json is not set to no-cache');
+    assert.ok(block.some((b) => /ExpiresActive Off/.test(b)),
+        'mod_expires still writes an Expires header a month out next to it');
+});
+
+/* ------------------------------- 3b. der zweite Worker auf derselben Herkunft */
+
+test('the Sperrmüll map deletes only its own caches too', () => {
+    /* Die Gegenrichtung zu der Prüfung weiter oben. Löscht einer der beiden
+       fremde Caches, räumen sie sich abwechselnd gegenseitig ab — wer die
+       Karte aufmacht, verliert den Offline-Bestand der Toolbox. */
+    const sperr = lies('sperrmuell/sw.js');
+    assert.ok(/startsWith\("sperrmuell-"\)/.test(sperr),
+        'sperrmuell/sw.js deletes every cache that is not its own, /sw.js included');
+});
+
+test('the map keeps its hashed bundles and revalidates its dates', () => {
+    const assets = lies('sperrmuell/assets/.htaccess');
+    assert.ok(/max-age=31536000, immutable/.test(assets),
+        'the content-hashed bundles do not get the year they have earned');
+    const daten = lies('sperrmuell/data/.htaccess');
+    assert.ok(/Cache-Control "no-cache"/.test(daten),
+        'the collection dates are held for a month — in January that means last ' +
+        "year's dates");
+});
+
+test('the map\'s own worker is not caught by the year', () => {
+    /* sperrmuell/sw.js liegt eine Ebene über assets/ und muss die
+       no-cache-Regel aus der Wurzel behalten. */
+    const assets = lies('sperrmuell/assets/.htaccess');
+    assert.ok(!/sw\.js/.test(assets.replace(/#[^\n]*/g, '')),
+        'sperrmuell/assets/.htaccess reaches the worker with a live directive');
+});
+
 /* ---------------------------------------- 4. grün geprüft, dann hochgeladen */
 
 test('the deploy waits for the test run', () => {
