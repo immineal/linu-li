@@ -165,7 +165,9 @@ jobs:
             ':(exclude)package.json' ':(exclude)package-lock.json' \
             ':(exclude).gitignore' ':(exclude)start_server.js' \
             ':(exclude)test*.js' ':(exclude)test*.py' \
-            ':(exclude)assets/update-note.txt' || true)
+            ':(exclude)assets/update-note.txt' \
+            ':(exclude)CONTRIBUTING.md' ':(exclude)SECURITY.md' \
+            ':(exclude)CODE_OF_CONDUCT.md' || true)
 
           if [ -z "$GEAENDERT" ]; then
             echo "::notice::nothing the website serves has changed since $LIVE — no note needed, no prompt"
@@ -223,6 +225,7 @@ jobs:
           rm -f test.js test_*.js test-*.js test*.py test*.html test*.png
           rm -f package.json package-lock.json README.md .gitignore start_server.js
           rm -f assets/update-note.txt
+          rm -f CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md
           find tools -type f \( \
             -name 'test.js' -o -name 'test_*.js' -o -name 'test-*.js' \
             -o -name '*.test.js' -o -name '*.spec.js' -o -name 'test-worker.html' \

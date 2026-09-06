@@ -59,6 +59,9 @@ No analytics, no ads, no cookies. Also works offline as a PWA.
 - **Aspect Ratio** — calc dimensions for video/images
 - **Color Tools** — picker, converter, WCAG contrast checker
 
+### Maps
+- **Sperrmüll Bonn** — which streets in Bonn get a bulky-waste collection on which day, drawn from the city's open data (185 dates for 2026). Lives under `/sperrmuell` as a separate app with its own build, its own service worker and its own offline cache, so the map still comes up on a phone with no signal.
+
 ---
 
 ## Stack

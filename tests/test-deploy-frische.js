@@ -123,6 +123,26 @@ test('a deploy that changes the website has to say what changed', () => {
         'assets/update-note.txt is gone');
 });
 
+test('the two lists of what is not served agree', () => {
+    /* Der Strip-Schritt sagt, was nicht hochgeladen wird. Die Notiz-Prüfung
+       sagt, was als "ausgeliefert" zählt. Laufen sie auseinander, verlangt
+       eine reine Doku-Änderung einen Hinweis für etwas, das kein Besucher zu
+       sehen bekommt — und niemand versteht, warum der Deploy abbricht. */
+    const strip = (deploy.match(/^\s*rm -f (.+)$/gm) || [])
+        .flatMap((z) => z.replace(/^\s*rm -f /, '').trim().split(/\s+/))
+        .filter((name) => !name.includes('*') && !name.startsWith('assets/'));
+
+    /* Die Ausschlüsse sind Muster, keine Namen: `test*.js` deckt `test.js`
+       mit ab. Wörtlich zu vergleichen meldete genau das als Lücke. */
+    const muster = [...deploy.matchAll(/':\(exclude\)([^']+)'/g)]
+        .map(([, wert]) => new RegExp('^' +
+            wert.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$'));
+    const fehlend = strip.filter((name) => !muster.some((m) => m.test(name)));
+    assert.deepStrictEqual(fehlend, [],
+        'the strip step removes these before upload, but the note check still counts ' +
+        'them as files the website serves: ' + fehlend.join(', '));
+});
+
 test('the deploy fetches enough history for both checks to work', () => {
     /* Beide scheitern lautlos an einem flachen Klon: der Live-Vergleich
        findet den Commit nicht und hält sich für nicht zuständig, und
