@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="de" data-frame="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bühnenbild-Planer | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css" />
+    <link rel="stylesheet" href="planner.css" />
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg" />
+  </head>
+  <body>
+    <main>
+      <div class="tool-header sp-visually-hidden">
+        <p>
+          Plane, wo in jeder Szene welches Requisit steht, und drucke daraus die
+          Grundrisse für die Bühne und den Umbauplan für die Mannschaft. Läuft
+          offline, speichert im Browser, lädt nichts hoch.
+        </p>
+      </div>
+
+      <div class="sp-app" id="spApp">
+        <!-- ------------------------------------------------------ top bar -->
+        <header class="sp-bar">
+          <div class="sp-bar-left">
+            <select id="spProductionSelect" class="sp-bar-select" data-no-save="1"
+                    data-i18n-attr="aria-label" aria-label="Production"></select>
+            <!-- Ein Zahnrad wie die anderen Zeichen der Leiste. Als Wort nahm
+                 es 102 px neben einem Auswahlfeld, das ohnehin die Produktion
+                 nennt. -->
+            <button class="sp-btn is-quiet" id="spProductionMenu"
+                    data-i18n-attr="title,aria-label" title="Production settings"
+                    aria-label="Production settings"><svg class="sp-icon" viewBox="0 0 16 16"
+                      aria-hidden="true"><path d="M6.61 3.20L6.61 1.24L9.39 1.24L9.39 3.20L9.62 3.27L10.41 3.62L11.79 2.24L13.76 4.21L12.38 5.59L12.49 5.80L12.80 6.61L14.76 6.61L14.76 9.39L12.80 9.39L12.73 9.62L12.38 10.41L13.76 11.79L11.79 13.76L10.41 12.38L10.20 12.49L9.39 12.80L9.39 14.76L6.61 14.76L6.61 12.80L6.38 12.73L5.59 12.38L4.21 13.76L2.24 11.79L3.62 10.41L3.51 10.20L3.20 9.39L1.24 9.39L1.24 6.61L3.20 6.61L3.27 6.38L3.62 5.59L2.24 4.21L4.21 2.24L5.59 3.62L5.80 3.51Z"/><circle cx="8" cy="8" r="2.5"/></svg></button>
+          </div>
+
+          <nav class="sp-tabs" role="tablist" data-i18n-attr="aria-label" aria-label="Sections">
+            <button class="sp-tab-btn" role="tab" data-tab="scenes" aria-selected="true" data-i18n>Scenes</button>
+            <button class="sp-tab-btn" role="tab" data-tab="stage" aria-selected="false" data-i18n>Stage</button>
+            <button class="sp-tab-btn" role="tab" data-tab="places" aria-selected="false" data-i18n>Places</button>
+            <button class="sp-tab-btn" role="tab" data-tab="props" aria-selected="false" data-i18n>Prop library</button>
+            <button class="sp-tab-btn" role="tab" data-tab="print" aria-selected="false" data-i18n>Print</button>
+          </nav>
+
+          <div class="sp-bar-right">
+            <span class="sp-status" id="spSaveState" data-i18n>Saved locally</span>
+            <button class="sp-btn is-quiet" id="spUndo"
+                    data-i18n-attr="title,aria-label" title="Undo (Ctrl+Z)"
+                    aria-label="Undo (Ctrl+Z)" disabled><svg class="sp-icon"
+                    viewBox="0 0 16 16" aria-hidden="true"><path
+                    d="M3 8h7a3.2 3.2 0 0 1 0 6.4H6M3 8l3.2-3.2M3 8l3.2 3.2"/></svg></button>
+            <button class="sp-btn is-quiet" id="spRedo"
+                    data-i18n-attr="title,aria-label" title="Redo (Ctrl+Shift+Z)"
+                    aria-label="Redo (Ctrl+Shift+Z)" disabled><svg class="sp-icon"
+                    viewBox="0 0 16 16" aria-hidden="true"><path
+                    d="M13 8H6a3.2 3.2 0 0 0 0 6.4h4M13 8L9.8 4.8M13 8l-3.2 3.2"/></svg></button>
+            <button class="sp-btn is-quiet" id="spGuide"
+                    data-i18n-attr="title,aria-label" title="Search the manual (Ctrl+K)"
+                    aria-label="Search the manual (Ctrl+K)"><svg class="sp-icon" viewBox="0 0 16 16"
+                      aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.4 10.4L14 14"/></svg></button>
+
+            <!-- Was man selten braucht. Passt die Leiste nicht mehr, wandert
+                 dieser Block in das Menü darunter — gemessen wird zur
+                 Laufzeit, nicht an einer festen Breite. -->
+            <span class="sp-bar-rare" id="spBarRare">
+              <button class="sp-btn" id="spBackup" data-i18n>Back-up</button>
+              <button class="sp-btn is-quiet" id="spFeedback" hidden
+                      data-i18n-attr="title" title="Suggest a prop or report a fault"
+                      data-i18n>Say something</button>
+              <button class="sp-btn is-quiet" id="spHelp"
+                      data-i18n-attr="title,aria-label" title="Help and setup"
+                      aria-label="Help and setup"><svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4"/><g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.35"><path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/><path d="M7.75 12.05h.02"/></g></svg></button>
+            </span>
+
+            <button class="sp-btn is-quiet sp-bar-more" id="spBarMore" hidden
+                    aria-haspopup="true" aria-expanded="false"
+                    data-i18n-attr="title,aria-label" title="More" aria-label="More"><svg
+                    class="sp-icon" viewBox="0 0 16 16" aria-hidden="true"><path
+                    d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg></button>
+          </div>
+        </header>
+
+        <div class="sp-panels">
+          <!-- ================================================ SCENES ==== -->
+          <section class="sp-panel is-active" id="spPanel-scenes" role="tabpanel">
+            <div class="sp-columns">
+              <aside class="sp-rail">
+                <div class="sp-rail-head">
+                  <h2 data-i18n>Running order</h2>
+                  <button class="sp-btn is-quiet" id="spAddAct" data-i18n-attr="title"
+                          title="Group the following scenes into a new act" data-i18n>Act +</button>
+                  <button class="sp-btn" id="spAddScene" data-i18n-attr="title"
+                          title="Add a scene to the running order" data-i18n>Scene +</button>
+                </div>
+                <div class="sp-scroll" id="spSceneList"></div>
+                <button class="sp-rail-grip" id="spRailGrip" type="button"
+                        data-i18n-attr="aria-label" aria-label="Drag to widen the running order"></button>
+              </aside>
+
+              <div class="sp-centre">
+                <!-- In der Leiste steht, was mit dieser Szene zu tun ist. Was
+                     die Ansicht betrifft, liegt an der Zeichnung selbst; was
+                     den Ort betrifft, steht im Szene-Bereich, wo der Ort
+                     eingestellt wird. -->
+                <div class="sp-toolbar">
+                  <!-- Nur noch die Auskunft, welche Szene auf dem Plan liegt.
+                       Umbenannt wird links in der Liste, per Doppelklick oder
+                       Stift — dort steht der Name ohnehin. -->
+                  <h2 class="sp-scene-name" id="spSceneTitle"></h2>
+                  <!-- Wo die Szene spielt, gehört neben ihren Namen und nicht
+                       in einen Bereich, den man erst aufklappen muss. -->
+                  <select id="spSceneWhere" class="sp-scene-where" data-bind="scene.placeId"
+                          data-i18n-attr="aria-label" aria-label="Plays in"></select>
+                  <span class="sp-sep"></span>
+                  <select id="spLabelMode" data-no-save="1" style="width: auto"
+                          data-i18n-attr="aria-label" aria-label="Plan labels">
+                    <option value="name" data-i18n>Prop names</option>
+                    <option value="custom" data-i18n>Written labels only</option>
+                    <option value="both" data-i18n>Name and label</option>
+                    <option value="none" data-i18n>No labels</option>
+                  </select>
+                  <button type="button" class="sp-why" data-explain="scene.labels" data-i18n-attr="aria-label" aria-label="What is this?"><svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4"/><g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.35"><path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/><path d="M7.75 12.05h.02"/></g></svg></button>
+                  <span class="sp-sep"></span>
+                  <button class="sp-btn" id="spCopyLayout" data-i18n>Copy layout from…</button>
+                </div>
+
+                <div class="sp-stage-host" id="spStageHost">
+                  <svg id="spCanvas" class="sp-plan" tabindex="0" role="application"
+                       data-i18n-attr="aria-label" aria-label="Stage ground plan"
+                       xmlns="http://www.w3.org/2000/svg"></svg>
+
+                  <!-- Die Handgriffe an der Zeichnung. Sie betreffen die
+                       Ansicht und das ganze Bild, nicht das einzelne Stück —
+                       deshalb liegen sie hier und nicht im Auswahl-Bereich. -->
+                  <div class="sp-canvas-tools">
+                    <span class="sp-with-why"><button class="sp-tool" id="spSnapToggle" data-i18n-attr="title,aria-label"
+                            title="Snap positions to the grid"
+                            aria-label="Snap positions to the grid"><svg class="sp-icon" viewBox="0 0 16 16"
+                        aria-hidden="true"><path d="M2 6H14M2 10H14M6 2V14M10 2V14"/></svg></button>
+                    <button type="button" class="sp-why" data-explain="scene.snap" data-i18n-attr="aria-label" aria-label="What is this?"><svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4"/><g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.35"><path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/><path d="M7.75 12.05h.02"/></g></svg></button></span>
+                    <!-- Ein gestricheltes Kästchen: genau so steht die vorige
+                         Szene auch auf dem Plan. -->
+                    <span class="sp-with-why"><button class="sp-tool" id="spGhostToggle" data-i18n-attr="title,aria-label"
+                            title="Show where things stood in the previous scene"
+                            aria-label="Show where things stood in the previous scene"><svg class="sp-icon"
+                        viewBox="0 0 16 16" aria-hidden="true"><rect x="2.8" y="2.8" width="10.4" height="10.4"
+                        rx="1" stroke-dasharray="2.6 2"/></svg></button>
+                    <button type="button" class="sp-why" data-explain="scene.ghosts" data-i18n-attr="aria-label" aria-label="What is this?"><svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4"/><g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.35"><path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/><path d="M7.75 12.05h.02"/></g></svg></button></span>
+                    <!-- Die Achse gestrichelt wie die Mittellinie, links die
+                         Sache voll, rechts dieselbe hohl. Zwei Dreiecke, die
+                         auf die Achse zeigen, lasen sich bei fünfzehn Pixeln
+                         als ein schief stehendes Viereck. -->
+                    <span class="sp-with-why"><button class="sp-tool" id="spMirror" data-i18n-attr="title,aria-label"
+                            title="Flip the whole layout across the centre line"
+                            aria-label="Flip the whole layout across the centre line"><svg class="sp-icon"
+                        viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6V14.4" stroke-dasharray="2 2"/>
+                        <path d="M6.4 4.2H2.3v7.6h4.1Z" fill="currentColor" stroke="none"/>
+                        <path d="M9.6 4.2h4.1v7.6H9.6Z"/></svg></button>
+                    <button type="button" class="sp-why" data-explain="scene.mirror" data-i18n-attr="aria-label" aria-label="What is this?"><svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4"/><g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.35"><path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/><path d="M7.75 12.05h.02"/></g></svg></button></span>
+                  </div>
+
+                  <!-- Der Zoom gehört nicht zum Bild, sondern zum Fenster —
+                       deshalb unten rechts, aus dem Weg der Zeichnung und weg
+                       vom Maßstab, der unten links liegt. -->
+                  <div class="sp-canvas-zoom">
+                    <button class="sp-tool" id="spZoomIn" data-i18n-attr="title,aria-label"
+                            title="Zoom in" aria-label="Zoom in"><svg class="sp-icon" viewBox="0 0 16 16"
+                        aria-hidden="true"><circle cx="7" cy="7" r="4.4"/><path d="M10.3 10.3L14 14"/>
+                        <path d="M4.8 7H9.2M7 4.8V9.2"/></svg></button>
+                    <button class="sp-tool" id="spZoomOut" data-i18n-attr="title,aria-label"
+                            title="Zoom out" aria-label="Zoom out"><svg class="sp-icon" viewBox="0 0 16 16"
+                        aria-hidden="true"><circle cx="7" cy="7" r="4.4"/><path d="M10.3 10.3L14 14"/>
+                        <path d="M4.8 7H9.2"/></svg></button>
+                    <button class="sp-tool" id="spZoomFit" data-i18n-attr="title,aria-label"
+                            title="Fit the stage in the window"
+                            aria-label="Fit the stage in the window"><svg class="sp-icon" viewBox="0 0 16 16"
+                        aria-hidden="true"><path d="M2 5.5V2H5.5M10.5 2H14V5.5M14 10.5V14H10.5M5.5 14H2V10.5"/>
+                        <rect x="5" y="5" width="6" height="6"/></svg></button>
+                  </div>
+
+                  <p class="sp-canvas-note" id="spCanvasNote" hidden></p>
+                </div>
+
+                <div class="sp-statusbar">
+                  <span class="sp-readout" id="spPointerReadout">&nbsp;</span>
+                  <span class="sp-readout" id="spSelectionReadout"></span>
+                  <span class="sp-warn" id="spOffstageWarning"></span>
+                  <span class="sp-hintbar" id="spModifierHint"></span>
+                </div>
+              </div>
+
+              <aside class="sp-aside">
+                <button class="sp-aside-grip" id="spAsideGrip" type="button"
+                        data-i18n-attr="aria-label" aria-label="Drag to widen the panel"></button>
+                <div class="sp-aside-head">
+                  <div class="sp-seg" style="flex: 1 1 auto" role="tablist"
+                       data-i18n-attr="aria-label" aria-label="Inspector">
+                    <button role="tab" data-inspector="props" aria-selected="true" data-i18n>Props</button>
+                    <button role="tab" data-inspector="item" aria-selected="false" data-i18n>Selection</button>
+                    <button role="tab" data-inspector="scene" aria-selected="false" data-i18n>Scene</button>
+                  </div>
+                </div>
+
+                <div class="sp-scroll" id="spInspectorProps">
+                  <div class="sp-palette-head">
+                    <input type="search" id="spPropSearch" data-no-save="1"
+                           data-i18n-attr="placeholder,aria-label"
+                           placeholder="Search props" aria-label="Search props" />
+                    <select id="spPropCategory" data-no-save="1"
+                            data-i18n-attr="aria-label" aria-label="Prop category"></select>
+                    <p class="sp-hint" data-i18n>Drag a prop onto the stage, or click it to drop one in the middle.</p>
+                  </div>
+                  <div class="sp-palette" id="spPalette"></div>
+                </div>
+
+                <div class="sp-scroll" id="spInspectorItem" hidden></div>
+                <div class="sp-scroll" id="spInspectorScene" hidden></div>
+              </aside>
+            </div>
+          </section>
+
+          <!-- ================================================= STAGE ==== -->
+          <section class="sp-panel" id="spPanel-stage" role="tabpanel">
+            <div class="sp-work">
+              <div class="sp-work-main sp-pad sp-stage-main">
+                <div class="sp-stage-head">
+                  <h2 id="spStageHeading" data-i18n>Stage</h2>
+                  <p id="spStageIntro" data-i18n>Applies to every scene in this production.</p>
+                </div>
+                <div class="sp-shape-grid" id="spShapeGrid"></div>
+                <div class="sp-stage-preview">
+                  <div id="spStagePreview" style="height: 100%"></div>
+                </div>
+                <p class="sp-hint sp-stage-tip" data-i18n>Drag the dots to change a measurement. Hold Shift for finer steps.</p>
+              </div>
+              <div class="sp-work-side" id="spStageSide"></div>
+            </div>
+          </section>
+
+          <!-- ================================================ PLACES ==== -->
+          <section class="sp-panel" id="spPanel-places" role="tabpanel">
+            <div class="sp-work">
+              <div class="sp-work-main sp-pad">
+                <div class="sp-places-head">
+                  <h2 data-i18n>Places</h2>
+                  <button type="button" class="sp-why" data-explain="place.what" data-i18n-attr="aria-label" aria-label="What is this?"><svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4"/><g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.35"><path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/><path d="M7.75 12.05h.02"/></g></svg></button>
+                  <p data-i18n>Sets that come back through the evening. Each scene plays in one place.</p>
+                  <div class="sp-btn-row">
+                    <button class="sp-btn is-primary" id="spAddPlace" data-i18n>Add a place</button>
+                    <button type="button" class="sp-why" data-explain="place.set" data-i18n-attr="aria-label" aria-label="What is this?"><svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4"/><g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.35"><path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/><path d="M7.75 12.05h.02"/></g></svg></button>
+                  </div>
+                </div>
+                <div id="spPlaceList" class="sp-place-grid"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ================================================= PROPS ==== -->
+          <section class="sp-panel" id="spPanel-props" role="tabpanel">
+            <div class="sp-work">
+              <div class="sp-work-main sp-pad">
+                <div class="sp-measure is-wide">
+                  <h2 data-i18n>Prop library</h2>
+                  <div class="sp-btn-row" style="margin-bottom: 1rem">
+                    <input type="search" id="spLibrarySearch" data-no-save="1"
+                           data-i18n-attr="placeholder,aria-label"
+                           placeholder="Search the library" aria-label="Search the library"
+                           style="max-width: 16rem" />
+                    <select id="spLibraryCategory" data-no-save="1" style="width: auto"
+                            data-i18n-attr="aria-label" aria-label="Filter by category"></select>
+                    <button class="sp-btn is-primary" id="spDrawCustomProp" data-act="draw-custom-prop" data-i18n>Draw a prop</button>
+                    <button type="button" class="sp-why" data-explain="draw.open" data-i18n-attr="aria-label" aria-label="What is this?"><svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4"/><g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.35"><path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/><path d="M7.75 12.05h.02"/></g></svg></button>
+                    <button class="sp-btn" id="spAddCustomProp" data-act="add-custom-prop" data-i18n>Add your own prop</button>
+                  </div>
+                  <div class="sp-lib-grid" id="spLibraryGrid"></div>
+                </div>
+              </div>
+              <div class="sp-work-side sp-pad" id="spLibrarySide"></div>
+            </div>
+          </section>
+
+          <!-- ================================================= PRINT ==== -->
+          <section class="sp-panel" id="spPanel-print" role="tabpanel">
+            <div class="sp-work">
+              <div class="sp-work-side is-left sp-pad" id="spPrintOptions"></div>
+              <div class="sp-work-main sp-print-preview" id="spPrintPreview"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <!-- The sheets that actually go to the printer live outside the app so
+         the print stylesheet can hide everything else on the page. -->
+    <div id="spPrintPortal" hidden></div>
+
+    <script src="../../assets/js/layout.js"></script>
+    <script src="i18n.js"></script>
+    <script src="core.js"></script>
+    <script src="props.js"></script>
+    <script src="shapes.js"></script>
+    <script src="draw.js"></script>
+    <script src="guide.js"></script>
+    <script src="plan.js"></script>
+    <script src="sheets.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

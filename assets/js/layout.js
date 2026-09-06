@@ -10,6 +10,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if we are inside the 'tools' directory
     const inToolsDir = window.location.pathname.includes('/tools/');
     const rootPath = inToolsDir ? '../../' : './';
+
+    // A page can ask for a German frame with data-frame="de". Not every German
+    // page wants one: Impressum and Datenschutz are German documents that
+    // belong to the whole site, and their frame stays English with the rest.
+    const de = document.documentElement.getAttribute('data-frame') === 'de';
+    const say = (english, german) => (de ? german : english);
     
     // 2. Inject Header
     const headerHTML = `
@@ -17,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <nav>
             <a href="${rootPath}" class="logo-link">Tools for Everyone</a>
             <div style="display:flex; gap: 1.5rem; align-items: center;">
-                <button id="theme-toggle" class="theme-switch" aria-label="Toggle Dark Mode">
+                <button id="theme-toggle" class="theme-switch" aria-label="${say('Toggle Dark Mode', 'Zwischen hell und dunkel wechseln')}">
                     <div class="switch-track">
                         <div class="switch-thumb"></div>
                     </div>
@@ -33,18 +39,18 @@ document.addEventListener('DOMContentLoaded', () => {
         <!-- Donation Section -->
         <div style="margin-bottom: 1.5rem;">
             <a href="https://ko-fi.com/linuslinhof" target="_blank" rel="noopener noreferrer" class="donate-btn">
-                <span>☕</span> Buy me a coffee
+                <span>☕</span> ${say('Buy me a coffee', 'Spendier mir einen Kaffee')}
             </a>
         </div>
 
         <p style="margin: 0 auto; text-align: center;">
-            &copy; ${new Date().getFullYear()} Linus Linhof. Built for utility.
+            &copy; ${new Date().getFullYear()} Linus Linhof. ${say('Built for utility.', 'Gebaut, damit es etwas nützt.')}
         </p>
         
         <!-- Links with auto margins -->
         <p style="margin: 0.5rem auto 0; opacity: 0.7; text-align: center;">
-            <a href="${rootPath}impressum.html">Impressum / Legal</a> &bull; 
-            <a href="${rootPath}privacy.html">Privacy / Datenschutz</a>
+            <a href="${rootPath}impressum.html">${say('Impressum / Legal', 'Impressum')}</a> &bull; 
+            <a href="${rootPath}privacy.html">${say('Privacy / Datenschutz', 'Datenschutz')}</a>
         </p>
     </footer>
     <div id="toast-container" class="toast-container"></div>`;
@@ -178,13 +184,20 @@ function setupDropZone(dropZone, fileInput, onFilesSelected) {
     });
 }
 
+const PAGE_TITLE = document.title;
+
 function setupSEO() {
     // 1. Get Page Details
     const h1 = document.querySelector('h1');
     const descP = document.querySelector('.tool-header p') || document.querySelector('p'); // Fallback to first p
     
     // Default values if H1 is missing
-    const titleText = h1 ? h1.innerText + ' | Linus Linhof' : 'Linus Linhof Toolbox';
+    // An h1 can be present but render to nothing — the scene planner's wordmark
+    // collapses to 0x0, so innerText is empty and the tab was called "| Linus
+    // Linhof". Fall back to the page's own <title>, read once at load so a
+    // second pass never sees a title this function already rewrote.
+    const heading = (h1 && h1.innerText.trim()) || PAGE_TITLE.split('|')[0].trim();
+    const titleText = heading ? heading + ' | Linus Linhof' : 'Linus Linhof Toolbox';
     const descText = descP ? descP.innerText : 'A privacy-first suite of web utilities.';
     const currentUrl = window.location.href;
     

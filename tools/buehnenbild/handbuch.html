@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="de" data-frame="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Handbuch — Bühnenbild-Planer | Linus Linhof</title>
+    <link rel="stylesheet" href="../../assets/css/style.css" />
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg" />
+    <style>
+      /* Die Seite baut sich aus denselben Texten, die im Planer hinter den
+         Fragezeichen stehen. Nichts wird hier zweitgeschrieben, sonst laufen
+         Programm und Handbuch nach der ersten Änderung auseinander. */
+      h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2.5rem; }
+      .hb-lead { font-size: 1.05rem; max-width: 42em; }
+      .hb-search { margin: 1.5rem 0 0.5rem; }
+      /* Das Feld hing an keiner Regel: diese Seite lädt planner.css nicht, und
+         das Stylesheet der Website fasst nackte Eingabefelder nicht an. Es
+         stand weiß und in Arial auf einer dunklen Seite. */
+      .hb-search input {
+          width: 100%;
+          max-width: 32em;
+          padding: 0.6rem 0.75rem;
+          font-size: 1rem;
+          font-family: inherit;
+          color: var(--ink);
+          background: var(--input-bg);
+          border: 1px solid var(--border);
+          border-radius: 3px;
+      }
+      .hb-search input:focus { outline: none; border-color: var(--accent); }
+      .hb-search input::-webkit-search-cancel-button { filter: grayscale(1) opacity(0.6); }
+      .hb-count { font-size: 0.85rem; color: var(--text-secondary, #888); margin-top: 0.4rem; }
+      .hb-toc { columns: 2; column-gap: 2rem; max-width: 40em; padding-left: 1.1rem; }
+      .hb-entry { margin: 0 0 1.25rem; max-width: 46em; }
+      .hb-entry h3 { margin: 0 0 0.15rem; font-size: 1rem; }
+      .hb-where { font-size: 0.8rem; color: var(--accent); margin: 0 0 0.35rem; }
+      .hb-entry p.hb-body { margin: 0; }
+      .hb-keys { border-collapse: collapse; margin: 1rem 0; }
+      .hb-keys td { border-bottom: 1px solid var(--border); padding: 0.35rem 1.2rem 0.35rem 0; vertical-align: top; }
+      .hb-keys kbd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.85em; border: 1px solid var(--border);
+        border-radius: 3px; padding: 0.05em 0.4em; white-space: nowrap;
+      }
+      .hb-empty { color: var(--text-secondary, #888); }
+      @media print {
+        .hb-search, .hb-toc, nav, footer { display: none; }
+        .hb-entry { break-inside: avoid; }
+      }
+      @media (max-width: 700px) { .hb-toc { columns: 1; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="container">
+        <p><a href="./">&larr; Zurück zum Planer</a></p>
+        <h1>Handbuch</h1>
+        <p class="hb-lead">
+          Jede Einstellung des Planers steht hier mit dem, was sie auf dem
+          gedruckten Blatt bewirkt, und mit dem Weg dorthin. Im Planer selbst
+          findest du dasselbe über <kbd>Strg</kbd>+<kbd>K</kbd> oder das
+          Lupensymbol oben rechts.
+        </p>
+
+        <div class="hb-search">
+          <label for="hbQuery" class="sr-only">Im Handbuch suchen</label>
+          <input type="search" id="hbQuery" placeholder="Im Handbuch suchen"
+                 autocomplete="off" />
+          <p class="hb-count" id="hbCount"></p>
+        </div>
+
+        <h2>Schnellstart</h2>
+        <ol>
+          <li>Beim ersten Öffnen fragt der Planer, ob du ein konkretes Stück
+            planst. Sag ja, dann führt er dich durch Stück, Gliederung, Bühne,
+            Orte und Szenen. Nichts wird dabei für dich geraten.</li>
+          <li>Im Reiter <strong>Bühne</strong> stellst du die Form und die Maße
+            ein. Die Punkte im Bild lassen sich ziehen.</li>
+          <li>Im Reiter <strong>Szenen</strong> ziehst du Requisiten von rechts
+            auf die Bühne, Szene für Szene.</li>
+          <li>Im Reiter <strong>Drucken</strong> kommen zwei getrennte Sachen
+            heraus: die Pläne, eine Szene pro Blatt, und der Umbauplan als
+            Tabelle.</li>
+        </ol>
+
+        <h2>Schieber und Zahl</h2>
+        <p>
+          Ein Maß, das du nachgemessen hast, tippst du: Bühnenbreite und -tiefe,
+          Lage, Drehung, Quer und Tief eines Requisits sind Zahlenfelder. Einen
+          Schieber gibt es dort, wo man den Wert nicht kennt, sondern sieht,
+          wann er stimmt — bei dem, was ein Requisit aus sich selbst heraus
+          baut: Armlehnenbreite, Sprossenabstand, gerundete Ecken. Wo beides
+          steht, meinen beide denselben Wert und zeigen sofort, was das andere
+          getan hat; ein Zug am Schieber ist ein Schritt in der
+          Rückgängig-Liste, nicht hundert.
+        </p>
+        <p>
+          Was ein Requisit an Werten hat, hängt davon ab, was es ist. Ein Sofa
+          hat eine Armlehnenbreite, eine Leiter einen Sprossenabstand, ein
+          Teppich Fransen. Diese Stücke werden bei jeder Größe neu gerechnet,
+          in Bühnenmetern: die Armlehne bleibt 18 cm breit, ob das Sofa
+          1,40 m oder 2,40 m misst, und die Leiter bekommt Sprossen dazu,
+          statt gedehnte zu bekommen. Wer seine eigenen Möbel nachstellt,
+          braucht genau das.
+        </p>
+
+        <h2>Tastatur und Maus</h2>
+        <p>Ein guter Teil davon steht nirgends auf dem Bildschirm, darum hier:</p>
+        <table class="hb-keys">
+          <tbody>
+            <tr><td><kbd>Strg</kbd>+<kbd>K</kbd> oder <kbd>F1</kbd></td><td>Handbuch durchsuchen</td></tr>
+            <tr><td>Ziehen</td><td>Requisit verschieben</td></tr>
+            <tr><td><kbd>Shift</kbd> beim Ziehen</td><td>halbes Raster, feinere Schritte</td></tr>
+            <tr><td><kbd>Alt</kbd> beim Ziehen</td><td>frei, ohne Raster; an der Ecke: ohne die Regel des Requisits</td></tr>
+            <tr><td><kbd>Strg</kbd> beim Aufziehen</td><td>h&auml;lt das Verh&auml;ltnis, auch wo beide Kanten frei sind</td></tr>
+            <tr><td>Pfeiltasten</td><td>bei ausgerichtetem Raster ein halbes Feld, mit <kbd>Shift</kbd> ein Viertel; ohne Raster 5&nbsp;cm, mit <kbd>Shift</kbd> 2,5&nbsp;cm</td></tr>
+            <tr><td><kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd></td><td>Auswahl um 15&deg; drehen, vor oder zur&uuml;ck</td></tr>
+            <tr><td><kbd>M</kbd></td><td>Auswahl an der Mittellinie spiegeln</td></tr>
+            <tr><td><kbd>F</kbd></td><td>B&uuml;hne ins Fenster einpassen</td></tr>
+            <tr><td><kbd>Shift</kbd>+Klick</td><td>zur Auswahl hinzunehmen</td></tr>
+            <tr><td>Ziehen auf leerer Fläche</td><td>Auswahlrahmen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>A</kbd></td><td>alles auswählen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>C</kbd> / <kbd>V</kbd></td><td>kopieren und einsetzen</td></tr>
+            <tr><td><kbd>Entf</kbd></td><td>Auswahl löschen</td></tr>
+            <tr><td><kbd>Strg</kbd>+<kbd>Z</kbd></td><td>rückgängig</td></tr>
+            <tr><td>Mausrad</td><td>zoomen</td></tr>
+            <tr><td>Leertaste ziehen, mittlere Taste</td><td>Ansicht schieben</td></tr>
+            <tr><td>Doppelklick auf ein Requisit</td><td>Beschriftung ändern</td></tr>
+            <tr><td>Szenenzeilen ziehen</td><td>Reihenfolge ändern</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Auswahl aufheben, Dialog schließen</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Was sich ziehen lässt und was nicht</h2>
+        <p>
+          Nicht jedes Requisit lässt sich auf der Bühne aufziehen, und das ist
+          Absicht. Eine Bank wird nur länger, ein Bett nur breiter, eine
+          Klebemarke bleibt quadratisch, und was es nur in einer Größe gibt —
+          eine Tasse, ein Buch, eine Uhr — lässt sich gar nicht ziehen; dort
+          erscheint auch kein Griff. Bei einer Tür rechnet sich die Tiefe aus
+          der Breite, weil sie der Schwenkbereich des Flügels ist.
+        </p>
+        <p>
+          <strong>Verboten ist davon fast nichts.</strong> Im Auswahl-Bereich
+          rechts steht bei jedem Stück jede Zahl frei, und dort steht auch, was
+          auf der Bühne gerade gilt. Wer eine Riesentasse braucht, trägt sie
+          ein — bis zur Größe der Bühne, darüber sagt der Planer Bescheid und
+          bleibt beim größten Maß. Und wer einmal quer ziehen will, hält beim
+          Ziehen <kbd>Alt</kbd>.
+        </p>
+
+        <h2>Beschriftung</h2>
+        <p>
+          Auf dem Plan steht standardmäßig nur, was du selbst hineinschreibst.
+          Die Zeichnungen sind so gewählt, dass man erkennt, was ein Ding ist —
+          unter jedes Sofa noch „Sofa“ zu schreiben macht den Plan voll und
+          sagt nichts dazu. Über dem Plan kannst du umstellen auf
+          Requisitennamen, nur die selbst geschriebenen Beschriftungen, beides
+          zusammen oder gar nichts.
+        </p>
+
+        <h2>Was in der Gasse bereitliegt</h2>
+        <p>
+          Sind im Reiter <strong>Bühne</strong> Gassen eingezeichnet, steht in
+          jeder ein <strong>+</strong>. Damit legst du einen Zettel an: ein
+          kleines Bild mit Unterschrift für etwas, das bereitliegen muss, ohne
+          auf der Bühne zu stehen — „Kaffeetasse mit einem Schluck Wasser“. Er
+          wird in der Gasse mitgedruckt, dort, wo die Mannschaft ohnehin
+          hinsieht.
+        </p>
+
+        <h2>Wo steckt was</h2>
+        <p class="hb-lead">
+          Die stehende Antwort auf „wo stelle ich das ein?“. Alles, was der
+          Planer kann, mit dem Weg dorthin.
+        </p>
+        <ul class="hb-toc" id="hbToc"></ul>
+        <div id="hbBody"></div>
+
+        <h2>Wo deine Arbeit liegt</h2>
+        <p>
+          Der Planer speichert im Browser dieses Rechners und lädt nichts hoch.
+          Das heißt auch: ein geleerter Browser ist ein geleerter Planer.
+          Über <strong>Back-up</strong> oben rechts holst du dir eine Datei
+          mit allem darin und spielst sie anderswo wieder ein.
+        </p>
+      </div>
+    </main>
+
+    <script src="../../assets/js/layout.js"></script>
+    <script src="i18n.js"></script>
+    <script src="guide.js"></script>
+    <script>
+      (function () {
+        'use strict';
+        var index = SPGuide.buildIndex(Object.keys(SPI18n.EXPLAIN.de), SPI18n.explain);
+        var toc = document.getElementById('hbToc');
+        var body = document.getElementById('hbBody');
+        var count = document.getElementById('hbCount');
+        var query = document.getElementById('hbQuery');
+
+        function esc(s) {
+            return String(s).replace(/[&<>"]/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+            });
+        }
+
+        function slug(key) { return 'e-' + key.replace(/\./g, '-'); }
+
+        function draw(entries) {
+            var sections = SPGuide.sectionsOf(entries);
+            toc.innerHTML = sections.map(function (s) {
+                return '<li><a href="#s-' + s.id + '">' + esc(s.title) +
+                    '</a> <span class="hb-count">(' + s.entries.length + ')</span></li>';
+            }).join('');
+            body.innerHTML = sections.length
+                ? sections.map(function (s) {
+                    return '<h2 id="s-' + s.id + '">' + esc(s.title) + '</h2>' +
+                        s.entries.map(function (e) {
+                            return '<div class="hb-entry" id="' + slug(e.key) + '">' +
+                                '<h3>' + esc(e.title) + '</h3>' +
+                                (e.open ? '<p class="hb-where">' + esc(e.open) + '</p>' : '') +
+                                '<p class="hb-body">' + esc(e.body) + '</p></div>';
+                        }).join('');
+                }).join('')
+                : '<p class="hb-empty">Unter dem Wort steht nichts.</p>';
+        }
+
+        function run() {
+            var text = query.value.trim();
+            var hits = text ? SPGuide.search(index, text, 200) : index;
+            count.textContent = text
+                ? hits.length + ' von ' + index.length + ' Einträgen'
+                : index.length + ' Einträge';
+            draw(hits);
+        }
+
+        query.addEventListener('input', run);
+        run();
+
+        /* Kommt jemand über einen Link auf einen einzelnen Eintrag, soll der
+           auch nach dem Aufbau der Seite noch angesprungen werden. */
+        if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
+      }());
+    </script>
+  </body>
+</html>
