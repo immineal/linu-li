@@ -705,8 +705,16 @@ body {
 }
 .sp-shape-text strong { display: block; font-weight: 500; }
 .sp-shape-text > span { display: block; color: var(--sp-muted); font-size: 0.7rem; }
-.sp-shape-card:hover { border-color: var(--accent); }
-.sp-shape-card[aria-pressed="true"] { border-color: var(--accent); background: rgba(196, 77, 60, 0.06); }
+/* „Maus darüber" und „ausgewählt" trugen dieselbe Randfarbe und unterschieden
+   sich nur durch eine Füllung mit sechs Prozent Deckkraft — im dunklen Bild
+   kaum zu sehen. Jetzt sagt die Maus es leise, die Auswahl deutlich: heller
+   Rand gegen kräftigen Rand mit doppelter Stärke und Füllung. */
+.sp-shape-card:hover { border-color: var(--sp-muted); background: rgba(127, 127, 127, 0.08); }
+.sp-shape-card[aria-pressed="true"] {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+    background: rgba(196, 77, 60, 0.12);
+}
 .sp-shape-card svg { flex: 0 0 auto; width: 100%; height: 52px; display: block; margin-bottom: 0.3rem; }
 .sp-shape-card svg path { fill: rgba(127, 127, 127, 0.14); stroke: currentColor; stroke-width: 1.6; }
 
@@ -1513,7 +1521,7 @@ body {
     flex: 0 1 auto;
     min-width: 0;
 }
-.sp-plan-sheet-plan { flex: 1 1 auto; min-height: 0; position: relative; }
+.sp-plan-sheet-plan { flex: 1 1 auto; min-height: 55%; position: relative; }
 .sp-plan-sheet-plan > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* Bloßes Blatt: weiße Bühne, kein Grauschleier — so liegen die Vorlagen. */
 .sp-plan-sheet.is-bare { padding: 12mm; }
@@ -1533,8 +1541,15 @@ body {
 }
 .sp-plan-sheet-bare .sp-plan-sheet-plan { flex: 1 1 auto; align-self: stretch; }
 
+/* Die Notiz nahm sich, so viel sie wollte: bei 200 Zeilen blieb vom Grundriss
+   nichts übrig (0,0 mm) und sie lief trotzdem 28,9 mm über den Blattrand. Das
+   Blatt heißt Szenenblatt, nicht Notizzettel — die Zeichnung behält zwei
+   Drittel, die Notiz bekommt höchstens ein knappes Drittel und endet dort. */
 .sp-plan-sheet-note {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: 30%;
+    overflow: hidden;
     font-size: 3.2mm;
     line-height: 1.5;
     color: #554d44;

@@ -1833,10 +1833,25 @@
             '<div class="sp-field"><label for="spScenePlace">' + esc(t('Plays in')) + why('scene.place') + '</label>' +
             '<select id="spScenePlace" data-bind="scene.placeId">' +
             '<option value="">' + esc(t('No place')) + '</option>' +
-            p.places.map(function (pl) {
-                return '<option value="' + esc(pl.id) + '"' + (sc.placeId === pl.id ? ' selected' : '') + '>' +
-                    esc(pl.name || t('Place')) + '</option>';
-            }).join('') + '</select></div>' +
+            /* Namenlose und gleichnamige Orte waren hier nicht
+               auseinanderzuhalten: fünfzig neue Orte ergaben siebenundvierzig
+               Zeilen „Ort", drei Cafés drei gleiche. Gleichnamige bekommen
+               eine laufende Nummer — in der Liste, nicht im Namen. */
+            (function () {
+                var total = {};
+                var seen = {};
+                p.places.forEach(function (pl) {
+                    var name = pl.name || t('Place');
+                    total[name] = (total[name] || 0) + 1;
+                });
+                return p.places.map(function (pl) {
+                    var name = pl.name || t('Place');
+                    seen[name] = (seen[name] || 0) + 1;
+                    var label = total[name] > 1 ? name + ' ' + seen[name] : name;
+                    return '<option value="' + esc(pl.id) + '"' + (sc.placeId === pl.id ? ' selected' : '') + '>' +
+                        esc(label) + '</option>';
+                }).join('');
+            }()) + '</select></div>' +
             /* Was mit dem Ort zu tun ist, steht beim Ort. In der Werkzeugleiste
                nahmen die beiden Knöpfe 474 px und standen weit weg von der
                Auswahl, auf die sie sich beziehen. Ohne Ort gibt es nichts zu
