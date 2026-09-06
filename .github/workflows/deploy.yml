@@ -22,7 +22,7 @@ jobs:
         run: |
           rm -rf tests .tests test-results .jules .Jules
           rm -f test.js test_*.js test-*.js test*.py test*.html test*.png
-          rm -f package.json package-lock.json README.md .gitignore
+          rm -f package.json package-lock.json README.md .gitignore start_server.js
           find tools -type f \( \
             -name 'test.js' -o -name 'test_*.js' -o -name 'test-*.js' \
             -o -name '*.test.js' -o -name '*.spec.js' -o -name 'test-worker.html' \
