@@ -2268,6 +2268,7 @@
         sel.forEach(function (p) {
             p.x = SP.round(p.x + dx, 3);
             p.y = SP.round(p.y + dy, 3);
+            holdSpot(p);
         });
         persist();
         renderCanvas(true);
@@ -2721,11 +2722,15 @@
             (stage.wings.show ? '<div class="sp-field-row" style="margin-top:0.5rem">' +
                 '<div><label for="spWingInset">' + esc(t('Inset from the side')) +
                 ' (' + esc(lengthLabel()) + ')</label>' +
-                '<input type="number" id="spWingInset" step="0.1" min="0.05" data-stage-number="wings.inset" value="' +
+                '<input type="number" id="spWingInset" step="0.1" min="0.05" max="' +
+                toField(SP.stageBound('wings.inset', stage).most, 2) +
+                '" data-stage-number="wings.inset" value="' +
                 toField(stage.wings.inset, 2) + '"></div>' +
                 '<div><label for="spWingDepth">' + esc(t('How far forward')) +
                 ' (' + esc(lengthLabel()) + ')</label>' +
-                '<input type="number" id="spWingDepth" step="0.1" min="0.05" data-stage-number="wings.depth" value="' +
+                '<input type="number" id="spWingDepth" step="0.1" min="0.05" max="' +
+                toField(SP.stageBound('wings.depth', stage).most, 2) +
+                '" data-stage-number="wings.depth" value="' +
                 toField(stage.wings.depth, 2) + '"></div></div>' : '') +
             '</div>' : '') +
 
@@ -4480,6 +4485,7 @@
             drag.items.forEach(function (entry) {
                 entry.ref.x = SP.round(entry.x + shiftX, 3);
                 entry.ref.y = SP.round(entry.y + shiftY, 3);
+                holdSpot(entry.ref);
                 setNodeTransform(itemNode(entry.ref.id), entry.ref);
             });
             renderOverlay();
@@ -4579,6 +4585,7 @@
                 : drag.mode === 'scale-h' && grip === 'free' ? 'depth' : grip;
             item.w = SP.round(w, 3);
             item.h = SP.round(h, 3);
+            holdSize(item);
             redrawItem(item);
             drag.badge = drag.mode === 'scale-w' ? SP.formatLength(item.w)
                 : drag.mode === 'scale-h' ? SP.formatLength(item.h)
@@ -5815,8 +5822,11 @@
        dabei, warum im Feld etwas anderes steht als das Getippte. */
     function clampSaid(value, least, most) {
         if (value < least) {
+            /* Den getippten Wert nennen, nicht null: bei einer Lage ist eine
+               negative Zahl richtig, und „0 m ist zu klein — bleibt bei
+               −13,5 m" sagt dem Leser das Gegenteil von dem, was geschah. */
             toast(t('{typed} is too small — kept at {least}.', {
-                typed: SP.formatLength(Math.max(0, value)),
+                typed: SP.formatLength(value),
                 least: SP.formatLength(least)
             }));
             return least;
@@ -5835,12 +5845,37 @@
         return value;
     }
 
+    /* Die Grenzen, in denen ein Requisit bleibt: höchstens so groß wie die
+       Bühne, und höchstens eine Bühnenbreite quer bzw. eine Bühnentiefe tief
+       daneben. Gasse, Lager und Hinterbühne bleiben möglich; ins Nichts
+       verschwindet nichts mehr. */
+    function propLimits() {
+        return SP.propLimits(stageOf(scene()));
+    }
+
+    function holdSpot(placement) {
+        var limit = propLimits();
+        placement.x = SP.round(SP.clamp(placement.x, limit.x[0], limit.x[1]), 3);
+        placement.y = SP.round(SP.clamp(placement.y, limit.y[0], limit.y[1]), 3);
+    }
+
+    function holdSize(placement) {
+        var limit = propLimits();
+        /* Beide Kanten mit demselben Faktor zurück: einzeln geklemmt würde aus
+           einem Stück, das über die Bühne hinausgezogen wird, ein anderes. */
+        var over = Math.max(placement.w / limit.w, placement.h / limit.h, 1);
+        placement.w = SP.round(Math.max(0.05, placement.w / over), 3);
+        placement.h = SP.round(Math.max(0.05, placement.h / over), 3);
+    }
+
     function resize(placement, axis, next) {
-        var value = Math.max(0.05, next);
+        var limit = propLimits();
+        var value = SP.clamp(next, 0.05, axis === 'w' ? limit.w : limit.h);
         var prop = resolveProp(placement.propId);
         if (SPPlan.keepsAspect(prop) && placement[axis] > 0) {
             var other = axis === 'w' ? 'h' : 'w';
-            placement[other] = SP.round(Math.max(0.05, placement[other] * (value / placement[axis])), 3);
+            placement[other] = SP.round(SP.clamp(placement[other] * (value / placement[axis]),
+                0.05, other === 'w' ? limit.w : limit.h), 3);
         }
         placement[axis] = SP.round(value, 3);
         followNaturalDepth(placement);
@@ -5874,11 +5909,36 @@
         case 'prod.numbering': production().numbering = value; break;
         case 'item.label': sel.forEach(function (p) { p.label = value; }); break;
         case 'item.note': sel.forEach(function (p) { p.note = value; }); break;
-        case 'item.x': sel.forEach(function (p) { p.x = SP.round(fromField(value, p.x), 3); }); break;
-        case 'item.upstage': sel.forEach(function (p) { p.y = SP.round(out.frontY - fromField(value, out.frontY - p.y), 3); }); break;
+        case 'item.x': {
+            var xLimit = propLimits();
+            sel.forEach(function (p) {
+                p.x = SP.round(clampSaid(fromField(value, p.x), xLimit.x[0], xLimit.x[1]), 3);
+            });
+            break;
+        }
+        case 'item.upstage': {
+            var yLimit = propLimits();
+            sel.forEach(function (p) {
+                p.y = SP.round(clampSaid(out.frontY - fromField(value, out.frontY - p.y),
+                    yLimit.y[0], yLimit.y[1]), 3);
+            });
+            break;
+        }
         case 'item.rot': sel.forEach(function (p) { p.rot = SP.normaliseAngle(parseFloat(value) || 0); }); break;
-        case 'item.w': sel.forEach(function (p) { resize(p, 'w', fromField(value, p.w)); }); break;
-        case 'item.h': sel.forEach(function (p) { resize(p, 'h', fromField(value, p.h)); }); break;
+        case 'item.w': {
+            var wLimit = propLimits();
+            sel.forEach(function (p) {
+                resize(p, 'w', clampSaid(fromField(value, p.w), 0.05, wLimit.w));
+            });
+            break;
+        }
+        case 'item.h': {
+            var hLimit = propLimits();
+            sel.forEach(function (p) {
+                resize(p, 'h', clampSaid(fromField(value, p.h), 0.05, hLimit.h));
+            });
+            break;
+        }
         default:
             /* Werte, die eine Bauvorschrift selbst nennt. Wie sie zu lesen
                sind, weiß nur die Vorschrift — ob Meter, Anzahl oder Schalter
@@ -6122,10 +6182,10 @@
                     var field = el.dataset.stageField;
                     /* Feld und Code sagen dasselbe: die Grenzen stehen einmal
                        in core.js und werden hier wie im Zahlenfeld benutzt. */
-                    var bound = SP.stageBound(field);
+                    var bound = SP.stageBound(field, stage);
                     var typed = fromField(el.value,
                         field === 'grid.spacing' ? 1 : SP.num(stage[field], 1));
-                    var kept = clampSaid(typed, bound.least);
+                    var kept = clampSaid(typed, bound.least, bound.most);
                     if (field === 'grid.spacing') stage.grid.spacing = kept;
                     else stage[field] = kept;
                     ui.view = null;
@@ -6147,7 +6207,13 @@
                     var stage = editingStage();
                     var key = el.dataset.stageNumber;
                     if (key.indexOf('wings.') === 0) {
-                        stage.wings[key.slice(6)] = Math.max(0.05, fromField(el.value, 1));
+                        /* Dieselben Grenzen wie im Zahlenfeld und in der
+                           Zeichnung. Vorher hielt nur die Zeichnung sie ein:
+                           das Feld zeigte 99 m Einzug, während beide
+                           Gassenlinien auf der Mittelachse lagen. */
+                        var wb = SP.stageBound(key, stage);
+                        stage.wings[key.slice(6)] =
+                            clampSaid(fromField(el.value, 1), wb.least, wb.most);
                     }
                 });
                 return;

@@ -2103,5 +2103,36 @@ test('printing one act keeps the numbering of the whole evening', () => {
         'the change that opens the act is missing from its plan');
 });
 
+test('a wing cannot be inset past the middle of the stage', () => {
+    /* Die Zeichnung klemmte immer schon, das Feld und der Speicher nicht: es
+       stand 99 m im Feld, während beide Gassenlinien auf der Mittelachse
+       lagen und der Plan etwas ganz anderes zeigte. */
+    const stage = Object.assign({}, SP.DEFAULT_STAGE, { shape: 'rect', width: 12, depth: 9 });
+    assert.strictEqual(SP.stageBound('wings.inset', stage).most, 5.95);
+    assert.strictEqual(SP.stageBound('wings.depth', stage).most, 9);
+    assert.strictEqual(SP.stageBound('apronWidth', stage).most, 12);
+    /* Ohne Bühne bleibt es bei den allgemeinen Grenzen — der Aufruf darf
+       nicht davon abhängen, dass jemand eine Bühne mitgibt. */
+    assert.strictEqual(SP.stageBound('width').most, SP.STAGE_MAX);
+    assert.strictEqual(SP.stageBound('grid.spacing', stage).least, SP.GRID_MIN);
+});
+
+test('a prop stays as large as the stage at most, and within reach of it', () => {
+    /* Ein Esstisch ließ sich in einem Zug auf 60 × 44 m aufziehen, per Feld
+       auf 9999 m, und die Lage auf −1.000.000.000.000 m. Die Meldung „steht
+       außerhalb der Bühne" prüfte nur den Mittelpunkt und schwieg dazu. */
+    const stage = Object.assign({}, SP.DEFAULT_STAGE, { shape: 'rect', width: 12, depth: 9 });
+    const limit = SP.propLimits(stage);
+    assert.strictEqual(limit.w, 12, 'a prop may be wider than the stage');
+    assert.strictEqual(limit.h, 9, 'a prop may be deeper than the stage');
+    /* Eine Bühnenbreite quer und eine Bühnentiefe tief daneben: Gasse, Lager
+       und Hinterbühne bleiben möglich. */
+    assert.deepStrictEqual(limit.x, [-18, 18]);
+    assert.deepStrictEqual(limit.y, [-9, 18]);
+    const small = SP.propLimits(Object.assign({}, stage, { width: 6, depth: 4 }));
+    assert.strictEqual(small.w, 6);
+    assert.deepStrictEqual(small.x, [-9, 9]);
+});
+
 console.log('\n' + passed + ' checks passed');
 

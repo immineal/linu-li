@@ -157,9 +157,47 @@
        heraus, was sie brauchen. */
     var STAGE_LENGTHS = ['width', 'depth', 'backWidth', 'diameter', 'apronWidth', 'apronDepth'];
 
-    /* Die Grenzen eines einzelnen Feldes, für Zahlenfeld und Prüfung. */
-    function stageBound(field) {
+    /*
+     * Was ein Requisit an Maß und Ort haben darf.
+     *
+     * Größe höchstens so groß wie die Bühne: ein Esstisch ließ sich in einem
+     * Zug auf 60 × 44 m aufziehen und per Feld auf 9999 m, ohne ein Wort —
+     * die Meldung „steht außerhalb der Bühne" prüfte nur den Mittelpunkt und
+     * schwieg zu einem Tisch, der das Blatt fünffach überdeckte.
+     *
+     * Stehen darf ein Stück bis eine Bühnenbreite quer und eine Bühnentiefe
+     * tief daneben: Gasse, Lager und Hinterbühne bleiben möglich, aber nichts
+     * verschwindet auf −1.000.000.000.000 m ins Nichts.
+     */
+    function propLimits(stage) {
+        var b = stageOutline(stage).bounds;
+        return {
+            w: round(b.w, 3),
+            h: round(b.h, 3),
+            x: [round(b.x - b.w, 3), round(b.x + b.w * 2, 3)],
+            y: [round(b.y - b.h, 3), round(b.y + b.h * 2, 3)]
+        };
+    }
+
+    /*
+     * Die Grenzen eines einzelnen Feldes, für Zahlenfeld und Prüfung.
+     *
+     * Manche hängen an der Bühne: eine Gasse, die weiter einrückt als die
+     * halbe Breite, hat keine Seite mehr, und eine Vorbühne breiter als die
+     * Bühne ist keine. Die Zeichnung hat das immer schon geklemmt — das Feld
+     * und der Speicher nicht, und dann zeigte das Feld 99 m, während beide
+     * Gassenlinien auf der Mittelachse lagen.
+     */
+    function stageBound(field, stage) {
         if (field === 'grid.spacing') return { least: GRID_MIN, most: STAGE_MAX };
+        if (!stage) return { least: STAGE_MIN, most: STAGE_MAX };
+        var width = clamp(num(stage.width, DEFAULT_STAGE.width), STAGE_MIN, STAGE_MAX);
+        var depth = clamp(num(stage.depth, DEFAULT_STAGE.depth), STAGE_MIN, STAGE_MAX);
+        if (field === 'wings.inset') {
+            return { least: 0.05, most: round(Math.max(0.05, width / 2 - 0.05), 3) };
+        }
+        if (field === 'wings.depth') return { least: 0.05, most: depth };
+        if (field === 'apronWidth') return { least: STAGE_MIN, most: width };
         return { least: STAGE_MIN, most: STAGE_MAX };
     }
 
@@ -1132,6 +1170,7 @@
         GRID_MIN: GRID_MIN,
         GRID_MAX_LINES: GRID_MAX_LINES,
         stageBound: stageBound,
+        propLimits: propLimits,
         clampStage: clampStage,
         shapeById: shapeById,
         stageOutline: stageOutline,
