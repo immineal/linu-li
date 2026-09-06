@@ -723,20 +723,20 @@ body {
     background: var(--sp-panel);
     padding: 0.5rem;
     cursor: pointer;
-    text-align: left;
+    text-align: center;
     font: inherit;
     font-size: 0.76rem;
     color: var(--ink);
     /* Buttons zentrieren ihren Inhalt senkrecht. Da alle Karten gleich hoch
-       sind, sackte das Bild bei kurzer Beschreibung nach unten und die
-       Formen standen auf acht verschiedenen Höhen. */
+       sind, sackte das Bild nach unten, sobald eine Karte weniger Text trug
+       als ihre Nachbarn, und die Formen standen auf verschiedenen Höhen.
+       Ein Name, der in einer Sprache umbricht, reicht dafür schon. */
     display: flex;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
 }
-.sp-shape-text strong { display: block; font-weight: 500; }
-.sp-shape-text > span { display: block; color: var(--sp-muted); font-size: 0.7rem; }
+.sp-shape-text { display: block; font-weight: 500; }
 /* „Maus darüber" und „ausgewählt" trugen dieselbe Randfarbe und unterschieden
    sich nur durch eine Füllung mit sechs Prozent Deckkraft — im dunklen Bild
    kaum zu sehen. Jetzt sagt die Maus es leise, die Auswahl deutlich: heller

@@ -3051,6 +3051,11 @@
             return Math.max(m, o.bounds.w, o.bounds.h);
         }, 0) * 1.12;
 
+        /* Unter jedem Namen stand einmal noch ein Satz, was die Form ist.
+           Neben dem Umriss und dem Namen erklärte er nichts mehr, machte die
+           Karten aber dreimal so hoch. Den Satz gibt es weiterhin dort, wo er
+           gebraucht wird: im Einrichter, der die Form aus einer Liste ohne
+           Bild wählen lässt. */
         $('#spShapeGrid').innerHTML = SP.STAGE_SHAPES.map(function (shape, i) {
             var b = samples[i].bounds;
             var vx = (b.x + b.w / 2 - span / 2).toFixed(3);
@@ -3060,8 +3065,7 @@
                 '<svg viewBox="' + vx + ' ' + vy + ' ' + span.toFixed(3) + ' ' + span.toFixed(3) +
                 '" preserveAspectRatio="xMidYMid meet"><path d="' + samples[i].d +
                 '" vector-effect="non-scaling-stroke"/></svg>' +
-                '<span class="sp-shape-text"><strong>' + esc(t(shape.name)) + '</strong>' +
-                '<span>' + esc(t(shape.blurb)) + '</span></span></button>';
+                '<span class="sp-shape-text">' + esc(t(shape.name)) + '</span></button>';
         }).join('');
 
         drawStagePreview();
