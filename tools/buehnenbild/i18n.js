@@ -48,6 +48,8 @@
         'Undo': 'Rückgängig',
         'Redo': 'Wiederherstellen',
         'Backup': 'Back-up',
+        'The drawing remembers sixty steps back, no further.':
+            'Der Zeichner erinnert sich sechzig Schritte weit zurück, nicht weiter.',
         'Cancel': 'Abbrechen',
         'Close': 'Schließen',
         'Save': 'Speichern',

@@ -1745,11 +1745,34 @@ body {
 .sp-draw-side .sp-seg button { padding: 0.35rem 0.2rem; font-size: 0.74rem; }
 .sp-draw-count { font-variant-numeric: tabular-nums; }
 
+/* Zum Drucken muss der Blattsatz in der Seite stehen; im Bild sein muss er
+   dabei nicht. Ohne das wuchs die Seite für einen Augenblick von 1 116 auf
+   21 426 Bildpunkte — fünfundzwanzig A4-Blätter mitten im Fluss, sichtbar,
+   solange der Druckdialog noch nicht offen war. */
+#spPrintPortal:not([hidden]) {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
 @media print {
     @page { size: A4; margin: 0; }
     body > *:not(#spPrintPortal) { display: none !important; }
     body { background: #fff !important; }
-    #spPrintPortal { display: block !important; }
+    #spPrintPortal,
+    #spPrintPortal:not([hidden]) {
+        display: block !important;
+        position: static !important;
+        width: auto !important;
+        height: auto !important;
+        overflow: visible !important;
+        opacity: 1 !important;
+    }
     #spPrintPortal .sp-sheets { display: block; padding: 0; gap: 0; }
     #spPrintPortal .sp-sheet {
         border: 0;

@@ -3299,7 +3299,17 @@
 
     function drawRemember() {
         draw.undo.push(JSON.stringify(draw.shapes));
-        if (draw.undo.length > 60) draw.undo.shift();
+        if (draw.undo.length > 60) {
+            draw.undo.shift();
+            /* Die Kette endet bei sechzig Schritten. Vorher fiel der älteste
+               stillschweigend heraus: hundertmal Rückgängig ließ vierzig
+               Formen stehen, und der Knopf sah aus, als täte er nichts.
+               Einmal je Zeichnung gesagt, nicht bei jedem Strich. */
+            if (!draw.toldLimit) {
+                draw.toldLimit = true;
+                toast(t('The drawing remembers sixty steps back, no further.'));
+            }
+        }
         draw.redo.length = 0;
     }
 
@@ -4305,7 +4315,16 @@
 
     function loadExample() {
         change(function () {
+            /* Ist die offene Produktion noch unberührt, tritt das Beispiel an
+               ihre Stelle. Vorher stand es daneben — und weil
+               `untouchedProduction()` nur bei einer einzigen Produktion
+               greift, blieb die leere „Unbenannte Produktion" danach für
+               immer in der Liste. */
+            var bare = untouchedProduction();
             var example = buildExample();
+            if (bare) {
+                db.productions = db.productions.filter(function (p) { return p !== bare; });
+            }
             db.productions.push(example);
             db.activeId = example.id;
             ui.sceneId = example.scenes[0].id;
@@ -6660,6 +6679,12 @@
             var meta = e.ctrlKey || e.metaKey;
             if (meta && e.key.toLowerCase() === 'z') {
                 e.preventDefault();
+                /* Mitten im Zug hob sich das Rückgängig selbst wieder auf: es
+                   ersetzte die Aufstellungen, der laufende Zug schrieb danach
+                   in nichts hinein, und beim Loslassen kam der Stand vor dem
+                   Zug — also vor dem Rückgängig — zurück. Erst den Zug zu
+                   Ende bringen, dann zurücknehmen. */
+                if (drag) onCanvasPointerUp();
                 if (e.shiftKey) redo(); else undo();
                 return;
             }
