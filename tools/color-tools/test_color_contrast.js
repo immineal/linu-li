@@ -128,7 +128,38 @@ setTimeout(() => {
         assert.ok(window.__test_5_sug_ratio >= 4.5, "Test 5 Failed: Suggested color does not pass WCAG 2.1 AA.");
         console.log("✅ Test 5 Passed: Auto-suggest mechanism provides passing accessible alternatives.");
 
-        // --- Test 6: blendAlpha Unit Tests ---
+
+        // --- Test 6: Direct calcAPCA Function Tests ---
+        // Verify pure math calculations of calcAPCA for specific known boundary values
+        window.eval(`
+            window.__test_6_results = {
+                blackOnWhite: calcAPCA(tinycolor("#000000"), tinycolor("#ffffff")),
+                whiteOnBlack: calcAPCA(tinycolor("#ffffff"), tinycolor("#000000")),
+                redOnWhite: calcAPCA(tinycolor("#ff0000"), tinycolor("#ffffff")),
+                greenOnWhite: calcAPCA(tinycolor("#00ff00"), tinycolor("#ffffff")),
+                sameColor: calcAPCA(tinycolor("#888888"), tinycolor("#888888"))
+            };
+        `);
+
+        const apcaResults = window.__test_6_results;
+
+        // Use a small epsilon for float comparison to avoid test flakiness
+        const assertCloseTo = (actual, expected, epsilon = 0.0001, message) => {
+            assert.ok(Math.abs(actual - expected) < epsilon,
+                \`\${message} Expected ~\${expected}, but got \${actual}\`);
+        };
+
+        // Expected values generated from calcAPCA output
+        assertCloseTo(apcaResults.blackOnWhite, 1.060406, 0.00001, "Test 6 Failed: Black on White APCA incorrect.");
+        assertCloseTo(apcaResults.whiteOnBlack, -1.078847, 0.00001, "Test 6 Failed: White on Black APCA incorrect.");
+        assertCloseTo(apcaResults.redOnWhite, 0.641262, 0.00001, "Test 6 Failed: Red on White APCA incorrect.");
+        assertCloseTo(apcaResults.greenOnWhite, 0.171301, 0.00001, "Test 6 Failed: Green on White APCA incorrect.");
+        assert.strictEqual(apcaResults.sameColor, 0, "Test 6 Failed: Same color APCA should be exactly 0.");
+
+        console.log("✅ Test 6 Passed: calcAPCA direct calculations are mathematically accurate.");
+
+
+        // --- Test 7: blendAlpha Unit Tests ---
         window.eval(`
             const fgSolid = tinycolor('rgb(255, 0, 0)');
             const bgSolid = tinycolor('rgb(0, 0, 255)');
@@ -138,43 +169,43 @@ setTimeout(() => {
 
             // 1. Solid over Solid
             const res1 = blendAlpha(fgSolid, bgSolid);
-            window.__test_6_res1_fg = res1.fg.toRgbString();
-            window.__test_6_res1_bg = res1.bg.toRgbString();
+            window.__test_7_res1_fg = res1.fg.toRgbString();
+            window.__test_7_res1_bg = res1.bg.toRgbString();
 
             // 2. Solid over Transparent
             const res2 = blendAlpha(fgSolid, bgTrans);
-            window.__test_6_res2_fg = res2.fg.toRgbString();
-            window.__test_6_res2_bg = res2.bg.toRgbString();
+            window.__test_7_res2_fg = res2.fg.toRgbString();
+            window.__test_7_res2_bg = res2.bg.toRgbString();
 
             // 3. Transparent over Solid
             const res3 = blendAlpha(fgTrans, bgSolid);
-            window.__test_6_res3_fg = res3.fg.toRgbString();
-            window.__test_6_res3_bg = res3.bg.toRgbString();
+            window.__test_7_res3_fg = res3.fg.toRgbString();
+            window.__test_7_res3_bg = res3.bg.toRgbString();
 
             // 4. Transparent over Transparent
             const res4 = blendAlpha(fgTrans, bgTrans);
-            window.__test_6_res4_fg = res4.fg.toRgbString();
-            window.__test_6_res4_bg = res4.bg.toRgbString();
+            window.__test_7_res4_fg = res4.fg.toRgbString();
+            window.__test_7_res4_bg = res4.bg.toRgbString();
         `);
 
         // Assertions for blendAlpha
         // 1. Solid over Solid -> no change to either
-        assert.strictEqual(window.__test_6_res1_fg, "rgb(255, 0, 0)", "Test 6 Failed: Solid FG should remain unchanged.");
-        assert.strictEqual(window.__test_6_res1_bg, "rgb(0, 0, 255)", "Test 6 Failed: Solid BG should remain unchanged.");
+        assert.strictEqual(window.__test_7_res1_fg, "rgb(255, 0, 0)", "Test 7 Failed: Solid FG should remain unchanged.");
+        assert.strictEqual(window.__test_7_res1_bg, "rgb(0, 0, 255)", "Test 7 Failed: Solid BG should remain unchanged.");
 
         // 2. Solid over Transparent -> BG blends with white, FG unchanged
-        assert.strictEqual(window.__test_6_res2_fg, "rgb(255, 0, 0)", "Test 6 Failed: Solid FG should remain unchanged over trans BG.");
-        assert.strictEqual(window.__test_6_res2_bg, "rgb(128, 128, 255)", "Test 6 Failed: Transparent BG should blend with white.");
+        assert.strictEqual(window.__test_7_res2_fg, "rgb(255, 0, 0)", "Test 7 Failed: Solid FG should remain unchanged over trans BG.");
+        assert.strictEqual(window.__test_7_res2_bg, "rgb(128, 128, 255)", "Test 7 Failed: Transparent BG should blend with white.");
 
         // 3. Transparent over Solid -> BG unchanged, FG blends over BG
-        assert.strictEqual(window.__test_6_res3_fg, "rgb(128, 0, 128)", "Test 6 Failed: Transparent FG should blend over solid BG.");
-        assert.strictEqual(window.__test_6_res3_bg, "rgb(0, 0, 255)", "Test 6 Failed: Solid BG should remain unchanged under trans FG.");
+        assert.strictEqual(window.__test_7_res3_fg, "rgb(128, 0, 128)", "Test 7 Failed: Transparent FG should blend over solid BG.");
+        assert.strictEqual(window.__test_7_res3_bg, "rgb(0, 0, 255)", "Test 7 Failed: Solid BG should remain unchanged under trans FG.");
 
         // 4. Transparent over Transparent -> BG blends with white, FG blends over new BG
-        assert.strictEqual(window.__test_6_res4_fg, "rgb(192, 64, 128)", "Test 6 Failed: Transparent FG should blend over solidified trans BG.");
-        assert.strictEqual(window.__test_6_res4_bg, "rgb(128, 128, 255)", "Test 6 Failed: Transparent BG should blend with white under trans FG.");
+        assert.strictEqual(window.__test_7_res4_fg, "rgb(192, 64, 128)", "Test 7 Failed: Transparent FG should blend over solidified trans BG.");
+        assert.strictEqual(window.__test_7_res4_bg, "rgb(128, 128, 255)", "Test 7 Failed: Transparent BG should blend with white under trans FG.");
 
-        console.log("✅ Test 6 Passed: blendAlpha handles all transparency combinations correctly.");
+        console.log("✅ Test 7 Passed: blendAlpha handles all transparency combinations correctly.");
 
 
         console.log("🎉 All Tests Passed!");
