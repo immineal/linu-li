@@ -30,8 +30,18 @@ jobs:
           echo "Was hochgeladen wird:"
           find . -path ./.git -prune -o -path ./.github -prune -o -type f -print | sort
 
+      # --delete makes the server match this directory: a file removed from
+      # the repository disappears from the website too. Without it the server
+      # only ever grew, and files nobody had committed in months were still
+      # being served.
+      #
+      # The excluded paths are the ones this repository does not own:
+      # .well-known/ carries the ACME challenge the TLS certificate renews
+      # through (and security.txt), .ftpquota belongs to the host, cgi-bin/
+      # is created by the hosting panel. Deleting those would break things
+      # nobody would connect to a deploy.
       - name: 📂 Sync files via LFTP
         run: |
           sudo apt-get update
           sudo apt-get install -y lftp
-          lftp -c "set ftp:ssl-allow yes; set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; open -u ${{ secrets.FTP_USER }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}; mirror -R -v --parallel=2 --exclude .git/ --exclude .github/ ./ ./"
+          lftp -c "set ftp:ssl-allow yes; set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; open -u ${{ secrets.FTP_USER }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}; mirror -R -v --delete --parallel=2 --exclude .git/ --exclude .github/ --exclude .well-known/ --exclude cgi-bin/ --exclude .ftpquota ./ ./"

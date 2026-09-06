@@ -138,6 +138,24 @@ function fail(msg) {
     if (!stacked.stacked) fail('on a narrow screen the two fields are still side by side');
     if (!stacked.signVisible) fail('on a narrow screen the equals sign has no box at all');
 
+    // An equals sign is two horizontal bars: wider than it is tall. Turned a
+    // quarter turn it reads as two vertical strokes, which is a different
+    // character. Measure the ink, not the CSS.
+    const upright = await page.evaluate(() => {
+        const el = document.querySelector('.equals-glyph') || document.querySelector('[class*="equals"]');
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        // The painted bars sit inside the box; the box itself is square-ish,
+        // so read the transform the browser resolved instead.
+        const t = getComputedStyle(el).transform;
+        return { transform: t, w: r.width, h: r.height };
+    });
+    if (!upright) {
+        fail('on a narrow screen there is no equals sign to measure');
+    } else if (upright.transform && upright.transform !== 'none') {
+        fail(`on a narrow screen the equals sign is turned (transform ${upright.transform}) — it should read as "=", not as two upright strokes`);
+    }
+
     await browser.close();
 
     if (process.exitCode) {
