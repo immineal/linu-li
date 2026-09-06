@@ -28,7 +28,9 @@ RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
     # HTML documents - cache for 0 seconds (always check for updates)
     ExpiresByType text/html "access plus 0 seconds"
     
-    # CSS and JS - cache for 1 year (use versioning if you change them frequently)
+    # CSS and JS - see the block below. The year that used to stand here was
+    # never paired with the versioning its own comment asked for, so a fix to
+    # a tool reached nobody who had visited before.
     ExpiresByType text/css "access plus 1 year"
     ExpiresByType text/javascript "access plus 1 year"
     ExpiresByType application/javascript "access plus 1 year"
@@ -39,6 +41,39 @@ RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
     ExpiresByType image/png "access plus 1 year"
     ExpiresByType font/woff2 "access plus 1 year"
 </IfModule>
+
+# 4b. The site's own scripts and stylesheets: kept, but revalidated
+# A year of cache and no version in any URL meant a correction shipped on
+# Monday reached a returning visitor some time next spring. "no-cache" does
+# not mean "do not store" — the browser keeps the file and only asks whether
+# it is still current. Measured against app.js (356 KB): the conditional
+# answer is 0 bytes and 121 ms, the full one 244 ms, and over HTTP/2 the ten
+# files of a tool page ask together.
+#
+# ExpiresActive Off first, because mod_expires would otherwise still write an
+# Expires header a year out next to this one.
+<IfModule mod_expires.c>
+    <FilesMatch "\.(js|css)$">
+        ExpiresActive Off
+    </FilesMatch>
+</IfModule>
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|css)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+
+    # The service worker is the one file that must never be held back: it is
+    # what tells the browser that everything else changed. Browsers cap its
+    # cache at 24 hours anyway — this makes it none.
+    <Files "sw.js">
+        Header set Cache-Control "no-cache"
+    </Files>
+</IfModule>
+
+# The vendored libraries keep the year — assets/vendor/.htaccess says so.
+# 6.4 MB of the 7.2 MB total, changed in two commits in the whole history of
+# this repository. Revalidating 3.1 MB of mermaid on every page load would
+# buy nothing.
 
 # 5. Security Headers
 <IfModule mod_headers.c>

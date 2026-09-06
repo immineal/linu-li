@@ -1,0 +1,20 @@
+# The exception to the site's "revalidate every script" rule one directory up.
+#
+# These are third-party libraries, shipped as they were downloaded. They
+# changed in two commits in the whole history of this repository, while the
+# site's own scripts changed in 167. Asking the server about 6.4 MB of them
+# on every page load would cost a round trip per file and never find anything.
+#
+# What pays for the year: a new version of a library gets a NEW FILE NAME.
+# tests/test-vendor-unveraendert.js insists on it — it carries the hash of
+# every file here and fails when one changes under the same name. Renaming
+# and adding are fine; both show up as a deliberate edit to that list.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 1 year"
+</IfModule>
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|css)$">
+        Header set Cache-Control "max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>

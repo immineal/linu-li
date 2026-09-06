@@ -1,17 +1,98 @@
 name: Deploy to All-Inkl
 
+# Hangs off the test run, not off the push.
+#
+# Both workflows used to listen to `push: main` and started in the same
+# second — 11:05:16 on 6 September 2026, deploy done after 3m13s, tests after
+# 1m23s. A red test run therefore stopped nothing: the broken code was on
+# linu.li before anyone knew it was broken.
 on:
-  push:
-    branches:
-      - main # Change this if your default branch is 'master'
+  workflow_run:
+    workflows: ["CI Tests"]
+    types: [completed]
+    branches: [main]
+  # The hand lever. With the push trigger gone, a mistake in the wiring above
+  # would leave no way to deploy at all — this is the way back, and the way to
+  # push something out while a test is being fixed.
+  workflow_dispatch:
+
+# One deploy at a time. Two pushes in quick succession used to open two LFTP
+# sessions against the same account, both mirroring with --delete; whichever
+# finished last won, file by file. Not cancel-in-progress: an upload cut off
+# halfway leaves the website halfway.
+concurrency:
+  group: deploy-to-all-inkl
+  cancel-in-progress: false
 
 jobs:
   web-deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    # Read every line of this before touching it.
+    #
+    # A workflow_run job runs in this repository, with this repository's
+    # secrets — the FTP password among them. And "CI Tests" runs on
+    # `pull_request` as well as on push, which includes pull requests opened
+    # from a fork of this public repository. The `branches: [main]` filter
+    # above does not help: it matches workflow_run.head_branch, and that is
+    # the branch name *inside the fork*, so anyone who pushes to the default
+    # branch of their own fork and opens a pull request satisfies it.
+    #
+    # Without the two conditions below, a stranger's commit would be checked
+    # out by head_sha and mirrored onto linu.li. This is the well-known
+    # workflow_run trap and it costs two lines to close:
+    #
+    #   event == 'push'                    — not a pull request
+    #   head_repository == this repository — not a fork
+    #
+    # A hand-started run carries no test result, and starting one already
+    # requires write access to this repository.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.event == 'push' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
     steps:
-      - name: Get latest code
+      # `ref` is not optional here. A workflow_run job checks out the head of
+      # the default branch by default, which is whatever was pushed last —
+      # not necessarily the commit that just passed. Without this the deploy
+      # could ship a commit no test ever saw.
+      - name: Get the code that passed
         uses: actions/checkout@v4
+        with:
+          # Empty on a hand-started run, and then checkout takes the branch
+          # the run was started from — which is what you want by hand.
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # The worker's cache name carries the deployed commit, and that is the
+      # only thing in sw.js that moves between deploys. Without it the file is
+      # byte-identical after a change to a tool, the browser sees no new
+      # worker, and the old cache keeps answering.
+      #
+      # The grep is the point of the step as much as the sed: if the
+      # placeholder is ever renamed or dropped, this stops the deploy instead
+      # of quietly shipping a worker that never changes again.
+      - name: 🔖 Write the deployed commit into the worker
+        run: |
+          set -euo pipefail
+          SHA=$(git rev-parse --short HEAD)
+
+          # Each of these three has a silent failure behind it, and all three
+          # end the same way: a cache name that never changes again, which is
+          # precisely the bug this step exists to prevent.
+          #
+          # An empty SHA is the nastiest of them — `sed` would happily write
+          # `ll-toolbox-` and the deploy would go green. Found by running this
+          # step by hand outside a git checkout.
+          [ -n "$SHA" ] || { echo "::error::no commit hash — sw.js would be stamped blank"; exit 1; }
+          grep -q '__DEPLOY_SHA__' sw.js \
+            || { echo "::error::sw.js carries no __DEPLOY_SHA__ placeholder any more"; exit 1; }
+
+          sed -i "s/__DEPLOY_SHA__/$SHA/g" sw.js
+
+          ! grep -q '__DEPLOY_SHA__' sw.js \
+            || { echo "::error::the placeholder survived the sed"; exit 1; }
+          grep -n 'CACHE_NAME' sw.js
 
       # The mirror below copies whatever is left in the working directory, so
       # anything the site does not need is deleted here first. Done in plain
