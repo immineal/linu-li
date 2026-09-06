@@ -7,8 +7,18 @@ console.log("Running Image Compressor worker tests...");
 // Read worker script
 let workerCodeOrig = fs.readFileSync(__dirname + '/../tools/image-compressor/worker.js', 'utf8');
 
-// Replace dynamic import with a mockable global function for testing
-workerCodeOrig = workerCodeOrig.replace(/await import\(\`(.*?)\`\)/g, 'await global.mockImport(`$1`)');
+// Replace dynamic import with a mockable global function for testing.
+// If the worker ever writes its import differently, say without the
+// template literal, the replacement quietly misses and every codec test
+// then fails with "a dynamic import callback was not specified" — which
+// blames the codec instead of this line. Say so plainly instead.
+const patchedWorkerCode = workerCodeOrig.replace(/await import\(\`(.*?)\`\)/g, 'await global.mockImport(`$1`)');
+assert.notStrictEqual(
+    patchedWorkerCode,
+    workerCodeOrig,
+    "the dynamic import in tools/image-compressor/worker.js no longer matches the pattern this test rewrites — update the regex above"
+);
+workerCodeOrig = patchedWorkerCode;
 
 function createSandbox(mockImportFn) {
     let lastMessage = null;

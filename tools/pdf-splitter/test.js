@@ -1,7 +1,6 @@
 const fs = require('fs');
 const assert = require('assert');
 const { JSDOM } = require('jsdom');
-const path = require('path');
 
 // Read the actual index.html
 const htmlContent = fs.readFileSync(__dirname + '/index.html', 'utf8');
