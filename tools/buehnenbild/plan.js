@@ -241,8 +241,9 @@
                            Quadrat, weil der Zettel jedem Bild dieselbe
                            Kantenlänge gab. */
                         var big = prop ? Math.max(prop.w, prop.h) || 1 : 1;
-                        var nw = prop ? prop.w * (noteSize / big) : 0;
-                        var nh = prop ? prop.h * (noteSize / big) : 0;
+                        var shrink = noteSize / big;
+                        var nw = prop ? prop.w * shrink : 0;
+                        var nh = prop ? prop.h * shrink : 0;
                         var head = prop ? nh + gap : 0;
                         var lines = wrapToWidth(note.text, noteFs, column);
                         var room = limit - y - head - gap;
@@ -258,7 +259,7 @@
                             lines = lines.slice(0, fits);
                             lines[fits - 1] = lines[fits - 1] + '…';
                         }
-                        placed.push({ prop: prop, nw: nw, nh: nh, lines: lines, y: y });
+                        placed.push({ prop: prop, nw: nw, nh: nh, k: shrink, lines: lines, y: y });
                         y += head + lines.length * lineH + gap;
                     });
                     return { placed: placed, dropped: dropped, y: y };
@@ -291,13 +292,21 @@
                     laid.placed.forEach(function (item) {
                         var y = item.y;
                         if (item.prop) {
-                            /* Ohne eigene id: ein Gassenzettel ist keine
-                               Aufstellung auf der Bühne. Vorher trug er ein
-                               leeres data-id und sah anklickbar aus, ohne es
-                               zu sein. */
+                            /* Gezeichnet wird das Requisit in seiner wirklichen
+                               Größe und danach auf Zettelmaß verkleinert — nicht
+                               in Zettelmaß neu gebaut. Eine Bauvorschrift rechnet
+                               sich sonst für das kleine Maß neu aus: eine Leiter
+                               von 36 Zentimetern bekommt eine einzige Sprosse
+                               und steht als „H" in der Gasse.
+
+                               Die Haarlinie geht durch dieselbe Verkleinerung
+                               und kommt hinterher wieder bei ihrer Stärke
+                               heraus. Ohne eigene id, denn ein Gassenzettel ist
+                               keine Aufstellung auf der Bühne. */
                             parts.push('<g class="sp-wing-note" transform="translate(' + n(cx) + ' ' +
-                                n(y + item.nh / 2) + ')">' +
-                                propInner({ x: 0, y: 0, w: item.nw, h: item.nh, rot: 0 }, item.prop, u, {}) + '</g>');
+                                n(y + item.nh / 2) + ') scale(' + n(item.k) + ')">' +
+                                propInner({ x: 0, y: 0, w: item.prop.w, h: item.prop.h, rot: 0 },
+                                    item.prop, u / item.k, {}) + '</g>');
                             y += item.nh + gap;
                         }
                         item.lines.forEach(function (line, i) {

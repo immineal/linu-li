@@ -1433,7 +1433,8 @@ test('the marker to add a wing note sits where the notes appear', () => {
         interactive: true
     }).inner;
     const mark = /<g class="sp-wing-add"[\s\S]*?cy="(-?[\d.]+)"/.exec(out);
-    const first = /<g class="sp-wing-note" transform="translate\(-?[\d.]+ (-?[\d.]+)\)"/.exec(out);
+    /* Hinter dem Verschieben steht die Verkleinerung auf Zettelmaß. */
+    const first = /<g class="sp-wing-note" transform="translate\(-?[\d.]+ (-?[\d.]+)\)/.exec(out);
     assert.ok(mark && first, 'no marker or no note drawn');
     const gap = Math.abs(Number(first[1]) - Number(mark[1]));
     assert.ok(gap < 1.5, 'marker and first note are ' + gap.toFixed(2) + ' m apart');
@@ -2403,6 +2404,41 @@ test('every wing note in the worked example points at something real', () => {
     /* Gezeichnet werden sie nur, solange die Bühne Gassen hat. */
     assert.ok(production.stage.wings && production.stage.wings.show,
         'the example has wing notes but no wings to put them in');
+});
+
+test('a wing note shows the prop, not a smaller thing built to that size', () => {
+    /* Der Zettel baute die Bauvorschrift auf Zettelmaß neu. Eine Leiter von
+       sechsunddreißig Zentimetern bekommt darin eine einzige Sprosse und stand
+       als „H" in der Gasse. Gezeichnet wird jetzt in wirklicher Größe und
+       danach verkleinert. */
+    const stage = Object.assign({}, SP.DEFAULT_STAGE, {
+        shape: 'rect', width: 9, depth: 6.5, wings: { show: true, inset: 1.2, depth: 5 }
+    });
+    const notes = [{ side: 'left', text: 'Leiter', propId: 'ladder' }];
+    const out = Plan.svg({
+        stage: stage, scene: { placements: [], curtains: {} },
+        resolve: (id) => Props.get(id), wingNotes: notes
+    });
+    const group = /<g class="sp-wing-note"[^>]*>([\s\S]*?)<\/g>/.exec(out);
+    assert.ok(group, 'no wing note picture drawn');
+    const rungs = (group[1].match(/H-?[\d.]+/g) || []).length;
+    assert.ok(rungs >= 3, 'the ladder on the note has ' + rungs + ' rungs, so it reads as an H');
+
+    /* Und allgemein: was auf dem Zettel steht, ist dieselbe Zeichnung wie im
+       Fundus — dieselben Striche, nur kleiner. Sonst rechnet sich irgendeine
+       Vorschrift im Kleinen etwas anderes aus. */
+    const b = SP.stageOutline(stage).bounds;
+    const u = Math.max(b.w, b.h) / 500;
+    const note = Math.min(b.w, b.h) * 0.055;
+    const count = (svg) => (svg.match(/<(path|rect|circle|ellipse|line|polygon)\b/g) || []).length;
+    Props.LIBRARY.forEach((prop) => {
+        const k = note / (Math.max(prop.w, prop.h) || 1);
+        const shape = { x: 0, y: 0, w: prop.w, h: prop.h, rot: 0 };
+        assert.strictEqual(
+            count(Plan.propInner(shape, prop, u / k, {})),
+            count(Plan.propInner(shape, prop, u, {})),
+            prop.id + ' is drawn differently on a wing note than in the library');
+    });
 });
 
 console.log('\n' + passed + ' checks passed');
