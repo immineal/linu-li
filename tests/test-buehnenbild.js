@@ -1957,6 +1957,34 @@ test('the props that were drawn off their stated size are rebuilt', () => {
 
 /* ------------------------------- die schweren Befunde der Belastungsproben */
 
+test('a stage out of an old backup comes back inside its limits', () => {
+    /* Die Grenze stand einmal nur als Kommentar in der Ladefunktion — sie war
+       beschrieben, aber nicht gezogen, und die Prüfung darunter merkte nichts
+       davon, weil sie die Rechnung prüfte und nicht ihren Gebrauch. Jetzt
+       steht das Klemmen an einer Stelle, und diese Prüfung fasst sie ganz. */
+    const wild = {
+        shape: 'rect', width: 400000, depth: 1e300,
+        grid: { show: true, spacing: 0.001 },
+        wings: { show: true, inset: 99, depth: 99 },
+        curtains: [{ id: 'c', offset: 500 }]
+    };
+    SP.adoptStage(wild);
+    assert.strictEqual(wild.width, 60);
+    assert.strictEqual(wild.depth, 60);
+    assert.strictEqual(wild.grid.spacing, SP.GRID_MIN);
+    assert.strictEqual(wild.wings.inset, 29.95, 'a wing inset past the middle came through');
+    assert.strictEqual(wild.wings.depth, 60);
+    assert.strictEqual(wild.curtains[0].offset, 60, 'a curtain behind the back wall came through');
+    /* Eine gesunde Bühne bleibt, wie sie ist. */
+    const fine = {
+        shape: 'rect', width: 12, depth: 9, grid: { show: true, spacing: 1 },
+        wings: { show: true, inset: 1.2, depth: 3.6 }, curtains: [{ id: 'c', offset: 0.4 }]
+    };
+    const before = JSON.stringify(fine);
+    SP.adoptStage(fine);
+    assert.strictEqual(JSON.stringify(fine), before, 'a sane stage was changed on the way in');
+});
+
 test('a stage cannot be typed larger than any house', () => {
     /* 400.000 m kosteten 4,1 s je Seitenaufbau, auch nach dem Neuladen, und
        1e300 warf einen RangeError. Ein Unsinnsmaß aus einer alten Sicherung

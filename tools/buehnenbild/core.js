@@ -158,6 +158,33 @@
     var STAGE_LENGTHS = ['width', 'depth', 'backWidth', 'diameter', 'apronWidth', 'apronDepth'];
 
     /*
+     * Eine Bühne, wie sie aus dem Speicher kommt, in ihre Grenzen ziehen —
+     * Maße, Raster, Gassen und Vorhänge in einem Zug.
+     *
+     * Das stand einmal in drei Schritten in app.js, und der erste davon fehlte:
+     * die Grenze war beschrieben, aber nicht gezogen. Eine Sicherung mit
+     * 400.000 m kam ungebremst zurück und ließ den Planer nach jedem Neuladen
+     * wieder sekundenlang rechnen. Hier steht es an einer Stelle und wird
+     * geprüft.
+     */
+    function adoptStage(stage) {
+        if (!stage) return stage;
+        clampStage(stage);
+        if (stage.wings) {
+            ['inset', 'depth'].forEach(function (key) {
+                var bound = stageBound('wings.' + key, stage);
+                stage.wings[key] = round(clamp(num(stage.wings[key], bound.least),
+                    bound.least, bound.most), 3);
+            });
+        }
+        (stage.curtains || []).forEach(function (curtain) {
+            var bound = stageBound('curtain.offset', stage);
+            curtain.offset = round(clamp(num(curtain.offset, 0), bound.least, bound.most), 3);
+        });
+        return stage;
+    }
+
+    /*
      * Was ein Requisit an Maß und Ort haben darf.
      *
      * Größe höchstens so groß wie die Bühne: ein Esstisch ließ sich in einem
@@ -1195,6 +1222,7 @@
         stageBound: stageBound,
         propLimits: propLimits,
         clampStage: clampStage,
+        adoptStage: adoptStage,
         shapeById: shapeById,
         stageOutline: stageOutline,
         spanAt: spanAt,

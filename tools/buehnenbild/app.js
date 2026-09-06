@@ -188,10 +188,10 @@
         /* Eine Bühne aus einer alten Sicherung kann jede Zahl mitbringen.
            Ungeklemmt rechnete der Planer nach jedem Neuladen wieder
            sekundenlang an einem Raster, das niemand sehen will. */
-
         p.stage.wings = Object.assign({ show: false, inset: 1.2, depth: 3.6 }, p.stage.wings || {});
         p.stage.curtains = p.stage.curtains || [];
         p.stage.markers = p.stage.markers || [];
+        SP.adoptStage(p.stage);
         p.scenes.forEach(function (s) {
             s.placements = s.placements || [];
             s.curtains = s.curtains || {};
