@@ -24,6 +24,10 @@
      * ================================================================== */
 
     var db = null;
+
+    /* Ein Hauptvorhang und fünf Züge dahinter. Mehr hängt kein Haus, das
+       seinen Abend mit diesem Werkzeug plant. */
+    var CURTAIN_MAX = 6;
     /* Die Zeichnungen sind so gewählt, dass man erkennt, was das Ding ist —
        darauf beruht der ganze Fundus. Unter jedes Sofa noch „Sofa" zu
        schreiben arbeitet dagegen: es macht den Plan voll und sagt nichts, was
@@ -6009,18 +6013,20 @@
                 /* Jeder neue Zug legte sich fest auf drei Meter: zwanzig
                    Vorhänge waren neunzehn Zeichnungen, neunzehn
                    Beschriftungen und neunzehn Griffe auf demselben
-                   Bildpunkt, und nur der oberste war zu fassen. Jetzt hängt
-                   er anderthalb Meter hinter dem hintersten — bis zur
-                   Rückwand, dann bleibt er dort. */
+                   Bildpunkt, und nur der oberste war zu fassen. Jetzt teilen
+                   sie sich die Tiefe gleichmäßig — und mehr als sechs Züge
+                   hängt kein Haus, das hier plant. */
+                if (stage.curtains.length >= CURTAIN_MAX) {
+                    toast(t('Six curtains is as many as this plan holds.'));
+                    return;
+                }
                 var bound = SP.stageBound('curtain.offset', stage);
-                var back = stage.curtains.reduce(function (most, c) {
-                    return Math.max(most, SP.num(c.offset, 0));
-                }, 0);
+                var slot = (bound.most - 0.4) / CURTAIN_MAX;
                 stage.curtains.push({
                     id: SP.uid('cur'),
                     name: stage.curtains.length ? t('Traveller {n}', { n: stage.curtains.length }) : t('House curtain'),
-                    offset: stage.curtains.length
-                        ? SP.round(SP.clamp(back + 1.5, bound.least, bound.most), 3) : 0.4,
+                    offset: SP.round(SP.clamp(0.4 + stage.curtains.length * slot,
+                        bound.least, bound.most), 3),
                     state: 'closed'
                 });
             });
@@ -6874,42 +6880,55 @@
     var ASIDE_MIN = 240;
     var ASIDE_MAX = 720;
 
-    function asideWidth() {
+
+    /* Auch die Ablaufliste links lässt sich zurechtziehen: ein langer
+       Szenentitel braucht Platz, eine Liste aus „I.1, I.2" nicht. Beide
+       Spalten teilen sich dieselbe Rechnung — nur die Richtung, in die das
+       Ziehen breiter macht, ist entgegengesetzt. */
+    var PANELS = {
+        aside: { key: ASIDE_KEY, css: '--sp-aside', least: ASIDE_MIN, most: ASIDE_MAX, sign: -1 },
+        rail: { key: 'sp.planner.rail.v1', css: '--sp-rail', least: 180, most: 520, sign: 1 }
+    };
+
+    function panelWidth(which) {
         var saved = 0;
-        try { saved = parseInt(localStorage.getItem(ASIDE_KEY), 10) || 0; } catch (err) { saved = 0; }
+        try { saved = parseInt(localStorage.getItem(PANELS[which].key), 10) || 0; } catch (err) { saved = 0; }
         return saved;
     }
 
-    function setAsideWidth(px, save) {
+    function setPanelWidth(which, px, save) {
         var app = $('#spApp');
-        if (!app) return;
-        var limit = Math.min(ASIDE_MAX, Math.max(ASIDE_MIN, Math.round(px)));
-        app.style.setProperty('--sp-aside', limit + 'px');
-        if (save) { try { localStorage.setItem(ASIDE_KEY, String(limit)); } catch (err) { /* egal */ } }
+        var spec = PANELS[which];
+        if (!app || !spec) return;
+        var limit = Math.min(spec.most, Math.max(spec.least, Math.round(px)));
+        app.style.setProperty(spec.css, limit + 'px');
+        if (save) { try { localStorage.setItem(spec.key, String(limit)); } catch (err) { /* egal */ } }
         return limit;
     }
 
-    function wireAsideGrip() {
-        var grip = $('#spAsideGrip');
-        var aside = grip && grip.parentNode;
-        if (!grip || !aside) return;
+    function wirePanelGrip(gripId, which) {
+        var grip = $(gripId);
+        var panel = grip && grip.parentNode;
+        var spec = PANELS[which];
+        if (!grip || !panel || !spec) return;
 
-        var stored = asideWidth();
-        if (stored) setAsideWidth(stored, false);
+        var stored = panelWidth(which);
+        if (stored) setPanelWidth(which, stored, false);
 
         grip.addEventListener('pointerdown', function (e) {
             e.preventDefault();
             var startX = e.clientX;
-            var startW = aside.getBoundingClientRect().width;
+            var startW = panel.getBoundingClientRect().width;
             grip.classList.add('is-dragging');
             grip.setPointerCapture(e.pointerId);
 
-            function move(ev) { setAsideWidth(startW - (ev.clientX - startX), false); }
+            function width(ev) { return startW + spec.sign * (ev.clientX - startX); }
+            function move(ev) { setPanelWidth(which, width(ev), false); }
             function up(ev) {
                 grip.classList.remove('is-dragging');
                 window.removeEventListener('pointermove', move);
                 window.removeEventListener('pointerup', up);
-                setAsideWidth(startW - (ev.clientX - startX), true);
+                setPanelWidth(which, width(ev), true);
                 renderCanvas(true);
             }
             window.addEventListener('pointermove', move);
@@ -6920,9 +6939,9 @@
            für die Maus da ist. */
         grip.addEventListener('keydown', function (e) {
             var step = e.shiftKey ? 40 : 10;
-            var now = aside.getBoundingClientRect().width;
-            if (e.key === 'ArrowLeft') { setAsideWidth(now + step, true); e.preventDefault(); }
-            else if (e.key === 'ArrowRight') { setAsideWidth(now - step, true); e.preventDefault(); }
+            var now = panel.getBoundingClientRect().width;
+            if (e.key === 'ArrowLeft') { setPanelWidth(which, now - spec.sign * step, true); e.preventDefault(); }
+            else if (e.key === 'ArrowRight') { setPanelWidth(which, now + spec.sign * step, true); e.preventDefault(); }
             else return;
             renderCanvas(true);
         });
@@ -6936,7 +6955,8 @@
         if (!ui.print) ui.print = null;
         translateMarkup();
         wire();
-        wireAsideGrip();
+        wirePanelGrip('#spAsideGrip', 'aside');
+        wirePanelGrip('#spRailGrip', 'rail');
         render();
         setSaveState(t('Saved locally'));
 

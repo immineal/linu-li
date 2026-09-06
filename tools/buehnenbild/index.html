@@ -22,10 +22,6 @@
         <!-- ------------------------------------------------------ top bar -->
         <header class="sp-bar">
           <div class="sp-bar-left">
-            <h1 class="sp-wordmark">
-              <span data-i18n>Scene planner</span>
-              <span data-i18n>for prop and set crews</span>
-            </h1>
             <select id="spProductionSelect" class="sp-bar-select" data-no-save="1"
                     data-i18n-attr="aria-label" aria-label="Production"></select>
             <!-- Ein Zahnrad wie die anderen Zeichen der Leiste. Als Wort nahm
@@ -90,10 +86,13 @@
                 <div class="sp-rail-head">
                   <h2 data-i18n>Running order</h2>
                   <button class="sp-btn is-quiet" id="spAddAct" data-i18n-attr="title"
-                          title="Group the following scenes into a new act" data-i18n>Add act</button>
-                  <button class="sp-btn" id="spAddScene" data-i18n>Add scene</button>
+                          title="Group the following scenes into a new act" data-i18n>Act +</button>
+                  <button class="sp-btn" id="spAddScene" data-i18n-attr="title"
+                          title="Add a scene to the running order" data-i18n>Scene +</button>
                 </div>
                 <div class="sp-scroll" id="spSceneList"></div>
+                <button class="sp-rail-grip" id="spRailGrip" type="button"
+                        data-i18n-attr="aria-label" aria-label="Drag to widen the running order"></button>
               </aside>
 
               <div class="sp-centre">

@@ -48,6 +48,8 @@
         'Undo': 'Rückgängig',
         'Redo': 'Wiederherstellen',
         'Backup': 'Back-up',
+        'Six curtains is as many as this plan holds.':
+            'Mehr als sechs Vorhänge fasst ein Plan nicht.',
         'The drawing remembers sixty steps back, no further.':
             'Der Zeichner erinnert sich sechzig Schritte weit zurück, nicht weiter.',
         'Cancel': 'Abbrechen',
@@ -128,10 +130,10 @@
 
         /* ----------------------------------------------------- Running order */
         'Running order': 'Ablauf',
-        'Add act': 'Akt hinzufügen',
+        'Act +': 'Akt +',
         'Group the following scenes into a new act':
             'Die folgenden Szenen zu einem neuen Akt zusammenfassen',
-        'Add scene': 'Szene hinzufügen',
+        'Scene +': 'Szene +',
         'Scene': 'Szene',
         'Act': 'Akt',
         'Act {n}': 'Akt {n}',
@@ -349,6 +351,8 @@
         'Upright piano': 'Klavier',
         'Grand piano': 'Flügel',
 
+        'Drag to widen the running order': 'Ziehen, um die Ablaufliste breiter zu machen',
+        'Add a scene to the running order': 'Eine Szene an den Ablauf anhängen',
         'Drag to widen the panel': 'Ziehen ändert die Breite der Spalte',
         'Text in the field': 'Text im Feld',
         'e.g. Sofa goes off here': 'z. B. Sofa geht hier ab',

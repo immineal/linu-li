@@ -54,7 +54,6 @@ body {
    gibt zuerst nach, dann die Auswahl, dann der Zustandstext; die Reiter
    bleiben bis zuletzt lesbar, weil ohne sie nichts mehr geht. */
 @media (max-width: 1240px) {
-    .sp-wordmark { display: none; }
     .sp-bar-select { min-width: 5rem; max-width: 9rem; }
     .sp-tab-btn { padding-left: 0.6rem; padding-right: 0.6rem; }
     .sp-bar { gap: 0.5rem; padding: 0 0.6rem; }
@@ -339,6 +338,7 @@ body {
 .sp-columns { display: flex; width: 100%; min-height: 0; }
 .sp-rail {
     flex: 0 0 var(--sp-rail);
+    position: relative;
     border-right: 1px solid var(--sp-line);
     background: var(--sp-panel);
     display: flex;
@@ -366,22 +366,32 @@ body {
 /* Die rechte Spalte trägt Requisitenauswahl, Auswahl und Szene. Wie breit
    die sein darf, hängt davon ab, woran gerade gearbeitet wird — also zieht
    man sie sich selbst zurecht. Die Breite überlebt den Neustart. */
-.sp-aside-grip {
+.sp-aside-grip,
+.sp-rail-grip {
     position: absolute;
-    left: -3px; top: 0; bottom: 0; width: 7px;
+    top: 0; bottom: 0; width: 7px;
     cursor: col-resize;
     z-index: 3;
     background: transparent;
     border: 0; padding: 0;
 }
-.sp-aside-grip::before {
+.sp-aside-grip { left: -3px; }
+/* Die Ablaufliste lässt sich genauso zurechtziehen wie die rechte Spalte —
+   ein langer Szenentitel braucht Platz, ein kurzer nicht. */
+.sp-rail-grip { right: -3px; }
+.sp-aside-grip::before,
+.sp-rail-grip::before {
     content: ''; position: absolute; left: 3px; top: 0; bottom: 0; width: 1px;
     background: transparent; transition: background 0.12s;
 }
 .sp-aside-grip:hover::before,
 .sp-aside-grip:focus-visible::before,
-.sp-aside-grip.is-dragging::before { background: var(--accent); }
-.sp-aside-grip:focus-visible { outline: none; }
+.sp-aside-grip.is-dragging::before,
+.sp-rail-grip:hover::before,
+.sp-rail-grip:focus-visible::before,
+.sp-rail-grip.is-dragging::before { background: var(--accent); }
+.sp-aside-grip:focus-visible,
+.sp-rail-grip:focus-visible { outline: none; }
 .sp-centre { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 
 .sp-rail-head,
