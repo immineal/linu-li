@@ -1,5 +1,7 @@
 const fs = require('fs');
 const assert = require('assert');
+const { JSDOM } = require('jsdom');
+const path = require('path');
 
 // Read the actual index.html
 const htmlContent = fs.readFileSync(__dirname + '/index.html', 'utf8');
@@ -86,4 +88,44 @@ try {
     process.exit(1);
 }
 
-console.log("All tests passed dynamically against index.html & worker.js!");
+// ---------------------------------------------------------
+// Test Invalid PDF Selection (JSDOM)
+// ---------------------------------------------------------
+
+const dom = new JSDOM(htmlContent, {
+    runScripts: 'dangerously',
+    beforeParse(window) {
+        // Mock setupDropZone to prevent DOMContentLoaded errors
+        window.setupDropZone = function() {};
+
+        // Mock showToast to capture its arguments
+        window.showToast = function(msg, type) {
+            window.__toastMsg = msg;
+            window.__toastType = type;
+        };
+    }
+});
+
+setTimeout(() => {
+    try {
+        console.log("Running Invalid PDF Test...");
+        const window = dom.window;
+
+        window.eval(`
+            // Create a mock file with non-PDF type
+            const file = new window.File([''], 'test.txt', { type: 'text/plain' });
+            // Call handleFileSelection which is defined in the script
+            handleFileSelection([file]);
+        `);
+
+        assert.strictEqual(window.__toastMsg, 'Please upload a valid PDF file.', 'Did not get correct toast message');
+        assert.strictEqual(window.__toastType, 'error', 'Did not get error toast type');
+
+        console.log("✅ Invalid PDF Test Passed!");
+        console.log("All tests passed dynamically against index.html & worker.js!");
+        process.exit(0);
+    } catch(e) {
+        console.error("Invalid PDF Test failed:", e.message);
+        process.exit(1);
+    }
+}, 500);
