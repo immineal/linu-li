@@ -496,8 +496,9 @@ body {
 .sp-scene-where {
     flex: 0 1 auto;
     min-width: 4.5rem;
-    max-width: 9rem;
+    max-width: 8rem;
     width: auto;
+    text-overflow: ellipsis;
 }
 .sp-scene-where[hidden] { display: none; }
 
@@ -508,11 +509,11 @@ body {
     padding: 0.4rem 0.1rem;
     color: var(--ink);
     /* Grundbreite null: damit zählt die Überschrift beim Umbruch nicht mit
-       und schiebt nie einen Nachbarn in die zweite Zeile. Sie wächst dann in
-       das hinein, was übrig bleibt, und hört bei 20 rem auf. Nach unten hält
-       sie sieben rem: seit der Ort daneben steht, war sie sonst auf „Di…"
-       zusammengedrückt. */
-    flex: 1 1 0;
+       und schiebt nie einen Nachbarn in die zweite Zeile. Sie nimmt sich, was
+       ihr Text braucht, und nicht mehr: gewachsen bis 20 rem drückte sie
+       „Aufbau übernehmen von …" in die zweite Zeile, seit der Ort daneben
+       steht. Nach unten hält sie sieben rem, sonst stand dort „Di…". */
+    flex: 0 1 auto;
     min-width: 7rem;
     max-width: 20rem;
     overflow: hidden;

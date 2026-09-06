@@ -591,7 +591,12 @@ test('the worked example only places props that exist', () => {
         require('path').join(__dirname, '../tools/buehnenbild/app.js'), 'utf8');
     const ids = [...src.matchAll(/put\('([^']+)'/g)].map((m) => m[1]);
     assert.ok(ids.length > 10, 'the example places barely anything, did put() get renamed?');
-    const gone = [...new Set(ids)].filter((id) => !Props.get(id));
+    /* Das Beispiel bringt drei eigene Zeichnungen mit — Herd, Anrichte und
+       Apfelbaum stehen im Katalog nicht, sondern werden beim Öffnen in den
+       Fundus gelegt. Sie zählen darum als vorhanden. */
+    const own = new Set([...src.matchAll(/id: '(ex-[a-z]+)'/g)].map((m) => m[1]));
+    assert.ok(own.size >= 2, 'the example no longer brings drawings of its own');
+    const gone = [...new Set(ids)].filter((id) => !Props.get(id) && !own.has(id));
     assert.deepStrictEqual(gone, [], 'the example places props that are no longer in the catalogue');
 });
 
@@ -2192,6 +2197,212 @@ test('a prop that only grows is not sent somewhere it already stands', () => {
     assert.ok(/×/.test(line), 'the new size is not on the sheet: ' + line);
     assert.ok(!/hinten|vorne|Mitte|links|rechts/.test(line),
         'a prop that did not move is still sent somewhere: ' + line);
+});
+
+/* ------------------------------------------------------- Das Beispielstück
+ *
+ * Das Beispiel ist das Erste, was ein fremder Mensch von diesem Werkzeug
+ * sieht: ein Requisit neben der Bühne, eine Szene ohne Ort oder ein Ort, den
+ * keine Szene benutzt, sind dort teurer als irgendwo sonst. Geprüft wird
+ * nicht ein nachgebautes Beispiel, sondern das echte — `buildExample` wird
+ * samt seiner drei Helfer aus app.js geholt und hier gebaut. app.js selbst
+ * lässt sich nicht laden, es greift auf `document` zu.
+ */
+function liftFunction(src, name) {
+    const head = '\n    function ' + name + '(';
+    const at = src.indexOf(head);
+    assert.ok(at > -1, 'app.js has no function ' + name + ' any more');
+    const end = src.indexOf('\n    }\n', at);
+    assert.ok(end > at, 'function ' + name + ' in app.js does not close where expected');
+    return src.slice(at + 1, end + 7);
+}
+
+function loadExample() {
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, '../tools/buehnenbild/app.js'), 'utf8');
+    const code = ['defaultStage', 'newScene', 'newProduction', 'exampleDrawings', 'buildExample']
+        .map((name) => liftFunction(src, name)).join('\n');
+    const db = { library: [] };
+    const libraryById = (id) => db.library.filter((p) => p.id === id)[0] || null;
+    const resolveProp = (id) => Props.get(id) || libraryById(id);
+    const make = new Function('SP', 'SPProps', 't', 'db', 'resolveProp', 'libraryById',
+        code + '\nreturn buildExample;');
+    return {
+        production: make(SP, Props, I18n.t, db, resolveProp, libraryById)(),
+        library: db.library,
+        resolve: resolveProp
+    };
+}
+
+/* Das achsparallele Hüllrechteck einer gedrehten Aufstellung. */
+function boxOf(placement) {
+    const a = (placement.rot || 0) * Math.PI / 180;
+    const c = Math.abs(Math.cos(a));
+    const s = Math.abs(Math.sin(a));
+    const w = (placement.w * c + placement.h * s) / 2;
+    const h = (placement.w * s + placement.h * c) / 2;
+    return { x0: placement.x - w, x1: placement.x + w,
+             y0: placement.y - h, y1: placement.y + h };
+}
+
+function everyLayout(production) {
+    const out = production.scenes.map((sc, i) => ({
+        what: 'scene ' + (i + 1) + ' “' + sc.title + '”', list: sc.placements || []
+    }));
+    production.places.forEach((pl) => {
+        out.push({ what: 'the set of “' + pl.name + '”', list: pl.placements || [] });
+    });
+    return out;
+}
+
+test('the worked example is a whole piece: two acts, ten scenes, four places', () => {
+    const { production } = loadExample();
+    assert.strictEqual(production.acts.length, 2);
+    assert.strictEqual(production.scenes.length, 10);
+    assert.strictEqual(production.places.length, 4);
+    production.scenes.forEach((sc, i) => {
+        const where = 'scene ' + (i + 1) + ' “' + sc.title + '”';
+        assert.ok(sc.title, 'scene ' + (i + 1) + ' has no title');
+        assert.ok(sc.placeId, where + ' plays in no place');
+        assert.ok(sc.actId, where + ' belongs to no act');
+        assert.ok(SP.placeById(production, sc.placeId), where + ' points at a place that is gone');
+        assert.ok(production.acts.some((a) => a.id === sc.actId),
+            where + ' points at an act that is gone');
+        assert.ok((sc.placements || []).length >= 4, where + ' is nearly empty');
+    });
+    /* Ein Ort, den keine Szene benutzt, ist im Beispiel toter Ballast — und
+       ein Ort ohne eigenes Bühnenbild führt gerade das nicht vor, wofür es
+       Orte gibt. */
+    production.places.forEach((place) => {
+        const used = SP.scenesInPlace(production, place.id);
+        assert.ok(used.length >= 2, '“' + place.name + '” is used in fewer than two scenes');
+        assert.ok((place.placements || []).length >= 4,
+            '“' + place.name + '” carries no set of its own');
+    });
+});
+
+test('nothing in the worked example stands off the stage', () => {
+    /* Gemessen wird die ganze Standfläche und die gedreht — nicht der
+       Mittelpunkt. Ein Sofa, dessen Mitte gerade noch auf der Bühne liegt,
+       hängt trotzdem zu einem Meter im Nichts. */
+    const { production } = loadExample();
+    const bounds = SP.stageOutline(production.stage).bounds;
+    const off = [];
+    everyLayout(production).forEach((entry) => {
+        entry.list.forEach((placement) => {
+            const box = boxOf(placement);
+            if (box.x0 < bounds.x - 0.002 || box.x1 > bounds.x + bounds.w + 0.002 ||
+                box.y0 < bounds.y - 0.002 || box.y1 > bounds.y + bounds.h + 0.002) {
+                off.push(placement.propId + ' in ' + entry.what);
+            }
+        });
+    });
+    assert.deepStrictEqual(off, [], 'these stand over the edge of the stage');
+});
+
+test('nothing in the worked example stands behind a closed curtain', () => {
+    /* Der Zwischenvorhang ist die Rückwand des Hauses. Was dahinter steht,
+       sieht niemand — und auf dem Grundriss sieht es aus wie ein Fehler. */
+    const { production } = loadExample();
+    const out = SP.stageOutline(production.stage);
+    const shut = (production.stage.curtains || []).filter((curtain) => {
+        return production.scenes.every(function (sc) {
+            return (sc.curtains[curtain.id] || curtain.state) === 'closed';
+        });
+    });
+    assert.ok(shut.length, 'the example no longer has a curtain that stays closed');
+    const behind = out.frontY - Math.min.apply(null, shut.map((c) => c.offset));
+    const caught = [];
+    everyLayout(production).forEach((entry) => {
+        entry.list.forEach((placement) => {
+            if (boxOf(placement).y0 < behind - 0.002) {
+                caught.push(placement.propId + ' in ' + entry.what);
+            }
+        });
+    });
+    assert.deepStrictEqual(caught, [], 'these stand upstage of a curtain that never opens');
+});
+
+test('the curtains of the worked example stand the same in every scene', () => {
+    /* Kein Zug wird während des Stücks bewegt. Stünde in einer Szene etwas
+       anderes, wäre das ein Umbau, den kein Blatt nennt. */
+    const { production } = loadExample();
+    const first = production.scenes[0];
+    production.stage.curtains.forEach((curtain) => {
+        const state = first.curtains[curtain.id];
+        assert.ok(state, '“' + curtain.name + '” has no state in the first scene');
+        production.scenes.forEach((sc, i) => {
+            assert.strictEqual(sc.curtains[curtain.id], state,
+                '“' + curtain.name + '” stands differently in scene ' + (i + 1));
+        });
+    });
+});
+
+test('the worked example brings drawings of its own and uses them', () => {
+    /* Selbst gezeichnete Requisiten sind das halbe Werkzeug. Lägen sie nur im
+       Fundus, ohne je auf der Bühne zu stehen, führte das Beispiel sie nicht
+       vor, sondern versteckte sie. */
+    const { production, library } = loadExample();
+    assert.ok(library.length >= 3, 'the example brings fewer than three drawings');
+    const standing = new Set();
+    everyLayout(production).forEach((entry) => {
+        entry.list.forEach((placement) => standing.add(placement.propId));
+    });
+    library.forEach((prop) => {
+        assert.ok(prop.art && prop.box && prop.draft,
+            '“' + prop.name + '” is not shaped like something the drawer saved');
+        assert.strictEqual(prop.box.length, 4, '“' + prop.name + '” has no measured box');
+        /* Dieselbe Prüfung wie am Katalog: passt das Feld der Zeichnung nicht
+           zum angeschriebenen Maß, steht das Ding kleiner da, als es dasteht. */
+        const drawn = prop.box[2] / prop.box[3];
+        assert.ok(Math.abs(drawn - prop.w / prop.h) / (prop.w / prop.h) < 0.04,
+            '“' + prop.name + '” does not fill its stated footprint');
+        assert.ok(I18n.DE[prop.name], '“' + prop.name + '” has no German name');
+        assert.ok(standing.has(prop.id), '“' + prop.name + '” stands in no scene');
+    });
+});
+
+test('every change-over in the worked example actually changes something', () => {
+    /* Eine Zeile, die nichts abbaut, nichts aufbaut, nichts umstellt und
+       nichts sagt, kostet die Mannschaft einen Blick und gibt nichts zurück. */
+    const { production, resolve } = loadExample();
+    const nameOf = (id) => I18n.t((resolve(id) || { name: 'Unknown prop' }).name);
+    const rows = SP.changeoverRows(production, { nameOf });
+    const idle = rows.filter((row) => SP.changeoverIsEmpty(row));
+    assert.deepStrictEqual(idle.map((r) => r.toLabel), [], 'these change-overs do nothing');
+    const all = rows.map((r) => [r.note, (r.strike || []).join(), (r.setup || []).join(),
+        (r.move || []).join()].join(' ')).join(' ');
+    assert.ok(!/undefined|NaN|\bnull\b/.test(all), 'a change-over row prints a hole: ' + all);
+    assert.ok(rows.some((r) => r.critical), 'no change-over is marked critical any more');
+    assert.ok(rows.some((r) => r.type === 'banner'), 'the interval banner is gone');
+    /* Jede Notiz muss an einem Paar hängen, das nebeneinander steht — sonst
+       druckt sie nie jemand. */
+    const live = {};
+    rows.filter((r) => r.type === 'row').forEach((r) => { if (r.note) live[r.note] = true; });
+    const notes = Object.keys(production.transitions)
+        .map((key) => production.transitions[key].note).filter(Boolean);
+    notes.forEach((note) => {
+        assert.ok(live[note], 'this note hangs on no change: ' + note);
+    });
+});
+
+test('every wing note in the worked example points at something real', () => {
+    const { production, resolve } = loadExample();
+    let count = 0;
+    production.scenes.forEach((sc, i) => {
+        (sc.wingNotes || []).forEach((note) => {
+            count += 1;
+            const where = 'wing note in scene ' + (i + 1);
+            assert.ok(note.text && note.text.trim(), where + ' says nothing');
+            assert.ok(note.side === 'left' || note.side === 'right', where + ' has no side');
+            assert.ok(!note.propId || resolve(note.propId),
+                where + ' shows a prop that is gone: ' + note.propId);
+        });
+    });
+    assert.ok(count >= 4, 'the example barely shows what a wing note is');
+    /* Gezeichnet werden sie nur, solange die Bühne Gassen hat. */
+    assert.ok(production.stage.wings && production.stage.wings.show,
+        'the example has wing notes but no wings to put them in');
 });
 
 console.log('\n' + passed + ' checks passed');
