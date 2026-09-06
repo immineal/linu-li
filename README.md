@@ -49,7 +49,7 @@ No analytics, no ads, no cookies. Also works offline as a PWA.
 - **Epoch Converter** — unix timestamp ↔ human readable
 
 ### Stage & production
-- **Szenenplaner (Scene & Prop Planner)** — German-language tool for stage crews. Build a running order of scenes, name the places the piece returns to, place props on a stage (rectangular, thrust, circular, arena, traverse…) with wings and curtains, then print two documents: A4 ground plans that carry only the drawing, and an **Umbauplan** — a booktabs-style table of what is struck, set up and moved between every pair of scenes, with a boxed reference block and full-width banners for the interval. Ships with a set of oblique prop illustrations alongside the plan-view symbols. Guided setup on first visit, a short introduction the first time you open each section, and an explanation behind every setting.
+- **Szenenplaner (Scene & Prop Planner)** — German-language tool for stage crews. Build a running order of scenes, name the places the piece returns to, place props on a stage (rectangular, trapezoid, thrust, half round) with wings and curtains, then print two documents: A4 ground plans that carry only the drawing, and an **Umbauplan** — a booktabs-style table of what is struck, set up and moved between every pair of scenes, with a boxed reference block and full-width banners for the interval. Ships with a set of oblique prop illustrations alongside the plan-view symbols. Guided setup on first visit, a short introduction the first time you open each section, and an explanation behind every setting.
 
 ### Misc
 - **Password Gen** — uses Web Crypto API, no bias

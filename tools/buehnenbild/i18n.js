@@ -849,9 +849,6 @@
         'Arena, in the round': 'Arena, Rundumbühne',
         'Round stage with audience on every side.':
             'Runde Bühne, Publikum auf allen Seiten.',
-        'Traverse, alley': 'Gasse, Mittelgang',
-        'Long playing strip, audience on both long sides.':
-            'Langer Spielstreifen, Publikum an beiden Längsseiten.',
         'Polygon': 'Vieleck',
         'Regular polygon with a flat edge facing the audience.':
             'Gleichmäßiges Vieleck mit gerader Kante zum Publikum.',

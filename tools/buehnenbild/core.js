@@ -86,9 +86,11 @@
      * reported as frontY.
      * ------------------------------------------------------------------ */
 
-    /* Fünf Formen. Rund, Rundumbühne und Vieleck standen einmal dabei; an
-       echten Häusern kommen sie kaum vor, und jede kostete eine Karte, ein
-       eigenes Maßfeld und einen Zweig in der Geometrie. Wer doch eine hat,
+    /* Vier Formen. Rund, Rundumbühne, Vieleck und die Gasse standen einmal
+       dabei; an echten Häusern kommen sie kaum vor, und jede kostete eine
+       Karte, ein eigenes Maßfeld und einen Zweig in der Geometrie. Die Gasse
+       war dabei die teuerste Karte für das wenigste: derselbe Umriss wie das
+       Rechteck, nur mit dem Publikum an den Längsseiten. Wer doch eine hat,
        kommt mit dem Vieleck-Umriss ohnehin nicht weit — der zeichnet keinen
        Zuschauerraum. */
     var STAGE_SHAPES = [
@@ -111,11 +113,6 @@
             id: 'halfround', name: 'Half round',
             fields: ['diameter'],
             blurb: 'Flat upstage wall, curved front edge.'
-        },
-        {
-            id: 'traverse', name: 'Traverse, alley',
-            fields: ['width', 'depth'],
-            blurb: 'Long playing strip, audience on both long sides.'
         }
     ];
 
@@ -311,14 +308,6 @@
                 bounds: { x: -r, y: 0, w: 2 * r, h: r },
                 frontY: r,
                 audience: ['front', 'left', 'right']
-            };
-        }
-        case 'traverse': {
-            return {
-                d: 'M' + (-W / 2) + ',0 H' + (W / 2) + ' V' + D + ' H' + (-W / 2) + ' Z',
-                bounds: { x: -W / 2, y: 0, w: W, h: D },
-                frontY: D,
-                audience: ['left', 'right']
             };
         }
         default: {

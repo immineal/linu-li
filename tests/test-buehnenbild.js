@@ -85,12 +85,13 @@ test('points off the floor are recognised as off the floor', () => {
     assert.strictEqual(SP.containsPoint(stage, 0, -0.5), false, 'behind the back wall');
 });
 
-test('the three rare shapes are gone and old plans fall back to a rectangle', () => {
-    /* Rund, Rundumbühne und Vieleck kamen an echten Häusern kaum vor und
-       kosteten jede eine Karte, ein Maßfeld und einen Zweig in der Geometrie.
-       Ein Plan, der eine davon trägt, muss trotzdem etwas zeichnen — und darf
-       nicht rund bleiben, während in der Auswahl „Rechteckig" markiert steht. */
-    const gone = ['circle', 'arena', 'polygon'];
+test('the four rare shapes are gone and old plans fall back to a rectangle', () => {
+    /* Rund, Rundumbühne, Vieleck und die Gasse kamen an echten Häusern kaum
+       vor und kosteten jede eine Karte, ein Maßfeld und einen Zweig in der
+       Geometrie. Ein Plan, der eine davon trägt, muss trotzdem etwas zeichnen
+       — und darf nicht rund bleiben, während in der Auswahl „Rechteckig"
+       markiert steht. */
+    const gone = ['circle', 'arena', 'polygon', 'traverse'];
     gone.forEach((id) => {
         assert.ok(!SP.STAGE_SHAPES.some((sh) => sh.id === id), id + ' is still offered');
         assert.strictEqual(SP.shapeById(id).id, 'rect', id + ' does not fall back to a rectangle');
@@ -99,7 +100,7 @@ test('the three rare shapes are gone and old plans fall back to a rectangle', ()
             id + ' still draws its old outline');
     });
     assert.deepStrictEqual(SP.STAGE_SHAPES.map((sh) => sh.id),
-        ['rect', 'trapezoid', 'thrust', 'halfround', 'traverse']);
+        ['rect', 'trapezoid', 'thrust', 'halfround']);
 });
 
 /* ---------------------------------------------------------------- units */
@@ -1225,10 +1226,9 @@ test('wings wider than the stage are clamped, not drawn off it', () => {
 
 /* Gassen sind die seitliche Abdeckung einer Guckkastenbühne. Sie setzen
    voraus, dass es überhaupt eine verdeckte Seite gibt und dass die Seitenkante
-   gerade verläuft. Bei Arena und Traverse sitzt dort Publikum, bei den runden
-   Formen ist die Kante gebogen. Erwartet wird deshalb: nur Rechteck, Trapez
-   und Vorbühne bieten Gassen an, und ein Formwechsel blendet sie aus, ohne
-   die eingestellten Maße wegzuwerfen. */
+   gerade verläuft. Beim Halbrund ist die Kante gebogen. Erwartet wird deshalb:
+   nur Rechteck, Trapez und Vorbühne bieten Gassen an, und ein Formwechsel
+   blendet sie aus, ohne die eingestellten Maße wegzuwerfen. */
 
 test('only the three shapes with a straight side edge have wings', () => {
     const withWings = SP.STAGE_SHAPES
@@ -1238,14 +1238,11 @@ test('only the three shapes with a straight side edge have wings', () => {
 });
 
 test('a shape without wings draws none, however they are set', () => {
-    const wings = { show: true, inset: 1.2, depth: 4 };
-    /* Nur die drei Formen mit gerader Seitenkante haben Gassen. Eine
-       Gassenlinie an einer runden Vorderkante gäbe es im Haus nicht. */
-    ['traverse', 'halfround'].forEach((shape) => {
-        const stage = Object.assign({}, SP.DEFAULT_STAGE, { shape: shape, wings: wings });
-        assert.strictEqual(SP.wingLines(stage).length, 0, shape + ' still drew wings');
-        assert.strictEqual(SP.inWing(stage, 999, 0), false, shape + ' still has a wing to stand in');
-    });
+    /* Eine Gassenlinie an einer runden Vorderkante gäbe es im Haus nicht. */
+    const stage = Object.assign({}, SP.DEFAULT_STAGE,
+        { shape: 'halfround', wings: { show: true, inset: 1.2, depth: 4 } });
+    assert.strictEqual(SP.wingLines(stage).length, 0, 'the half round still drew wings');
+    assert.strictEqual(SP.inWing(stage, 999, 0), false, 'the half round still has a wing to stand in');
 });
 
 test('switching the shape away and back keeps the wing measurements', () => {
@@ -1254,8 +1251,8 @@ test('switching the shape away and back keeps the wing measurements', () => {
     const before = SP.wingLines(stage);
     assert.strictEqual(before.length, 2);
 
-    stage.shape = 'traverse';
-    assert.strictEqual(SP.wingLines(stage).length, 0, 'the traverse drew wings');
+    stage.shape = 'halfround';
+    assert.strictEqual(SP.wingLines(stage).length, 0, 'the half round drew wings');
     assert.strictEqual(stage.wings.show, true, 'the tick was thrown away');
     assert.strictEqual(stage.wings.inset, 1.2, 'the inset was thrown away');
     assert.strictEqual(stage.wings.depth, 4, 'the depth was thrown away');
