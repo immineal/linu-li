@@ -4482,6 +4482,16 @@
         var sc = scene();
         if (!sc) return;
 
+        /* Kommt das Loslassen nicht an — der Zeiger verlässt das Fenster, ein
+           anderes Fenster nimmt den Fokus, das Betriebssystem schluckt das
+           Ereignis —, lief der Zug weiter: das Requisit klebte am Zeiger, bis
+           irgendwo wieder geklickt wurde. `buttons` sagt, ob überhaupt noch
+           eine Taste gedrückt ist. */
+        if (drag && e.buttons === 0) {
+            onCanvasPointerUp(e);
+            return;
+        }
+
         if (!drag) {
             var here = stagePoint(e);
             var stage = stageOf(sc);
@@ -6551,6 +6561,15 @@
 
         document.addEventListener('keyup', function (e) {
             if (e.key === ' ') spaceHeld = false;
+        });
+
+        /* Verliert das Fenster den Fokus, kommt kein `keyup` und kein
+           `pointerup` mehr. Die Leertaste galt danach als gedrückt — die
+           Zeichenfläche schob statt auszuwählen —, und ein laufender Zug lief
+           weiter. Beim Fokusverlust wird beides beendet. */
+        window.addEventListener('blur', function () {
+            spaceHeld = false;
+            if (drag) onCanvasPointerUp();
         });
 
         window.addEventListener('beforeunload', function () {
