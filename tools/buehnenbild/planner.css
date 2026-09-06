@@ -382,8 +382,11 @@ body {
 }
 .sp-aside-grip { left: -3px; }
 /* Die Ablaufliste lässt sich genauso zurechtziehen wie die rechte Spalte —
-   ein langer Szenentitel braucht Platz, ein kurzer nicht. */
-.sp-rail-grip { right: -3px; }
+   ein langer Szenentitel braucht Platz, ein kurzer nicht. Der Griff bleibt
+   dabei innerhalb der Spalte: drei Bildpunkte darüber hinaus reichten, um
+   die Seite bei 900 px waagerecht scrollen zu lassen. */
+.sp-rail-grip { right: 0; }
+.sp-rail-grip::before { left: auto; right: 0; }
 .sp-aside-grip::before,
 .sp-rail-grip::before {
     content: ''; position: absolute; left: 3px; top: 0; bottom: 0; width: 1px;
@@ -487,6 +490,17 @@ body {
 .sp-toolbar .sp-sep { width: 1px; align-self: stretch; background: var(--sp-line); margin: 0 0.25rem; }
 /* Der Szenenname über dem Plan ist nur noch Auskunft; geändert wird er in der
    Liste. Als Feld nahm er bis zu 352 px der Werkzeugleiste. */
+/* Der Ort neben dem Szenennamen: schmal genug, dass er die Zeile nicht
+   sprengt, breit genug für „Wohnzimmer". Er gibt vor dem Namen nach — der
+   Name der Szene ist das Erste, was hier zu lesen sein muss. */
+.sp-scene-where {
+    flex: 0 1 auto;
+    min-width: 4.5rem;
+    max-width: 9rem;
+    width: auto;
+}
+.sp-scene-where[hidden] { display: none; }
+
 .sp-scene-name {
     font-size: 0.95rem;
     font-weight: 500;
@@ -495,9 +509,11 @@ body {
     color: var(--ink);
     /* Grundbreite null: damit zählt die Überschrift beim Umbruch nicht mit
        und schiebt nie einen Nachbarn in die zweite Zeile. Sie wächst dann in
-       das hinein, was übrig bleibt, und hört bei 20 rem auf. */
+       das hinein, was übrig bleibt, und hört bei 20 rem auf. Nach unten hält
+       sie sieben rem: seit der Ort daneben steht, war sie sonst auf „Di…"
+       zusammengedrückt. */
     flex: 1 1 0;
-    min-width: 0;
+    min-width: 7rem;
     max-width: 20rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1314,6 +1330,10 @@ body {
     vertical-align: middle;
 }
 .sp-why:hover, .sp-why:focus-visible { color: var(--ink); }
+/* Frei in der Leiste steht das Fragezeichen für sich, ganz in der Ecke. Ein
+   dünner Ring mit kleinem Haken wiegt dort weniger als eine Lupe im selben
+   Kasten — er darf etwas größer sein. */
+.sp-btn > .sp-why-icon { width: 1.32em; height: 1.32em; }
 /* Nur im Erklär-Knopf füllt das Zeichen die Fläche. Frei stehend — etwa im
    Hilfeknopf der Leiste — behält es das Maß aller anderen Zeichen. */
 .sp-why > .sp-why-icon { width: 100%; height: 100%; }

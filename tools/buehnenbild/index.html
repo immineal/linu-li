@@ -106,6 +106,10 @@
                        Umbenannt wird links in der Liste, per Doppelklick oder
                        Stift — dort steht der Name ohnehin. -->
                   <h2 class="sp-scene-name" id="spSceneTitle"></h2>
+                  <!-- Wo die Szene spielt, gehört neben ihren Namen und nicht
+                       in einen Bereich, den man erst aufklappen muss. -->
+                  <select id="spSceneWhere" class="sp-scene-where" data-bind="scene.placeId"
+                          data-i18n-attr="aria-label" aria-label="Plays in"></select>
                   <span class="sp-sep"></span>
                   <select id="spLabelMode" data-no-save="1" style="width: auto"
                           data-i18n-attr="aria-label" aria-label="Plan labels">

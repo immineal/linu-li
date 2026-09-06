@@ -1008,6 +1008,20 @@
         $('#spSnapToggle').classList.toggle('is-on', ui.snap);
         $('#spGhostToggle').classList.toggle('is-on', ui.ghosts);
         $('#spLabelMode').value = ui.labels;
+
+        /* Wo die Szene spielt, steht neben ihrem Namen. Ohne einen einzigen
+           angelegten Ort gibt es nichts zu wählen — dann steht das Feld auch
+           nicht da. */
+        var where = $('#spSceneWhere');
+        if (where) {
+            var places = production().places || [];
+            where.hidden = !places.length;
+            if (places.length) {
+                where.innerHTML = '<option value="">' + esc(t('No place')) + '</option>' +
+                    placeOptions(production(), sc);
+                where.value = sc.placeId || '';
+            }
+        }
     }
 
     var canvasPlan = null;
@@ -1837,25 +1851,7 @@
             '<div class="sp-field"><label for="spScenePlace">' + esc(t('Plays in')) + why('scene.place') + '</label>' +
             '<select id="spScenePlace" data-bind="scene.placeId">' +
             '<option value="">' + esc(t('No place')) + '</option>' +
-            /* Namenlose und gleichnamige Orte waren hier nicht
-               auseinanderzuhalten: fünfzig neue Orte ergaben siebenundvierzig
-               Zeilen „Ort", drei Cafés drei gleiche. Gleichnamige bekommen
-               eine laufende Nummer — in der Liste, nicht im Namen. */
-            (function () {
-                var total = {};
-                var seen = {};
-                p.places.forEach(function (pl) {
-                    var name = pl.name || t('Place');
-                    total[name] = (total[name] || 0) + 1;
-                });
-                return p.places.map(function (pl) {
-                    var name = pl.name || t('Place');
-                    seen[name] = (seen[name] || 0) + 1;
-                    var label = total[name] > 1 ? name + ' ' + seen[name] : name;
-                    return '<option value="' + esc(pl.id) + '"' + (sc.placeId === pl.id ? ' selected' : '') + '>' +
-                        esc(label) + '</option>';
-                }).join('');
-            }()) + '</select></div>' +
+            placeOptions(p, sc) + '</select></div>' +
             /* Was mit dem Ort zu tun ist, steht beim Ort. In der Werkzeugleiste
                nahmen die beiden Knöpfe 474 px und standen weit weg von der
                Auswahl, auf die sie sich beziehen. Ohne Ort gibt es nichts zu
@@ -6199,6 +6195,30 @@
     function followNaturalDepth(placement) {
         var natural = SPShapes.naturalDepth(resolveProp(placement.propId), placement.w, placement.params);
         if (natural !== null) placement.h = natural;
+    }
+
+    /* Die Liste der Orte für ein Auswahlfeld. Sie steht an zwei Stellen — im
+       Bereich „Szene" und in der Zeile über dem Plan —, deshalb wird sie
+       einmal gebaut.
+
+       Namenlose und gleichnamige Orte waren nicht auseinanderzuhalten:
+       fünfzig neue Orte ergaben siebenundvierzig Zeilen „Ort", drei Cafés
+       drei gleiche. Gleichnamige bekommen eine laufende Nummer — in der
+       Liste, nicht im Namen. */
+    function placeOptions(p, sc) {
+        var total = {};
+        var seen = {};
+        (p.places || []).forEach(function (pl) {
+            var name = pl.name || t('Place');
+            total[name] = (total[name] || 0) + 1;
+        });
+        return (p.places || []).map(function (pl) {
+            var name = pl.name || t('Place');
+            seen[name] = (seen[name] || 0) + 1;
+            var label = total[name] > 1 ? name + ' ' + seen[name] : name;
+            return '<option value="' + esc(pl.id) + '"' +
+                (sc.placeId === pl.id ? ' selected' : '') + '>' + esc(label) + '</option>';
+        }).join('');
     }
 
     function setBound(path, value) {
