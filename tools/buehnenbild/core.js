@@ -197,6 +197,14 @@
             return { least: 0.05, most: round(Math.max(0.05, width / 2 - 0.05), 3) };
         }
         if (field === 'wings.depth') return { least: 0.05, most: depth };
+        if (field === 'curtain.offset') {
+            /* Ein Vorhang hängt bei `frontY − Abstand`. Weiter hinten als die
+               Rückwand gibt es keinen Zug mehr: `spanAt` liefert dort nichts,
+               und der Vorhang verschwand wortlos aus jedem Plan, während sein
+               Griff über dem Bild lag. */
+            var out = stageOutline(stage);
+            return { least: 0, most: round(out.frontY - out.bounds.y, 3) };
+        }
         if (field === 'apronWidth') return { least: STAGE_MIN, most: width };
         return { least: STAGE_MIN, most: STAGE_MAX };
     }

@@ -1078,21 +1078,37 @@
 
     /* Welche Kanten sich ziehen lassen, sagt die Bauvorschrift. Was sie
        hergibt, bekommt einen Griff — und was nicht, bekommt keinen. */
-    function scaleHandles(p, handle, hair) {
+    function scaleHandles(p, full, hair) {
         var grip = SPPlan.gripOf(resolveProp(p.propId));
         if (grip === 'none') return '';
         var hw = p.w / 2, hh = p.h / 2;
         var out = [];
+        /* Die Griffe folgen dem Zoom, aber nie so weit, dass sie das Requisit
+           verdecken: bei einem Stück Kreide von fünf Zentimetern lagen
+           Eckgriff, Breitengriff und Tiefengriff innerhalb von zwei
+           Bildpunkten übereinander und waren nicht auseinanderzuhalten. */
+        var least = Math.min(p.w, p.h);
+        /* Ist für drei Griffe kein Platz, bleibt der Eckgriff allein. Drei
+           Griffe auf einem Fingernagel sind kein Angebot, sondern ein
+           Ärgernis — die Zahlenfelder rechts stehen für genau diesen Fall.
+           Dann darf der eine auch seine volle Größe behalten: mitgeschrumpft
+           war er einen Bildpunkt breit und gar nicht mehr zu sehen. */
+        var tight = least < full * 1.6;
+        var handle = tight ? full : Math.min(full, least / 2.6);
         var corner = grip !== 'width' && grip !== 'depth';
         if (corner) {
             out.push('<rect class="sp-handle" x="' + (hw - handle * 0.4) + '" y="' + (hh - handle * 0.4) +
                 '" width="' + handle * 0.8 + '" height="' + handle * 0.8 + '" stroke-width="' + hair * 1.4 + '"/>' +
-                '<rect class="sp-handle-hit" data-handle="scale" x="' + (hw - handle) + '" y="' + (hh - handle) +
-                '" width="' + handle * 2 + '" height="' + handle * 2 + '"/>');
+                /* Gezeichnet wird klein, gegriffen wird großzügig: sonst
+                   wäre der Griff auf einem kleinen Stück zwar zu sehen, aber
+                   nicht zu treffen. */
+                '<rect class="sp-handle-hit" data-handle="scale" x="' + (hw - full) + '" y="' + (hh - full) +
+                '" width="' + full * 2 + '" height="' + full * 2 + '"/>');
         }
         /* Bei „Verhältnis" und „quadratisch" gehen beide Kanten ohnehin
            zusammen — eine einzelne Kante wäre dort eine leere Zusage. */
-        var edges = grip === 'free' ? ['w', 'h']
+        var edges = tight && corner ? []
+            : grip === 'free' ? ['w', 'h']
             : grip === 'derived' || grip === 'width' ? ['w']
             : grip === 'depth' ? ['h'] : [];
         edges.forEach(function (axis) {
@@ -1105,8 +1121,8 @@
                 '" height="' + (axis === 'w' ? long : thick) +
                 '" stroke-width="' + hair * 1.4 + '"/>' +
                 '<rect class="sp-handle-hit" data-handle="scale-' + axis +
-                '" x="' + (x - handle) + '" y="' + (y - handle) +
-                '" width="' + handle * 2 + '" height="' + handle * 2 + '"/>');
+                '" x="' + (x - full) + '" y="' + (y - full) +
+                '" width="' + full * 2 + '" height="' + full * 2 + '"/>');
         });
         return out.join('');
     }
@@ -2679,7 +2695,9 @@
         var curtains = (stage.curtains || []).map(function (c) {
             return '<div class="sp-curtain-row">' +
                 '<input type="text" value="' + esc(c.name) + '" data-curtain="' + esc(c.id) + '" data-curtain-field="name" aria-label="' + esc(t('Curtain name')) + '">' +
-                '<input type="number" step="0.1" min="0" value="' + toField(SP.num(c.offset, 0)) +
+                '<input type="number" step="0.1" min="0" max="' +
+                toField(SP.stageBound('curtain.offset', stage).most) +
+                '" value="' + toField(SP.num(c.offset, 0)) +
                 '" data-curtain="' + esc(c.id) + '" data-curtain-field="offset" aria-label="' + esc(t('Distance upstage')) + '">' +
                 '<select data-curtain="' + esc(c.id) + '" data-curtain-field="state" aria-label="' + esc(t('Normally')) + '">' +
                 ['closed', 'half', 'open'].map(function (opt) {
@@ -2826,11 +2844,15 @@
         var stage = editingStage();
         if (spec.key === 'curtain') {
             var curtain = (stage.curtains || []).filter(function (c) { return c.id === spec.id; })[0];
-            if (curtain) curtain.offset = Math.max(0, value);
+            if (curtain) {
+                var bound = SP.stageBound('curtain.offset', stage);
+                curtain.offset = SP.clamp(value, bound.least, bound.most);
+            }
             return;
         }
         if (spec.key === 'wings.inset' || spec.key === 'wings.depth') {
-            stage.wings[spec.key.split('.')[1]] = Math.max(0.05, value);
+            var wb = SP.stageBound(spec.key, stage);
+            stage.wings[spec.key.split('.')[1]] = SP.clamp(value, wb.least, wb.most);
             return;
         }
         stage[spec.key] = SP.clamp(value, SP.STAGE_MIN, SP.STAGE_MAX);
@@ -6233,7 +6255,10 @@
                     var curtain = (stage.curtains || []).filter(function (c) { return c.id === el.dataset.curtain; })[0];
                     if (!curtain) return;
                     var field = el.dataset.curtainField;
-                    if (field === 'offset') curtain.offset = Math.max(0, fromField(el.value, 0));
+                    if (field === 'offset') {
+                        var cb = SP.stageBound('curtain.offset', stage);
+                        curtain.offset = clampSaid(fromField(el.value, 0), cb.least, cb.most);
+                    }
                     else curtain[field] = el.value;
                 });
                 return;

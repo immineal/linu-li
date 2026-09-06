@@ -2134,5 +2134,17 @@ test('a prop stays as large as the stage at most, and within reach of it', () =>
     assert.deepStrictEqual(small.x, [-9, 9]);
 });
 
+test('a curtain cannot hang behind the back wall', () => {
+    /* Weiter hinten als die Rückwand gibt es keinen Zug mehr: `spanAt`
+       liefert dort nichts, der Vorhang verschwand wortlos aus jedem Plan,
+       und sein Griff lag 1 254 Bildpunkte über dem Bild. */
+    const flat = Object.assign({}, SP.DEFAULT_STAGE, { shape: 'rect', width: 12, depth: 9 });
+    assert.strictEqual(SP.stageBound('curtain.offset', flat).most, 9);
+    assert.strictEqual(SP.stageBound('curtain.offset', flat).least, 0);
+    /* Bei einer Vorbühne zählt die Bauflucht, nicht die vorderste Kante. */
+    const thrust = { shape: 'thrust', width: 12, depth: 8, apronWidth: 7, apronDepth: 2.5 };
+    assert.strictEqual(SP.stageBound('curtain.offset', thrust).most, 8);
+});
+
 console.log('\n' + passed + ' checks passed');
 
