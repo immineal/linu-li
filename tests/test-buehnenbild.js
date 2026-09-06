@@ -1955,5 +1955,153 @@ test('the props that were drawn off their stated size are rebuilt', () => {
     assert.ok(drawn.indexOf(' ' + -hh + 'H') === -1, 'there is a rung sitting on the head');
 });
 
+/* ------------------------------- die schweren Befunde der Belastungsproben */
+
+test('a stage cannot be typed larger than any house', () => {
+    /* 400.000 m kosteten 4,1 s je Seitenaufbau, auch nach dem Neuladen, und
+       1e300 warf einen RangeError. Ein Unsinnsmaß aus einer alten Sicherung
+       muss beim Laden zurückgeholt werden, nicht erst beim Tippen. */
+    const wild = {
+        shape: 'rect', width: 400000, depth: 1e300, backWidth: -5,
+        apronDepth: 0, grid: { show: true, spacing: 0.001 }
+    };
+    SP.clampStage(wild);
+    assert.strictEqual(wild.width, SP.STAGE_MAX);
+    assert.strictEqual(wild.depth, SP.STAGE_MAX, 'a number too large for arithmetic came through');
+    assert.strictEqual(wild.backWidth, SP.STAGE_MIN);
+    assert.strictEqual(wild.apronDepth, SP.STAGE_MIN);
+    assert.strictEqual(wild.grid.spacing, SP.GRID_MIN, 'the grid is finer than the field allows');
+    /* Und der Deckel auf die Linien: das feinste Raster auf der größten Bühne
+       darf den Planer nicht anhalten. */
+    const most = { shape: 'rect', width: SP.STAGE_MAX, depth: SP.STAGE_MAX };
+    const lines = SP.gridLines(most, SP.GRID_MIN);
+    assert.ok(lines.vertical.length <= SP.GRID_MAX_LINES,
+        lines.vertical.length + ' vertical lines is past the cap');
+    assert.ok(lines.horizontal.length <= SP.GRID_MAX_LINES,
+        lines.horizontal.length + ' horizontal lines is past the cap');
+});
+
+test('a marquee with Shift never puts the same prop in the selection twice', () => {
+    /* Danach schob ein Pfeiltastendruck 1,0 statt 0,5 m, r drehte 30 statt
+       15 Grad, und Strg+D machte aus sieben Requisiten fünfzehn. */
+    const first = SP.addToSelection([], ['a', 'b', 'c']);
+    assert.deepStrictEqual(first, ['a', 'b', 'c']);
+    const again = SP.addToSelection(first, ['b', 'c', 'd']);
+    assert.deepStrictEqual(again, ['a', 'b', 'c', 'd'], 'the overlap was appended unchecked');
+    assert.deepStrictEqual(SP.addToSelection(null, null), []);
+});
+
+function placeProduction() {
+    const place = SP.newPlace('Schule');
+    place.placements = [placement('ill-chair', -2, 3), placement('ill-chair', -1, 3),
+                        placement('dining-table', 0, 4)];
+    const scene = {
+        id: 's1', title: 'Schule', placeId: place.id, actId: null, curtains: {},
+        placements: [placement('ill-chair', -2, 3), placement('dining-table', 0, 4)]
+    };
+    return { id: 'p', name: 'Probe', units: 'm', numbering: 'continuous',
+             stage: Object.assign({}, SP.DEFAULT_STAGE), acts: [],
+             places: [place], scenes: [scene], transitions: {} };
+}
+
+test('a place is cleared up with everything else, not left holding ghosts', () => {
+    /* Der Ort hielt eine zweite Kopie der Aufstellungen, die kein Aufräumweg
+       anfasste: ein gelöschtes eigenes Requisit stand dort weiter, die
+       Rückfrage zählte drei statt vier, und „Bühnenbild dieses Orts
+       einsetzen" trug den Geist in die Szene zurück. */
+    const production = placeProduction();
+    const lists = SP.placementLists(production);
+    assert.strictEqual(lists.length, 2, 'the place keeps a list of its own and it is not counted');
+    assert.strictEqual(SP.countPropUses([production], 'ill-chair'), 3,
+        'the chairs standing in the place were not counted');
+    const removed = SP.dropProp([production], 'ill-chair');
+    assert.strictEqual(removed, 3);
+    assert.strictEqual(production.places[0].placements.length, 1,
+        'a chair is still standing in the place');
+    assert.strictEqual(SP.countPropUses([production], 'ill-chair'), 0);
+});
+
+test('updating a place asks only when the place loses something', () => {
+    /* Bei leerer Szene löschte der Knopf das ganze Bühnenbild des Orts, ohne
+       Rückfrage und mit grüner Erfolgsmeldung — während der Knopf direkt
+       daneben denselben Fall höflich ablehnte. */
+    const production = placeProduction();
+    const place = production.places[0];
+    const scene = production.scenes[0];
+
+    const short = SP.placeLoss(place, scene);
+    assert.strictEqual(short.count, 1, 'one chair goes missing and nobody is told');
+    assert.deepStrictEqual(short.items, [{ propId: 'ill-chair', count: 1 }]);
+    assert.strictEqual(short.all, false);
+
+    /* Hält die Szene alles und mehr: kein Wort, ein Klick. */
+    const richer = { placements: place.placements.concat([placement('ill-crate', 1, 1)]) };
+    assert.strictEqual(SP.placeLoss(place, richer).count, 0);
+
+    /* Leere Szene: die Frage nennt, dass alles weg ist. */
+    const empty = SP.placeLoss(place, { placements: [] });
+    assert.strictEqual(empty.count, 3);
+    assert.strictEqual(empty.total, 3);
+    assert.strictEqual(empty.all, true);
+});
+
+test('a change-over row is measured by the lines it really takes', () => {
+    /* rowHeight zählte jeden Eintrag als eine Zeile. Ein Eintrag mit
+       Beschriftung bricht in der schmalen Spalte auf drei um; bei vierzig
+       beschrifteten Stühlen schätzte der Umbruch 169 mm statt über 500, die
+       Zeile ragte über den Blattrand, und `overflow: hidden` schnitt sie ab:
+       im PDF standen 33 von 40. */
+    const many = Array.from({ length: 40 },
+        (_, i) => 'Stuhl ' + (i + 1) + ' — Reihe hinten links, Rückenlehne zur Rampe');
+    const row = { type: 'row', sceneId: 's1', title: 'Die Schule',
+                  strike: [], setup: many, move: [] };
+    const wraps = Sheets.wrapCount(many[0], Sheets.COLUMNS[1], Sheets.PAGE.font);
+    assert.ok(wraps > 1, 'a long entry is still counted as one line in the 48 mm column');
+    const naive = 40 * Sheets.PAGE.line;
+    assert.ok(Sheets.rowHeight(row) >= 40 * wraps * Sheets.PAGE.line,
+        'the estimate is short of the lines the entries really take');
+    assert.ok(Sheets.rowHeight(row) > naive * 1.5,
+        'forty wrapped entries are still measured as forty single lines');
+});
+
+test('a row taller than a sheet is split, not swallowed', () => {
+    /* Von 29 Absätzen kamen 17 aufs Papier, mitten im Satz — der Rest fiel
+       stillschweigend hinten herunter. */
+    const paragraphs = Array.from({ length: 29 },
+        (_, i) => 'Absatz ' + (i + 1) + ' — eine lange Anweisung, die in der Spalte umbricht');
+    const production = changeoverProduction();
+    const rows = SP.changeoverRows(production, { nameOf: (id) => Props.get(id).name });
+    rows[1].setup = paragraphs;
+    const pages = Sheets.paginateChangeover(rows, 0);
+    const printed = pages.reduce((sum, page) => sum + page.reduce(
+        (n, r) => n + ((r.setup || []).length), 0), 0);
+    assert.ok(pages.length > 1, 'a row that does not fit was squeezed onto one sheet');
+    assert.ok(printed >= paragraphs.length,
+        'only ' + printed + ' of ' + paragraphs.length + ' entries reached the paper');
+});
+
+test('printing one act keeps the numbering of the whole evening', () => {
+    /* Planblätter 4, 5, 6 gegen Umbauplan 1, 2, 3 — und der Umbau, der in den
+       Akt hineinführt, fehlte ganz. Ohne ihn weiß niemand, wie er beginnt. */
+    const production = changeoverProduction();
+    const one = { id: 'a1', title: 'Vor der Pause' };
+    const two = { id: 'a2', title: 'Nach der Pause' };
+    production.acts = [one, two];
+    production.numbering = 'per-act';
+    production.scenes[0].actId = one.id;
+    production.scenes[1].actId = two.id;
+
+    const act = Sheets.buildChangeover({
+        production, resolve, options: { scope: two.id }
+    }).join('');
+
+    assert.ok(act.includes('II.1'),
+        'the single act renumbers from one instead of keeping the evening’s numbers');
+    /* Der Umbau, der in den Akt hineinführt, gehört zur ersten Szene des Akts
+       und muss mitkommen — sonst weiß niemand, wie der Akt beginnt. */
+    assert.ok(/Kiste|Crate/.test(act),
+        'the change that opens the act is missing from its plan');
+});
+
 console.log('\n' + passed + ' checks passed');
 
