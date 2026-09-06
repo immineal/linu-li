@@ -358,7 +358,7 @@
                 const lat = convertDMSToDD(gps[piexif.GPSIFD.GPSLatitude], gps[piexif.GPSIFD.GPSLatitudeRef]);
                 const lng = convertDMSToDD(gps[piexif.GPSIFD.GPSLongitude], gps[piexif.GPSIFD.GPSLongitudeRef]);
                 
-                rows.push({ label: 'GPS Coordinates', val: `${lat.toFixed(4)}, ${lng.toFixed(4)} <span class="risk-badge">RISK</span>`, isHTML: true });
+                rows.push({ label: 'GPS Coordinates', val: `${lat.toFixed(4)}, ${lng.toFixed(4)} `, hasRiskBadge: true });
                 
                 noGpsMsg.classList.add('hidden');
                 mapOptInOverlay.classList.remove('hidden');
@@ -385,10 +385,12 @@
 
                     const valSpan = document.createElement('span');
                     valSpan.className = 'meta-value';
-                    if (r.isHTML) {
-                        valSpan.innerHTML = r.val;
-                    } else {
-                        valSpan.textContent = r.val;
+                    valSpan.textContent = r.val;
+                    if (r.hasRiskBadge) {
+                        const riskBadge = document.createElement('span');
+                        riskBadge.className = 'risk-badge';
+                        riskBadge.textContent = 'RISK';
+                        valSpan.appendChild(riskBadge);
                     }
 
                     rowDiv.appendChild(labelSpan);
