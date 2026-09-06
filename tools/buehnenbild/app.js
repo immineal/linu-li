@@ -513,39 +513,174 @@
      * A worked example, for anyone who would rather see it than read it
      * ================================================================== */
 
+    /*
+     * Die drei selbst gezeichneten Requisiten des Beispiels.
+     *
+     * Genau die Form, die der Zeichner beim Speichern schreibt: Maß, das
+     * gemessene Feld, das fertige SVG und die Formen zum Weiterzeichnen. Sie
+     * stehen nachher im Fundus wie jede eigene Zeichnung — man kann sie
+     * anfassen, ändern und in eine andere Produktion stellen.
+     *
+     * Warum gerade diese drei: ein Kammerstück, das in einer Küche und einem
+     * Garten spielt, kommt ohne Herd, Anrichte und Baum nicht aus, und im
+     * Katalog steht keines davon. Das ist der Fall, für den es den Zeichner
+     * gibt.
+     */
+    function exampleDrawings() {
+        return [
+            {
+                id: 'ex-range', name: 'Kitchen range', cat: 'Furniture',
+                w: 0.9, h: 0.6, box: [8, 22, 84, 56],
+                tags: 'herd kohleherd ofen kueche kitchen range stove cooker hob',
+                art: '<rect x="8" y="22" width="84" height="56" rx="2"/>' +
+                    '<path d="M8 31 L92 31"/>' +
+                    '<circle cx="32" cy="46" r="8"/><circle cx="60" cy="46" r="8"/>' +
+                    '<circle cx="32" cy="63" r="8"/><circle cx="60" cy="63" r="8"/>' +
+                    '<path d="M22 73 L78 73"/>',
+                draft: [
+                    { k: 'rect', m: 'o', x: 8, y: 22, w: 84, h: 56, r: 2 },
+                    { k: 'line', m: 'o', x1: 8, y1: 31, x2: 92, y2: 31 },
+                    { k: 'ellipse', m: 'o', cx: 32, cy: 46, rx: 8, ry: 8 },
+                    { k: 'ellipse', m: 'o', cx: 60, cy: 46, rx: 8, ry: 8 },
+                    { k: 'ellipse', m: 'o', cx: 32, cy: 63, rx: 8, ry: 8 },
+                    { k: 'ellipse', m: 'o', cx: 60, cy: 63, rx: 8, ry: 8 },
+                    { k: 'line', m: 'o', x1: 22, y1: 73, x2: 78, y2: 73 }
+                ]
+            },
+            {
+                id: 'ex-dresser', name: 'Kitchen dresser', cat: 'Furniture',
+                w: 1.3, h: 0.509, box: [4, 32, 92, 36],
+                tags: 'anrichte buffet kuechenschrank dresser sideboard cupboard',
+                art: '<rect x="4" y="32" width="92" height="36" rx="1"/>' +
+                    '<rect x="10" y="32" width="80" height="14"/>' +
+                    '<path d="M50 46 L50 68"/>' +
+                    '<path d="M44 52 L44 58"/><path d="M56 52 L56 58"/>',
+                draft: [
+                    { k: 'rect', m: 'o', x: 4, y: 32, w: 92, h: 36, r: 1 },
+                    { k: 'rect', m: 'o', x: 10, y: 32, w: 80, h: 14, r: 0 },
+                    { k: 'line', m: 'o', x1: 50, y1: 46, x2: 50, y2: 68 },
+                    { k: 'line', m: 'o', x1: 44, y1: 52, x2: 44, y2: 58 },
+                    { k: 'line', m: 'o', x1: 56, y1: 52, x2: 56, y2: 58 }
+                ]
+            },
+            {
+                id: 'ex-appletree', name: 'Apple tree', cat: 'Set pieces',
+                w: 2.4, h: 2.4, box: [6, 4, 88, 88],
+                tags: 'apfelbaum baum garten tree apple orchard planting',
+                art: '<path class="f" d="M50 4 L68 10 L82 22 L94 40 L88 60 L78 78 L60 90 ' +
+                    'L42 92 L24 84 L10 68 L6 46 L16 24 L32 10 Z"/>' +
+                    '<circle class="s" cx="50" cy="48" r="7"/>',
+                draft: [
+                    { k: 'polygon', m: 'f', pts: [
+                        [50, 4], [68, 10], [82, 22], [94, 40], [88, 60], [78, 78], [60, 90],
+                        [42, 92], [24, 84], [10, 68], [6, 46], [16, 24], [32, 10]] },
+                    { k: 'ellipse', m: 's', cx: 50, cy: 48, rx: 7, ry: 7 }
+                ]
+            }
+        ];
+    }
+
     function buildExample() {
-        var p = newProduction(t('The Winter Guest'));
-        p.subtitle = t('A play in two acts, for trying things out');
-        p.venue = t('School hall');
+        /* ------------------------------------------------------------ *
+         * „Der Apfelbaum bleibt" — ein erfundenes Kammerstück.
+         *
+         * Erfunden mit Absicht. Zu jedem wirklichen Stück gehören eine
+         * Fassung, eine Strichliste und ein Bühnenbild, das jemand gebaut
+         * hat; nichts davon steht hier, und etwas anderes darunter zu
+         * schreiben wäre eine falsche Auskunft. Erfunden darf der Aufbau
+         * dagegen genau das zeigen, was der Planer kann.
+         *
+         * Das Stück: drei Geschwister räumen an einem Wochenende das Haus
+         * ihrer Mutter aus. Marlene hat die Schlüssel geholt, Jost hat die
+         * letzten Jahre nebenan gewohnt, Ricke kommt zu spät und über die
+         * Mauer. Vier Räume, zehn Szenen, zwei Akte: die Küche kommt
+         * viermal wieder, die gute Stube, der Garten und die Kammer je
+         * zweimal.
+         * ------------------------------------------------------------ */
+        var p = newProduction(t('The apple tree stays'));
+        p.subtitle = t('A chamber play in two acts');
+        p.venue = t('Studio stage, parish hall');
+        p.notes = t('Everything in this production is made up — the piece, the house and the crew. Pull it apart, that is what it is here for.');
         p.numbering = 'per-act';
         p.stage.shape = 'rect';
         p.stage.width = 9;
         p.stage.depth = 6.5;
         p.stage.grid.show = false;
         p.stage.wings = { show: true, inset: 1.2, depth: 5 };
+
+        /* Zwei Züge, und beide stehen den ganzen Abend über gleich: der
+           Hauptvorhang offen, der Zwischenvorhang zu. Der Zwischenvorhang ist
+           die Rückwand des Hauses; dahinter geht die Mannschaft im Dunkeln von
+           einer Gasse in die andere. Kein Zug wird während des Stücks bewegt,
+           und darum steht in jeder Szene dasselbe. */
         p.stage.curtains = [
-            { id: SP.uid('cur'), name: t('House curtain'), offset: 0.3, state: 'closed' }
+            { id: SP.uid('cur'), name: t('House curtain'), offset: 0.3, state: 'open' },
+            { id: SP.uid('cur'), name: t('Mid-stage traveller'), offset: 5, state: 'closed' }
         ];
 
-        var act1 = { id: SP.uid('act'), name: t('Before the interval'), notes: '' };
-        var act2 = { id: SP.uid('act'), name: t('After the interval'), notes: '' };
+        var act1 = {
+            id: SP.uid('act'), name: t('Act one — Friday'),
+            notes: t('From the arrival to the small hours. Ends in the attic.')
+        };
+        var act2 = {
+            id: SP.uid('act'), name: t('Act two — Sunday'),
+            notes: t('Sunday, and the house is emptied around them.')
+        };
         p.acts = [act1, act2];
+        /* Die leere Szene, mit der jede neue Produktion anfängt, wird hier
+           nicht gebraucht — die zehn Szenen legt `scene()` selbst an. */
+        p.scenes = [];
 
-        /* Die Orte, an denen das Stück spielt, mit ihrer festen Ausstattung. */
-        function place(name, props) {
+        /* Die eigenen Zeichnungen gehören in den Fundus, nicht in die
+           Produktion: dort stehen sie neben dem Katalog und lassen sich in
+           jede andere Produktion stellen. */
+        var drawings = exampleDrawings();
+        drawings.forEach(function (prop) {
+            if (!libraryById(prop.id)) db.library.push(prop);
+        });
+
+        /*
+         * Die vier Räume. Jeder hält seine Grundstellung als eigenes
+         * Bühnenbild; die Szenen weichen davon ab, wo das Stück es verlangt,
+         * und der Orte-Reiter sagt dann, welche.
+         *
+         * Die feste Liste steht nur da, wo sie mehr weiß als die Zeichnung —
+         * dass im Kännchen ein Schluck Wasser sein muss, sieht man keinem
+         * Grundriss an. Wo nichts steht, liest der Druck die Liste aus dem
+         * gespeicherten Bühnenbild.
+         */
+        function place(name, notes, props) {
             var pl = SP.newPlace(name);
-            pl.props = props.split(', ');
+            pl.notes = notes || '';
+            pl.props = props ? props.split(', ') : [];
             p.places.push(pl);
             return pl;
         }
-        var school = place(t('School'), t('4 chairs, board, desk, sponge, chalk'));
-        var market = place(t('Market'), t('Market stall, crate'));
-        var living = place(t('Living room'), t('Table, cloth, 2 chairs, coat stand, side table with picture'));
-        var park = place(t('Park'), t('Bench, bin'));
-        var cafe = place(t('Café'), t('Table, 3 chairs, mugs, pot, menu'));
+        var kitchen = place(t('The kitchen'),
+            t('The room the piece lives in. The range is a dummy — nothing on it gets hot.'),
+            t('Coffee pot with a mouthful of water in it, 2 mugs, 4 chairs, crate of unopened post, wine bottle with the cork put back loose'));
+        var parlour = place(t('The front room'),
+            t('Kept for visitors and never used. The piano takes four to carry and goes on first at every change.'),
+            t('Piano – out of tune and playable, music stand with the mother’s sheet music, clock stopped at ten past four, rug, sofa, 2 armchairs, coat stand, book of fairy tales'));
+        var garden = place(t('The garden'),
+            t('Late summer. The tree flies in and out — never with anybody underneath it.'));
+        var attic = place(t('The attic room'),
+            t('The narrowest picture of the evening. Bed, ladder and screen come out of the left wing and go back the same way.'));
+
+        /*
+         * Derselbe Gegenstand über mehrere Szenen hinweg. Der Umbauplan
+         * erkennt daran, dass die Leiter aus dem Garten die Leiter in der
+         * Kammer ist, und schreibt „Leiter → hinten rechts" statt „Leiter ab,
+         * Leiter auf".
+         */
+        var tracks = {};
+        function trk(key) {
+            if (!tracks[key]) tracks[key] = SP.uid('trk');
+            return tracks[key];
+        }
 
         function put(propId, x, y, rot, label, over) {
-            var prop = SPProps.get(propId);
+            var prop = resolveProp(propId);
             /* Ein Tippfehler oder ein umbenanntes Requisit ließ die Sache hier
                wortlos verschwinden: das Beispiel druckte eine Schulklasse ohne
                Pult. Ein Test wacht jetzt darüber, hier fällt es trotzdem auf. */
@@ -553,82 +688,262 @@
             var pl = SP.makePlacement(prop, x, y);
             pl.rot = rot || 0;
             if (label) pl.label = label;
-            if (over) Object.assign(pl, over);
+            if (over) {
+                Object.assign(pl, over);
+                /* `track` ist kein Feld einer Aufstellung, sondern ein Name
+                   dafür — derselbe Name heißt derselbe Gegenstand. */
+                if (pl.track) { pl.trackId = trk(pl.track); delete pl.track; }
+            }
             return pl;
         }
-        function scene(title, placeId, actId, items) {
+
+        function scene(title, subtitle, where, act, items) {
             var sc = newScene(title);
-            sc.actId = actId;
-            sc.placeId = placeId;
-            sc.placements = items.filter(Boolean);
+            sc.subtitle = subtitle || '';
+            sc.actId = act.id;
+            sc.placeId = where.id;
+            sc.placements = items;
+            /* Jede Szene schreibt beide Züge so hin, wie sie die Bühne nennt.
+               Ausgeschrieben und nicht weggelassen, damit im Szene-Bereich
+               steht, was gilt — aber aus einer Quelle, damit nicht zwei
+               Stellen auseinanderlaufen können. */
+            p.stage.curtains.forEach(function (curtain) {
+                sc.curtains[curtain.id] = curtain.state;
+            });
+            p.scenes.push(sc);
             return sc;
         }
 
-        var s1 = scene(t('The school'), school.id, act1.id, [
-            put('ill-blackboard', -1.6, 1.1),
-            put('dining-table', 0.4, 2.5, 0, null, { w: 1.3, h: 0.6 }),
-            put('ill-chalk', 0.62, 2.62),
-            put('ill-chair', -1.9, 4.4), put('ill-chair', -0.7, 4.4),
-            put('ill-chair', 0.8, 4.4), put('ill-chair', 2.0, 4.4)
-        ]);
+        /* Was in einem Raum immer an derselben Stelle steht. Ein frischer Satz
+           je Szene, aber unter denselben Namen — es sind dieselben Möbel. */
+        function kitchenWalls() {
+            return [
+                put('door-frame', -2.4, 2.05, 0, t('to the hall'), { track: 'k-door' }),
+                put('ex-dresser', 1.05, 1.95, 0, null, { track: 'k-dresser' }),
+                put('ex-range', 2.75, 2.1, 0, null, { track: 'k-range' })
+            ];
+        }
+        function parlourWalls() {
+            return [
+                put('piano-upright', -2.2, 1.95, 0, t('four to carry it'), { track: 'p-piano' }),
+                put('music-stand', -1.05, 1.95, 0, null, { track: 'p-stand' }),
+                put('ill-coatstand', 3, 2.4, 0, null, { track: 'p-coatstand' })
+            ];
+        }
+        function gardenWalls() {
+            return [
+                put('ex-appletree', -1.5, 3, 0, null, { track: 'g-tree' }),
+                put('door-frame', 2, 2.05, 0, t('garden gate'), { track: 'g-gate' }),
+                put('rock', 2.4, 4.3, 0, null, { track: 'g-rock' })
+            ];
+        }
 
-        var s2 = scene(t('The market'), market.id, act1.id, [
-            put('dining-table', -0.4, 2.3, 0, null, { w: 1.4, h: 0.7 }),
-            put('ill-pot', -0.55, 2.1),
-            put('ill-crate', -2.5, 3.7, -12),
-            put('ill-crate', 1.5, 3.1, 6)
-        ]);
+        /* ------------------------------------------------------ erster Akt */
 
-        var s3 = scene(t('The living room'), living.id, act1.id, [
-            put('table-cloth', 0, 3.2, -12, null, { params: { cloth: true } }),
-            put('ill-chair', -1.6, 3.0, 90, t('Anna’s chair')),
-            put('ill-chair', 0.2, 1.9, 180),
-            put('ill-coatstand', 3.1, 1.3),
-            put('round-table', -2.9, 4.6),
-            put('ill-typewriter', -2.9, 4.5),
-            put('ill-bottle', 0.15, 3.25)
-        ]);
+        /* Das Haus steht seit dem Begräbnis zu. Marlene macht Licht, die
+           Wachstuchdecke liegt noch auf dem Tisch, die Post darauf. */
+        var s1 = scene(t('The kitchen, Friday evening'), t('Marlene alone'),
+            kitchen, act1, kitchenWalls().concat([
+                put('dining-table', -0.2, 3.7, 0, null,
+                    { track: 'k-table', params: { cloth: true } }),
+                put('ill-chair', -0.75, 4.55, 180, null, { track: 'k-chair-fl' }),
+                put('ill-crate', -0.2, 3.55, -6, t('the post'), { track: 'k-post' }),
+                put('glass-water', 0.35, 3.95)
+            ]));
 
-        var s4 = scene(t('The park'), park.id, act2.id, [
-            put('ill-bench', -0.4, 4.2),
-            put('ill-bin', 2.7, 4.6)
-        ]);
+        /* Jost kommt herüber, das Licht bleibt an, und aus dem zugestellten
+           Haus wird für eine Stunde wieder eine Küche. */
+        var s2 = scene(t('An hour later'), t('Marlene and Jost'),
+            kitchen, act1, kitchenWalls().concat([
+                put('dining-table', -0.2, 3.7, 0, null, { track: 'k-table' }),
+                put('ill-chair', -0.75, 2.85, 0, null, { track: 'k-chair-bl' }),
+                put('ill-chair', 0.35, 2.85, 0, null, { track: 'k-chair-br' }),
+                put('ill-chair', -0.75, 4.55, 180, null, { track: 'k-chair-fl' }),
+                put('ill-chair', 0.35, 4.55, 180, null, { track: 'k-chair-fr' }),
+                put('ill-pot', -0.45, 3.6, 0, null, { track: 'k-pot' }),
+                put('ill-mug', -0.05, 3.55, 0, null, { track: 'k-mug-a' }),
+                put('ill-mug', 0.25, 3.88, 0, null, { track: 'k-mug-b' }),
+                put('ill-crate', -2.9, 3.35, 0, t('the post'), { track: 'k-post' })
+            ]));
 
-        var s5 = scene(t('The café'), cafe.id, act2.id, [
-            put('round-table', 0, 3.4, 0, null, { w: 0.75, h: 0.75 }),
-            put('ill-pot', -0.28, 3.15),
-            put('ill-mug', 0.25, 3.15),
-            put('ill-menu', 0.25, 3.62),
-            put('ill-cafechair', -1.6, 3.3, 0),
-            put('ill-cafechair', 1.6, 3.3, 180),
-            put('ill-cafechair', 0, 2.0, 90),
-            put('ill-mug', -0.25, 3.62)
-        ]);
+        /* Die gute Stube: nie benutzt, seit Jahren zugezogen, und das Klavier
+           steht dort, weil es niemand herausbekommt. */
+        var s3 = scene(t('In the front room'), t('Jost, and the piano'),
+            parlour, act1, parlourWalls().concat([
+                put('clock', 0.3, 1.85, 0, t('stopped'), { track: 'p-clock' }),
+                put('rug', 0.2, 4.2, 0, null, { track: 'p-rug', w: 2.6, h: 2 }),
+                put('sofa', 0.2, 3.05, 0, null, { track: 'p-sofa' }),
+                put('armchair', -1.85, 4.3, 55, null, { track: 'p-armchair-l' }),
+                put('armchair', 2.25, 4.3, -55, null, { track: 'p-armchair-r' }),
+                put('round-table', 0.2, 4.35, 0, null, { track: 'p-table' }),
+                put('ill-book', 0.2, 4.3, 12, t('the mother’s'), { track: 'book' })
+            ]));
 
-        p.scenes = [s1, s2, s3, s4, s5];
-        p.scenes.forEach(function (sc) {
-            p.stage.curtains.forEach(function (c) { sc.curtains[c.id] = 'open'; });
+        /* Ricke kommt um Mitternacht über die Mauer, weil sie den Schlüssel
+           nicht hat und nicht klingeln will. */
+        var s4 = scene(t('Under the apple tree'), t('Midnight, Ricke'),
+            garden, act1, gardenWalls().concat([
+                put('ill-bench', -1.5, 4.35, 0, null, { track: 'g-bench' }),
+                put('ladder', 3.05, 2.5, 0, t('against the wall'), { track: 'ladder' }),
+                put('ill-crate', 0.35, 2.3, -8, null, { track: 'g-crate-a' }),
+                put('ill-crate', 0.9, 2.6, 9, null, { track: 'g-crate-b' })
+            ]));
+
+        /* Oben unterm Dach: das Bett, in dem alle drei als Kinder geschlafen
+           haben, und die Schreibmaschine der Mutter auf einer Kiste. */
+        var s5 = scene(t('Up in the attic'), t('Ricke, and the letter'),
+            attic, act1, [
+                put('bed', -1.6, 3.4, 90, null, { track: 'a-bed' }),
+                put('folding-screen', 1, 2.05, 0, null, { track: 'a-screen' }),
+                put('ladder', 2.6, 2.6, 0, t('at the hatch'), { track: 'ladder' }),
+                put('ill-crate', 0.9, 3.3, 0, null, { track: 'g-crate-a' }),
+                put('ill-typewriter', 0.9, 3.2, 0, null, { track: 'a-typewriter' }),
+                put('suitcase', -0.1, 4.6, 0, t('Ricke’s'), { track: 'a-case' }),
+                put('ill-book', -1.9, 3.25, -8, t('the mother’s'), { track: 'book' }),
+                put('glass-water', -0.35, 3.65, 0, null, { track: 'a-glass' })
+            ]);
+
+        /* ----------------------------------------------------- zweiter Akt */
+
+        /* Sonntagmorgen, und von der Nacht steht noch alles auf dem Tisch. */
+        var s6 = scene(t('Sunday morning'), t('All three'),
+            kitchen, act2, kitchenWalls().concat([
+                put('dining-table', -0.2, 3.7, 0, null, { track: 'k-table' }),
+                put('ill-chair', -0.75, 2.85, 0, null, { track: 'k-chair-bl' }),
+                put('ill-chair', 0.35, 2.85, 0, null, { track: 'k-chair-br' }),
+                put('ill-chair', -1.65, 4.75, 205, t('pushed back'), { track: 'k-chair-fl' }),
+                put('ill-chair', 0.35, 4.55, 180, null, { track: 'k-chair-fr' }),
+                put('ill-pot', -0.45, 3.6, 0, null, { track: 'k-pot' }),
+                put('ill-mug', -0.05, 3.55, 0, null, { track: 'k-mug-a' }),
+                put('ill-mug', 0.25, 3.88, 0, null, { track: 'k-mug-b' }),
+                put('ill-bottle', 0.45, 3.55, 0, t('empty'), { track: 'k-bottle' }),
+                put('glass-wine', -0.75, 3.5, 0, null, { track: 'k-wine-a', params: { full: true } }),
+                put('glass-wine', -0.75, 3.9, 0, null, { track: 'k-wine-b', params: { full: true } }),
+                put('ill-crate', -2.9, 3.35, 0, t('the post'), { track: 'k-post' })
+            ]));
+
+        /* Der Käufer will das Grundstück, nicht das Haus. Der Tisch wird frei
+           gemacht, die Kiste kommt darauf, und es wird unterschrieben. */
+        var s7 = scene(t('The contract'), t('All three, and the buyer’s man'),
+            kitchen, act2, kitchenWalls().concat([
+                put('dining-table', -0.2, 3.7, 0, null, { track: 'k-table' }),
+                put('ill-chair', -0.75, 2.85, 0, null, { track: 'k-chair-bl' }),
+                put('ill-chair', 0.35, 2.85, 0, null, { track: 'k-chair-br' }),
+                put('ill-chair', -0.75, 4.55, 180, null, { track: 'k-chair-fl' }),
+                put('ill-chair', 0.35, 4.55, 180, null, { track: 'k-chair-fr' }),
+                put('ill-crate', -0.2, 3.6, -5, t('lid off'), { track: 'k-post' }),
+                put('glass-water', -0.6, 3.5, 0, null, { track: 'k-water-a' }),
+                put('glass-water', -0.6, 3.9, 0, null, { track: 'k-water-b' })
+            ]));
+
+        /* Die gute Stube, halb geräumt: das Klavier steht, wo es stand, alles
+           andere ist an die Wand geschoben und wartet auf den Wagen. */
+        var s8 = scene(t('The front room, half struck'), t('Jost alone'),
+            parlour, act2, parlourWalls().concat([
+                put('sofa', 1, 2.4, 0, t('to the wall'), { track: 'p-sofa' }),
+                put('armchair', 2.55, 3.55, 0, null, { track: 'p-armchair-l' }),
+                put('mark-zone', -1.4, 4.5, 0, null, { w: 2.2, h: 1.6 }),
+                put('mark-label', -1.4, 3.45, 0, t('For the van')),
+                put('ill-crate', -2.05, 4.35, 0, null, { track: 'p-crate-a' }),
+                put('ill-crate', -1.4, 4.35, 0, null, { track: 'p-crate-b' }),
+                put('ill-crate', -0.75, 4.35, 0, null, { track: 'p-crate-c' })
+            ]));
+
+        /* Die Kammer, ausgeräumt. Was bleibt, ist das Bett und das Buch, das
+           Ricke daraufgelegt hat. */
+        var s9 = scene(t('The attic room, emptied'), t('Ricke, packing'),
+            attic, act2, [
+                put('bed', -1.6, 3.4, 90, null, { track: 'a-bed' }),
+                put('ladder', 2.6, 2.6, 0, t('at the hatch'), { track: 'ladder' }),
+                put('ill-crate', 0.9, 3.3, 0, null, { track: 'g-crate-a' }),
+                put('ill-book', -1.6, 3.4, 6, t('left behind'), { track: 'book' })
+            ]);
+
+        /* Der letzte Blick: die Bank steht jetzt unter dem Baum, und die drei
+           trinken auf ihn. */
+        var s10 = scene(t('The apple tree'), t('All three'),
+            garden, act2, gardenWalls().concat([
+                put('ill-bench', -0.9, 4.4, 0, t('under the tree'), { track: 'g-bench' }),
+                put('glass-wine', 2.1, 4.15, 0, null, { params: { full: true } }),
+                put('glass-wine', 2.4, 4.05, 0, null, { params: { full: true } }),
+                put('glass-wine', 2.7, 4.15, 0, null, { params: { full: true } })
+            ]));
+
+        /* Zwei Szenennotizen. Sie stehen auf dem Szenenblatt neben dem
+           Grundriss und sagen, was kein Grundriss sagen kann. */
+        s5.notes = t('Only the attic room is lit. Whatever waits in the wing has to be out of the beam.');
+        s8.notes = t('The marked area is taped on the floor and stays there for the rest of the run.');
+
+        /*
+         * Was der Planer nicht ausrechnen kann, steht hier von Hand. Eine
+         * Wachstuchdecke, die vom Tisch genommen wird, ist für den Vergleich
+         * zweier Szenen dasselbe Requisit an derselben Stelle — auf dem Blatt
+         * muss es trotzdem stehen.
+         */
+        SP.ensureTransition(p, null, s1).note =
+            t('Standing set before the house opens: door, dresser and range are in place, the oilcloth is on the table with the post on top.');
+        SP.ensureTransition(p, s1, s2).note =
+            t('The oilcloth comes off and is folded onto the dresser. It stays there in sight until the end of the evening.');
+
+        var change1 = SP.ensureTransition(p, s2, s3);
+        change1.critical = true;
+        change1.note = t('The whole kitchen goes into the left wing, the front room comes out of the right. Seventy seconds in the dark — the piano first, it takes four.');
+
+        SP.ensureTransition(p, s3, s4).note =
+            t('Roll the rug, do not drag it. The tree comes in from above and not before the piano is off.');
+
+        var change2 = SP.ensureTransition(p, s4, s5);
+        change2.critical = true;
+        change2.note = t('The ladder in the garden is the ladder in the attic, and one of the two crates goes up with it. Straight off the stage and onto the hatch — there is no second ladder.');
+
+        var interval = SP.ensureTransition(p, s5, s6);
+        interval.note = t('Twenty minutes, so take the time. Fill the wine glasses before the bell, not after.');
+        interval.banners.push({
+            text: t('INTERVAL'),
+            sub: t('The attic goes out, the kitchen comes back'),
+            where: 'before'
         });
-        s1.curtains[p.stage.curtains[0].id] = 'closed';
 
-        /* Was der Planer nicht ausrechnen kann, steht hier von Hand. */
-        SP.ensureTransition(p, null, s1).note = t('The board is set before the house opens.');
-        SP.ensureTransition(p, s1, s2).note = t('Crate stays in the right wing for later.');
-        var interval = SP.ensureTransition(p, s3, s4);
-        interval.critical = true;
-        interval.note = t('Strike the whole room during the interval.');
-        interval.banners.push({ text: t('INTERVAL'), sub: '', where: 'before' });
+        SP.ensureTransition(p, s6, s7).note =
+            t('Short change with the lights down. The crew stays in the wings, only the table is cleared.');
+        SP.ensureTransition(p, s7, s8).note =
+            t('The front room comes back half struck: piano and music stand as in act one, everything else somewhere else. The crate off the kitchen table goes into the marked area, two more come out of the wing.');
+        SP.ensureTransition(p, s8, s9).note =
+            t('Two crates go off with it, the third goes up to the attic and stays there to the end.');
 
-        /* Ein Gassenzettel: was bereitliegt, ohne auf der Bühne zu stehen. */
-        s5.wingNotes = [{
-            id: SP.uid('wn'), side: 'right', propId: 'ill-mug',
-            text: t('A mug with a mouthful of water in it')
-        }];
+        var change3 = SP.ensureTransition(p, s9, s10);
+        change3.critical = true;
+        change3.note = t('The last change, open in a blue wash: bed and ladder off to the left, the tree comes in from above, the bench underneath it. Nothing may knock.');
 
-        /* Jeder Ort bekommt sein Bühnenbild aus der Szene, die dort spielt. */
-        [[school, s1], [market, s2], [living, s3], [park, s4], [cafe, s5]].forEach(function (pair) {
+        /*
+         * Gassenzettel: was in der Gasse bereitliegen muss, ohne auf der Bühne
+         * zu stehen. Sie werden neben den Grundriss gedruckt, auf die Seite,
+         * auf der es wirklich liegt.
+         */
+        function wing(sc, side, propId, text) {
+            if (!sc.wingNotes) sc.wingNotes = [];
+            sc.wingNotes.push({ id: SP.uid('wn'), side: side, propId: propId, text: text });
+        }
+        /* Alle in der rechten Gasse, und beides mit Grund. Kurz, weil die
+           Gasse 1,20 m breit ist und ein Zettel darin schnell zehn Zeilen
+           lang wird. Rechts, weil links am selben Platz der Name des
+           Zwischenvorhangs steht — zwei Texte übereinander, und keiner ist
+           mehr zu lesen. */
+        wing(s2, 'right', 'ill-pot', t('Coffee pot, hot, a mouthful of water in it.'));
+        wing(s4, 'right', 'ladder', t('Ladder, rubber feet checked.'));
+        wing(s5, 'right', 'suitcase', t('Suitcase packed, strap running free.'));
+        wing(s6, 'right', 'ill-bottle', t('Wine bottle, cork loose in the neck.'));
+        wing(s8, 'right', 'ill-crate', t('Three empty crates, no lids.'));
+        wing(s10, 'right', 'glass-wine', t('Three glasses, a finger of apple juice.'));
+
+        /*
+         * Jeder Ort bekommt seine Grundstellung aus der Szene, in der der Raum
+         * ganz dasteht. Genau das, was der Knopf „Ort aus dieser Szene
+         * aktualisieren" tut. Die übrigen Szenen weichen davon ab — mit
+         * Absicht, und der Orte-Reiter zeigt, welche.
+         */
+        [[kitchen, s2], [parlour, s3], [garden, s4], [attic, s5]].forEach(function (pair) {
             pair[0].placements = SP.copyPlacements(pair[1].placements, false);
-            pair[0].props = [];
         });
         return p;
     }

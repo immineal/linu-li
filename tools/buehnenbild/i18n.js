@@ -300,31 +300,128 @@
         'Where things live': 'Wo was steckt',
         'Scene numbering and the direction convention are under Settings, next to the production name. The stage shape, the grid, the wings and the curtains are on the Stage tab.':
             'Szenennummerierung und Richtungssicht stehen unter „Einstellungen“, neben dem Namen der Produktion. Bühnenform, Maße, Raster, Gassen und Vorhänge stehen im Reiter „Bühne“.',
-        'A play in two acts, for trying things out': 'Ein Stück in zwei Akten, zum Ausprobieren',
-        'School hall': 'Aula',
-        'Before the interval': 'Vor der Pause',
-        'After the interval': 'Nach der Pause',
-        'The school': 'Die Schule',
-        'The market': 'Der Markt',
-        'The living room': 'Das Wohnzimmer',
-        'The park': 'Der Park',
-        'The café': 'Das Café',
-        'School': 'Schule',
-        'Market': 'Markt',
-        'Living room': 'Wohnzimmer',
-        'Park': 'Park',
-        'Café': 'Café',
-        '4 chairs, board, desk, sponge, chalk': '4 Stühle, Tafel, Tisch, Schwamm, Stift',
-        'Market stall, crate': 'Händlerstand, Kiste',
-        'Table, cloth, 2 chairs, coat stand, side table with picture':
-            'Tisch, Tischdecke, 2 Stühle, Kleiderständer, Kaffeetisch mit Bild',
-        'Bench, bin': 'Bank, Mülleimer',
-        'Table, 3 chairs, mugs, pot, menu': 'Tisch, 3 Stühle, Tassen, Kanne, Karte',
-        'The board is set before the house opens.': 'Die Tafel steht vor dem Einlass.',
-        'Crate stays in the right wing for later.': 'Kiste bleibt rechts in der Gasse für später.',
-        'Strike the whole room during the interval.': 'Den ganzen Raum in der Pause abbauen.',
-        'A mug with a mouthful of water in it': 'Kaffeetasse mit einem Schluck Wasser',
-        'Anna’s chair': 'Annas Stuhl',
+        /* ------------------------------------------------------------ *
+         * Das Beispielstück — „Der Apfelbaum bleibt“
+         *
+         * Erfunden, damit nichts falsch dargestellt wird und der Aufbau
+         * genau das zeigen darf, was der Planer kann. Titel, Orte,
+         * Szenen, Beschriftungen, Umbaunotizen und Gassenzettel stehen
+         * hier alle zusammen — wer das Stück ändert, ändert diesen Block.
+         * ------------------------------------------------------------ */
+        'The apple tree stays': 'Der Apfelbaum bleibt',
+        'A chamber play in two acts': 'Ein Kammerstück in zwei Akten',
+        'Studio stage, parish hall': 'Studiobühne im Gemeindehaus',
+        'Everything in this production is made up — the piece, the house and the crew. Pull it apart, that is what it is here for.':
+            'An dieser Produktion ist alles erfunden: das Stück, das Haus und die Mannschaft. Nimm sie auseinander, dafür steht sie hier.',
+        'Mid-stage traveller': 'Zwischenvorhang',
+
+        'Act one — Friday': 'Erster Akt — Freitag',
+        'From the arrival to the small hours. Ends in the attic.':
+            'Von der Ankunft bis in die Nacht. Endet in der Kammer.',
+        'Act two — Sunday': 'Zweiter Akt — Sonntag',
+        'Sunday, and the house is emptied around them.':
+            'Sonntag, und das Haus wird ihnen unter den Händen leer geräumt.',
+
+        /* Die vier Orte, ihre Anmerkung und ihre von Hand geschriebene Liste. */
+        'The kitchen': 'Die Küche',
+        'The room the piece lives in. The range is a dummy — nothing on it gets hot.':
+            'Der Raum, in dem das Stück wohnt. Der Herd ist eine Attrappe — darauf wird nichts heiß.',
+        'Coffee pot with a mouthful of water in it, 2 mugs, 4 chairs, crate of unopened post, wine bottle with the cork put back loose':
+            'Kännchen mit einem Schluck Wasser darin, 2 Kaffeetassen, 4 Stühle, Kiste mit ungeöffneter Post, Weinflasche mit lose eingestecktem Korken',
+        'The front room': 'Die gute Stube',
+        'Kept for visitors and never used. The piano takes four to carry and goes on first at every change.':
+            'Für Besuch gehalten und nie benutzt. Das Klavier tragen vier Leute; bei jedem Umbau geht es zuerst auf.',
+        'Piano – out of tune and playable, music stand with the mother’s sheet music, clock stopped at ten past four, rug, sofa, 2 armchairs, coat stand, book of fairy tales':
+            'Klavier – verstimmt und spielbar, Notenständer mit den Noten der Mutter, Uhr steht auf zehn nach vier, Teppich, Sofa, 2 Sessel, Kleiderständer, Märchenbuch',
+        'The garden': 'Der Garten',
+        'Late summer. The tree flies in and out — never with anybody underneath it.':
+            'Spätsommer. Der Baum fährt ein und aus — nie, solange jemand darunter steht.',
+        'The attic room': 'Die Kammer unterm Dach',
+        'The narrowest picture of the evening. Bed, ladder and screen come out of the left wing and go back the same way.':
+            'Das engste Bild des Abends. Bett, Leiter und Paravent kommen aus der linken Gasse und gehen dorthin zurück.',
+
+        /* Die zehn Szenen, Titel und Untertitel. */
+        'The kitchen, Friday evening': 'Die Küche, Freitagabend',
+        'Marlene alone': 'Marlene allein',
+        'An hour later': 'Eine Stunde später',
+        'Marlene and Jost': 'Marlene und Jost',
+        'In the front room': 'In der guten Stube',
+        'Jost, and the piano': 'Jost und das Klavier',
+        'Under the apple tree': 'Unter dem Apfelbaum',
+        'Midnight, Ricke': 'Mitternacht, Ricke',
+        'Up in the attic': 'Oben in der Kammer',
+        'Ricke, and the letter': 'Ricke und der Brief',
+        'Sunday morning': 'Sonntagmorgen',
+        'All three': 'Alle drei',
+        'The contract': 'Der Kaufvertrag',
+        'All three, and the buyer’s man': 'Alle drei und der Mann des Käufers',
+        'The front room, half struck': 'Die gute Stube, halb geräumt',
+        'Jost alone': 'Jost allein',
+        'The attic room, emptied': 'Die Kammer, ausgeräumt',
+        'Ricke, packing': 'Ricke packt',
+        'The apple tree': 'Der Apfelbaum',
+
+        /* Was an einzelnen Stücken auf dem Plan steht. */
+        'to the hall': 'zum Flur',
+        'four to carry it': 'zu viert tragen',
+        'garden gate': 'Gartentür',
+        'the post': 'die Post',
+        'lid off': 'Deckel ab',
+        'empty': 'leer',
+        'stopped': 'steht',
+        'the mother’s': 'von der Mutter',
+        'against the wall': 'an der Mauer',
+        'at the hatch': 'an der Luke',
+        'Ricke’s': 'von Ricke',
+        'pushed back': 'zurückgeschoben',
+        'to the wall': 'an die Wand',
+        'For the van': 'Für den Wagen',
+        'left behind': 'liegen geblieben',
+        'under the tree': 'unter dem Baum',
+
+        /* Szenennotizen — sie stehen auf dem Szenenblatt. */
+        'Only the attic room is lit. Whatever waits in the wing has to be out of the beam.':
+            'Nur die Kammer steht im Licht. Was in der Gasse wartet, muss aus dem Strahl.',
+        'The marked area is taped on the floor and stays there for the rest of the run.':
+            'Der Bereich ist mit Klebeband auf dem Boden markiert und bleibt bis zum Ende der Serie liegen.',
+
+        /* Umbaunotizen — was der Planer nicht ausrechnen kann. */
+        'Standing set before the house opens: door, dresser and range are in place, the oilcloth is on the table with the post on top.':
+            'Grundstellung vor dem Einlass: Tür, Anrichte und Herd stehen, die Wachstuchdecke liegt auf dem Tisch, die Post darauf.',
+        'The oilcloth comes off and is folded onto the dresser. It stays there in sight until the end of the evening.':
+            'Die Wachstuchdecke kommt herunter und wird gefaltet auf die Anrichte gelegt. Sie liegt dort sichtbar bis zum Schluss.',
+        'The whole kitchen goes into the left wing, the front room comes out of the right. Seventy seconds in the dark — the piano first, it takes four.':
+            'Die ganze Küche geht in die linke Gasse, die gute Stube kommt aus der rechten. Siebzig Sekunden im Dunkeln — das Klavier zuerst, dafür braucht es vier Leute.',
+        'Roll the rug, do not drag it. The tree comes in from above and not before the piano is off.':
+            'Den Teppich rollen, nicht schleifen. Der Baum fährt von oben ein, und nicht bevor das Klavier draußen ist.',
+        'The ladder in the garden is the ladder in the attic, and one of the two crates goes up with it. Straight off the stage and onto the hatch — there is no second ladder.':
+            'Die Leiter im Garten ist die Leiter in der Kammer, und eine der beiden Kisten geht mit hoch. Von der Bühne ohne Umweg an die Luke — eine zweite Leiter gibt es nicht.',
+        'Twenty minutes, so take the time. Fill the wine glasses before the bell, not after.':
+            'Zwanzig Minuten, also in Ruhe. Die Weingläser vor dem Läuten füllen, nicht danach.',
+        'The attic goes out, the kitchen comes back': 'Kammer ab, Küche auf',
+        'Short change with the lights down. The crew stays in the wings, only the table is cleared.':
+            'Kurzer Wechsel bei ausgeschaltetem Licht. Die Mannschaft bleibt in der Gasse, nur der Tisch wird abgeräumt.',
+        'The front room comes back half struck: piano and music stand as in act one, everything else somewhere else. The crate off the kitchen table goes into the marked area, two more come out of the wing.':
+            'Die gute Stube kommt halb geräumt zurück: Klavier und Notenständer wie im ersten Akt, alles andere woanders. Die Kiste vom Küchentisch geht in den Bereich, zwei weitere kommen aus der Gasse dazu.',
+        'Two crates go off with it, the third goes up to the attic and stays there to the end.':
+            'Zwei Kisten gehen mit ab, die dritte geht hoch in die Kammer und bleibt dort bis zum Schluss.',
+        'The last change, open in a blue wash: bed and ladder off to the left, the tree comes in from above, the bench underneath it. Nothing may knock.':
+            'Der letzte Umbau, offen im blauen Licht: Bett und Leiter nach links ab, der Baum fährt von oben ein, die Bank darunter. Nichts darf klappern.',
+
+        /* Gassenzettel — was bereitliegt, ohne auf der Bühne zu stehen. */
+        'Coffee pot, hot, a mouthful of water in it.': 'Kännchen, heiß, ein Schluck Wasser darin.',
+        'Ladder, rubber feet checked.': 'Leiter, Gummifüße geprüft.',
+        'Suitcase packed, strap running free.': 'Koffer gepackt, Riemen leichtgängig.',
+        'Wine bottle, cork loose in the neck.': 'Weinflasche, Korken lose im Hals.',
+        'Three empty crates, no lids.': 'Drei leere Kisten, ohne Deckel.',
+        'Three glasses, a finger of apple juice.': 'Drei Gläser, fingerbreit Apfelsaft.',
+
+        /* Die drei selbst gezeichneten Requisiten des Beispiels. Sie stehen
+           im Fundus, nicht im Katalog, und heißen darum hier. */
+        'Kitchen range': 'Herd',
+        'Kitchen dresser': 'Anrichte',
+        'Apple tree': 'Apfelbaum',
+
         'Centre line and setting line': 'Mittelachse und Bauflucht',
         'Where the audience sits': 'Wo das Publikum sitzt',
         'Title beside the number': 'Titel neben der Nummer',
@@ -890,11 +987,11 @@
         'Delete “{name}”?': '„{name}“ löschen?',
         'Traveller {n}': 'Vorhang {n}',
 
-        /* ----------------------------------------------- Beispielstück */
-        'The Winter Guest': 'Der Wintergast',
+        /* ------------------------------------ Vorschlagstexte in Feldern
+           Was blass im leeren Feld steht, wenn noch nichts drinsteht. Mit
+           dem Beispielstück hat es nichts zu tun — dessen Texte stehen
+           oben zusammen. */
         'A play in two acts': 'Ein Stück in zwei Akten',
-        'Act one': 'Erster Akt',
-        'Act two': 'Zweiter Akt',
         'Evening, the first frost': 'Abend, der erste Frost',
         'Export a backup': 'Back-up exportieren',
         'This browser will not store any more. Export a backup, then delete an old production or a heavy custom prop.':
