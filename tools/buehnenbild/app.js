@@ -4978,10 +4978,18 @@
      * was er auf dem Papier bewirkt. Nichts wird dadurch verstellt.
      * ================================================================== */
 
+    /* Ein gezeichnetes Zeichen wie alle anderen der Leiste, kein Schriftzeichen
+       in einem Rahmen: das sah aus wie eine Hilfeschaltfläche von 2005 und
+       fiel zwischen den Strichzeichnungen ringsum auf. */
+    var WHY_ICON = '<svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+        '<circle cx="8" cy="8" r="6.4"/>' +
+        '<path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/>' +
+        '<path d="M7.75 12.05h.02"/></svg>';
+
     function why(key) {
         if (!SPI18n.explain(key)) return '';
         return '<button type="button" class="sp-why" data-explain="' + esc(key) +
-            '" aria-label="' + esc(t('What is this?')) + '">?</button>';
+            '" aria-label="' + esc(t('What is this?')) + '">' + WHY_ICON + '</button>';
     }
 
     function closeExplainer() {

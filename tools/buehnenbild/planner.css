@@ -1298,8 +1298,8 @@ body {
     flex: 0 0 auto;
     margin-left: 0.35rem;
     padding: 0;
-    border: 1px solid var(--sp-line);
-    border-radius: 50%;
+    /* Der Kreis ist jetzt Teil des Zeichens, nicht der Rand des Knopfes. */
+    border: 0;
     background: transparent;
     color: var(--sp-muted);
     font: inherit;
@@ -1313,7 +1313,11 @@ body {
        nicht kennt. */
     vertical-align: middle;
 }
-.sp-why:hover, .sp-why:focus-visible { color: var(--ink); border-color: var(--ink); }
+.sp-why:hover, .sp-why:focus-visible { color: var(--ink); }
+/* Nur im Erklär-Knopf füllt das Zeichen die Fläche. Frei stehend — etwa im
+   Hilfeknopf der Leiste — behält es das Maß aller anderen Zeichen. */
+.sp-why > .sp-why-icon { width: 100%; height: 100%; }
+.sp-why-icon { stroke-width: 1.5; }
 
 /* Steht das Fragezeichen neben einer Überschrift, ist es kein Wort in deren
    Zeile, sondern ein Zeichen daneben: die beiden bilden zusammen eine Reihe,
