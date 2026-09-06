@@ -2890,6 +2890,32 @@
             specs.push({ key: 'depth', x: 0, y: b.y + SP.num(stage.depth, b.h),
                 cursor: 'ns-resize', label: t('Depth') });
         }
+        /* Unter dem Bild steht „Die Punkte im Bild lassen sich ziehen." Für
+           die Maße, die ein Trapez und eine Vorbühne überhaupt erst
+           ausmachen, gab es keine — sie waren nur über Zahlenfelder
+           erreichbar, und beide Formen zeigten dieselben sieben Griffe wie
+           das Rechteck. */
+        if (has('backWidth')) {
+            var backHalf = SP.num(stage.backWidth, b.w) / 2;
+            specs.push({ key: 'backWidth', x: -backHalf, y: b.y, cursor: 'ew-resize',
+                label: t('Width at the back') });
+            specs.push({ key: 'backWidth', x: backHalf, y: b.y, cursor: 'ew-resize',
+                label: t('Width at the back') });
+        }
+        if (has('apronDepth') || has('apronWidth')) {
+            var apronY = out.frontY + SP.num(stage.apronDepth, 0);
+            if (has('apronWidth')) {
+                var apronHalf = SP.num(stage.apronWidth, b.w) / 2;
+                specs.push({ key: 'apronWidth', x: -apronHalf, y: apronY, cursor: 'ew-resize',
+                    label: t('Apron width') });
+                specs.push({ key: 'apronWidth', x: apronHalf, y: apronY, cursor: 'ew-resize',
+                    label: t('Apron width') });
+            }
+            if (has('apronDepth')) {
+                specs.push({ key: 'apronDepth', x: 0, y: apronY, cursor: 'ns-resize',
+                    label: t('Apron depth') });
+            }
+        }
         {
             SP.wingLines(stage).forEach(function (line, side) {
                 specs.push({ key: 'wings.inset', side: side, x: line[0][0],
@@ -2910,8 +2936,10 @@
     function stageHandleValue(spec, stage, px, py) {
         var out = SP.stageOutline(stage);
         var b = out.bounds;
-        if (spec.key === 'width' || spec.key === 'diameter') return Math.abs(px) * 2;
+        if (spec.key === 'width' || spec.key === 'diameter' ||
+            spec.key === 'backWidth' || spec.key === 'apronWidth') return Math.abs(px) * 2;
         if (spec.key === 'depth' || spec.key === 'wings.depth') return py - b.y;
+        if (spec.key === 'apronDepth') return py - out.frontY;
         if (spec.key === 'wings.inset') return spec.side ? (b.x + b.w - px) : (px - b.x);
         if (spec.key === 'curtain') return out.frontY - py;
         return 0;
@@ -3016,7 +3044,10 @@
                 var point = previewPoint(live, ev, view);
                 var step = ev.shiftKey ? 0.01 : 0.1;
                 var value = stageHandleValue(spec, frozen, point.x, point.y);
-                applyStageHandle(spec, Math.round(value / step) * step);
+                /* `Math.round(v / 0.1) * 0.1` liefert 13.700000000000001. Das
+                   Feld zeigte 13,7, gespeichert und exportiert wurde die lange
+                   Zahl. */
+                applyStageHandle(spec, SP.round(Math.round(value / step) * step, 3));
                 moved = true;
                 drawStagePreview();
                 syncStageFields();
