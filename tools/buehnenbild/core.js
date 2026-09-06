@@ -136,6 +136,51 @@
         markers: []
     };
 
+    /*
+     * Wie groß eine Bühne höchstens sein darf. 60 m ist breiter als jedes
+     * Haus, in dem hier geplant wird; darüber wird nur die Zeichnung langsam,
+     * weil jede Rasterlinie einzeln gerechnet wird. Nach unten sind 0,5 m die
+     * kleinste Fläche, auf der noch etwas steht.
+     */
+    var STAGE_MIN = 0.5;
+    var STAGE_MAX = 60;
+
+    /* Feiner als ein Viertelmeter wird kein Raster — dieselbe Zahl, die auch
+       im Zahlenfeld als kleinster Schritt steht. */
+    var GRID_MIN = 0.25;
+
+    /* Und ein Deckel auf die Linien selbst: was gespeichert ankommt, muss
+       nicht durch die Felder gegangen sein. */
+    var GRID_MAX_LINES = 400;
+
+    /* Jedes Maß einer Bühne ist eine Länge; die Formen greifen sich daraus
+       heraus, was sie brauchen. */
+    var STAGE_LENGTHS = ['width', 'depth', 'backWidth', 'diameter', 'apronWidth', 'apronDepth'];
+
+    /* Die Grenzen eines einzelnen Feldes, für Zahlenfeld und Prüfung. */
+    function stageBound(field) {
+        if (field === 'grid.spacing') return { least: GRID_MIN, most: STAGE_MAX };
+        return { least: STAGE_MIN, most: STAGE_MAX };
+    }
+
+    /*
+     * Zieht eine gespeicherte Bühne in ihre Grenzen zurück. Ohne das rechnet
+     * ein Unsinnsmaß aus einer alten Sicherung nach jedem Neuladen wieder
+     * minutenlang.
+     */
+    function clampStage(stage) {
+        if (!stage) return stage;
+        STAGE_LENGTHS.forEach(function (field) {
+            if (stage[field] === undefined) return;
+            stage[field] = round(clamp(num(stage[field], DEFAULT_STAGE[field]), STAGE_MIN, STAGE_MAX), 3);
+        });
+        if (stage.grid) {
+            var bound = stageBound('grid.spacing');
+            stage.grid.spacing = round(clamp(num(stage.grid.spacing, 1), bound.least, bound.most), 3);
+        }
+        return stage;
+    }
+
     function shapeById(id) {
         for (var i = 0; i < STAGE_SHAPES.length; i++) {
             if (STAGE_SHAPES[i].id === id) return STAGE_SHAPES[i];
@@ -304,23 +349,39 @@
     function gridLines(stage, spacing) {
         var out = stageOutline(stage);
         var b = out.bounds;
-        var s = Math.max(0.1, num(spacing, 1));
+        var s = Math.max(GRID_MIN, num(spacing, 1));
+        /*
+         * Ein Deckel auf die Linien. Ein Viertelmeter-Raster auf einer Bühne,
+         * die aus einer alten Sicherung viel zu groß hereinkommt, ergäbe
+         * Zehntausende Linien — und jede kostet Zeit, bei jedem Neuzeichnen.
+         * Lieber gröbere Quadrate als ein Planer, der stehenbleibt.
+         */
+        var widest = Math.max(b.w, b.h);
+
         var vertical = [];
+        var before = [];
         var horizontal = [];
+        var after = [];
         var i;
 
+        /* Nach vorn sammeln und einmal umdrehen: `unshift` rückt bei jeder
+           Linie die ganze Liste weiter, was den Aufwand quadratisch macht. */
         for (i = 0; i * s <= b.x + b.w + 1e-9; i++) {
             if (i * s >= b.x - 1e-9) vertical.push(round(i * s, 4));
         }
         for (i = 1; -i * s >= b.x - 1e-9; i++) {
-            vertical.unshift(round(-i * s, 4));
+            before.push(round(-i * s, 4));
         }
+        vertical = before.reverse().concat(vertical);
+
         for (i = 0; out.frontY - i * s >= b.y - 1e-9; i++) {
-            horizontal.unshift(round(out.frontY - i * s, 4));
+            horizontal.push(round(out.frontY - i * s, 4));
         }
+        horizontal.reverse();
         for (i = 1; out.frontY + i * s <= b.y + b.h + 1e-9; i++) {
-            horizontal.push(round(out.frontY + i * s, 4));
+            after.push(round(out.frontY + i * s, 4));
         }
+        horizontal = horizontal.concat(after);
         return { vertical: vertical, horizontal: horizontal, spacing: s, bounds: b, frontY: out.frontY };
     }
 
@@ -579,6 +640,20 @@
 
     /* Groups identical props so a change list reads "3 × chair" rather than
        naming the same chair three times. */
+    /*
+     * Etwas zu einer Auswahl hinzufügen, ohne es doppelt hineinzulegen. Ein
+     * Auswahlrahmen mit Shift über bereits Ausgewähltes hängte die Treffer
+     * ungeprüft an: sichtbar änderte sich nichts, aber ein Pfeiltastendruck
+     * schob danach zweimal und Strg+D legte zwei Kopien an.
+     */
+    function addToSelection(selection, hits) {
+        var out = (selection || []).slice();
+        (hits || []).forEach(function (id) {
+            if (out.indexOf(id) === -1) out.push(id);
+        });
+        return out;
+    }
+
     function groupByProp(placements, nameOf) {
         var order = [];
         var map = {};
@@ -747,6 +822,80 @@
 
     function scenesInPlace(production, placeId) {
         return (production.scenes || []).filter(function (s) { return s.placeId === placeId; });
+    }
+
+    /*
+     * Jede Liste von Aufstellungen einer Produktion — die der Szenen und die
+     * im gespeicherten Bühnenbild der Orte. Ein Ort hält eine zweite Kopie;
+     * wer nur die Szenen aufräumt, lässt dort Geister stehen, die kein Plan
+     * mehr zeichnet und trotzdem jede Zählung mitmacht.
+     */
+    function placementLists(production) {
+        var out = [];
+        (production.scenes || []).forEach(function (sc) {
+            if (sc.placements) out.push(sc.placements);
+        });
+        (production.places || []).forEach(function (pl) {
+            if (pl.placements) out.push(pl.placements);
+        });
+        return out;
+    }
+
+    /* Wie oft ein Requisit über alle Produktionen steht — Orte mitgezählt. */
+    function countPropUses(productions, propId) {
+        var total = 0;
+        (productions || []).forEach(function (p) {
+            placementLists(p).forEach(function (list) {
+                list.forEach(function (pl) { if (pl.propId === propId) total += 1; });
+            });
+        });
+        return total;
+    }
+
+    /* Und dasselbe zum Aufräumen: überall weg, auch aus den Orten. */
+    function dropProp(productions, propId) {
+        var removed = 0;
+        (productions || []).forEach(function (p) {
+            (p.scenes || []).forEach(function (sc) {
+                var before = (sc.placements || []).length;
+                sc.placements = (sc.placements || []).filter(function (pl) { return pl.propId !== propId; });
+                removed += before - sc.placements.length;
+            });
+            (p.places || []).forEach(function (place) {
+                var before = (place.placements || []).length;
+                place.placements = (place.placements || []).filter(function (pl) { return pl.propId !== propId; });
+                removed += before - place.placements.length;
+            });
+        });
+        return removed;
+    }
+
+    /*
+     * Was das Bühnenbild eines Orts verliert, wenn die Szene es ersetzt.
+     * Gezählt wird je Requisit: was der Ort mehr hat als die Szene. Hält die
+     * Szene alles und mehr, kommt eine leere Liste zurück — dann gibt es
+     * nichts zu fragen.
+     */
+    function placeLoss(place, scene) {
+        var had = {};
+        var order = [];
+        ((place && place.placements) || []).forEach(function (pl) {
+            if (had[pl.propId] === undefined) { had[pl.propId] = 0; order.push(pl.propId); }
+            had[pl.propId] += 1;
+        });
+        var keeps = {};
+        ((scene && scene.placements) || []).forEach(function (pl) {
+            keeps[pl.propId] = (keeps[pl.propId] || 0) + 1;
+        });
+        var items = [];
+        var count = 0;
+        var total = 0;
+        order.forEach(function (propId) {
+            total += had[propId];
+            var lost = had[propId] - (keeps[propId] || 0);
+            if (lost > 0) { items.push({ propId: propId, count: lost }); count += lost; }
+        });
+        return { items: items, count: count, total: total, all: count > 0 && count === total };
     }
 
     /*
@@ -977,6 +1126,13 @@
         unitSuffix: unitSuffix,
         STAGE_SHAPES: STAGE_SHAPES,
         DEFAULT_STAGE: DEFAULT_STAGE,
+        STAGE_MIN: STAGE_MIN,
+        STAGE_MAX: STAGE_MAX,
+        STAGE_LENGTHS: STAGE_LENGTHS,
+        GRID_MIN: GRID_MIN,
+        GRID_MAX_LINES: GRID_MAX_LINES,
+        stageBound: stageBound,
+        clampStage: clampStage,
         shapeById: shapeById,
         stageOutline: stageOutline,
         spanAt: spanAt,
@@ -995,6 +1151,10 @@
         placeById: placeById,
         placeForScene: placeForScene,
         scenesInPlace: scenesInPlace,
+        placementLists: placementLists,
+        countPropUses: countPropUses,
+        dropProp: dropProp,
+        placeLoss: placeLoss,
         referenceRows: referenceRows,
         placeItems: placeItems,
         placeDrift: placeDrift,
@@ -1016,6 +1176,7 @@
         diffScenes: diffScenes,
         changeCount: changeCount,
         groupByProp: groupByProp,
+        addToSelection: addToSelection,
         roman: roman,
         numberScenes: numberScenes,
         sceneNumbers: sceneNumbers,

@@ -34,6 +34,17 @@
         'Saved locally': 'Lokal gespeichert',
         'Saving…': 'Wird gespeichert …',
         'Could not save: storage is full': 'Nicht gespeichert: Speicher voll',
+        'Paused — another window': 'Angehalten — anderes Fenster',
+        'Newer work in another window': 'In einem anderen Fenster wurde neuer gearbeitet',
+        'Another window of the planner has saved something newer. This window still shows what it had before and has stopped saving, so it cannot write over the other one.':
+            'Ein anderes Fenster des Planers hat etwas Neueres gespeichert. Dieses Fenster zeigt noch seinen alten Stand und speichert nicht mehr, damit es den anderen nicht überschreibt.',
+        '“Reload” fetches the newer state — anything changed in this window since then is gone. “Keep mine” writes this window over it — then the work from the other window is gone.':
+            '„Neu laden“ holt den neueren Stand — was seither in diesem Fenster geändert wurde, ist dann weg. „Meinen behalten“ schreibt dieses Fenster darüber — dann ist die Arbeit des anderen Fensters weg.',
+        'Decide later': 'Später entscheiden',
+        'Keep mine': 'Meinen behalten',
+        'Reload': 'Neu laden',
+        'Kept this window. The other window’s newer work is gone.':
+            'Dieses Fenster behalten. Die neuere Arbeit des anderen Fensters ist weg.',
         'Undo': 'Rückgängig',
         'Redo': 'Wiederherstellen',
         'Backup': 'Sicherung',
@@ -257,6 +268,9 @@
         '{n} scenes differ': '{n} Szenen weichen ab',
         'All scenes match': 'Alle Szenen stimmen überein',
         'Set taken from this scene.': 'Bühnenbild aus dieser Szene übernommen.',
+        'The place loses {list}.': 'Der Ort verliert {list}.',
+        'The place loses all {n}.': 'Der Ort verliert alle {n}.',
+        'Carry on?': 'Trotzdem?',
         'Set inserted.': 'Bühnenbild eingesetzt.',
         'This scene has no place yet.': 'Diese Szene hat noch keinen Ort.',
         'Act added, with 1 scene in it.': 'Akt angelegt, mit 1 Szene darin.',
@@ -423,6 +437,8 @@
             'Die Tiefe folgt der Breite, damit die Zeichnung ihre Form behält.',
         '{typed} is too small — kept at {least}.':
             '{typed} ist zu klein — bleibt bei {least}.',
+        '{typed} is too large — kept at {most}.':
+            '{typed} ist zu groß — bleibt bei {most}.',
         'Where and how big': 'Wo und wie groß',
         'Back from the front': 'Hinten',
         'Turned (°)': 'Gedreht (°)',

@@ -303,7 +303,14 @@
                     resolve: ctx.resolve,
                     idPrefix: 'ov-' + (sceneSheet.counter = (sceneSheet.counter || 0) + 1),
                     labels: labels, grid: cols <= 3 && o.showGrid, scaleBar: false,
-                    audience: cols <= 3, settingLine: cols <= 3
+                    /* `settingLine` entscheidet in plan.js seit dem Umbau von
+                       C7 allein — vorher musste zusätzlich die Bühne zustimmen.
+                       Also hier dieselbe Einstellung fragen wie das Szenenblatt,
+                       sonst käme die Bauflucht auf die Übersicht, obwohl sie
+                       abgehakt ist. `audience` kennt keine solche Rückfallebene
+                       (plan.js: `opts.audience !== false`) und bleibt, wie es
+                       war: auf dichten Rastern wird sie zu klein zum Lesen. */
+                    audience: cols <= 3, settingLine: cols <= 3 && o.showGuides
                 });
                 /* Nur die Nummer. Bei fünfundzwanzig Bühnenbildern auf einem
                    Blatt ist der Titel nicht mehr zu lesen und nimmt dem Bild
@@ -409,17 +416,56 @@
      * Satzbild der LaTeX-Vorlage, in Millimetern nachgebaut.
      * ============================================================ */
 
+    /*
+     * Die Maße, mit denen der Umbruch rechnet. Sie sind kein Entwurf, sondern
+     * eine Abschrift dessen, was `planner.css` im Abschnitt „Der Umbauplan“
+     * tatsächlich setzt — im Browser nachgemessen. Wer dort einen Schriftgrad
+     * oder einen Zeilenabstand ändert, muss ihn hier nachziehen, sonst schätzt
+     * der Umbruch wieder zu knapp und `.sp-sheet { overflow: hidden }`
+     * schneidet den Rest vom Blatt.
+     *
+     * Achtung bei `font`: `.sp-sheet table { font-size: 3mm }` ist
+     * spezifischer als `.sp-uv-table { font-size: 10pt }` und gewinnt. Die
+     * Tabelle steht also in 3 mm, nicht in 10 pt.
+     */
     var PAGE = {
         width: 210, height: 297,
         marginX: 18, marginY: 14,
-        line: 4.1,          // Zeilenhöhe im Tabellentext
-        rowPadding: 2.6,    // Luft über und unter einer Zeile
+
+        /* Tabellenzellen */
+        font: 3,            // .sp-sheet table { font-size: 3mm }
+        line: 3.9605,       // × line-height 1.32
+        cellPadX: 2.4,      // .sp-uv-table td { padding: 1.6mm 2.4mm }
+        rowPadding: 1.6,    // dieselbe Vorgabe, oben und unten
+        rule: 0.3,          // die waagerechte Linie zwischen zwei Zeilen
         minRow: 8.4,
-        headRow: 7.2,
+        headRow: 7.7,       // gemessene Kopfzeile 7,62 mm
+
+        /* Die kleine graue Zeile in der Übergangsspalte */
+        presetFont: 2.8222, // .sp-uv-preset { font-size: 8pt }
+        presetLine: 3.5278, // × line-height 1.25
+
+        /* Die kursive Sternchenzeile */
+        noteFont: 3.175,    // .sp-uv-note { font-size: 9pt }
+        noteLine: 4.2864,   // × line-height 1.35
+        noteIndent: 2.6,    // padding-left
+        noteGap: 1.1,       // margin-top
+
         banner: 9.5,
         bannerSub: 4.6,
-        title: 15,
-        noteLine: 4.1
+
+        /* Überschrift und Referenzkasten der ersten Seite */
+        titleFont: 6,       // .sp-uv-title { font-size: 17pt }
+        titleLine: 6.896,   // × line-height 1.15
+        titleGap: 4,        // margin-bottom
+        title: 15,          // Rückfall, wenn kein Titel bekannt ist
+        refFont: 2.8222,    // .sp-uv-ref { font-size: 8pt }
+        refLine: 4.0071,    // × line-height 1.42
+        refPadX: 2.6,
+        refPadY: 2.2,
+        refHeadGap: 0.8,
+        refBorder: 0.55,
+        refGap: 4.5         // margin-bottom
     };
 
     /* Spaltenbreiten, zusammen die Satzbreite von 174 mm. */
@@ -427,76 +473,373 @@
 
     function contentHeight() { return PAGE.height - 2 * PAGE.marginY; }
 
+    /* ---------------------------------------------------- Wie breit setzt? */
+
     /*
-     * Wie hoch wird der Referenzkasten? Eine Zeile Überschrift, dann pro Ort
-     * so viele Zeilen, wie sein Text umbricht. Grob geschätzt über die
-     * Zeichenzahl — genau genug, damit unten nichts überläuft.
+     * Der Umbauplan setzt Helvetica (ersatzweise Arial oder Liberation Sans —
+     * alle drei tragen dieselben Vorschubbreiten). Die Tabelle unten gibt für
+     * jedes Zeichen seine Breite in Tausendstel Geviert, so wie sie in der
+     * Schriftdatei steht; im Browser nachgemessen, Abweichung null.
+     *
+     * Gebraucht wird das, weil vor dem Seitenumbruch feststehen muss, wie
+     * hoch eine Zeile wird. Vorher zählte der Umbruch jeden Eintrag als eine
+     * gesetzte Zeile. Ein Stuhl mit Beschriftung braucht in der 48-mm-Spalte
+     * aber drei: bei vierzig beschrifteten Stühlen schätzte der Umbruch
+     * 169 mm und bekam 320 — sieben Stühle standen unter der Blattkante und
+     * fehlten im Ausdruck, ohne dass irgendetwas darauf hinwies.
+     */
+    var GLYPH = (function () {
+        var w = {};
+        function put(chars, width) {
+            for (var i = 0; i < chars.length; i++) w[chars.charAt(i)] = width;
+        }
+        put('\'’', 191);
+        put('ijl', 222);
+        put(' !,./:;I[]\\ft|·', 278);
+        put('()-r{}`', 333);
+        put('"', 355);
+        put('*', 389);
+        put('°', 400);
+        put('^', 469);
+        put('cksvxyzJç ', 500);
+        put('0123456789abdeghnopqu?#$_Läöüéèàñ–', 556);
+        put('+=<>~×÷', 584);
+        put('FTZß', 611);
+        put('ABEKPSVXY&ÄÉ', 667);
+        put('CDHNRUwÜ', 722);
+        put('GOQÖ', 778);
+        put('Mm', 833);
+        put('%', 889);
+        put('W', 944);
+        put('—→←★', 1000);
+        put('@', 1015);
+        return w;
+    })();
+
+    var GLYPH_DEFAULT = 556;    /* alles Unbekannte so breit wie eine Ziffer */
+    var BOLD_FACTOR = 1.09;     /* fett gesetzt läuft der Satz breiter */
+
+    /* Ein Rest Luft auf jede Spaltenbreite: Ersatzschriften, Sperrung und
+       Rundung sollen keine Zeile kosten. Lieber ein Blatt mehr als ein
+       Requisit weniger. */
+    var SAFETY = 0.97;
+
+    function textWidth(text, fontMm, bold) {
+        var s = String(text == null ? '' : text);
+        var units = 0;
+        for (var i = 0; i < s.length; i++) {
+            var w = GLYPH[s.charAt(i)];
+            units += w === undefined ? GLYPH_DEFAULT : w;
+        }
+        return units / 1000 * fontMm * (bold ? BOLD_FACTOR : 1);
+    }
+
+    /*
+     * Bricht einen Text auf eine Spaltenbreite um, so wie der Browser es tut:
+     * an den Leerzeichen, und ein Wort, das allein nicht in die Spalte passt,
+     * mitten im Wort (`overflow-wrap: break-word`). Zurück kommen die Stellen
+     * im Text, an denen je eine Zeile endet — damit lässt sich derselbe Text
+     * später genau dort teilen, wo ihn auch das Papier teilt.
+     */
+    function wrapBreaks(text, widthMm, fontMm, bold) {
+        var s = String(text == null ? '' : text);
+        var width = Math.max(0.5, widthMm);
+        var ends = [];
+        var start = 0;      // Anfang der laufenden Zeile
+        var used = 0;       // ihre bisherige Breite
+        var lastGap = -1;   // letztes Leerzeichen in dieser Zeile
+        var i = 0;
+
+        while (i < s.length) {
+            var ch = s.charAt(i);
+            var cw = textWidth(ch, fontMm, bold);
+            /* Ein eigener Zeilenumbruch zählt als Umbruch — auch wenn das
+               Markup ihn heute zu einem Leerzeichen zusammenfaltet. Lieber
+               eine Zeile zu hoch geschätzt als eine zu flach. */
+            if (ch === '\n' || ch === '\r') {
+                ends.push(i);
+                start = i + 1;
+                i = start;
+                used = 0;
+                lastGap = -1;
+                continue;
+            }
+            if (ch === ' ' || ch === '\t' || ch === '\u2002') {
+                lastGap = i;
+                used += cw;
+                i++;
+                continue;
+            }
+            if (used + cw > width && i > start) {
+                var cut = lastGap > start ? lastGap : i;
+                ends.push(cut);
+                start = cut;
+                while (start < s.length && /\s/.test(s.charAt(start))) start++;
+                i = start;
+                used = 0;
+                lastGap = -1;
+                continue;
+            }
+            used += cw;
+            i++;
+        }
+        ends.push(s.length);
+        return ends;
+    }
+
+    function wrapCount(text, widthMm, fontMm, bold) {
+        return wrapBreaks(text, widthMm, fontMm, bold).length;
+    }
+
+    /* Die Breite, die in einer Spalte für Text bleibt. */
+    function columnText(index) {
+        return (COLUMNS[index] - 2 * PAGE.cellPadX) * SAFETY;
+    }
+
+    function noteText() {
+        return (COLUMNS[2] - 2 * PAGE.cellPadX - PAGE.noteIndent) * SAFETY;
+    }
+
+    /* So viele gesetzte Zeilen braucht eine Spalte. Eine leere Spalte trägt
+       den Gedankenstrich und ist damit eine Zeile hoch. */
+    function listLines(items, index, bold) {
+        if (!items || !items.length) return 1;
+        var lines = 0;
+        for (var i = 0; i < items.length; i++) {
+            lines += wrapCount(items[i], columnText(index), PAGE.font, bold);
+        }
+        return lines;
+    }
+
+    /* Stern und ein Halbgeviert — genau das, was changeoverTable setzt. */
+    var NOTE_MARK = '★ ';
+
+    function noteLines(note) {
+        if (!note) return 0;
+        return wrapCount(NOTE_MARK + note, noteText(), PAGE.noteFont);
+    }
+
+    function noteHeight(note) {
+        var lines = noteLines(note);
+        return lines ? PAGE.noteGap + lines * PAGE.noteLine : 0;
+    }
+
+    /*
+     * Die Übergangsspalte steht auf `nowrap` und lässt sich nicht teilen:
+     * „1 →“ und die Zielnummer sind immer zwei gesetzte Zeilen, beim
+     * Grundaufbau die graue Zeile „Vor der Vorstellung“ und eine Nummer.
+     */
+    function transitionHeight(row) {
+        var height = row.isPreset
+            ? wrapCount(t('Before the show'), columnText(0), PAGE.presetFont) * PAGE.presetLine +
+              PAGE.line
+            : 2 * PAGE.line;
+        /* Der Vermerk „Teil 2 von 3“ einer geteilten Zeile. Zwei Zeilen
+           angesetzt, weil die Gesamtzahl beim Teilen noch nicht feststeht. */
+        if (row.part) height += 2 * PAGE.presetLine;
+        return height;
+    }
+
+    /*
+     * Wie hoch wird der Referenzkasten? Kopfzeile und pro Ort so viele
+     * Zeilen, wie sein Text in der Satzbreite umbricht, dazu Rahmen, Polster
+     * und der Abstand zur Tabelle.
      */
     function referenceHeight(rows) {
         if (!rows.length) return 0;
-        var lines = 1;
+        var width = (PAGE.width - 2 * PAGE.marginX - 2 * PAGE.refPadX) * SAFETY;
+        var lines = wrapCount(t('For reference') + ' (' + t('The plan gives more') + '):',
+            width, PAGE.refFont);
         rows.forEach(function (row) {
-            var text = row.name + ': ' + row.items.join(', ');
-            lines += Math.max(1, Math.ceil(text.length / 96));
+            var text = row.name + ': ' + row.items.join(', ') +
+                (row.notes ? ' ' + row.notes : '');
+            lines += wrapCount(text, width, PAGE.refFont);
         });
-        return lines * 3.9 + 5.5;
+        return lines * PAGE.refLine + PAGE.refHeadGap + 2 * PAGE.refPadY +
+            PAGE.refBorder + PAGE.refGap;
+    }
+
+    function titleHeight(title) {
+        if (!title) return 0;
+        var width = (PAGE.width - 2 * PAGE.marginX) * SAFETY;
+        return wrapCount(title, width, PAGE.titleFont, true) * PAGE.titleLine + PAGE.titleGap;
     }
 
     function rowHeight(row) {
         if (row.type === 'banner') {
             return PAGE.banner + (row.sub ? PAGE.bannerSub : 0);
         }
-        var lines = Math.max(1, row.strike.length, row.setup.length, row.move.length);
-        var height = lines * PAGE.line + 2 * PAGE.rowPadding;
-        if (row.note) {
-            /* Die Notizspalte ist schmal: gemessen bricht sie bei etwa
-               dreißig Zeichen um, nicht bei sechzig. Mit der doppelt zu
-               großzügigen Schätzung lief die Tabelle über den Blattrand, die
-               Fußzeile wurde überdruckt, und bei einer langen Notiz fielen
-               ein Balken und ein ganzer Umbau vom Blatt — ausgerechnet die
-               Auskunft, für die der Umbauplan da ist. Eigene Zeilenumbrüche
-               zählen mit. */
-            var noteLines = 0;
-            String(row.note).split('\n').forEach(function (part) {
-                noteLines += Math.max(1, Math.ceil(part.length / 30));
-            });
-            height += noteLines * PAGE.noteLine;
+        var bold = !!row.critical;
+        var content = Math.max(
+            transitionHeight(row),
+            listLines(row.strike, 1, bold) * PAGE.line,
+            listLines(row.setup, 2, bold) * PAGE.line + noteHeight(row.note),
+            listLines(row.move, 3, bold) * PAGE.line);
+        return Math.max(PAGE.minRow, content + 2 * PAGE.rowPadding + PAGE.rule);
+    }
+
+    /* ------------------------------------------- Eine Zeile teilen dürfen */
+
+    /*
+     * Nimmt so viele gesetzte Zeilen vom Anfang einer Spalte, wie erlaubt
+     * sind, und gibt den Rest zurück. Ein einzelner Eintrag, der allein zu
+     * hoch ist, wird selbst geteilt — sonst käme der Umbruch nie voran.
+     */
+    function takeLines(items, index, bold, allowed) {
+        var head = [];
+        var tail = [];
+        var left = allowed;
+        for (var i = 0; i < (items || []).length; i++) {
+            if (left <= 0) { tail.push(items[i]); continue; }
+            var ends = wrapBreaks(items[i], columnText(index), PAGE.font, bold);
+            if (ends.length <= left) {
+                head.push(items[i]);
+                left -= ends.length;
+                continue;
+            }
+            var cut = ends[left - 1];
+            var kept = items[i].slice(0, cut);
+            var rest = items[i].slice(cut).replace(/^\s+/, '');
+            if (kept) head.push(kept);
+            if (rest) tail.push(rest);
+            left = 0;
         }
-        return Math.max(PAGE.minRow, height);
+        return { head: head, tail: tail };
+    }
+
+    /* Dasselbe für die Sternchenzeile: geteilt wird an derselben Stelle, an
+       der auch das Papier die Zeile umbricht — der Wortlaut bleibt heil. */
+    function takeNote(note, availableMm) {
+        if (!note) return { head: '', tail: '' };
+        var room = Math.floor((availableMm - PAGE.noteGap) / PAGE.noteLine);
+        if (room < 1) return { head: '', tail: note };
+        var ends = wrapBreaks(NOTE_MARK + note, noteText(), PAGE.noteFont);
+        if (ends.length <= room) return { head: note, tail: '' };
+        var cut = Math.max(1, ends[room - 1] - NOTE_MARK.length);
+        return {
+            head: note.slice(0, cut).replace(/\s+$/, ''),
+            tail: note.slice(cut).replace(/^\s+/, '')
+        };
+    }
+
+    function pieceOf(row, strike, setup, move, note) {
+        var out = {};
+        Object.keys(row).forEach(function (k) { out[k] = row[k]; });
+        out.strike = strike;
+        out.setup = setup;
+        out.move = move;
+        out.note = note;
+        return out;
+    }
+
+    /*
+     * Teilt eine Zeile, die auf das angebotene Stück Blatt nicht passt, in
+     * einen Kopf, der passt, und einen Rest. Vorher bekam so eine Zeile ein
+     * eigenes Blatt — was nichts half, wenn sie höher war als ein Blatt:
+     * `overflow: hidden` schnitt sie ab, und von 29 Absätzen einer Notiz
+     * kamen 17 aufs Papier, mitten im Satz.
+     *
+     * Gibt `null` zurück, wenn sich nichts abtrennen lässt; dann ist die
+     * Zeile so, wie sie ist, das Beste, was zu drucken bleibt.
+     */
+    function splitRow(row, availableMm) {
+        if (row.type === 'banner') return null;
+        var inner = availableMm - 2 * PAGE.rowPadding - PAGE.rule;
+        var marked = row.part ? row : pieceOf(row, row.strike, row.setup, row.move, row.note);
+        marked.part = row.part || { key: 0, n: 1, total: 0 };
+        if (inner < transitionHeight(marked) || inner < PAGE.line) return null;
+
+        var allowed = Math.floor(inner / PAGE.line);
+        if (allowed < 1) return null;
+
+        var bold = !!row.critical;
+        var strike = takeLines(row.strike || [], 1, bold, allowed);
+        var setup = takeLines(row.setup || [], 2, bold, allowed);
+        var move = takeLines(row.move || [], 3, bold, allowed);
+        /* Die Sternchenzeile steht unter der Aufbau-Spalte; sie kann erst
+           mit, wenn die Liste darüber vollständig auf dem Blatt steht. */
+        var note = setup.tail.length
+            ? { head: '', tail: row.note || '' }
+            : takeNote(row.note || '',
+                inner - listLines(setup.head, 2, bold) * PAGE.line);
+
+        if (!strike.tail.length && !setup.tail.length && !move.tail.length && !note.tail) {
+            return null;
+        }
+        return {
+            head: pieceOf(row, strike.head, setup.head, move.head, note.head),
+            tail: pieceOf(row, strike.tail, setup.tail, move.tail, note.tail)
+        };
     }
 
     /*
      * Bricht die Zeilen auf Blätter um. Die erste Seite trägt Titel und
      * Referenzkasten, jede weitere nur die Kopfzeile der Tabelle. Ein Balken
      * wandert mit auf die nächste Seite, wenn die Zeile darunter nicht mehr
-     * mit draufpasst — sonst stünde „PAUSE“ allein am Fuß.
+     * mit draufpasst — sonst stünde „PAUSE“ allein am Fuß. Und eine Zeile,
+     * die auch allein kein Blatt füllt, wird geteilt statt abgeschnitten.
      */
     function paginateChangeover(rows, firstPageExtra) {
         var pages = [];
         var page = [];
         var used = (firstPageExtra || 0) + PAGE.headRow;
         var limit = contentHeight();
+        var keys = 0;
 
-        function flush() {
-            if (page.length) pages.push(page);
+        function flush(force) {
+            if (page.length || force) pages.push(page);
             page = [];
             used = PAGE.headRow;
         }
 
         for (var i = 0; i < rows.length; i++) {
-            var height = rowHeight(rows[i]);
+            var row = rows[i];
+            var height = rowHeight(row);
             var needed = height;
 
             // Ein Balken zieht die folgende Zeile mit auf dieselbe Seite.
-            if (rows[i].type === 'banner' && rows[i + 1]) {
+            if (row.type === 'banner' && rows[i + 1]) {
                 needed += rowHeight(rows[i + 1]);
             }
 
             if (page.length && used + needed > limit) flush();
-            page.push(rows[i]);
-            used += height;
+            /* Titel und Referenzkasten dürfen keine Zeile zerteilen, die auf
+               einem eigenen Blatt Platz hätte. */
+            if (!page.length && used > PAGE.headRow && used + height > limit) flush(true);
+
+            if (used + height > limit) {
+                var key = ++keys;
+                var part = 0;
+                var guard = 0;
+                while (used + rowHeight(row) > limit && guard++ < 500) {
+                    var piece = splitRow(row, limit - used);
+                    if (!piece) break;
+                    piece.head.part = { key: key, n: ++part, total: 0 };
+                    page.push(piece.head);
+                    flush();
+                    row = piece.tail;
+                }
+                if (part) row.part = { key: key, n: part + 1, total: 0 };
+            }
+
+            page.push(row);
+            used += rowHeight(row);
         }
         flush();
+
+        /* „Teil 2 von 3“ steht erst fest, wenn alle Teile gezählt sind. */
+        var counted = {};
+        pages.forEach(function (p) {
+            p.forEach(function (r) {
+                if (r.part) counted[r.part.key] = (counted[r.part.key] || 0) + 1;
+            });
+        });
+        pages.forEach(function (p) {
+            p.forEach(function (r) {
+                if (r.part) r.part.total = counted[r.part.key];
+            });
+        });
+
         return pages.length ? pages : [[]];
     }
 
@@ -541,11 +884,17 @@
                 ? '<b>' + esc(row.toLabel) + '</b>'
                 : esc(row.fromLabel) + ' →<br><b>' + esc(row.toLabel) + '</b>') + '</span>';
             var note = row.note
-                ? '<div class="sp-uv-note">★ ' + esc(row.note) + '</div>' : '';
+                ? '<div class="sp-uv-note">' + NOTE_MARK + esc(row.note) + '</div>' : '';
+            /* Ein Umbau, der auf einem Blatt nicht ausgeht, läuft mit derselben
+               Nummer auf dem nächsten weiter. Ohne diesen Vermerk läse man zwei
+               Umbauten, wo einer gemeint ist. */
+            var part = row.part && row.part.total > 1
+                ? '<span class="sp-uv-preset">' + esc(t('part {n} of {total}',
+                    { n: row.part.n, total: row.part.total })) + '</span>' : '';
             return '<tr' + (row.critical ? ' class="is-critical"' : '') + '>' +
                 '<td class="sp-uv-from">' + (row.isPreset
                     ? '<span class="sp-uv-preset">' + esc(t('Before the show')) + '</span>' + label
-                    : label) + '</td>' +
+                    : label) + part + '</td>' +
                 '<td>' + cellLines(row.strike, row.critical) + '</td>' +
                 '<td>' + cellLines(row.setup, row.critical) + note + '</td>' +
                 '<td>' + cellLines(row.move, row.critical) + '</td>' +
@@ -555,26 +904,72 @@
         return '<table class="sp-uv-table">' + head + '<tbody>' + body + '</tbody></table>';
     }
 
+    /*
+     * Grenzt einen fertig gerechneten Umbauplan auf die gewählten Szenen ein.
+     *
+     * Gerechnet wird über die ganze Produktion, eingegrenzt erst danach — und
+     * das aus zwei Gründen, die beide entschieden sind (6. September 2026):
+     * die Nummern bleiben die der ganzen Produktion (II.1, II.2 …), und der
+     * Umbau, der *in* den Akt hineinführt, steht mit auf dem Blatt. Die Zeile
+     * einer Szene ist ja genau dieser Umbau. Vorher bekam der Umbauplan die
+     * gefilterte Liste: er zählte von vorn (Planblätter 4, 5, 6 gegen
+     * Umbauplan 1, 2, 3) und nannte die erste Zeile „Vor der Vorstellung“,
+     * obwohl davor der ganze erste Akt lag — für die Pause, den größten Umbau
+     * des Abends, hing dann kein Blatt an der Bühnentür.
+     *
+     * Ein Balken gehört zu dem Umbau, an dem er hängt; die Buchführung dazu
+     * kommt aus derselben Quelle wie in `changeoverRows`.
+     */
+    function scopeRows(production, rows, scoped) {
+        var keep = {};
+        scoped.forEach(function (s) { keep[s.id] = true; });
+        var scenes = production.scenes || [];
+        var out = [];
+        var at = 0;
+        for (var i = 0; i < scenes.length; i++) {
+            var trans = SP.getTransition(production, i > 0 ? scenes[i - 1] : null, scenes[i]);
+            var before = 0;
+            var after = 0;
+            ((trans && trans.banners) || []).forEach(function (b) {
+                if (b.where === 'after') after++; else before++;
+            });
+            var row = rows[at + before];
+            if (!row || row.type !== 'row' || row.sceneId !== scenes[i].id) {
+                /* Die Buchführung geht nicht auf — dann lieber zu viel
+                   drucken als eine Zeile stillschweigend verlieren. */
+                return rows.filter(function (r) {
+                    return r.type !== 'row' || keep[r.sceneId];
+                });
+            }
+            var chunk = rows.slice(at, at + before + 1 + after);
+            at += chunk.length;
+            if (keep[scenes[i].id]) out = out.concat(chunk);
+        }
+        return out;
+    }
+
     function buildChangeover(input) {
         var ctx = context(input);
         var o = ctx.options;
         var p = ctx.production;
 
+        var all = p.scenes || [];
         var scoped = scopedScenes(ctx);
         var rows = SP.changeoverRows(
-            { scenes: scoped, acts: p.acts, places: p.places, stage: p.stage,
+            { scenes: all, acts: p.acts, places: p.places, stage: p.stage,
               transitions: p.transitions, numbering: p.numbering },
             {
                 nameOf: function (id) { return nameOf(ctx, id); },
                 positions: o.positions
             });
+        if (scoped.length !== all.length) rows = scopeRows(p, rows, scoped);
 
         var refRows = o.referenceBox
             ? SP.referenceRows(p, function (id) { return nameOf(ctx, id); }) : [];
         var title = o.changeoverTitle || (t('Change-over plan') +
             (p.name ? ' — ' + p.name : ''));
 
-        var firstExtra = PAGE.title + referenceHeight(refRows);
+        var firstExtra = titleHeight(title) + referenceHeight(refRows);
         var pages = paginateChangeover(rows, firstExtra);
 
         return pages.map(function (pageRows, index) {
@@ -613,6 +1008,10 @@
         buildChangeover: buildChangeover,
         paginateChangeover: paginateChangeover,
         rowHeight: rowHeight,
+        splitRow: splitRow,
+        wrapCount: wrapCount,
+        columnText: columnText,
+        titleHeight: titleHeight,
         referenceHeight: referenceHeight,
         DEFAULT_OPTIONS: DEFAULT_OPTIONS,
         options: options,

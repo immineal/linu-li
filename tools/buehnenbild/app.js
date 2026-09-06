@@ -181,6 +181,10 @@
         }
         delete p.stage.sides;
         p.stage.grid = Object.assign({ show: true, spacing: 1, labels: false }, p.stage.grid || {});
+        /* Eine Bühne aus einer alten Sicherung kann jede Zahl mitbringen.
+           Ungeklemmt rechnete der Planer nach jedem Neuladen wieder
+           sekundenlang an einem Raster, das niemand sehen will. */
+
         p.stage.wings = Object.assign({ show: false, inset: 1.2, depth: 3.6 }, p.stage.wings || {});
         p.stage.curtains = p.stage.curtains || [];
         p.stage.markers = p.stage.markers || [];
@@ -263,14 +267,35 @@
         el.style.color = tone === 'bad' ? 'var(--accent)' : '';
     }
 
+    /*
+     * Zwei Fenster auf demselben Rechner, dieselbe Ablage. Wer im zweiten
+     * Fenster weiterarbeitet, hat den neueren Stand; das erste weiß bisher
+     * nichts davon und schrieb beim Verlassen blind seinen alten zurück.
+     * Ab jetzt hält das überholte Fenster an und fragt, statt zu überschreiben.
+     */
+    var overtaken = false;
+    var overtakenAsking = false;
+
+    function pausedState() {
+        setSaveState(t('Paused — another window'), 'bad');
+    }
+
     function persist() {
         clearTimeout(saveTimer);
+        saveTimer = null;
+        if (overtaken) { pausedState(); return; }
         setSaveState(t('Saving…'));
         saveTimer = setTimeout(saveNow, 350);
     }
 
     function saveNow() {
         clearTimeout(saveTimer);
+        /* Ohne dieses `null` blieb die Nummer des abgelaufenen Zeitgebers
+           stehen. `if (saveTimer)` beim Verlassen war damit ab der ersten
+           Änderung für immer wahr — und genau das war der Griff, mit dem ein
+           altes Fenster die Arbeit eines neuen wegwischte. */
+        saveTimer = null;
+        if (overtaken) { pausedState(); return; }
         try {
             production().updatedAt = Date.now();
             localStorage.setItem(STORE_KEY, JSON.stringify(db));
@@ -279,6 +304,38 @@
             setSaveState(t('Could not save: storage is full'), 'bad');
             toast(t('This browser will not store any more. Export a backup, then delete an old production or a heavy custom prop.'), 'error');
         }
+    }
+
+    /* Ein anderes Fenster hat geschrieben. Anhalten, sagen, und beides
+       anbieten — den anderen Stand holen oder den eigenen darüberschreiben. */
+    function noteOtherWindow() {
+        overtaken = true;
+        clearTimeout(saveTimer);
+        saveTimer = null;
+        pausedState();
+        if (overtakenAsking) return;
+        overtakenAsking = true;
+        openModal({
+            title: t('Newer work in another window'),
+            cancelLabel: t('Decide later'),
+            body: '<p>' + esc(t('Another window of the planner has saved something newer. This window still shows what it had before and has stopped saving, so it cannot write over the other one.')) + '</p>' +
+                '<p class="sp-hint">' + esc(t('“Reload” fetches the newer state — anything changed in this window since then is gone. “Keep mine” writes this window over it — then the work from the other window is gone.')) + '</p>',
+            actions: [
+                {
+                    label: t('Keep mine'), danger: true,
+                    onClick: function () {
+                        overtaken = false;
+                        saveNow();
+                        toast(t('Kept this window. The other window’s newer work is gone.'), 'success');
+                    }
+                },
+                {
+                    label: t('Reload'), primary: true,
+                    onClick: function () { window.location.reload(); }
+                }
+            ],
+            onClose: function () { overtakenAsking = false; }
+        });
     }
 
     function toast(message, type) {
@@ -370,12 +427,16 @@
 
     function restore(state) {
         var parsed = JSON.parse(state);
+        var wasActive = db.activeId;
         db.activeId = parsed.activeId;
         db.productions = parsed.productions;
         db.library = parsed.library;
         db.productions.forEach(migrateProduction);
         if (!scene() || scenes().indexOf(scene()) === -1) ui.sceneId = (scenes()[0] || {}).id;
         ui.selection = ui.selection.filter(function (id) { return !!findPlacement(id); });
+        /* Führt der Schritt in eine andere Produktion, taugt der alte
+           Bildausschnitt nicht mehr — dort steht eine andere Bühne. */
+        if (wasActive !== db.activeId) { ui.view = null; ui.selection = []; }
     }
 
     var pendingHistory = null;
@@ -2384,10 +2445,29 @@
      * von selbst: die Szene gewinnt immer, hier wird nur auf Knopfdruck
      * übertragen.
      */
+    /*
+     * Gefragt wird nur, wenn etwas verlorengeht. Hält die Szene alles, was
+     * der Ort hatte, und mehr, läuft der Knopf stumm durch — das ist der
+     * normale Weg und der soll ein Klick bleiben. Fehlt etwas, steht in der
+     * Frage, was genau.
+     */
+    function placeLossQuestion(loss) {
+        if (loss.all) return t('The place loses all {n}.', { n: loss.total });
+        /* Die Zahl steht auch bei einem einzelnen Stück dabei: „verliert
+           1 × Esstisch" ist eine Ansage, „verliert Esstisch" ein Stolperer. */
+        var list = loss.items.map(function (item) {
+            return item.count + ' \u00d7 ' +
+                t((resolveProp(item.propId) || { name: t('Unknown prop') }).name);
+        }).join(', ');
+        return t('The place loses {list}.', { list: list });
+    }
+
     function updatePlaceFromScene() {
         var sc = scene();
         var place = SP.placeForScene(production(), sc);
         if (!place) { toast(t('This scene has no place yet.')); return; }
+        var loss = SP.placeLoss(place, sc);
+        if (loss.count && !window.confirm(placeLossQuestion(loss) + '\n' + t('Carry on?'))) return;
         change(function () {
             place.placements = SP.copyPlacements(sc.placements, false);
         });
@@ -2451,6 +2531,11 @@
                             var p = production();
                             p.acts = p.acts.filter(function (a) { return a.id !== id; });
                             p.scenes.forEach(function (s) { if (s.actId === id) s.actId = null; });
+                            /* „Welche Szenen" zeigte danach weiter auf den
+                               toten Akt: das Feld sagte „Die ganze
+                               Produktion", gefiltert wurde auf nichts, und es
+                               kam kein einziges Blatt heraus. */
+                            if (p.print && p.print.scope === id) p.print.scope = 'all';
                         });
                     }
                 },
@@ -2582,7 +2667,8 @@
             return '<div><label for="spDim-' + field + '">' + esc(FIELD_LABELS[field] || field) +
                 ' (' + lengthLabel() + ')' + why(FIELD_EXPLAIN[field] || '') + '</label>' +
                 '<input type="number" id="spDim-' + field + '" data-stage-field="' + field + '"' +
-                ' step="0.1" min="0.5" value="' + value + '"></div>';
+                ' step="0.1" min="' + SP.STAGE_MIN + '" max="' + SP.STAGE_MAX +
+                '" value="' + value + '"></div>';
         }).join('');
 
         var curtains = (stage.curtains || []).map(function (c) {
@@ -2615,7 +2701,7 @@
             (stage.grid.labels ? ' checked' : '') + '> ' + esc(t('Letter and number the squares')) + '</label>' + why('stage.grid.labels') + '</div>' +
             '<div class="sp-field" style="margin-top:0.5rem"><label for="spGridSpacing">' +
             esc(t('Squares are ({unit})', { unit: lengthLabel() })) + why('stage.grid.spacing') +
-            '</label><input type="number" id="spGridSpacing" step="0.25" min="0.25" ' +
+            '</label><input type="number" id="spGridSpacing" step="' + SP.GRID_MIN + '" min="' + SP.GRID_MIN + '" ' +
             'data-stage-field="grid.spacing" value="' + toField(SP.num(stage.grid.spacing, 1)) + '"></div>' +
             '<p class="sp-hint">' + esc(t('Lettered squares give the crew something to call out: “the trunk goes in C4”.')) + '</p>' + '</div>' +
 
@@ -2738,7 +2824,7 @@
             stage.wings[spec.key.split('.')[1]] = Math.max(0.05, value);
             return;
         }
-        stage[spec.key] = Math.max(0.5, value);
+        stage[spec.key] = SP.clamp(value, SP.STAGE_MIN, SP.STAGE_MAX);
     }
 
     /* Feldwerte nachziehen, damit Bild und Panel nie auseinanderlaufen. */
@@ -2883,15 +2969,10 @@
     }
 
     /* Beim Löschen zählt dagegen alles: ein eigenes Requisit verschwindet aus
-       jeder Produktion, nicht nur aus der offenen. */
+       jeder Produktion, nicht nur aus der offenen — und ein Ort hält eine
+       eigene Kopie seines Bühnenbilds, die genauso mitgezählt gehört. */
     function usageEverywhere(propId) {
-        var total = 0;
-        db.productions.forEach(function (p) {
-            (p.scenes || []).forEach(function (s) {
-                (s.placements || []).forEach(function (pl) { if (pl.propId === propId) total += 1; });
-            });
-        });
-        return total;
+        return SP.countPropUses(db.productions, propId);
     }
 
     function renderLibraryTab() {
@@ -3058,11 +3139,12 @@
         if (!window.confirm(message)) return;
         change(function () {
             db.library = db.library.filter(function (p) { return p.id !== id; });
-            db.productions.forEach(function (p) {
-                (p.scenes || []).forEach(function (s) {
-                    s.placements = s.placements.filter(function (pl) { return pl.propId !== id; });
-                });
-            });
+            /* Auch aus dem gespeicherten Bühnenbild der Orte. Ohne das blieb
+               dort eine Aufstellung stehen, die auf nichts mehr zeigt: kein
+               Plan zeichnete sie, die Ablaufliste zählte sie mit, und
+               „Bühnenbild dieses Orts einsetzen" trug sie in die Szene
+               zurück. */
+            SP.dropProp(db.productions, id);
         });
     }
 
@@ -3592,9 +3674,13 @@
                                gestellte Exemplare ihre alte Tiefe und wurden
                                beim Zeichnen kleiner, während im Feld weiter
                                die alte Zahl stand. */
+                            /* Über Szenen und Orte: der Ort hält eine eigene
+                               Kopie. Blieb sie stehen, meldete er danach eine
+                               Abweichung, die niemand verschoben hatte, und
+                               setzte beim Einsetzen das alte Maß zurück. */
                             db.productions.forEach(function (prod) {
-                                (prod.scenes || []).forEach(function (sc) {
-                                    (sc.placements || []).forEach(function (pl) {
+                                SP.placementLists(prod).forEach(function (list) {
+                                    list.forEach(function (pl) {
                                         if (pl.propId !== made.id) return;
                                         var again = drawnFootprint(shapes, pl.w);
                                         pl.w = again.w;
@@ -3688,6 +3774,13 @@
     function printOptions() {
         var p = production();
         if (!p.print) p.print = SPSheets.options({});
+        /* Und derselbe Riegel beim Lesen, für alles, was schon mit einem
+           toten Akt im Bereich gespeichert wurde. Ohne Akte wird das Feld gar
+           nicht gezeichnet — von Hand käme man da nicht wieder heraus. */
+        if (p.print.scope && p.print.scope !== 'all' &&
+            !(p.acts || []).some(function (a) { return a.id === p.print.scope; })) {
+            p.print.scope = 'all';
+        }
         return p.print;
     }
 
@@ -4551,7 +4644,11 @@
                     if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1) hits.push(p.id);
                 });
             }
-            ui.selection = drag.additive ? ui.selection.concat(hits) : hits;
+            /* Anhängen, aber nichts doppelt: ein Shift-Rahmen über bereits
+               Ausgewähltes legte jedes Requisit ein zweites Mal in die
+               Auswahl. Sichtbar änderte sich nichts — ein Pfeiltastendruck
+               schob danach 1,0 statt 0,5 m und Strg+D legte zwei Kopien an. */
+            ui.selection = drag.additive ? SP.addToSelection(ui.selection, hits) : hits;
             drag = null;
             if (ui.selection.length) ui.inspector = 'item';
             renderCanvas(true);
@@ -5170,8 +5267,12 @@
                 draft.directions = $('#spWizDirections', body).value;
                 $$('[data-dim]', body).forEach(function (input) {
                     var value = parseFloat(input.value);
+                    /* `isFinite` allein ließ 300 Neunen durch: der Assistent
+                       blieb danach mitten im Zeichnen stehen und legte bei
+                       jedem weiteren „Weiter" noch eine Produktion an. */
                     if (isFinite(value)) {
-                        draft.dims[input.dataset.dim] = value;
+                        draft.dims[input.dataset.dim] =
+                            clampSaid(value, SP.STAGE_MIN, SP.STAGE_MAX);
                     }
                 });
             } else if (step === 'places') {
@@ -5199,7 +5300,8 @@
                 var value = SP.round(draft.dims[field], 2);
                 return '<div><label>' + esc(labels[field] || field) +
                     ' (' + esc(SP.unitSuffix()) + ')</label>' +
-                    '<input type="number" step="0.1" data-dim="' + field +
+                    '<input type="number" step="0.1" min="' + SP.STAGE_MIN +
+                    '" max="' + SP.STAGE_MAX + '" data-dim="' + field +
                     '" value="' + value + '"></div>';
             }).join('') + '</div>';
         }
@@ -5711,13 +5813,26 @@
     /* Eine Zahl unter dem kleinsten sinnvollen Maß wurde stillschweigend
        heraufgesetzt: man tippte 0 und bekam wortlos 5 cm. Jetzt steht es
        dabei, warum im Feld etwas anderes steht als das Getippte. */
-    function clampSaid(value, least) {
-        if (!(value < least)) return value;
-        toast(t('{typed} is too small — kept at {least}.', {
-            typed: SP.formatLength(Math.max(0, value)),
-            least: SP.formatLength(least)
-        }));
-        return least;
+    function clampSaid(value, least, most) {
+        if (value < least) {
+            toast(t('{typed} is too small — kept at {least}.', {
+                typed: SP.formatLength(Math.max(0, value)),
+                least: SP.formatLength(least)
+            }));
+            return least;
+        }
+        /* Und nach oben genauso. Ohne diesen Anschlag nahm der Planer 400 000
+           Meter an, rechnete danach vier Sekunden je Seitenaufbau — auch nach
+           dem Neuladen — und warf bei ganz großen Zahlen einen Fehler mitten
+           in den Aufbau. */
+        if (most !== undefined && value > most) {
+            toast(t('{typed} is too large — kept at {most}.', {
+                typed: SP.formatLength(value),
+                most: SP.formatLength(most)
+            }));
+            return most;
+        }
+        return value;
     }
 
     function resize(placement, axis, next) {
@@ -5948,12 +6063,17 @@
             }
 
             if (el.id === 'spProductionSelect') {
-                db.activeId = el.value;
-                ui.sceneId = (scenes()[0] || {}).id;
-                ui.selection = [];
-                ui.view = null;
-                persist();
-                render();
+                /* `snapshot()` nimmt die offene Produktion mit; der Wechsel
+                   legte aber keinen Schritt an. „Rückgängig" sprang danach
+                   ungefragt zurück in die vorige Produktion und nahm dort
+                   etwas zurück, das man gar nicht sah. Jetzt ist der Wechsel
+                   selbst der Schritt: Strg+Z führt sichtbar zurück. */
+                change(function () {
+                    db.activeId = el.value;
+                    ui.sceneId = (scenes()[0] || {}).id;
+                    ui.selection = [];
+                    ui.view = null;
+                });
                 return;
             }
             if (el.id === 'spPropCategory') { ui.propCategory = el.value; persistUi(); renderPalette(); return; }
@@ -6000,10 +6120,12 @@
                 change(function () {
                     var stage = editingStage();
                     var field = el.dataset.stageField;
-                    var least = field === 'grid.spacing' ? 0.1 : 0.5;
+                    /* Feld und Code sagen dasselbe: die Grenzen stehen einmal
+                       in core.js und werden hier wie im Zahlenfeld benutzt. */
+                    var bound = SP.stageBound(field);
                     var typed = fromField(el.value,
                         field === 'grid.spacing' ? 1 : SP.num(stage[field], 1));
-                    var kept = clampSaid(typed, least);
+                    var kept = clampSaid(typed, bound.least);
                     if (field === 'grid.spacing') stage.grid.spacing = kept;
                     else stage[field] = kept;
                     ui.view = null;
@@ -6332,7 +6454,14 @@
         });
 
         window.addEventListener('beforeunload', function () {
-            if (saveTimer) saveNow();
+            if (saveTimer !== null) saveNow();
+        });
+
+        /* Der Zuhörer, der ganz fehlte: er meldet sich nur in den *anderen*
+           Fenstern derselben Ablage, nie im schreibenden. */
+        window.addEventListener('storage', function (e) {
+            if (e.key !== STORE_KEY || !e.newValue) return;
+            noteOtherWindow();
         });
 
         var resizeTimer = null;
