@@ -196,9 +196,18 @@ function setupSEO() {
     // collapses to 0x0, so innerText is empty and the tab was called "| Linus
     // Linhof". Fall back to the page's own <title>, read once at load so a
     // second pass never sees a title this function already rewrote.
-    const heading = (h1 && h1.innerText.trim()) || PAGE_TITLE.split('|')[0].trim();
+    // innerText is what we want and textContent only the stand-in: outside a
+    // real browser (jsdom, in the test suite) innerText does not exist at
+    // all, which is not the same as "renders to nothing" and must not take
+    // the rest of this function down with it.
+    const renderedText = (el) => {
+        if (!el) return '';
+        return (el.innerText !== undefined ? el.innerText : el.textContent) || '';
+    };
+
+    const heading = renderedText(h1).trim() || PAGE_TITLE.split('|')[0].trim();
     const titleText = heading ? heading + ' | Linus Linhof' : 'Linus Linhof Toolbox';
-    const descText = descP ? descP.innerText : 'A privacy-first suite of web utilities.';
+    const descText = renderedText(descP).trim() || 'A privacy-first suite of web utilities.';
     const currentUrl = window.location.href;
     
     // Determine path to social image (assuming you put one at assets/og-image.jpg)

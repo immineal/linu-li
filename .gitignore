@@ -5,3 +5,5 @@ Thumbs.db
 project-export.md
 node_modules/
 thisshouldbegitignored/
+# Vom Social-Cropper-Test bei jedem Lauf erzeugt und danach geloescht
+test_spec_image.png

@@ -6,6 +6,15 @@ RewriteEngine On
 RewriteCond %{HTTPS} !=on
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+# 2b. One address for the site: www.linu.li -> linu.li
+# Both hostnames served the same pages with a 200 and no canonical link,
+# which is duplicate content. robots.txt, the sitemap and the README all
+# name the bare domain, so that is the one that stays. The pattern only
+# matches a host that starts with www, and the target never does, so this
+# cannot loop.
+RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+
 # 3. Remove trailing slashes (Optional, good for SEO consistency)
 # RewriteCond %{REQUEST_FILENAME} !-d
 # RewriteRule ^(.*)/$ /$1 [L,R=301]
