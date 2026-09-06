@@ -3,7 +3,7 @@ name: Deploy to All-Inkl
 on:
   push:
     branches:
-      - main  # Change this if your default branch is 'master'
+      - main # Change this if your default branch is 'master'
 
 jobs:
   web-deploy:
@@ -13,8 +13,55 @@ jobs:
       - name: Get latest code
         uses: actions/checkout@v4
 
+      # The mirror below copies whatever is left in the working directory, so
+      # anything the site does not need is deleted here first. Done in plain
+      # shell rather than as lftp exclude patterns: what this removes can be
+      # read off the run log, and a mistake shows up here instead of on the
+      # web server.
+      - name: 🧹 Drop everything the website does not serve
+        run: |
+          rm -rf tests .tests test-results .jules .Jules
+          rm -f test.js test_*.js test-*.js test*.py test*.html test*.png
+          rm -f package.json package-lock.json README.md .gitignore
+          find tools -type f \( \
+            -name 'test.js' -o -name 'test_*.js' -o -name 'test-*.js' \
+            -o -name '*.test.js' -o -name '*.spec.js' -o -name 'test-worker.html' \
+            \) -delete
+          echo "Was hochgeladen wird:"
+          find . -path ./.git -prune -o -path ./.github -prune -o -type f -print | sort
+
       - name: 📂 Sync files via LFTP
         run: |
           sudo apt-get update
           sudo apt-get install -y lftp
           lftp -c "set ftp:ssl-allow yes; set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; open -u ${{ secrets.FTP_USER }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}; mirror -R -v --parallel=2 --exclude .git/ --exclude .github/ ./ ./"
+
+      # `mirror` never removes anything, so every file ever committed is still
+      # lying on the server — test harnesses, the dependency manifest, notes.
+      # These are named one by one on purpose: no wildcards and no --delete, so
+      # this can only touch what is listed. Remove this step once it has run.
+      - name: 🧯 Einmalige Bereinigung der Altlasten auf dem Server
+        run: |
+          FILES="test.js test2.js test_ui.py test_pw_gen.js test_binary_jpeg.js
+                 test_case_converter_worker.js test_piexif.js test_piexif_copyright.js
+                 test_piexif_inject.js test_syllables.js test-booklet.js test-json5.html
+                 test-jsonpath.html test-jsonpath.js test-pdf-merger.js
+                 test_regression_pdf2up.html test_spec_image.png
+                 package.json package-lock.json README.md .gitignore
+                 dummy.jpg malicious.jpg verification.txt patch.js runner.js
+                 assets/sw.js
+                 tools/image-resizer/test.js tools/list-cleaner/test.js
+                 tools/markdown-editor/test.js tools/pdf-splitter/test.js
+                 tools/url-tools/test.js tools/pdf-splitter/test-worker.html
+                 tools/json-tools/test-worker.html
+                 tools/aspect-ratio/aspect-ratio.test.js
+                 tools/color-tools/test_color_contrast.js
+                 tools/social-cropper/social-cropper.spec.js
+                 tools/unit-converter/test_regression.js"
+          DIRS="tests .tests test-results .jules .Jules"
+
+          CMDS="set ftp:ssl-allow yes; set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; open -u ${{ secrets.FTP_USER }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }};"
+          for f in $FILES; do CMDS="$CMDS rm -f $f;"; done
+          for d in $DIRS; do CMDS="$CMDS rm -rf $d;"; done
+          # rm on a path that is already gone is not a failure worth stopping for.
+          lftp -c "set cmd:fail-exit false; $CMDS" || true

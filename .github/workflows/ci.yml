@@ -57,7 +57,8 @@ jobs:
               tests/test-diff-checker-xss.js|\
               tests/test-exif-map-marker.js|\
               tests/test-number-spinners.js|\
-              tests/test-unit-converter-layout.js)
+              tests/test-unit-converter-layout.js|\
+              tests/test-service-worker.js)
                 echo "[SKIP] $f (Puppeteer — runs in puppeteer job)"; continue ;;
             esac
             run_test "$f"
@@ -159,6 +160,7 @@ jobs:
           run_test "tests/test-exif-map-marker.js"
           run_test "tests/test-number-spinners.js"
           run_test "tests/test-unit-converter-layout.js"
+          run_test "tests/test-service-worker.js"
 
           echo ""
           echo "Results: $PASS passed, $FAIL failed"

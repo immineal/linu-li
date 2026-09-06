@@ -1,8 +1,17 @@
 if ('serviceWorker' in navigator) {
-    // Adjust path based on whether we are deep in tools or at root
-    const swPath = window.location.pathname.includes('/tools/') ? '../../assets/sw.js' : './assets/sw.js';
-    navigator.serviceWorker.register(swPath)
+    // Always the one at the root. A worker's reach stops at the directory it
+    // is served from, so the old one under /assets/ controlled no page at all
+    // and the site was never actually available offline.
+    navigator.serviceWorker.register('/sw.js')
         .catch(err => console.error('SW Registration Failed', err));
+
+    // Visitors from before still carry that /assets/ registration around.
+    // It controls nothing, but it holds an old cache — send it on its way.
+    navigator.serviceWorker.getRegistrations()
+        .then(regs => regs.forEach(reg => {
+            if (reg.scope.endsWith('/assets/')) reg.unregister();
+        }))
+        .catch(() => {});
 }
 
 document.addEventListener('DOMContentLoaded', () => {

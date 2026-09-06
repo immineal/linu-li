@@ -474,11 +474,10 @@
             // Initial Render
             renderFavorites();
 
-            /* === OFFLINE PWA SUPPORT === */
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('./assets/sw.js')
-                    .catch(err => console.error('SW Fail', err));
-            }
+            /* === OFFLINE PWA SUPPORT ===
+               layout.js registers the worker for every page, this one
+               included. Registering it a second time here only raced with
+               that one. */
 
             // === INSTANT SEARCH LOGIC ===
             const searchInput = document.getElementById('toolSearch');
