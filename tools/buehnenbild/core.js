@@ -1116,8 +1116,18 @@
 
         function moveLine(stage, m) {
             var name = nameOf(m.to.propId) + (m.to.label ? ' (' + m.to.label + ')' : '');
+            /* Ein Stück, das nur größer wird, steht nicht um. „Esstisch →
+               hinten Mitte" wies die Mannschaft an, etwas dorthin zu stellen,
+               wo es schon stand, und dass ein anderer, größerer Tisch gebraucht
+               wird, stand nirgends. Jetzt steht das neue Maß da. */
+            var size = m.resized
+                ? formatLength(m.to.w) + ' \u00d7 ' + formatLength(m.to.h) : '';
+            if (m.distance <= MOVE_TOLERANCE && m.turned <= TURN_TOLERANCE && size) {
+                return name + ' \u2192 ' + size;
+            }
             if (m.distance <= MOVE_TOLERANCE && m.turned > TURN_TOLERANCE) {
-                return name + ' \u2192 ' + Math.round(m.to.rot) + '\u00b0';
+                return name + ' \u2192 ' + Math.round(m.to.rot) + '\u00b0' +
+                    (size ? ', ' + size : '');
             }
             /* „Felder beschriften" gilt für sich. Vorher verlangte der Code
                zusätzlich, dass das Raster gezeichnet wird — im Beispiel ist es
@@ -1130,7 +1140,7 @@
             if (withPositions) {
                 where += ' (' + describePosition(stage, m.to.x, m.to.y) + ')';
             }
-            return name + ' \u2192 ' + where;
+            return name + ' \u2192 ' + where + (size ? ', ' + size : '');
         }
 
         scenes.forEach(function (scene, i) {

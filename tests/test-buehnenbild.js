@@ -2146,5 +2146,25 @@ test('a curtain cannot hang behind the back wall', () => {
     assert.strictEqual(SP.stageBound('curtain.offset', thrust).most, 8);
 });
 
+test('a prop that only grows is not sent somewhere it already stands', () => {
+    /* „Esstisch → hinten Mitte" wies die Mannschaft an, etwas dorthin zu
+       stellen, wo es schon stand — dass ein anderer, größerer Tisch gebraucht
+       wird, stand nirgends. */
+    const before = placement('dining-table', 0, 4, { trackId: 't1' });
+    const after = placement('dining-table', 0, 4, { trackId: 't1' });
+    after.w = before.w * 2;
+    const production = {
+        id: 'p', name: 'Probe', units: 'm', numbering: 'continuous',
+        stage: Object.assign({}, SP.DEFAULT_STAGE), acts: [], places: [], transitions: {},
+        scenes: [{ id: 's1', title: 'A', curtains: {}, placements: [before] },
+                 { id: 's2', title: 'B', curtains: {}, placements: [after] }]
+    };
+    const rows = SP.changeoverRows(production, { nameOf: (id) => Props.get(id).name });
+    const line = rows[1].move[0];
+    assert.ok(/×/.test(line), 'the new size is not on the sheet: ' + line);
+    assert.ok(!/hinten|vorne|Mitte|links|rechts/.test(line),
+        'a prop that did not move is still sent somewhere: ' + line);
+});
+
 console.log('\n' + passed + ' checks passed');
 

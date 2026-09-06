@@ -2214,7 +2214,19 @@
                     return Math.abs(pl.x - px) < step * 0.4 && Math.abs(pl.y - py) < step * 0.4;
                 });
             };
-            for (var n = 0; n < 24 && taken(x, y); n++) { x += step; y += step; }
+            /* Die Kette lief diagonal aus der Bühne heraus: dreihundert
+               Klicks auf dieselbe Kachel ergaben Requisiten bis 12 m neben
+               einer Bühne von 9 m. Jetzt bleibt der Versatz auf der Bühne und
+               läuft am Rand in die nächste Reihe. */
+            var b = SP.stageOutline(stageOf(sc)).bounds;
+            for (var n = 0; n < 400 && taken(x, y); n++) {
+                x += step;
+                if (x > b.x + b.w) {
+                    x = b.x + step / 2;
+                    y += step;
+                }
+                if (y > b.y + b.h) { y = b.y + step / 2; }
+            }
         }
         change(function () {
             var placement = SP.makePlacement(prop, snap(x), snap(y));
@@ -3220,7 +3232,16 @@
             if (nameSlot) nameSlot.textContent = file ? file.name : t('None chosen');
             if (!file) return;
             processImage(file, function (dataUrl) {
-                if (!dataUrl) { toast(t('That file could not be read as a picture.'), 'error'); return; }
+                if (!dataUrl) {
+                    /* Das vorige Bild blieb stehen: wer erst ein gutes und dann
+                       ein kaputtes wählte und auf „Hinzufügen" drückte,
+                       speicherte das erste unter der neuen Absicht. Eine
+                       abgewiesene Datei lässt den Entwurf leer. */
+                    draft.image = null;
+                    $('#spPropPreview', modal.body).innerHTML = '';
+                    toast(t('That file could not be read as a picture.'), 'error');
+                    return;
+                }
                 draft.image = dataUrl;
                 $('#spPropPreview', modal.body).innerHTML = '<img src="' + esc(dataUrl) + '" style="max-height:90px">';
             });
