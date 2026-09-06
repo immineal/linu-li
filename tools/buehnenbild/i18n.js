@@ -47,7 +47,7 @@
             'Dieses Fenster behalten. Die neuere Arbeit des anderen Fensters ist weg.',
         'Undo': 'Rückgängig',
         'Redo': 'Wiederherstellen',
-        'Backup': 'Sicherung',
+        'Backup': 'Back-up',
         'Cancel': 'Abbrechen',
         'Close': 'Schließen',
         'Save': 'Speichern',
@@ -451,7 +451,7 @@
         'Add them alongside': 'Dazunehmen',
         'Replace everything': 'Alles ersetzen',
         'Delete everything in this browser and put the backup in its place?':
-            'Alles in diesem Browser löschen und die Sicherung an seine Stelle setzen?',
+            'Alles in diesem Browser löschen und das Back-up an seine Stelle setzen?',
         'The file holds 1 production:': 'In der Datei steht 1 Produktion:',
         'The file holds {n} productions:': 'In der Datei stehen {n} Produktionen:',
         'You have 1 production open. Adding leaves it alone; replacing deletes it.':
@@ -589,7 +589,7 @@
             'Dieses Requisit steht in {n} Aufstellungen über alle deine Produktionen. Beim Löschen bleiben diese Stellen leer. Trotzdem löschen?',
         'Delete this prop?': 'Dieses Requisit löschen?',
         'Delete “{name}” with its {n} scenes?': '„{name}“ mit {n} Szenen löschen?',
-        'Backup saved to your downloads.': 'Sicherung in deinen Downloads gespeichert.',
+        'Backup saved to your downloads.': 'Back-up in deinen Downloads gespeichert.',
         'Turned {n}°': '{n}° gedreht',
         'Useful for a set that comes back later in the evening. Tick the scenes that should look like this one.':
             'Nützlich für ein Bühnenbild, das später wiederkommt. Hak die Szenen an, die so aussehen sollen.',
@@ -850,8 +850,8 @@
         'Reads as': 'Liest sich als',
         'Restart in each act, as II.3': 'Pro Akt neu, als II.3',
         'Restart in each act, roman (I.I, I.II …)': 'Pro Akt neu, römisch (I.I, I.II …)',
-        'Restore a backup': 'Sicherung einspielen',
-        'Restore from a backup': 'Aus Sicherung wiederherstellen',
+        'Restore a backup': 'Back-up einspielen',
+        'Restore from a backup': 'Aus einem Back-up wiederherstellen',
         'Save this plan as a picture': 'Diesen Plan als Bild sichern',
         'Scene sheets': 'Szenenblätter',
         'Send back': 'Nach hinten',
@@ -866,7 +866,7 @@
         'Written on the plan': 'Auf dem Plan geschrieben',
         'Your own props': 'Eigene Requisiten',
         'Add another scene first.': 'Lege zuerst eine weitere Szene an.',
-        'Backup restored.': 'Sicherung eingespielt.',
+        'Backup restored.': 'Back-up eingespielt.',
         'Bare stage. Drag a prop in from the right, or copy the layout from another scene.':
             'Leere Bühne. Zieh ein Requisit von rechts herüber oder übernimm den Aufbau aus einer anderen Szene.',
         'Depth, back wall to setting line': 'Tiefe, Rückwand bis Bauflucht',
@@ -892,9 +892,9 @@
         'Act one': 'Erster Akt',
         'Act two': 'Zweiter Akt',
         'Evening, the first frost': 'Abend, der erste Frost',
-        'Export a backup': 'Sicherung exportieren',
+        'Export a backup': 'Back-up exportieren',
         'This browser will not store any more. Export a backup, then delete an old production or a heavy custom prop.':
-            'Dieser Browser speichert nichts mehr. Exportiere eine Sicherung und lösche dann eine alte Produktion oder ein großes eigenes Requisit.',
+            'Dieser Browser speichert nichts mehr. Exportiere ein Back-up und lösche dann eine alte Produktion oder ein großes eigenes Requisit.',
         'Saved plan could not be read, starting fresh.':
             'Der gespeicherte Plan war nicht lesbar, es wird neu begonnen.',
 
@@ -1158,6 +1158,10 @@
             title: 'Ort mitdrucken',
             body: 'Schreibt den Ort der Szene neben den Titel, etwa „I.V · Wohnzimmer“.'
         },
+        'print.overviewAuto': {
+            title: 'Alle Szenen auf ein Blatt',
+            body: 'Legt alle Szenen als kleine Pläne nebeneinander auf ein einziges Blatt — der Überblick über den Abend, nicht die Vorlage zum Aufbauen. Ist das aus, bekommt jede Szene ihr eigenes Blatt.'
+        },
         'print.overviewSize': {
             title: 'Szenen pro Blatt',
             body: 'Wie viele kleine Pläne auf ein Übersichtsblatt kommen. Bis 3 × 3 bleiben Publikum und Raster erkennbar, darüber wird es zur reinen Silhouette.'
@@ -1205,12 +1209,12 @@
 
         /* ----------------------------------------------------- Speicher */
         'store.backup': {
-            title: 'Sicherung',
-            body: 'Schreibt alles in eine JSON-Datei zum Herunterladen: Produktionen, Szenen, eigene Requisiten. Der Planer speichert nur in diesem Browser. Wer die Browserdaten löscht und keine Sicherung hat, verliert die Arbeit.'
+            title: 'Back-up',
+            body: 'Schreibt alles in eine JSON-Datei zum Herunterladen: Produktionen, Szenen, eigene Requisiten. Der Planer speichert nur in diesem Browser. Wer die Browserdaten löscht und kein Back-up hat, verliert die Arbeit.'
         },
         'store.restore': {
             title: 'Wiederherstellen',
-            body: 'Liest eine Sicherungsdatei zurück. Du wirst gefragt, ob der Inhalt zu dem dazukommen oder alles ersetzen soll.'
+            body: 'Liest ein Back-up zurück. Du wirst gefragt, ob der Inhalt zu dem dazukommen oder alles ersetzen soll.'
         },
 
         /* --------------------------------------------- Requisiten-Zeichner */

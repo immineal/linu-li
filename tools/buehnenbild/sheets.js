@@ -244,20 +244,24 @@
         /* Die Nummer groß neben der Bühne, sonst nichts auf dem Blatt — so
            liegen die Blätter, die diese Mannschaft schon benutzt. */
         if (o.numberOutside) {
+            /* „und lässt alles andere weg" — so steht es in der Erklärung, und
+               so liegen die Blätter, die diese Mannschaft benutzt. Notizen und
+               Fußzeile blieben trotzdem stehen; das Blatt heißt `is-bare` und
+               war es nicht. */
             return sheet(ctx, 'sp-plan-sheet is-bare',
                 '<div class="sp-plan-sheet-bare">' + number +
-                '<div class="sp-plan-sheet-plan">' + svg + '</div></div>' +
-                (o.showNotes && scene.notes
-                    ? '<p class="sp-plan-sheet-note">' + esc(scene.notes) + '</p>' : '') +
-                (o.showFooter ? foot(ctx) : ''), 'scenePages');
+                '<div class="sp-plan-sheet-plan">' + svg + '</div></div>', 'scenePages');
         }
 
         return sheet(ctx, 'sp-plan-sheet',
             '<div class="sp-plan-sheet-head">' + number +
+            /* Titel und Ort sind zwei Häkchen und zwei Entscheidungen. Vorher
+               stand der Ort innerhalb des Titel-Zweigs: „Ort mitdrucken" tat
+               nichts, solange „Titel neben der Nummer" aus war, ohne Hinweis. */
             (o.showTitle
-                ? '<span class="sp-plan-sheet-title">' + esc(scene.title || t('Untitled scene')) + '</span>' +
-                  (subtitle ? '<span class="sp-plan-sheet-sub">' + esc(subtitle) + '</span>' : '')
+                ? '<span class="sp-plan-sheet-title">' + esc(scene.title || t('Untitled scene')) + '</span>'
                 : '') +
+            (subtitle ? '<span class="sp-plan-sheet-sub">' + esc(subtitle) + '</span>' : '') +
             '</div>' +
             '<div class="sp-plan-sheet-plan">' + svg + '</div>' +
             (o.showNotes && scene.notes
@@ -964,8 +968,18 @@
             });
         if (scoped.length !== all.length) rows = scopeRows(p, rows, scoped);
 
+        /* Der Referenzkasten folgt demselben Ausschnitt wie die Tabelle.
+           Vorher listete er bei einem einzeln gedruckten Akt weiter alle Orte
+           des Abends — auch die, die in diesem Akt nicht vorkommen —, während
+           die Erklärung „beschränkt beide Dokumente auf einen Akt" sagt. */
+        var refSource = scoped.length === all.length ? p : {
+            scenes: scoped,
+            places: (p.places || []).filter(function (place) {
+                return scoped.some(function (s) { return s.placeId === place.id; });
+            })
+        };
         var refRows = o.referenceBox
-            ? SP.referenceRows(p, function (id) { return nameOf(ctx, id); }) : [];
+            ? SP.referenceRows(refSource, function (id) { return nameOf(ctx, id); }) : [];
         var title = o.changeoverTitle || (t('Change-over plan') +
             (p.name ? ' — ' + p.name : ''));
 

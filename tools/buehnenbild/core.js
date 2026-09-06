@@ -1119,7 +1119,12 @@
             if (m.distance <= MOVE_TOLERANCE && m.turned > TURN_TOLERANCE) {
                 return name + ' \u2192 ' + Math.round(m.to.rot) + '\u00b0';
             }
-            var where = (stage.grid && stage.grid.show && stage.grid.labels)
+            /* „Felder beschriften" gilt für sich. Vorher verlangte der Code
+               zusätzlich, dass das Raster gezeichnet wird — im Beispiel ist es
+               ab Werk aus, also tat das Häkchen nichts und sagte auch nichts.
+               Ob man das Raster sehen will, ist eine andere Frage als die, wie
+               der Umbauplan eine Stelle benennt. */
+            var where = (stage.grid && stage.grid.labels)
                 ? gridReference(stage, m.to.x, m.to.y, num(stage.grid.spacing, 1))
                 : zoneName(stage, m.to.x, m.to.y);
             if (withPositions) {

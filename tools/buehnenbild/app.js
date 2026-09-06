@@ -1979,9 +1979,14 @@
         ].join('\n');
     }
 
+    /* Was jemand ins Rückmeldeformular getippt und noch nicht abgeschickt hat.
+       Zehntausend Zeichen einer in Ruhe ausformulierten Fehlerbeschreibung
+       waren nach einem Escape wortlos weg. */
+    var feedbackDraft = null;
+
     function feedbackDialog(kind, prefill) {
         if (!feedbackAvailable()) return;
-        var chosen = kind || 'prop';
+        var chosen = (feedbackDraft && feedbackDraft.kind) || kind || 'prop';
         var body = document.createElement('div');
         body.innerHTML =
             '<div class="sp-seg sp-feedback-kind" role="radiogroup">' +
@@ -1997,14 +2002,18 @@
             esc(t('Leave it empty and stay anonymous')) + '"></div>' +
             '<p class="sp-hint">' + esc(t('Sent with it: which tab was open, how wide the window is and which browser. No names, nothing out of your production.')) + '</p>';
 
+        var sent = false;
         var placeholders = {
             prop: t('e.g. A hospital bed on castors, about 1.00 × 2.10 m'),
             bug: t('e.g. The door swings the wrong way after I mirror the scene'),
             idea: t('Whatever it is. A sentence is enough.')
         };
         var field = $('#spSayText', body);
-        field.value = prefill || '';
+        field.value = prefill || (feedbackDraft && feedbackDraft.text) || '';
         field.placeholder = placeholders[chosen];
+        if (feedbackDraft && feedbackDraft.back) {
+            $('#spSayBack', body).value = feedbackDraft.back;
+        }
 
         $('.sp-feedback-kind', body).addEventListener('click', function (e) {
             var btn = e.target.closest('[data-kind]');
@@ -2020,6 +2029,16 @@
         openModal({
             title: t('Say something'),
             body: body,
+            /* Beim Schließen bleibt stehen, was noch nicht abgeschickt ist —
+               beim nächsten Öffnen steht es wieder da. Abgeschickt wird nichts
+               davon; es liegt nur in diesem Fenster. */
+            onClose: function () {
+                if (sent) { feedbackDraft = null; return; }
+                var text = field.value.trim();
+                feedbackDraft = text
+                    ? { kind: chosen, text: field.value, back: $('#spSayBack', body).value }
+                    : null;
+            },
             actions: [{
                 label: t('Send'),
                 primary: true,
@@ -2027,6 +2046,7 @@
                     var text = $('#spSayText', host).value.trim();
                     if (!text) { $('#spSayText', host).focus(); return false; }
                     sendFeedback(chosen, text, $('#spSayBack', host).value.trim());
+                    sent = true;
                     close();
                 }
             }]
@@ -3931,7 +3951,7 @@
 
                 '<div class="sp-section" style="padding-left:0;padding-right:0"><h3>' +
                 esc(t('Overview sheets')) + '</h3>' +
-                printCheck('overviewAuto', t('All the scenes on one sheet'), o, 'print.overviewSize') +
+                printCheck('overviewAuto', t('All the scenes on one sheet'), o, 'print.overviewAuto') +
                 '<div class="sp-field"><label for="spOverviewSize">' + esc(t('Scenes to a sheet')) +
                 why('print.overviewSize') + '</label><select id="spOverviewSize" data-act="overview-size">' +
                 [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4], [5, 5], [6, 4]].map(function (g) {
