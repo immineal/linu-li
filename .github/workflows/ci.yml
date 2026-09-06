@@ -48,11 +48,16 @@ jobs:
             run_test "$f"
           done
 
-          # tests/ — skip test-pdf-watermarker: uses Puppeteer (runs in puppeteer job)
+          # tests/ — these drive a real browser against the local server and
+          # run in the puppeteer job instead.
           for f in tests/test-*.js tests/test_*.js; do
             [ -f "$f" ] || continue
             case "$f" in
-              tests/test-pdf-watermarker.js) echo "[SKIP] $f (Puppeteer — runs in puppeteer job)"; continue ;;
+              tests/test-pdf-watermarker.js|\
+              tests/test-diff-checker-xss.js|\
+              tests/test-exif-map-marker.js|\
+              tests/test-number-spinners.js)
+                echo "[SKIP] $f (Puppeteer — runs in puppeteer job)"; continue ;;
             esac
             run_test "$f"
           done
@@ -149,6 +154,9 @@ jobs:
           run_test "test.js"
           run_test "tests/test-pdf-watermarker.js"
           run_test "tools/social-cropper/social-cropper.spec.js"
+          run_test "tests/test-diff-checker-xss.js"
+          run_test "tests/test-exif-map-marker.js"
+          run_test "tests/test-number-spinners.js"
 
           echo ""
           echo "Results: $PASS passed, $FAIL failed"
