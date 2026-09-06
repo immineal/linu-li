@@ -786,9 +786,22 @@
 
     function renderTopBar() {
         var select = $('#spProductionSelect');
+        /* Neunundzwanzigmal „Weitere Produktion anlegen" ergab dreißig Einträge
+           mit einem einzigen verschiedenen Namen. Wer eine löschen wollte,
+           musste raten. Gleichnamige bekommen deshalb eine laufende Nummer —
+           in der Liste, nicht im Namen: der bleibt, wie er getippt wurde. */
+        var seen = {};
+        var total = {};
+        db.productions.forEach(function (p) {
+            var name = p.name || t('Untitled production');
+            total[name] = (total[name] || 0) + 1;
+        });
         select.innerHTML = db.productions.map(function (p) {
+            var name = p.name || t('Untitled production');
+            seen[name] = (seen[name] || 0) + 1;
+            var label = total[name] > 1 ? name + ' ' + seen[name] : name;
             return '<option value="' + esc(p.id) + '"' + (p.id === db.activeId ? ' selected' : '') + '>' +
-                esc(p.name || t('Untitled production')) + '</option>';
+                esc(label) + '</option>';
         }).join('');
         $('#spUndo').disabled = !undoStack.length;
         $('#spRedo').disabled = !redoStack.length;
@@ -5880,10 +5893,21 @@
             change(function () {
                 var stage = editingStage();
                 stage.curtains = stage.curtains || [];
+                /* Jeder neue Zug legte sich fest auf drei Meter: zwanzig
+                   Vorhänge waren neunzehn Zeichnungen, neunzehn
+                   Beschriftungen und neunzehn Griffe auf demselben
+                   Bildpunkt, und nur der oberste war zu fassen. Jetzt hängt
+                   er anderthalb Meter hinter dem hintersten — bis zur
+                   Rückwand, dann bleibt er dort. */
+                var bound = SP.stageBound('curtain.offset', stage);
+                var back = stage.curtains.reduce(function (most, c) {
+                    return Math.max(most, SP.num(c.offset, 0));
+                }, 0);
                 stage.curtains.push({
                     id: SP.uid('cur'),
                     name: stage.curtains.length ? t('Traveller {n}', { n: stage.curtains.length }) : t('House curtain'),
-                    offset: stage.curtains.length ? 3 : 0.4,
+                    offset: stage.curtains.length
+                        ? SP.round(SP.clamp(back + 1.5, bound.least, bound.most), 3) : 0.4,
                     state: 'closed'
                 });
             });
