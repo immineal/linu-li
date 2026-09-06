@@ -4043,8 +4043,12 @@
             var sheets = buildSheets();
             var count = $('#spPageCount');
             if (count) {
-                count.textContent = SPI18n.plural(sheets.length, '1 sheet', '{n} sheets of A4') +
-                    (sheets.length > 40 ? t(', which is a thick pile') : '');
+                /* „1 Blatt" nannte das Format nicht, „0 Blatt A4" nannte ein
+                   Format für nichts — daneben stand „Nichts zum Drucken
+                   ausgewählt.". Beides sagt jetzt dasselbe. */
+                count.textContent = !sheets.length ? t('Nothing to print yet')
+                    : SPI18n.plural(sheets.length, '1 sheet of A4', '{n} sheets of A4') +
+                      (sheets.length > 40 ? t(', which is a thick pile') : '');
             }
             if (!sheets.length) {
                 host.innerHTML = '<p class="sp-empty">' + esc(t('Nothing selected to print.')) + '</p>';
@@ -4082,7 +4086,7 @@
         }
         var landscape = printDoc() === 'plans' && o.orientation === 'landscape';
         style.textContent = '@page { size: A4 ' + (landscape ? 'landscape' : 'portrait') + '; margin: 0; }';
-        portal.innerHTML = '<div class="sp-sheets">' + buildSheets().join('') + '</div>';
+        portal.innerHTML = '<div class="sp-sheets">' + pages.join('') + '</div>';
         portal.hidden = false;
         return true;
     }
@@ -4090,6 +4094,14 @@
     function doPrint() {
         var portal = $('#spPrintPortal');
         var o = printOptions();
+        /* Sind alle Blattarten abgehakt, sagt die Vorschau „Nichts zum Drucken
+           ausgewählt." — der Knopf schickte trotzdem eine leere Seite an den
+           Drucker. */
+        var pages = buildSheets();
+        if (!pages.length) {
+            toast(t('Nothing selected to print.'));
+            return;
+        }
         var style = document.getElementById('spPageStyle');
         if (!style) {
             style = document.createElement('style');
@@ -4099,7 +4111,7 @@
         var landscape = printDoc() === 'plans' && o.orientation === 'landscape';
         style.textContent = '@page { size: A4 ' + (landscape ? 'landscape' : 'portrait') + '; margin: 0; }';
 
-        portal.innerHTML = '<div class="sp-sheets">' + buildSheets().join('') + '</div>';
+        portal.innerHTML = '<div class="sp-sheets">' + pages.join('') + '</div>';
         portal.hidden = false;
         window.setTimeout(function () {
             window.print();
@@ -4750,7 +4762,12 @@
             var hits = [];
             if (Math.abs(x1 - x0) > 0.03 || Math.abs(y1 - y0) > 0.03) {
                 (scene().placements || []).forEach(function (p) {
-                    if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1) hits.push(p.id);
+                    /* Nach der Fläche, nicht nach dem Mittelpunkt: ein Tisch
+                       von 6 × 4 m blieb ungefasst, wenn der Rahmen über seine
+                       linke Hälfte ging. Was der Rahmen berührt, ist drin. */
+                    var hw = p.w / 2, hh = p.h / 2;
+                    if (p.x + hw >= x0 && p.x - hw <= x1 &&
+                        p.y + hh >= y0 && p.y - hh <= y1) hits.push(p.id);
                 });
             }
             /* Anhängen, aber nichts doppelt: ein Shift-Rahmen über bereits
@@ -4778,6 +4795,9 @@
     }
 
     var pendingDragState = null;
+    /* Wie oft seit dem letzten Kopieren eingefügt wurde — damit der zweite
+       Abzug nicht auf dem ersten liegt. */
+    var pasteRun = 0;
 
     /* Ein Wisch auf dem Trackpad erzeugt Dutzende Radrasten. Ohne Grenze fiel
        der Ausschnitt nach 88 davon unter einen halben Millimeter, wurde beim
@@ -6640,16 +6660,27 @@
             }
             if (meta && e.key.toLowerCase() === 'c') {
                 clipboard = JSON.parse(JSON.stringify(selectedPlacements()));
+                pasteRun = 0;
                 if (clipboard.length) toast(SPI18n.plural(clipboard.length, '1 prop copied.', '{n} props copied.'));
                 return;
             }
             if (meta && e.key.toLowerCase() === 'v') {
                 if (!clipboard.length || !scene()) return;
                 change(function () {
+                    /* Um ein halbes Rasterfeld versetzt, wie beim Duplizieren,
+                       und bei jedem weiteren Einfügen ein Feld weiter. Vorher
+                       lag die Kopie genau auf dem Original: viermal eingefügt
+                       waren fünf Tische exakt übereinander und nicht
+                       auseinanderzuhalten. */
+                    pasteRun += 1;
+                    var step = SP.num((stageOf(scene()).grid || {}).spacing, 1) / 2 * pasteRun;
                     var ids = clipboard.map(function (p) {
                         var copy = Object.assign({}, p);
                         copy.id = SP.uid('pl');
                         copy.trackId = SP.uid('trk');
+                        copy.x = SP.round(p.x + step, 3);
+                        copy.y = SP.round(p.y + step, 3);
+                        holdSpot(copy);
                         scene().placements.push(copy);
                         return copy.id;
                     });

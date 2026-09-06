@@ -678,6 +678,8 @@
             'Im Druckdialog: Ränder auf „keine“, Hintergrundgrafiken an.',
         '{n} sheets': '{n} Blätter',
         '1 sheet': '1 Blatt',
+        '1 sheet of A4': '1 Blatt A4',
+        'Nothing to print yet': 'Noch nichts zu drucken',
         'Include the reference box': 'Referenzkasten mitdrucken',
         'Include positions in the table': 'Positionen in der Tabelle',
         'Page {n} of {total}': 'Seite {n} von {total}',

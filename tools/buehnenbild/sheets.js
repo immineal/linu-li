@@ -367,7 +367,11 @@
                     return numbers[s.sceneId].label + (s.count > 1 ? '×' + s.count : '');
                 }).join(', ');
                 return '<tr><td style="width:9mm">' + art + '</td>' +
-                    '<td>' + esc(prop ? t(prop.name) : entry.propId) + '</td>' +
+                    /* Zeigt eine Aufstellung auf etwas, das es nicht mehr
+                       gibt, stand hier die rohe Kennung — während der
+                       Umbauplan an derselben Stelle „Unbekanntes Requisit"
+                       schreibt. Zwei Blätter, zwei Antworten. */
+                    '<td>' + esc(prop ? t(prop.name) : t('Unknown prop')) + '</td>' +
                     '<td class="sp-num">' + entry.peak + '</td>' +
                     '<td class="sp-num">' + entry.scenes.length + '</td>' +
                     '<td>' + esc(where) + '</td></tr>';
