@@ -1,118 +1,113 @@
 # linu-li
 
-A bunch of browser-based tools for everyday stuff — PDF editing, image processing, dev utilities, etc. Everything runs locally in your browser, no uploads, no tracking.
+Small tools that run in a browser tab. Merging a PDF, stripping the GPS out of a photo, decoding a JWT: the sort of thing you look up, use once, and close again.
 
-**Live:** [linu.li](https://linu.li)
-
-![Privacy](https://img.shields.io/badge/Privacy-100%25%20Client--Side-green)
-![PWA](https://img.shields.io/badge/PWA-Offline%20Ready-blue)
-![License](https://img.shields.io/badge/license-%20%20GNU%20GPLv3%20-lightgray)
+Live at [linu.li](https://linu.li).
 
 ## Why
 
-Most online tools for things like PDF merging or image compression work by uploading your files to some server. I didn't really want that, so this is all client-side — WebAssembly and vanilla JS, nothing leaves your machine.
+Search for "merge PDF" and every result wants the file uploaded first. For a scanned contract or a photo of somebody's passport that is an odd thing to agree to, and the sites that ask usually surround the button with three ads and a newsletter box.
 
-No analytics, no ads, no cookies. Also works offline as a PWA.
+Browsers have been able to do this work by themselves for years, so these do. The file you pick never goes anywhere. There are no accounts, no analytics and no cookies, and once you have opened the site it keeps working on a train with no signal.
 
-## Tools
+Five things do reach outside, and none of them carries your file. The EXIF tool and the Bonn map load map tiles from OpenStreetMap. The image compressor pulls its WebP and AVIF codecs from esm.sh. The timestamp tool fetches a date parser from jsDelivr the first time you ask it to read plain language. The unit converter asks two servers for exchange rates, always the whole table, so the request says nothing about what you are converting. The contact form posts to Formspree. [The privacy policy](https://linu.li/privacy.html) names all five and says what each one receives.
+
+## The tools
 
 ### PDF
-- **PDF Merger** — drag-and-drop, reorder pages, combine
-- **PDF Splitter** — split by page ranges or explode into single pages
-- **Asset Extractor** — pull embedded images out of PDFs
-- **2-Up** — put two pages side by side (booklet-style)
-- **Grayscale** — rasterize to B&W for printing
-- **Watermarker** — stamp text onto pages
+
+- [Merger](tools/pdf-merger/) combines files and lets you drag pages into order first
+- [Splitter](tools/pdf-splitter/) cuts by page range, or explodes a file into one PDF per page
+- [Image extractor](tools/pdf-extractor/) pulls out every image embedded in a PDF
+- [2-up](tools/pdf-2up/) puts two pages on one sheet for booklets
+- [Grayscale](tools/pdf-grayscale/) flattens colour to black and white, which also cleans up phone scans
+- [Watermarker](tools/pdf-watermarker/) stamps text across every page
 
 ### Images
-- **Smart Compressor** — WebP/AVIF compression via WASM
-- **Bulk Resizer** — batch resize, keeps aspect ratio
-- **Social Cropper** — crop for 16:9, 4:5, circle masks, etc.
-- **EXIF Scrubber** — view and strip metadata (GPS, camera info)
-- **Favicon Creator** — generate `.ico`/`.png` from text or image
-- **SVG Rasterizer** — SVG to high-res PNG
+
+- [Compressor](tools/image-compressor/) shrinks photos to WebP or AVIF with a before-and-after slider
+- [Bulk resizer](tools/image-resizer/) resizes a whole batch and keeps the aspect ratio
+- [Social cropper](tools/social-cropper/) crops to the ratios Instagram, Twitter and LinkedIn expect
+- [EXIF remover](tools/exif-scrubber/) shows the location and camera data hidden in a photo before it strips it
+- [Favicon generator](tools/favicon-maker/) builds `.ico` and `.png` icons from text, an emoji or an image
+- [SVG to PNG](tools/svg-to-png/) renders a vector file at whatever resolution you need
 
 ### Text
-- **Word Counter** — character/word/reading time stats
-- **Diff Checker** — side-by-side or inline text diff
-- **Markdown Live** — editor with live preview and HTML export
-- **List Cleaner** — dedup, sort, shuffle, trim
-- **Case Converter** — camelCase, snake_case, Title Case, etc.
-- **Lorem Generator** — Latin, tech-babble, corporate-speak
 
-### Dev
-- **JSON Workbench** — validate, repair, minify, tree view
-- **SQL Prettifier** — format messy queries
-- **JWT Debugger** — decode headers/payloads, checks expiry
-- **URL Tools** — encode/decode, strip tracking params (UTM, fbclid)
-- **Base64** — file-to-base64, text-to-base64
-- **Epoch Converter** — unix timestamp ↔ human readable
+- [Word counter](tools/word-counter/) counts words, characters and sentences, and estimates reading time
+- [Diff checker](tools/diff-checker/) highlights what changed between two texts, side by side or inline
+- [Markdown editor](tools/markdown-editor/) previews as you type and exports HTML
+- [List cleaner](tools/list-cleaner/) removes duplicates, sorts, shuffles and trims
+- [Case converter](tools/case-converter/) moves text between camelCase, snake_case, Title Case and the rest
+- [Lorem generator](tools/lorem-generator/) makes filler text in Latin, tech jargon or corporate speak
 
-### Stage & production
-- **Szenenplaner (Scene & Prop Planner)** — German-language tool for stage crews. Build a running order of scenes, name the places the piece returns to, place props on a stage (rectangular, trapezoid, thrust, half round) with wings and curtains, then print two documents: A4 ground plans that carry only the drawing, and an **Umbauplan** — a booktabs-style table of what is struck, set up and moved between every pair of scenes, with a boxed reference block and full-width banners for the interval. Ships with a set of oblique prop illustrations alongside the plan-view symbols. Guided setup on first visit, a short introduction the first time you open each section, and an explanation behind every setting.
+### Developer
 
-### Misc
-- **Password Gen** — uses Web Crypto API, no bias
-- **QR Creator** — WiFi, vCard, URL
-- **Unit Converter** — length, weight, temp, speed, data
-- **Hash Generator** — SHA-256, MD-5, SHA-512
-- **Aspect Ratio** — calc dimensions for video/images
-- **Color Tools** — picker, converter, WCAG contrast checker
+- [JSON tools](tools/json-tools/) validate, repair, minify and show a collapsible tree
+- [SQL formatter](tools/sql-formatter/) tidies up a query you inherited
+- [JWT decoder](tools/jwt-debugger/) reads the header and payload and tells you whether it has expired
+- [URL tools](tools/url-tools/) encode, decode, and strip tracking junk such as `utm_source` and `fbclid`
+- [Base64](tools/base64-converter/) converts text or a whole file, both directions
+- [Timestamp converter](tools/time-converter/) turns Unix epochs into dates and back, across time zones
+- [Hash generator](tools/hash-generator/) gives you SHA-256, SHA-512 or MD5 of text or a file
+- [Password generator](tools/pw-generator/) uses the Web Crypto API, so the randomness is real
 
-### Maps
-- **Sperrmüll Bonn** — which streets in Bonn get a bulky-waste collection on which day, drawn from the city's open data (185 dates for 2026). Lives under `/sperrmuell` as a separate app with its own build, its own service worker and its own offline cache, so the map still comes up on a phone with no signal.
+### Everything else
 
----
+- [QR generator](tools/qr-creator/) for links, WiFi credentials and contact cards
+- [Colour tools](tools/color-tools/) pick, convert between HEX, RGB and HSL, and check WCAG contrast
+- [Aspect ratio calculator](tools/aspect-ratio/) works out the missing side
+- [Unit converter](tools/unit-converter/) handles length, weight, temperature, speed, storage and currency
+- [Future euro banknotes](tools/future-bank-notes/) is a German gallery of the ten ECB design proposals, with a way to compare and rate them
 
-## Stack
+### Two bigger ones
 
-Plain HTML, CSS, JS. No build step, no bundler, no framework. Just open it.
+The [Bühnenbild-Planer](tools/buehnenbild/) is a German planner for stage crews and the largest thing here. You build a running order of scenes, name the places a piece keeps returning to, and lay props out on a stage with wings and curtains. Out of that it prints two documents: A4 ground plans carrying nothing but the drawing, and an *Umbauplan*, a table of what gets struck, set up and moved between every pair of scenes. Props come with oblique illustrations as well as plan-view symbols. There is a guided setup on the first visit and an explanation behind every setting, because the people using it are not the people who built it.
 
-Libraries used:
-- `pdf-lib`, `pdf.js`, `jspdf` — PDF stuff
-- `cropperjs`, `piexifjs` — image handling
-- `dayjs` — dates
-- `marked` — Markdown parsing
-- `sql-formatter`, `json5`, `jsdiff` — text/code tools
-- Web Crypto API + `crypto-js` — hashing/crypto
+The [Bonn Sperrmüll map](sperrmuell/) shows which streets get a bulky-waste collection on which day, from the city's open data. It covers 185 dates in 2026. It lives outside `tools/` as its own app with its own build and its own service worker, so it comes up on a phone while you are standing in front of the pile with no signal.
 
-## Running locally
+## How it is built
 
-Needs to be served over HTTP (ES modules + service worker don't work on `file://`).
+Plain HTML, CSS and JavaScript. No bundler, no framework, no build step: what is in the repository is what the server sends, and each tool is one self-contained `index.html`. The Bonn map is the exception, a Vite build whose output is committed.
+
+Libraries sit in `assets/vendor/` and are served from here rather than a CDN, so a tool keeps working on a day when someone else's CDN does not. pdf-lib, pdf.js and jsPDF do the PDF work. Cropper.js and piexif handle images, marked and DOMPurify render Markdown safely, jsdiff finds the differences between two texts, sql-formatter reprints queries, and JSONPath runs the queries in the JSON tool. Leaflet draws the map in the EXIF tool. Day.js does dates, JSZip packs up downloads of more than one file, and hashing goes through the Web Crypto API, with crypto-js and sha3 filling in algorithms the browser does not offer. Both fonts, Libre Baskerville and Space Grotesk, are self-hosted as well.
+
+## Running it locally
+
+It has to be served over HTTP. Service workers and ES modules do not work from `file://`, and without the service worker a good half of the site behaves oddly.
 
 ```bash
 git clone https://github.com/immineal/linu-li.git
 cd linu-li
-
-# python
-python -m http.server 8000
-
-# or node
-npx serve .
+npx serve . --listen 3000
 ```
 
-Then open `http://localhost:8000`.
+Then open `http://localhost:3000`.
+
+There are three test suites, and four conventions that will bite you if nobody warned you about them. Both are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Deployment
 
-GitHub Actions deploys to All-Inkl via FTP on every push to `main`. Config is in `.github/workflows/deploy.yml`.
+A push to `main` runs the tests. If they come back green, a second workflow mirrors the checkout to All-Inkl over FTP. The two used to run alongside each other, which meant a red test run never stopped anything from going live. Now the deploy waits.
 
-If you want to use your own server: add an `FTP_PASSWORD` secret in the repo settings and update the `server`/`username` fields in the workflow file.
+It needs three secrets: `FTP_SERVER`, `FTP_USER` and `FTP_PASSWORD`. The rest is in `.github/workflows/deploy.yml`, including the step that stamps the deployed commit into the service worker. Without that stamp the worker is byte-identical after every deploy, the browser sees no reason to fetch a new one, and people keep running whatever they downloaded the first time. That is how this site spent the better part of a year serving code it had already fixed.
 
-## Project structure
+## Layout
 
 ```
-/
-├── assets/
-│   ├── css/        # global styles
-│   ├── js/         # layout, PWA registration
-│   └── fonts/      # self-hosted
-├── tools/          # one folder per tool, each with its own index.html
-├── index.html      # main dashboard
-├── sw.js           # service worker
-└── manifest.json   # PWA manifest
+assets/
+  css/          global styles
+  fonts/        Libre Baskerville and Space Grotesk, self-hosted
+  js/           shared layout, service worker registration, update prompt
+  vendor/       third-party libraries
+  manifest.json PWA manifest
+tools/          one folder per tool, each a standalone page
+sperrmuell/     the Bonn map, its own app with its own service worker
+tests/          three suites, see CONTRIBUTING.md
+index.html      the front page
+sw.js           service worker, has to sit at the root to cover the whole site
 ```
 
 ## License
 
-[GNU GPL v3](LICENSE)
+[GNU GPL v3](LICENSE).
