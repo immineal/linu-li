@@ -649,20 +649,30 @@
                 var availW = Math.max(0.01, w - 2 * pad);
                 var availH = Math.max(0.01, h - 2 * pad);
                 var lh = 1.22;
-                var longest = lines.reduce(function (m, s) { return Math.max(m, s.length); }, 1);
-                /* 0,54 ist die mittlere Buchstabenbreite der Hausschrift, an
-                   der Schrifthöhe gemessen. Sie muss nicht stimmen, sie muss
-                   nur eher zu klein als zu groß sein: dann steht der Text
-                   innerhalb des Feldes statt darüber hinaus. */
-                var size = Math.min(availH / (lines.length * lh), availW / (longest * 0.54));
+                var widest = lines.reduce(function (m, line) {
+                    return Math.max(m, textWidth(line, 1));
+                }, 0.5);
+                var size = Math.min(availH / (lines.length * lh), availW / widest);
                 size = Math.max(0.008, Math.min(size, clamp(o.cap, 0.01, 4)));
+                /* Verkleinert wird nur bis 0,008 m — darunter ist nichts mehr
+                   zu lesen. Vorher wurde alles, was dann immer noch nicht
+                   passte, trotzdem gesetzt: fünfzig Zeilen liefen oben und
+                   unten je neun Zentimeter aus dem Feld heraus, bei
+                   zweihundert Zeilen waren es zweiundachtzig. Jetzt endet der
+                   Text am Rand des Feldes und sagt mit einem
+                   Auslassungszeichen, dass mehr dahintersteht. */
+                var room = Math.max(1, Math.floor(availH / (size * lh)));
+                var cut = lines.length > room;
+                if (cut) lines = lines.slice(0, room);
                 var top = -lines.length * size * lh / 2;
                 var parts = '';
                 lines.forEach(function (text, i) {
-                    if (!text) return;
+                    var last = cut && i === lines.length - 1;
+                    var line = clipText(last ? text + '…' : text, size, availW);
+                    if (!line) return;
                     parts += '<text class="sp-mark-text" x="0" y="' +
                         n(top + size * lh * (i + 0.5) + size * 0.35) +
-                        '" font-size="' + n(size) + '" text-anchor="middle">' + esc(text) + '</text>';
+                        '" font-size="' + n(size) + '" text-anchor="middle">' + esc(line) + '</text>';
                 });
                 return plate + parts;
             }
@@ -672,6 +682,44 @@
     /* ------------------------------------------------------------------ *
      * Zugriff
      * ------------------------------------------------------------------ */
+
+    /* Wie breit ein Stück Text wird. Vorher stand hier `länge × 0,52` für
+       jeden Buchstaben — bei „Märchenbuch" 14 % zu wenig, weshalb sich auf
+       einem vollen Plan zweihundert Namenspaare überschnitten, obwohl das
+       Ausweichen im Grundsatz arbeitete. Die Klassen sind an Space Grotesk
+       gemessen (Vorschubbreiten je Geviert); sie treffen die geprüften
+       Wörter auf drei Prozent und schätzen eher zu breit als zu schmal —
+       ein Name zu weit auseinander ist besser als zwei übereinander. */
+    var THIN = 'ijlI.,:;!|\'"` ';
+    var SLIM = 'frt()[]{}/\\-1';
+    var MID = 'ksvzLF';
+    var WIDE = 'mwMW';
+    function textWidth(text, fs) {
+        var sum = 0;
+        var str = String(text === undefined || text === null ? '' : text);
+        for (var i = 0; i < str.length; i++) {
+            var ch = str.charAt(i);
+            sum += THIN.indexOf(ch) !== -1 ? 0.25
+                : SLIM.indexOf(ch) !== -1 ? 0.42
+                : MID.indexOf(ch) !== -1 ? 0.53
+                : WIDE.indexOf(ch) !== -1 ? 0.86
+                : 0.62;
+        }
+        return sum * fs;
+    }
+
+    /* Text, der in eine gegebene Breite passt — der Rest wird zu einem
+       Auslassungszeichen. Ein Name, der über den Blattrand hinausläuft, ist
+       auf Papier verloren; ein gekürzter ist wenigstens zu lesen. */
+    function clipText(text, fs, max) {
+        var str = String(text === undefined || text === null ? '' : text);
+        if (max <= 0 || textWidth(str, fs) <= max) return str;
+        var cut = str;
+        while (cut.length > 1 && textWidth(cut + '…', fs) > max) {
+            cut = cut.slice(0, -1);
+        }
+        return cut.replace(/[\s,;:.\-]+$/, '') + '…';
+    }
 
     function nameOf(prop) {
         return (prop && (prop.shape || prop.mark)) || '';
@@ -819,6 +867,8 @@
         extent: extent,
         naturalDepth: naturalDepth,
         nameOf: nameOf,
-        textLines: textLines
+        textLines: textLines,
+        textWidth: textWidth,
+        clipText: clipText
     };
 }));

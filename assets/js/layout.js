@@ -10,14 +10,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if we are inside the 'tools' directory
     const inToolsDir = window.location.pathname.includes('/tools/');
     const rootPath = inToolsDir ? '../../' : './';
+
+    // The frame speaks the language the page declares. A German page with an
+    // English header and footer around it reads like a translation someone
+    // gave up on halfway.
+    const de = (document.documentElement.lang || '').toLowerCase().startsWith('de');
+    const say = (english, german) => (de ? german : english);
     
     // 2. Inject Header
     const headerHTML = `
     <header class="main-header">
         <nav>
-            <a href="${rootPath}" class="logo-link">Tools for Everyone</a>
+            <a href="${rootPath}" class="logo-link">${say('Tools for Everyone', 'Werkzeuge für alle')}</a>
             <div style="display:flex; gap: 1.5rem; align-items: center;">
-                <button id="theme-toggle" class="theme-switch" aria-label="Toggle Dark Mode">
+                <button id="theme-toggle" class="theme-switch" aria-label="${say('Toggle Dark Mode', 'Zwischen hell und dunkel wechseln')}">
                     <div class="switch-track">
                         <div class="switch-thumb"></div>
                     </div>
@@ -33,18 +39,18 @@ document.addEventListener('DOMContentLoaded', () => {
         <!-- Donation Section -->
         <div style="margin-bottom: 1.5rem;">
             <a href="https://ko-fi.com/linuslinhof" target="_blank" rel="noopener noreferrer" class="donate-btn">
-                <span>☕</span> Buy me a coffee
+                <span>☕</span> ${say('Buy me a coffee', 'Spendier mir einen Kaffee')}
             </a>
         </div>
 
         <p style="margin: 0 auto; text-align: center;">
-            &copy; ${new Date().getFullYear()} Linus Linhof. Built for utility.
+            &copy; ${new Date().getFullYear()} Linus Linhof. ${say('Built for utility.', 'Gebaut, damit es etwas nützt.')}
         </p>
         
         <!-- Links with auto margins -->
         <p style="margin: 0.5rem auto 0; opacity: 0.7; text-align: center;">
-            <a href="${rootPath}impressum.html">Impressum / Legal</a> &bull; 
-            <a href="${rootPath}privacy.html">Privacy / Datenschutz</a>
+            <a href="${rootPath}impressum.html">${say('Impressum / Legal', 'Impressum')}</a> &bull; 
+            <a href="${rootPath}privacy.html">${say('Privacy / Datenschutz', 'Datenschutz')}</a>
         </p>
     </footer>
     <div id="toast-container" class="toast-container"></div>`;

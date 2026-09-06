@@ -1399,7 +1399,11 @@ test('wing notes stop at the edge of the wing and say so', () => {
             resolve: (id) => Props.get(id),
             wingNotes: notes
         }).inner;
-        return { count: (out.match(/sp-wing-note"/g) || []).length, told: /kein Platz mehr/.test(out) };
+        /* Die Meldung bricht in der Gassenbreite um wie ein Zettel auch,
+           steht also über mehrere <text> verteilt. Geprüft wird, was auf dem
+           Plan zu lesen ist, nicht wie das Markup es aufteilt. */
+        const reading = out.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
+        return { count: (out.match(/sp-wing-note"/g) || []).length, told: /kein Platz mehr/.test(reading) };
     };
     const flat = drawnIn(2.5), normal = drawnIn(5), deep = drawnIn(7);
     assert.ok(flat.count >= 1, 'even a shallow wing holds one');

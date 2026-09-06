@@ -28,7 +28,7 @@
         { id: 'trans', title: 'Umbauten', tab: 'scenes' },
         { id: 'draw', title: 'Requisiten zeichnen', tab: 'props' },
         { id: 'print', title: 'Drucken', tab: 'print' },
-        { id: 'store', title: 'Sichern', tab: null }
+        { id: 'store', title: 'Back-up', tab: null }
     ];
 
     /*
@@ -42,9 +42,13 @@
      */
     var WHERE = {
         settings: { dialog: 'settings', open: 'Einstellungen, oben neben dem Stücknamen' },
-        backup:   { dialog: 'backup',   open: 'Sicherung, oben rechts' },
+        backup:   { dialog: 'backup',   open: 'Back-up, oben rechts' },
         draw:     { tab: 'props', dialog: 'draw', open: 'Requisiten, dann „Requisit zeichnen“' },
-        trans:    { tab: 'scenes', dialog: 'transition', open: 'Szenen, dann einen Umbau in der Liste anklicken' },
+        /* Es gibt weder Umbauzeilen in der Ablaufliste noch einen Dialog
+           dafür: die Umbau-Einstellungen stehen im rechten Bereich unter
+           „Szene“, bei jeder Szene außer der ersten. Der alte Weg zeigte
+           in ein verstecktes Feld — auf dem Schirm passierte gar nichts. */
+        trans:    { tab: 'scenes', panel: 'scene', open: 'Szenen, rechts „Szene“ — bei jeder Szene außer der ersten' },
         item:     { tab: 'scenes', panel: 'item', open: 'Szenen, ein Requisit anklicken, rechts „Auswahl“' },
         sceneIns: { tab: 'scenes', panel: 'scene', open: 'Szenen, rechts „Szene“' }
     };

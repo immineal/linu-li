@@ -145,10 +145,21 @@
         switch (s.k) {
         case 'ellipse': return s.rx >= 0.5 && s.ry >= 0.5;
         case 'line': return Math.abs(s.x2 - s.x1) >= 0.5 || Math.abs(s.y2 - s.y1) >= 0.5;
-        case 'polyline': return s.pts.length >= 2;
-        case 'polygon': return s.pts.length >= 3;
+        /* Nicht die Zahl der Punkte entscheidet, sondern die Ausdehnung:
+           hundert Klicks auf denselben Punkt ergaben sonst eine Form, die
+           „Zeichne erst etwas." passierte — ein Requisit mit dem Feld
+           0 × 0, das im Fundus als einzelner Punkt stand. */
+        case 'polyline': return s.pts.length >= 2 && spread(s);
+        case 'polygon': return s.pts.length >= 3 && spread(s);
         default: return s.w >= 0.5 && s.h >= 0.5;
         }
+    }
+
+    /* Die Ausdehnung eines Zuges, an derselben Rechnung gemessen wie alles
+       andere auch. */
+    function spread(shape) {
+        var box = bounds(shape);
+        return box.w >= 0.5 || box.h >= 0.5;
     }
 
     function bounds(shape) {

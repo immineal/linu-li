@@ -28,6 +28,16 @@
         return Math.round(value * 1000) / 1000;
     }
 
+    /* `true` heißt zeichnen, `false` heißt nicht zeichnen, und ohne Angabe
+       entscheidet die Bühne. Vorher galt die Bühne bei Maßstabsbalken,
+       Mittelachse und Bauflucht immer mit: das Kästchen im Drucken-Reiter
+       blieb angehakt stehen und zeichnete nichts, solange dieselbe Sache im
+       Bühne-Reiter ausgeschaltet war. Beim Raster war die Abhängigkeit schon
+       aufgehoben — vier Nachbarn, die sich verschieden verhielten. */
+    function wants(option, fallback) {
+        return option === undefined || option === null ? !!fallback : !!option;
+    }
+
     /* A drawn curtain: a run of soft folds rather than a straight line, so it
        reads as fabric at a glance. */
     function folds(x0, x1, y, amp, wavelength) {
@@ -81,13 +91,7 @@
         var parts = [];
 
         /* ---------------------------------------------------------- grid */
-        /* `grid: true` heißt zeichnen, `false` heißt nicht zeichnen, und ohne
-           Angabe entscheidet die Bühne. Vorher galt die Bühne immer mit —
-           „Bodenraster zeigen" im Drucken-Reiter tat dann gar nichts, solange
-           das Raster im Bühne-Reiter ausgeschaltet war. */
-        var wantsGrid = opts.grid === undefined || opts.grid === null
-            ? !!(stage.grid && stage.grid.show)
-            : !!opts.grid;
+        var wantsGrid = wants(opts.grid, stage.grid && stage.grid.show);
         if (wantsGrid && stage.grid) {
             var spacing = SP.num(stage.grid.spacing, 1);
             var lines = SP.gridLines(stage, spacing);
@@ -124,11 +128,11 @@
         parts.push('<path class="sp-stage" d="' + out.d + '" stroke-width="' + n(u * 2.4) + '"/>');
 
         /* ---------------------------------------- centre and setting line */
-        if (opts.centreLine !== false && stage.centreLine) {
+        if (wants(opts.centreLine, stage.centreLine)) {
             parts.push('<path class="sp-guide sp-centre" d="M0 ' + n(b.y) + ' V' + n(b.y + b.h) +
                 '" stroke-width="' + n(u * 1.1) + '" stroke-dasharray="' + n(u * 9) + ' ' + n(u * 5) + ' ' + n(u * 2) + ' ' + n(u * 5) + '"/>');
         }
-        if (opts.settingLine !== false && stage.settingLine) {
+        if (wants(opts.settingLine, stage.settingLine)) {
             var sl = spanAtSafe(stage, out.frontY);
             if (sl) {
                 parts.push('<path class="sp-guide" d="M' + n(sl[0]) + ' ' + n(out.frontY) + ' H' + n(sl[1]) +
@@ -212,58 +216,109 @@
                 /* Der Platz oben gehört der Marke: sie endet bei 24
                    Haarlinien unter der Kante, darunter beginnt der Stapel. */
                 var top = b.y + u * 24 + gap;
-                var cursor = { left: top, right: top };
-                var dropped = { left: 0, right: 0 };
+                var bottom = b.y + wingDepth;
+                var noteFs = fs * 0.66;
+                /* So breit ist die Gasse, in der der Zettel steht. */
+                var column = Math.abs(wl[0][0][0] - b.x) - gap;
+                var sides = { left: [], right: [] };
                 opts.wingNotes.forEach(function (note) {
-                    var side = note.side === 'left' ? 'left' : 'right';
-                    var prop = opts.resolve ? opts.resolve(note.propId) : null;
-                    var lines = wrapWords(note.text || '', 15);
-                    /* Ein Bild behält seine Form: aus einem Stück Kreide von
-                       elf mal zwei Zentimetern wurde sonst ein Quadrat, weil
-                       der Zettel jedem Bild dieselbe Kantenlänge gab. */
-                    var big = prop ? Math.max(prop.w, prop.h) || 1 : 1;
-                    var nw = prop ? prop.w * (noteSize / big) : 0;
-                    var nh = prop ? prop.h * (noteSize / big) : 0;
-                    var need = (prop ? nh + gap : 0) + lines.length * lineH + gap;
-                    /* Der Stapel endet an der Gassentiefe. Vorher zählte er
-                       einfach weiter: der vierte Zettel lag auf der Bauflucht,
-                       der fünfte unterhalb des Blattes. */
-                    if (cursor[side] > top && cursor[side] + need > b.y + wingDepth) {
-                        dropped[side] += 1;
-                        return;
-                    }
+                    sides[note.side === 'left' ? 'left' : 'right'].push(note);
+                });
+
+                /* Was ein Zettel an Höhe braucht — und was von ihm bleibt,
+                   wenn die Gasse nicht so tief ist. Vorher wurde der erste
+                   Zettel ungeprüft gesetzt und seine eigene Höhe nie
+                   gedeckelt: sechzig Wörter reichten für 61 Zeilen, deren
+                   unterste anderthalb Meter unterhalb des Blattes lag. */
+                function fitWing(list, limit) {
+                    var y = top;
+                    var placed = [];
+                    var dropped = 0;
+                    list.forEach(function (note) {
+                        var prop = opts.resolve ? opts.resolve(note.propId) : null;
+                        /* Ein Bild behält seine Form: aus einem Stück Kreide
+                           von elf mal zwei Zentimetern wurde sonst ein
+                           Quadrat, weil der Zettel jedem Bild dieselbe
+                           Kantenlänge gab. */
+                        var big = prop ? Math.max(prop.w, prop.h) || 1 : 1;
+                        var nw = prop ? prop.w * (noteSize / big) : 0;
+                        var nh = prop ? prop.h * (noteSize / big) : 0;
+                        var head = prop ? nh + gap : 0;
+                        var lines = wrapToWidth(note.text, noteFs, column);
+                        var room = limit - y - head - gap;
+                        var fits = lines.length ? Math.floor(room / lineH) : 0;
+                        if (!lines.length ? head && y + head + gap > limit : fits < 1) {
+                            dropped += 1;
+                            return;
+                        }
+                        /* Lieber der Anfang eines langen Zettels mit einem
+                           Auslassungszeichen als ein Zettel, der über das
+                           Blatt hinausläuft — oder gar keiner. */
+                        if (lines.length > fits) {
+                            lines = lines.slice(0, fits);
+                            lines[fits - 1] = lines[fits - 1] + '…';
+                        }
+                        placed.push({ prop: prop, nw: nw, nh: nh, lines: lines, y: y });
+                        y += head + lines.length * lineH + gap;
+                    });
+                    return { placed: placed, dropped: dropped, y: y };
+                }
+
+                /* Die Meldung bricht wie ein Zettel um: gekürzt wäre sie
+                   „noch 26, kein…" und sagte damit gerade das nicht mehr,
+                   wofür sie da ist. */
+                function noRoom(count) {
+                    return wrapToWidth(
+                        I18n.plural(count, '1 more, no room here', '{n} more, no room here'),
+                        noteFs, column);
+                }
+
+                ['left', 'right'].forEach(function (side) {
+                    var list = sides[side];
+                    if (!list.length) return;
                     var edge = side === 'left' ? b.x : b.x + b.w;
                     var inner = side === 'left' ? wl[0][0][0] : wl[1][0][0];
                     var cx = (edge + inner) / 2;
-                    var y = cursor[side];
-                    cursor[side] += need;
-
-                    if (prop) {
-                        /* Ohne eigene id: ein Gassenzettel ist keine
-                           Aufstellung auf der Bühne. Vorher trug er ein leeres
-                           data-id und sah anklickbar aus, ohne es zu sein. */
-                        parts.push('<g class="sp-wing-note" transform="translate(' + n(cx) + ' ' +
-                            n(y + nh / 2) + ')">' +
-                            propInner({ x: 0, y: 0, w: nw, h: nh, rot: 0 }, prop, u, {}) + '</g>');
-                        y += nh + gap;
+                    /* Zweimal gerechnet: passt alles, gehört die Gasse den
+                       Zetteln. Bleibt etwas weg, gehören die untersten Zeilen
+                       der Meldung darüber — sonst stünde sie auf dem letzten
+                       Zettel oder, wie vorher, unter dem Blattrand. */
+                    var laid = fitWing(list, bottom);
+                    if (laid.dropped) {
+                        laid = fitWing(list, bottom - noRoom(laid.dropped).length * lineH);
                     }
-                    lines.forEach(function (line, i) {
-                        parts.push('<text class="sp-wing-note-label" x="' + n(cx) + '" y="' +
-                            n(y + lineH * (i + 0.8)) + '" font-size="' + n(fs * 0.66) +
-                            '" text-anchor="middle">' + esc(line) + '</text>');
+
+                    laid.placed.forEach(function (item) {
+                        var y = item.y;
+                        if (item.prop) {
+                            /* Ohne eigene id: ein Gassenzettel ist keine
+                               Aufstellung auf der Bühne. Vorher trug er ein
+                               leeres data-id und sah anklickbar aus, ohne es
+                               zu sein. */
+                            parts.push('<g class="sp-wing-note" transform="translate(' + n(cx) + ' ' +
+                                n(y + item.nh / 2) + ')">' +
+                                propInner({ x: 0, y: 0, w: item.nw, h: item.nh, rot: 0 }, item.prop, u, {}) + '</g>');
+                            y += item.nh + gap;
+                        }
+                        item.lines.forEach(function (line, i) {
+                            parts.push('<text class="sp-wing-note-label" x="' + n(cx) + '" y="' +
+                                n(y + lineH * (i + 0.8)) + '" font-size="' + n(noteFs) +
+                                '" text-anchor="middle">' + esc(line) + '</text>');
+                        });
                     });
-                });
-                /* Was nicht mehr in die Gasse passt, verschweigt der Plan
-                   nicht — vorher lief der Stapel stumm über das Blatt hinaus. */
-                ['left', 'right'].forEach(function (side) {
-                    if (!dropped[side]) return;
-                    var edge = side === 'left' ? b.x : b.x + b.w;
-                    var inner = side === 'left' ? wl[0][0][0] : wl[1][0][0];
-                    parts.push('<text class="sp-wing-note-label" x="' + n((edge + inner) / 2) +
-                        '" y="' + n(cursor[side] + lineH * 0.8) + '" font-size="' + n(fs * 0.66) +
-                        '" text-anchor="middle">' +
-                        esc(I18n.plural(dropped[side], '1 more, no room here', '{n} more, no room here')) +
-                        '</text>');
+
+                    /* Was nicht mehr in die Gasse passt, verschweigt der Plan
+                       nicht — vorher lief der Stapel stumm über das Blatt
+                       hinaus, samt dieser Meldung. */
+                    if (!laid.dropped) return;
+                    var msg = noRoom(laid.dropped);
+                    var msgTop = Math.min(laid.y, bottom - msg.length * lineH);
+                    msg.forEach(function (line, i) {
+                        parts.push('<text class="sp-wing-note-label" x="' + n(cx) +
+                            '" y="' + n(msgTop + lineH * (i + 0.8)) +
+                            '" font-size="' + n(noteFs) + '" text-anchor="middle">' +
+                            esc(line) + '</text>');
+                    });
                 });
             }
         }
@@ -292,10 +347,16 @@
                         ' H' + n(span[1] - width) + '" stroke-width="' + n(u * 0.9) +
                         '" stroke-dasharray="' + n(u * 4) + ' ' + n(u * 4) + '"/>');
                 }
-                pieces.push('<text class="sp-curtain-label" x="' + n(span[0] + fs * 1.9) +
+                /* Der Vorhangname ist ein <text> ohne Grenze: 552 Zeichen
+                   liefen 469 Bildpunkte über den rechten Blattrand hinaus und
+                   brachen dort mitten im Wort ab. Jetzt endet er am Blatt. */
+                var labelX = span[0] + fs * 1.9;
+                var labelText = (curtain.name || t('Curtain')) +
+                    (state === 'closed' ? '' : ', ' + t('curtain state ' + state));
+                pieces.push('<text class="sp-curtain-label" x="' + n(labelX) +
                     '" y="' + n(y - amp - fs * 0.55) +
-                    '" font-size="' + n(fs * 0.62) + '">' + esc(curtain.name || t('Curtain')) +
-                    (state === 'closed' ? '' : ', ' + t('curtain state ' + state)) + '</text>');
+                    '" font-size="' + n(fs * 0.62) + '">' +
+                    esc(Shapes.clipText(labelText, fs * 0.62, view.x + view.w - labelX - fs * 0.4)) + '</text>');
                 parts.push('<g class="sp-curtain">' + pieces.join('') + '</g>');
             });
         }
@@ -371,7 +432,7 @@
             };
 
             var drawn = captions.map(function (label) {
-                var w = Math.max(label.text.length * fs * 0.52, fs);
+                var w = Math.max(Shapes.textWidth(label.text, fs), fs);
                 var best = null;
                 for (var i = 0; i < SPOTS.length && !best; i++) {
                     var cx = label.x + SPOTS[i][0] * (label.reach + w / 2 + fs * 0.35);
@@ -402,7 +463,7 @@
         }
 
         /* ------------------------------------------------------ scale bar */
-        if (opts.scaleBar !== false && stage.scaleBar) {
+        if (wants(opts.scaleBar, stage.scaleBar)) {
             parts.push(scaleBar(view, b, u, fs));
         }
 
@@ -470,6 +531,25 @@
         });
         if (line) lines.push(line);
         return lines;
+    }
+
+    /* Umbrechen nach der Breite, die zur Verfügung steht, nicht nach einer
+       Zahl von Zeichen. Fünfzehn Zeichen sind in der Gasse mal zu wenig und
+       mal zu viel: „bereitstellen," lief über die Gassenlinie auf die Bühne,
+       während „im Off" die halbe Spalte frei ließ. Ein einzelnes Wort, das
+       selbst zu breit ist, wird gekürzt statt hinausgeschoben. */
+    function wrapToWidth(text, fs, max) {
+        var words = String(text === undefined || text === null ? '' : text)
+            .split(/\s+/).filter(Boolean);
+        var lines = [];
+        var line = '';
+        words.forEach(function (word) {
+            if (!line) line = word;
+            else if (Shapes.textWidth(line + ' ' + word, fs) <= max) line += ' ' + word;
+            else { lines.push(line); line = word; }
+        });
+        if (line) lines.push(line);
+        return lines.map(function (one) { return Shapes.clipText(one, fs, max); });
     }
 
     function captionFor(placement, prop, index, mode) {
