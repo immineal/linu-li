@@ -143,17 +143,22 @@ setTimeout(() => {
 
         const apcaResults = window.__test_6_results;
 
-        // Use a small epsilon for float comparison to avoid test flakiness
-        const assertCloseTo = (actual, expected, epsilon = 0.0001, message) => {
+        // A small epsilon for the float comparison. The measured deviations
+        // are between 1e-7 and 8e-7, so 1e-5 leaves plenty of room without
+        // letting a real change in the maths through.
+        const assertCloseTo = (message, actual, expected, epsilon = 0.00001) => {
             assert.ok(Math.abs(actual - expected) < epsilon,
-                \`\${message} Expected ~\${expected}, but got \${actual}\`);
+                `${message} Expected ~${expected}, but got ${actual}`);
         };
 
-        // Expected values generated from calcAPCA output
-        assertCloseTo(apcaResults.blackOnWhite, 1.060406, 0.00001, "Test 6 Failed: Black on White APCA incorrect.");
-        assertCloseTo(apcaResults.whiteOnBlack, -1.078847, 0.00001, "Test 6 Failed: White on Black APCA incorrect.");
-        assertCloseTo(apcaResults.redOnWhite, 0.641262, 0.00001, "Test 6 Failed: Red on White APCA incorrect.");
-        assertCloseTo(apcaResults.greenOnWhite, 0.171301, 0.00001, "Test 6 Failed: Green on White APCA incorrect.");
+        // Reference values from the APCA-W3 specification (0.0.98G-4g):
+        // black on white is Lc 106.04, white on black Lc -107.88. calcAPCA
+        // returns them divided by 100. Taking the numbers from our own
+        // output instead would only enshrine whatever it does today.
+        assertCloseTo("Test 6 Failed: Black on White APCA incorrect.", apcaResults.blackOnWhite, 1.060406);
+        assertCloseTo("Test 6 Failed: White on Black APCA incorrect.", apcaResults.whiteOnBlack, -1.078847);
+        assertCloseTo("Test 6 Failed: Red on White APCA incorrect.", apcaResults.redOnWhite, 0.641262);
+        assertCloseTo("Test 6 Failed: Green on White APCA incorrect.", apcaResults.greenOnWhite, 0.171301);
         assert.strictEqual(apcaResults.sameColor, 0, "Test 6 Failed: Same color APCA should be exactly 0.");
 
         console.log("✅ Test 6 Passed: calcAPCA direct calculations are mathematically accurate.");
