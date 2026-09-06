@@ -1021,7 +1021,10 @@ body {
     left: 0.5rem;
     display: flex;
     align-items: center;
-    gap: 0.1rem;
+    /* Zwischen zwei Werkzeugen mehr Luft als zwischen einem Werkzeug und
+       seinem Fragezeichen. Gleich verteilt stand jedes „?" so dicht am
+       nächsten Zeichen wie an dem, zu dem es gehört. */
+    gap: 0.85rem;
     padding: 0.15rem 0.25rem;
     background: color-mix(in srgb, var(--sp-panel) 88%, transparent);
     border: 1px solid var(--sp-line);
