@@ -48,7 +48,7 @@
             <!-- ==================== GERMAN ==================== -->
             <div id="lang-de">
                 <h1>Datenschutzerklärung</h1>
-                <p style="opacity:0.6; font-size:0.9rem;">Stand: April 2026</p>
+                <p style="opacity:0.6; font-size:0.9rem;">Stand: September 2026</p>
 
                 <div class="note-box">
                     <strong>Kurzzusammenfassung:</strong> Die Werkzeuge auf linu.li verarbeiten deine Dateien und Eingaben ausschließlich lokal im Browser — es werden keine Inhalte an einen Server übertragen. Bei bestimmten Werkzeugen werden Drittanbieter-Anfragen ausgelöst, die unten vollständig aufgeführt sind.
@@ -80,15 +80,28 @@
                 <p>Die Seite speichert kleine Datenmengen im <code>localStorage</code> deines Browsers:</p>
                 <table>
                     <tr><th>Schlüssel</th><th>Inhalt</th><th>Zweck</th></tr>
-                    <tr><td><code>ll_toolbox_favorites</code></td><td>Liste von Tool-IDs</td><td>Angepinnte Favoriten</td></tr>
-                    <tr><td><code>darkMode</code></td><td>true / false</td><td>Farbschema-Einstellung</td></tr>
+                    <tr><td><code>theme</code></td><td><code>dark</code> / <code>light</code></td><td>Gewähltes Farbschema</td></tr>
+                    <tr><td><code>ll_toolbox_favorites</code></td><td>Liste von Tool-IDs</td><td>Angepinnte Favoriten auf der Startseite</td></tr>
+                    <tr><td><code>autosave_&lt;Pfad&gt;_&lt;Feld&gt;</code></td><td>Der Wert eines Einstellungsfeldes, z.&nbsp;B. ein Ausgabeformat, eine Zeitzone, eine Maßeinheit</td><td>Damit ein Werkzeug beim nächsten Mal so eingestellt ist wie zuletzt. Gespeichert wird ausschließlich, was im Quelltext ausdrücklich als Einstellung markiert ist — <strong>keine Texte, Dateien, Passwörter oder Schlüssel, die du in ein Werkzeug eingibst</strong>.</td></tr>
+                    <tr><td><code>ll_autosave_bereinigt_v1</code></td><td><code>1</code></td><td>Merker, dass die einmalige Bereinigung unten schon gelaufen ist</td></tr>
+                    <tr><td><code>linuli_currency_rates</code></td><td>Wechselkurse als JSON</td><td>Einheiten-Umrechner: Kurse zwischenspeichern, statt sie bei jedem Aufruf neu abzufragen</td></tr>
+                    <tr><td><code>linuli_currency_time</code></td><td>Zeitstempel</td><td>Einheiten-Umrechner: Alter der Kurse (sie gelten eine Stunde)</td></tr>
+                    <tr><td><code>sp.planner.v1</code></td><td><strong>Deine gesamte Arbeit im Bühnenbild-Planer</strong>: Titel, Spielstätte, Akte, Szenen, Orte, Notizen, Beschriftungen und selbst hochgeladene Requisitenbilder</td><td>Damit eine Produktion beim nächsten Öffnen noch da ist</td></tr>
+                    <tr><td><code>sp.planner.ui.v1</code></td><td>Schalterstellungen und zuletzt gewählte Ansicht</td><td>Bühnenbild-Planer: Ansicht wiederherstellen</td></tr>
+                    <tr><td><code>sp.planner.aside.v1</code>, <code>sp.planner.rail.v1</code></td><td>Spaltenbreiten in Pixeln</td><td>Bühnenbild-Planer: Aufteilung des Fensters</td></tr>
+                    <tr><td><code>sp.planner.welcomed.v1</code></td><td><code>1</code></td><td>Bühnenbild-Planer: Merker, dass die Einführung gezeigt wurde</td></tr>
                 </table>
-                <p>Diese Daten verlassen dein Gerät nicht und werden nicht an den Server übertragen. Rechtsgrundlage: § 25 Abs. 2 Nr. 2 TDDDG (technisch erforderlich für die angeforderte Funktion). Du kannst den Speicher jederzeit über die Entwicklertools deines Browsers löschen.</p>
+                <p>Dazu legt die Seite über die <em>Cache Storage</em> deines Browsers zwei Ablagen an — <code>ll-toolbox-v4</code> für die Toolbox und <code>sperrmuell-v1</code> für die Sperrmüll-Karte. Darin liegen ausgelieferte Dateien (Seiten, Skripte, Stilvorlagen, Kartenkacheln), damit die Seite auch ohne Netzverbindung funktioniert. Eingaben landen dort nicht.</p>
+                <p>Diese Daten verlassen dein Gerät nicht und werden nicht an den Server übertragen. Rechtsgrundlage: § 25 Abs. 2 Nr. 2 TDDDG (technisch erforderlich für die angeforderte Funktion). Sie bleiben gespeichert, bis du sie löschst — über die Einstellungen deines Browsers („Website-Daten löschen") oder die Entwicklertools. Der Bühnenbild-Planer hat dafür eine eigene Schaltfläche.</p>
+                <div class="warn-box">
+                    <p><strong>Korrektur, Stand September 2026.</strong> An dieser Stelle standen bis zum 6. September 2026 nur zwei Schlüssel, und einer davon (<code>darkMode</code>) existierte gar nicht. Tatsächlich hat die Seite bis dahin den Inhalt <em>jedes</em> Textfelds auf <em>jeder</em> Werkzeugseite gespeichert — 88 Felder auf 29 Seiten — und nie wieder gelöscht. Betroffen waren auch vertrauliche Eingaben, etwa das WLAN-Passwort im QR-Creator und der Signierschlüssel im JWT-Debugger.</p>
+                    <p>Seit dem 6. September 2026 wird nur noch gespeichert, was im Quelltext ausdrücklich als Einstellung markiert ist. Beim nächsten Aufruf der Seite löscht dein Browser außerdem einmalig alle unter <code>autosave_</code> abgelegten Altbestände. Übertragen wurde nie etwas — die Daten lagen ausschließlich in deinem eigenen Browser.</p>
+                </div>
 
                 <h2>5. Drittanbieter-Anfragen</h2>
                 <p>Alle Bibliotheken (PDF.js, pdf-lib, Leaflet, Cropper.js usw.) sind <strong>lokal auf unserem Server gehostet</strong> und werden nicht von externen CDNs nachgeladen. Folgende Ausnahmen bestehen:</p>
 
-                <h3>5a. OpenStreetMap (nur: EXIF Metadata Remover)</h3>
+                <h3>5a. OpenStreetMap (EXIF Metadata Remover und Sperrmüll-Karte)</h3>
                 <p>Das Werkzeug „EXIF Metadata Remover" zeigt bei Bildern mit GPS-Koordinaten eine Karte an. Kartenbilder (Kacheln) werden dabei von den Servern der OpenStreetMap Foundation geladen:</p>
                 <ul>
                     <li>Server: <code>*.tile.openstreetmap.org</code></li>
@@ -112,13 +125,32 @@
                 </ul>
                 <p>Die zu komprimierenden Bilddateien verlassen dein Gerät nicht — nur die Codec-Bibliothek selbst wird geladen.</p>
 
-                <h3>5c. Formspree (nur: Kontaktformular)</h3>
+                <h3>5c. Formspree (Kontaktformular und Rückmeldung im Bühnenbild-Planer)</h3>
                 <p>Das Kontaktformular auf der Startseite verwendet den Dienst <strong>Formspree</strong> (Formspree Inc., San Francisco, USA). Wenn du das Formular absendest, werden deine eingegebenen Daten (E-Mail-Adresse, Nachricht) an Formspree übertragen und von dort an meine E-Mail-Adresse weitergeleitet.</p>
                 <ul>
                     <li>Verarbeitete Daten: E-Mail-Adresse, Nachrichtentext, IP-Adresse, Zeitstempel</li>
                     <li>Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Bearbeitung deiner Anfrage)</li>
                     <li>Datenschutzerklärung Formspree: <a href="https://formspree.io/legal/privacy-policy" target="_blank" rel="noopener">formspree.io/legal/privacy-policy</a></li>
                 </ul>
+
+                <h3>5d. cdn.jsdelivr.net (nur: Zeit-Umrechner)</h3>
+                <p>Der Zeit-Umrechner lädt die Bibliothek <code>chrono-node</code> erst dann von jsDelivr nach, wenn du eine Zeitangabe in natürlicher Sprache auswerten lässt. Vorher findet keine Anfrage statt.</p>
+                <table>
+                    <tr><td>Server</td><td><code>cdn.jsdelivr.net</code> (Betreiber: jsDelivr, Prospect One)</td></tr>
+                    <tr><td>Übertragene Daten</td><td>IP-Adresse, angefragte Modul-Adresse</td></tr>
+                    <tr><td>Zeitpunkt</td><td>Erst beim Auswerten, danach zwischengespeichert</td></tr>
+                    <tr><td>Rechtsgrundlage</td><td>Art. 6 Abs. 1 lit. f DSGVO (technisch notwendig für die Funktion)</td></tr>
+                </table>
+                <p>Deine Eingabe selbst wird nicht übertragen — sie wird im Browser ausgewertet, nachdem die Bibliothek geladen ist.</p>
+
+                <h3>5e. Wechselkurse (nur: Einheiten-Umrechner)</h3>
+                <p>Für Währungsumrechnungen holt der Einheiten-Umrechner aktuelle Kurse. Die Anfrage enthält keine Angabe darüber, welchen Betrag oder welche Währung du umrechnest — es wird immer die gesamte Kurstabelle geladen und im Browser gerechnet.</p>
+                <table>
+                    <tr><td>Server</td><td><code>open.er-api.com</code> (Wechselkurse) und <code>api.coincap.io</code> (Kryptowährungen)</td></tr>
+                    <tr><td>Übertragene Daten</td><td>IP-Adresse, angefragte Adresse</td></tr>
+                    <tr><td>Zeitpunkt</td><td>Höchstens einmal pro Stunde, danach aus dem lokalen Zwischenspeicher</td></tr>
+                    <tr><td>Rechtsgrundlage</td><td>Art. 6 Abs. 1 lit. f DSGVO (technisch notwendig für die Funktion)</td></tr>
+                </table>
 
                 <h2>6. Deine Rechte</h2>
                 <p>Du hast gegenüber dem Verantwortlichen folgende Rechte hinsichtlich der dich betreffenden personenbezogenen Daten:</p>
@@ -143,7 +175,7 @@
             <!-- ==================== ENGLISH ==================== -->
             <div id="lang-en" style="display: none;">
                 <h1>Privacy Policy</h1>
-                <p style="opacity:0.6; font-size:0.9rem;">Last updated: April 2026</p>
+                <p style="opacity:0.6; font-size:0.9rem;">Last updated: September 2026</p>
 
                 <div class="note-box">
                     <strong>Short version:</strong> The tools on linu.li process your files and inputs entirely in your browser — nothing is sent to a server. Certain tools trigger third-party network requests, which are fully documented below.
@@ -175,15 +207,28 @@
                 <p>The site stores small amounts of data in your browser's <code>localStorage</code>:</p>
                 <table>
                     <tr><th>Key</th><th>Content</th><th>Purpose</th></tr>
-                    <tr><td><code>ll_toolbox_favorites</code></td><td>List of tool IDs</td><td>Pinned favorites</td></tr>
-                    <tr><td><code>darkMode</code></td><td>true / false</td><td>Color scheme preference</td></tr>
+                    <tr><td><code>theme</code></td><td><code>dark</code> / <code>light</code></td><td>Chosen colour scheme</td></tr>
+                    <tr><td><code>ll_toolbox_favorites</code></td><td>List of tool IDs</td><td>Pinned favorites on the front page</td></tr>
+                    <tr><td><code>autosave_&lt;path&gt;_&lt;field&gt;</code></td><td>The value of a settings field — an output format, a timezone, a unit</td><td>So a tool comes back set up the way you left it. Only fields explicitly marked as settings in the source are stored — <strong>never text, files, passwords or keys you enter into a tool</strong>.</td></tr>
+                    <tr><td><code>ll_autosave_bereinigt_v1</code></td><td><code>1</code></td><td>Marks that the one-time clear-out described below has run</td></tr>
+                    <tr><td><code>linuli_currency_rates</code></td><td>Exchange rates as JSON</td><td>Unit converter: cached rates instead of fetching them on every visit</td></tr>
+                    <tr><td><code>linuli_currency_time</code></td><td>Timestamp</td><td>Unit converter: age of those rates (they are valid for one hour)</td></tr>
+                    <tr><td><code>sp.planner.v1</code></td><td><strong>All of your work in the stage planner</strong>: titles, venue, acts, scenes, places, notes, labels and any prop images you uploaded</td><td>So a production is still there when you come back</td></tr>
+                    <tr><td><code>sp.planner.ui.v1</code></td><td>Toggle states and the view you last used</td><td>Stage planner: restoring the view</td></tr>
+                    <tr><td><code>sp.planner.aside.v1</code>, <code>sp.planner.rail.v1</code></td><td>Column widths in pixels</td><td>Stage planner: window layout</td></tr>
+                    <tr><td><code>sp.planner.welcomed.v1</code></td><td><code>1</code></td><td>Stage planner: marks that the introduction has been shown</td></tr>
                 </table>
-                <p>This data stays on your device and is never sent to a server. Legal basis: § 25 (2) No. 2 TDDDG (technically required for the requested functionality). You can clear this data at any time through your browser's developer tools.</p>
+                <p>The site also keeps two stores in your browser's <em>Cache Storage</em> — <code>ll-toolbox-v4</code> for the toolbox and <code>sperrmuell-v1</code> for the bulky-waste map. These hold files the site serves (pages, scripts, stylesheets, map tiles) so that it works without a network connection. Nothing you type goes in there.</p>
+                <p>This data stays on your device and is never sent to a server. Legal basis: § 25 (2) No. 2 TDDDG (technically required for the requested functionality). It stays until you remove it — through your browser's settings ("clear site data") or its developer tools. The stage planner has a button of its own for this.</p>
+                <div class="warn-box">
+                    <p><strong>Correction, September 2026.</strong> Until 6 September 2026 this section listed two keys, one of which (<code>darkMode</code>) never existed. What the site actually did until then was store the contents of <em>every</em> text field on <em>every</em> tool page — 88 fields across 29 pages — and never delete any of it. That included confidential input, such as the WiFi password in the QR creator and the signing secret in the JWT debugger.</p>
+                    <p>Since 6 September 2026 only fields explicitly marked as settings are stored, and the next time you open the site your browser clears out everything left under <code>autosave_</code>, once. Nothing was ever transmitted — the data was only ever in your own browser.</p>
+                </div>
 
                 <h2>5. Third-Party Requests</h2>
                 <p>All libraries (PDF.js, pdf-lib, Leaflet, Cropper.js, etc.) are <strong>self-hosted on our server</strong> and are not loaded from external CDNs. The following exceptions apply:</p>
 
-                <h3>5a. OpenStreetMap (only: EXIF Metadata Remover)</h3>
+                <h3>5a. OpenStreetMap (EXIF Metadata Remover and the bulky-waste map)</h3>
                 <p>The EXIF Metadata Remover tool displays a map when an image contains GPS coordinates. Map tiles are loaded from the OpenStreetMap Foundation's servers:</p>
                 <ul>
                     <li>Server: <code>*.tile.openstreetmap.org</code></li>
@@ -207,13 +252,32 @@
                 </ul>
                 <p>Your image files are not transmitted — only the codec library itself is fetched.</p>
 
-                <h3>5c. Formspree (only: Contact Form)</h3>
+                <h3>5c. Formspree (contact form and the feedback button in the stage planner)</h3>
                 <p>The contact form on the homepage uses <strong>Formspree</strong> (Formspree Inc., San Francisco, USA). When you submit the form, your input (email address, message) is sent to Formspree and forwarded to my email address.</p>
                 <ul>
                     <li>Data processed: email address, message text, IP address, timestamp</li>
                     <li>Legal basis: Art. 6 (1) (b) GDPR (processing your request)</li>
                     <li>Formspree privacy policy: <a href="https://formspree.io/legal/privacy-policy" target="_blank" rel="noopener">formspree.io/legal/privacy-policy</a></li>
                 </ul>
+
+                <h3>5d. cdn.jsdelivr.net (only: Time Converter)</h3>
+                <p>The time converter loads the <code>chrono-node</code> library from jsDelivr only once you ask it to parse a date written in plain language. Before that, no request is made.</p>
+                <table>
+                    <tr><td>Server</td><td><code>cdn.jsdelivr.net</code> (operated by jsDelivr, Prospect One)</td></tr>
+                    <tr><td>Data transmitted</td><td>IP address, requested module URL</td></tr>
+                    <tr><td>When</td><td>On first parse, cached afterwards</td></tr>
+                    <tr><td>Legal basis</td><td>Art. 6 (1) (f) GDPR (technically required for the feature)</td></tr>
+                </table>
+                <p>What you typed is not transmitted — it is parsed in your browser once the library has loaded.</p>
+
+                <h3>5e. Exchange rates (only: Unit Converter)</h3>
+                <p>For currency conversion the unit converter fetches current rates. The request says nothing about which amount or which currency you are converting — the whole rate table is fetched and the conversion happens in your browser.</p>
+                <table>
+                    <tr><td>Server</td><td><code>open.er-api.com</code> (currencies) and <code>api.coincap.io</code> (cryptocurrencies)</td></tr>
+                    <tr><td>Data transmitted</td><td>IP address, requested URL</td></tr>
+                    <tr><td>When</td><td>At most once an hour, from a local cache in between</td></tr>
+                    <tr><td>Legal basis</td><td>Art. 6 (1) (f) GDPR (technically required for the feature)</td></tr>
+                </table>
 
                 <h2>6. Your Rights</h2>
                 <p>You have the following rights regarding your personal data:</p>

@@ -61,6 +61,9 @@ jobs:
               tests/test-service-worker.js|\
               tests/test-frische-durchreichen.js|\
               tests/test-zwei-worker.js|\
+              tests/test-autosave-verhalten.js|\
+              tests/test-update-hinweis.js|\
+              tests/test-arbeit-haken.js|\
               tests/test-page-metadata.js)
                 echo "[SKIP] $f (Puppeteer — runs in puppeteer job)"; continue ;;
             esac
@@ -166,6 +169,9 @@ jobs:
           run_test "tests/test-service-worker.js"
           run_test "tests/test-frische-durchreichen.js"
           run_test "tests/test-zwei-worker.js"
+          run_test "tests/test-autosave-verhalten.js"
+          run_test "tests/test-update-hinweis.js"
+          run_test "tests/test-arbeit-haken.js"
           run_test "tests/test-page-metadata.js"
 
           echo ""

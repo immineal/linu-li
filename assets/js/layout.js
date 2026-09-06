@@ -3,6 +3,7 @@ if ('serviceWorker' in navigator) {
     // is served from, so the old one under /assets/ controlled no page at all
     // and the site was never actually available offline.
     navigator.serviceWorker.register('/sw.js')
+        .then(neueVersionAnbieten)
         .catch(err => console.error('SW Registration Failed', err));
 
     // Visitors from before still carry that /assets/ registration around.
@@ -12,6 +13,266 @@ if ('serviceWorker' in navigator) {
             if (reg.scope.endsWith('/assets/')) reg.unregister();
         }))
         .catch(() => {});
+}
+
+/* ============================================================ *
+ * "There is a new version — take it?"
+ *
+ * The site redeploys several times a day and every visitor carries a cached
+ * copy. The worker fetches the new one and then waits, and this is what
+ * wakes it: without something here, a tab left open for a week would keep
+ * running last week's code, because nothing would ever tell the waiting
+ * worker to take over.
+ *
+ * Two rules shape when it appears, and both exist to keep it out of the way:
+ *
+ *   - it asks at the first safe moment — either the visitor is about to
+ *     leave this page anyway (an internal link), or they have stopped doing
+ *     anything for a while. Whichever comes first.
+ *   - it never asks a page twice. "Später" is a variable, not a stored
+ *     preference: nothing is written down, nothing needs a line in the
+ *     privacy policy, and the next page asks once more. A visitor who keeps
+ *     dismissing it still gets the new version the moment they close the tab.
+ *
+ * The sentences come from the waiting worker, which carries every note since
+ * the version this page is running (assets/update-note.txt → sw.js). Asking
+ * somebody to reload without saying why is how update prompts get trained
+ * away.
+ * ============================================================ */
+
+/* Untätig heißt: lange genug hier, lange genug nichts getan, und der Reiter
+   ist überhaupt sichtbar. Ohne die Mindestverweildauer erwischt es den, der
+   nur kurz etwas nachschlägt; ohne das Sichtbarkeitsfenster stapeln sich
+   Dialoge in Hintergrundreitern. */
+const WARTEZEIT_SEITE = 30_000;
+const WARTEZEIT_RUHE = 90_000;
+const NOTIZEN_SICHTBAR = 5;
+
+function neueVersionAnbieten(registration) {
+    if (!registration) return;
+
+    let schonGefragt = false;      // diese Seite, nicht dieser Browser
+    let ichWarEs = false;          // nur der Reiter, der gedrückt hat, lädt neu
+
+    /* Ganz oben, und das ist kein Geschmack: `pruefen()` weiter unten läuft
+       noch während dieser Funktionskörper abgearbeitet wird, und es ruft
+       `planen()`, das beide liest. Standen sie unterhalb, warf der Zugriff
+       in die temporale Totzone — aber nur dann, wenn beim Laden schon ein
+       Worker wartete. Dann starb der Rest dieser Funktion, der Klick-Zuhörer
+       wurde nie registriert, und der Hinweis erschien nie wieder. Sichtbar
+       war davon eine einzige Zeile in der Konsole. */
+    let geplant = false;
+    let ruheUhr = null;
+
+    /* Ein Wechsel des Workers betrifft jeden Reiter. Ohne diese Sperre würde
+       der Nachbarreiter mitladen und die Datei wegwerfen, die dort gerade
+       offen ist — ohne dass dort jemand etwas gedrückt hätte. */
+    let zielNachTausch = null;
+    let getauscht = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!ichWarEs || getauscht) return;
+        getauscht = true;
+        window.location.href = zielNachTausch || window.location.href;
+    });
+
+    const wartender = () => registration.waiting;
+
+    function pruefen() {
+        if (wartender()) planen();
+    }
+
+    registration.addEventListener('updatefound', () => {
+        const neuer = registration.installing;
+        if (!neuer) return;
+        neuer.addEventListener('statechange', () => {
+            if (neuer.state === 'installed' && navigator.serviceWorker.controller) planen();
+        });
+    });
+    pruefen();
+
+    function planen() {
+        if (schonGefragt || geplant) return;
+        geplant = true;
+
+        let letzteEingabe = performance.now();
+        const angefasst = () => { letzteEingabe = performance.now(); };
+        ['pointerdown', 'keydown', 'input', 'wheel', 'touchstart'].forEach(art =>
+            window.addEventListener(art, angefasst, { passive: true }));
+
+        /* Kommt ein Reiter aus dem Hintergrund zurück, fängt die Ruhe von
+           vorne an. Ohne das stand das modale Fenster innerhalb von fünf
+           Sekunden da — in genau dem Moment, in dem jemand wieder etwas tun
+           wollte, weil er ja gerade zurückgewechselt ist. */
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') angefasst();
+        });
+
+        ruheUhr = setInterval(() => {
+            if (document.visibilityState !== 'visible') return;
+            if (performance.now() < WARTEZEIT_SEITE) return;
+            if (performance.now() - letzteEingabe < WARTEZEIT_RUHE) return;
+            clearInterval(ruheUhr);
+            fragen();
+        }, 5000);
+    }
+
+    /* Der zweite Weg: wer ohnehin gerade weggeht, verliert nichts.
+       Steht außerhalb von planen(), damit er genau einmal registriert wird —
+       planen() läuft bei jedem gefundenen Worker erneut, und die Zuhörer
+       häuften sich mit jedem Deploy in einem lange offenen Reiter. */
+    document.addEventListener('click', (e) => {
+        if (schonGefragt || !wartender()) return;
+
+        /* Alles, was der Browser anders behandeln würde als eine gewöhnliche
+           Navigation, bleibt unangetastet. Ohne diese Zeile fing der Hinweis
+           auch Strg- und Umschalt-Klicks ab: es öffnete sich kein neuer
+           Reiter, und danach navigierte ausgerechnet der Reiter weg, in dem
+           die Arbeit steckte — ohne Rückfrage, weil der Arbeits-Haken nur am
+           Knopf „Neu laden" hängt. */
+        if (e.defaultPrevented || e.button !== 0) return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+        const link = e.target.closest && e.target.closest('a[href]');
+        if (!link) return;
+        if (link.hasAttribute('download')) return;
+        if (link.target && link.target !== '_self') return;
+
+        let ziel;
+        try { ziel = new URL(link.getAttribute('href'), window.location.href); }
+        catch (err) { return; }
+        if (ziel.origin !== window.location.origin) return;
+
+        /* Ein Sprung innerhalb derselben Seite ist kein Weggehen. */
+        const hier = window.location.href.split('#')[0];
+        if (ziel.href.split('#')[0] === hier) return;
+
+        e.preventDefault();
+        if (ruheUhr) clearInterval(ruheUhr);
+        fragen(ziel.href);
+    }, false);
+
+    /* Was der wartende Worker ist und was er zu erzählen hat. */
+    function fragenAn(worker) {
+        return new Promise((antwort) => {
+            if (!worker) return antwort(null);
+            const kanal = new MessageChannel();
+            const uhr = setTimeout(() => antwort(null), 2000);
+            kanal.port1.onmessage = (e) => { clearTimeout(uhr); antwort(e.data); };
+            try { worker.postMessage({ frage: 'stand' }, [kanal.port2]); }
+            catch (err) { clearTimeout(uhr); antwort(null); }
+        });
+    }
+
+    /* Der Klick, der den Hinweis ausgelöst hat, wollte irgendwo hin. */
+    function weiter(adresse) { if (adresse) window.location.href = adresse; }
+
+    async function fragen(danach) {
+        if (schonGefragt) { weiter(danach); return; }
+        schonGefragt = true;
+
+        /* Nebeneinander, nicht nacheinander: der Klick auf den Link ist schon
+           abgefangen, und zwei Fristen von je zwei Sekunden hintereinander
+           ließen ihn bis zu vier Sekunden lang tot wirken. */
+        const [neu, alt] = await Promise.all([
+            fragenAn(wartender()),
+            fragenAn(navigator.serviceWorker.controller),
+        ]);
+
+        /* Kennt der laufende Worker seinen Stand nicht, ist er älter als
+           dieser Mechanismus — dann gibt es nichts zu erzählen, und der
+           Tausch geschieht still. Das ist der allererste Rollout. */
+        if (!neu || !alt || !alt.sha) { if (danach) weiter(danach); return; }
+
+        /* Gezählt, nicht verglichen: die Sätze, die der laufende Worker noch
+           nicht kannte, sind die hinter seiner eigenen Anzahl. */
+        const alle = neu.notizen || [];
+        const schon = (alt.notizen || []).length;
+        const neue = alle.slice(schon);
+        if (!neue.length) { if (danach) weiter(danach); return; }
+
+        zeigen(neue, danach);
+    }
+
+    function zeigen(notizen, danach) {
+        const de = document.documentElement.lang === 'de' ||
+            document.documentElement.getAttribute('data-frame') === 'de';
+        const sag = (en, ger) => (de ? ger : en);
+
+        const schirm = document.createElement('div');
+        schirm.className = 'll-update';
+        schirm.innerHTML = `
+            <div class="ll-update-karte" role="dialog" aria-modal="true"
+                 aria-labelledby="ll-update-titel">
+              <h2 id="ll-update-titel">${sag('A new version is ready', 'Eine neue Fassung ist da')}</h2>
+              <ul></ul>
+              <div class="ll-update-knoepfe">
+                <button type="button" data-tun="spaeter">${sag('Later', 'Später')}</button>
+                <button type="button" data-tun="jetzt" class="ll-update-ja">${sag('Reload', 'Neu laden')}</button>
+              </div>
+            </div>`;
+
+        const liste = schirm.querySelector('ul');
+        notizen.slice(0, NOTIZEN_SICHTBAR).forEach((text) => {
+            const li = document.createElement('li');
+            li.textContent = text;
+            liste.appendChild(li);
+        });
+        if (notizen.length > NOTIZEN_SICHTBAR) {
+            const rest = notizen.length - NOTIZEN_SICHTBAR;
+            const li = document.createElement('li');
+            li.className = 'll-update-rest';
+            li.textContent = sag(`and ${rest} more`, `und ${rest} weitere`);
+            liste.appendChild(li);
+        }
+
+        const vorher = document.activeElement;
+        const schliessen = () => {
+            document.removeEventListener('keydown', taste, true);
+            schirm.remove();
+            if (vorher && vorher.focus) vorher.focus();
+            weiter(danach);
+        };
+        const taste = (e) => {
+            if (e.key === 'Escape') { e.preventDefault(); schliessen(); }
+        };
+
+        schirm.addEventListener('click', (e) => {
+            const tun = e.target.getAttribute && e.target.getAttribute('data-tun');
+            if (tun === 'spaeter' || e.target === schirm) return schliessen();
+            if (tun !== 'jetzt') return;
+
+            /* Ein Werkzeug, das etwas hält, sagt es. Wer sich nicht meldet,
+               gilt als leer — die meisten sind es, und ein Werkzeug mit
+               Arbeit dran muss sich melden. tests/test-arbeit-haken.js
+               besteht darauf, dass jedes mit Datei-Eingabe das tut. */
+            let haelt = false;
+            try { haelt = !!(window.llHaeltArbeit && window.llHaeltArbeit()); }
+            catch (err) { haelt = false; }
+            if (haelt && !window.confirm(sag(
+                'This tool is still holding something that reloading will discard. Reload anyway?',
+                'Dieses Werkzeug hält noch etwas, das beim Neuladen verloren geht. Trotzdem neu laden?'))) {
+                return;
+            }
+
+            ichWarEs = true;
+            /* Wer hierher über einen Klick auf einen Link gekommen ist,
+               wollte woandershin. Ihn stattdessen auf der alten Seite neu
+               laden zu lassen, verschluckt seinen Klick — die neue Adresse
+               tut beides auf einmal: sie holt die neuen Dateien und bringt
+               ihn dorthin, wo er hinwollte. */
+            zielNachTausch = danach || window.location.href;
+            const w = wartender();
+            if (w) w.postMessage({ frage: 'uebernimm' });
+            /* Nimmt der Worker die Aufforderung nicht an, geht es trotzdem
+               weiter — die neuen Dateien holt die Seite sich dann selbst. */
+            setTimeout(() => { if (!getauscht) window.location.href = zielNachTausch; }, 1200);
+        });
+
+        document.addEventListener('keydown', taste, true);
+        document.body.appendChild(schirm);
+        const ja = schirm.querySelector('.ll-update-ja');
+        if (ja) ja.focus();
+    }
 }
 
 // The manifest is what makes the site installable. Only the front page
@@ -80,7 +341,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 4. Theme Logic
     const themeToggle = document.getElementById('theme-toggle');
-    const savedTheme = localStorage.getItem('theme');
+    /* Ohne try/catch fiel hier alles Weitere aus, sobald der Browser den
+       Zugriff sperrt (privates Fenster, Website-Daten blockiert): die Seite
+       kam hell statt dunkel, der Umschalter reagierte nicht, und die
+       Bereinigung weiter unten wurde nie erreicht. */
+    let savedTheme = null;
+    try { savedTheme = localStorage.getItem('theme'); } catch (err) { /* gesperrt */ }
     
     // Default to dark mode unless user has explicitly chosen light
     if (savedTheme !== 'light') {
@@ -91,26 +357,73 @@ document.addEventListener('DOMContentLoaded', () => {
         themeToggle.addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
             const isDark = document.body.classList.contains('dark-mode');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch (err) { /* gesperrt */ }
         });
     }
 
     // 5. Auto-Save State Logic (Global)
+    //
+    // Opt-in, and it has to stay opt-in.
+    //
+    // This used to read `textarea[id], input[type="text"][id], select[id]` —
+    // every text field on every page — with a short list of exceptions. That
+    // meant the site quietly kept, forever and per browser: the WiFi password
+    // typed into the QR creator, the HMAC secret typed into the JWT debugger,
+    // whole documents from the markdown editor and the diff checker, the
+    // vCard fields, the mail body, and the search term from the front page.
+    // 88 fields across 29 pages, against 7 exceptions. Nothing ever deleted
+    // any of it, and the privacy policy said the site stored two keys.
+    //
+    // An exception list cannot hold that line: the next tool with a password
+    // field leaks by default, and nobody finds out. So the default is now
+    // "remember nothing", and a field has to ask:
+    //
+    //     <select id="outputFormat" data-save>
+    //
+    // Mark settings — a format, a mode, a unit, a timezone. Never a field
+    // that carries what someone typed, and never an output. If you are not
+    // sure, leave it off: the cost is that a dropdown forgets, and the cost
+    // of the other mistake is somebody's password sitting in localStorage.
+    // tests/test-autosave-nur-einstellungen.js checks this.
     const pageId = window.location.pathname; // Unique key per tool
 
-    const inputsToSave = document.querySelectorAll('textarea[id], input[type="text"][id], select[id]');
-    
-    inputsToSave.forEach(input => {
-        // Skip inputs that explicitly say no-save
-        if(input.getAttribute('data-no-save')) return;
+    // One-time clear-out of what the old rule left behind. It cannot be
+    // selective: a key belongs to whichever page wrote it, and this page can
+    // only see its own fields. Everything under the prefix goes, and the
+    // marked fields fill up again as they are used. Losing a remembered
+    // dropdown is the right price for not leaving a signing key behind on
+    // someone's machine.
+    try {
+        if (!localStorage.getItem('ll_autosave_bereinigt_v1')) {
+            Object.keys(localStorage)
+                .filter(key => key.startsWith('autosave_'))
+                .forEach(key => localStorage.removeItem(key));
+            localStorage.setItem('ll_autosave_bereinigt_v1', '1');
+        }
+    } catch (err) { /* kein Speicher, nichts aufzuräumen */ }
 
+    const inputsToSave = document.querySelectorAll(
+        'textarea[data-save][id], input[type="text"][data-save][id], select[data-save][id]');
+
+    inputsToSave.forEach(input => {
         const storageKey = `autosave_${pageId}_${input.id}`;
         
-        // Restore
+        // Restore.
+        //
+        // This used to read `if (saved !== null && input.value === '')`, and
+        // that condition is never true for a <select>: a dropdown with
+        // options always has a value. Every marked field is a dropdown, so
+        // the setting was written on every change and never once read back —
+        // storage with no purpose, while the privacy policy said it was there
+        // to bring a tool back the way you left it. Found by measuring all 32
+        // fields in a browser, not by reading the line.
+        //
+        // Some of the dropdowns are filled by their own script after this
+        // runs (timezones, currencies), and setting a value an option does
+        // not have yet silently does nothing. So: try, and if the option is
+        // not there, watch the element until it is.
         const savedValue = localStorage.getItem(storageKey);
-        if (savedValue !== null && input.value === '') { 
-            input.value = savedValue;
-        }
+        if (savedValue !== null) wiederherstellen(input, savedValue);
 
         let debounceTimer;
         // Save on Input
@@ -130,7 +443,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Helper: Clear specific autosave
+    /* Einen gespeicherten Wert zurücksetzen, auch wenn die Auswahl ihre
+       Einträge erst später bekommt. Nach zehn Sekunden ist Schluss: dann
+       gibt es die Option nicht mehr, und der alte Wert wäre ohnehin falsch. */
+    function wiederherstellen(feld, wert) {
+        const passt = () => feld.tagName !== 'SELECT' ||
+            [...feld.options].some((o) => o.value === wert);
+
+        if (passt()) { feld.value = wert; return; }
+
+        const beobachter = new MutationObserver(() => {
+            if (!passt()) return;
+            feld.value = wert;
+            feld.dispatchEvent(new Event('change', { bubbles: true }));
+            beobachter.disconnect();
+        });
+        beobachter.observe(feld, { childList: true, subtree: true });
+        setTimeout(() => beobachter.disconnect(), 10_000);
+    }
+
+    // Helper: Clear specific autosave. Nothing in the site calls it; it is
+    // here for a tool that wants to forget a field on demand.
     window.clearAutoSave = function(elementIds) {
         if (!Array.isArray(elementIds)) elementIds = [elementIds];
         elementIds.forEach(id => {

@@ -438,6 +438,15 @@
                 showToast('Link copied to clipboard!', 'success');
             });
         });
+    
+    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
+       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
+       (assets/js/layout.js). Über den DOM gelesen, weil die Variablen dieses
+       Werkzeugs in einem Bereich liegen, den diese Zeile nicht sieht. */
+    window.llHaeltArbeit = () => {
+        const feld = document.getElementById('inputData');
+        return !!feld && feld.value.trim() !== '';
+    };
     </script>
 </body>
 </html>

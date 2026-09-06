@@ -110,7 +110,7 @@
                     <div class="settings-grid">
                         <div>
                             <label>Output Format</label>
-                            <select id="singleFormat">
+                            <select id="singleFormat" data-save>
                                 <option value="image/webp">WebP (Balanced)</option>
                                 <option value="image/avif">AVIF (Best & Slowest)</option>
                                 <option value="image/jpeg">MozJPEG (Compatible)</option>
@@ -123,7 +123,7 @@
                         </div>
                         <div>
                             <label>Resize Width</label>
-                            <select id="singleResize">
+                            <select id="singleResize" data-save>
                                 <option value="0">Original Dimensions</option>
                                 <option value="1920">1920px</option>
                                 <option value="1280">1280px</option>
@@ -143,7 +143,7 @@
                     <div class="settings-grid" style="margin-bottom: 2rem;">
                         <div>
                             <label>Target Format</label>
-                            <select id="bulkFormat">
+                            <select id="bulkFormat" data-save>
                                 <option value="image/webp">Everything to WebP</option>
                                 <option value="image/avif">Everything to AVIF</option>
                                 <option value="image/jpeg">Everything to JPEG</option>
@@ -155,7 +155,7 @@
                         </div>
                         <div>
                             <label>Max Width</label>
-                            <select id="bulkResize">
+                            <select id="bulkResize" data-save>
                                 <option value="0">Keep Original</option>
                                 <option value="1920">1920px</option>
                             </select>
@@ -608,6 +608,13 @@
                 if (container.style.width === '0%' || container.style.width === '') container.style.width = '50%';
             }
         }
+    
+    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
+       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
+       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
+       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
+       Datei-Eingabe sich meldet. */
+    window.llHaeltArbeit = () => !!singleFile || bulkQueue.length > 0;
     </script>
 </body>
 </html>

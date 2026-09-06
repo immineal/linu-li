@@ -610,6 +610,13 @@
             progressBar.style.width = '0%';
             fileInput.value = ''; // Clear input
         }
+    
+    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
+       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
+       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
+       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
+       Datei-Eingabe sich meldet. */
+    window.llHaeltArbeit = () => !!currentFile || extractedImages.length > 0;
     </script>
 </body>
 </html>

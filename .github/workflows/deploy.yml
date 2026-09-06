@@ -63,6 +63,11 @@ jobs:
           # Empty on a hand-started run, and then checkout takes the branch
           # the run was started from — which is what you want by hand.
           ref: ${{ github.event.workflow_run.head_sha }}
+          # The whole history, not the one commit checkout fetches by default.
+          # The note check below has to resolve the commit the live site is
+          # running and diff against it; on a shallow clone that commit is not
+          # in the history at all.
+          fetch-depth: 0
 
       # The worker's cache name carries the deployed commit, and that is the
       # only thing in sw.js that moves between deploys. Without it the file is
@@ -94,6 +99,119 @@ jobs:
             || { echo "::error::the placeholder survived the sed"; exit 1; }
           grep -n 'CACHE_NAME' sw.js
 
+      # What changed for the people who already visited, in one sentence.
+      #
+      # A returning visitor is told there is a new version and asked whether
+      # to take it. "There is a new version" on its own gets dismissed, so
+      # every push that changes something the site serves has to say what.
+      # The rule has two halves and both must agree before anyone is asked:
+      #
+      #   the files say whether to ask   — nothing served changed, nobody is
+      #                                    disturbed, and no line is required
+      #   the line says what to say      — written by hand, in the language
+      #                                    the visitor reads
+      #
+      # A line reading "-" means: this one changed something, and it is not
+      # worth a prompt. That is a deliberate sentence, not a default, which is
+      # the whole reason the file is appended to rather than overwritten —
+      # two silent pushes in a row are two "-" lines, so the file changes both
+      # times and the check below still bites.
+      - name: 📝 What to tell people who were here before
+        run: |
+          set -euo pipefail
+          NOTIZ=assets/update-note.txt
+
+          # What is on the website right now, straight from the worker it is
+          # serving. Nothing else knows it: the repository has no record of
+          # which commit is live.
+          #
+          # And it fails rather than waving through. A network error, a 404 and
+          # a live commit this clone does not know all used to look the same as
+          # "first run", and then the deploy went out without the check that
+          # sits right here. A check that quietly disappears when something goes
+          # wrong is not a check.
+          WORKER=""
+          for versuch in 1 2 3; do
+            WORKER=$(curl -sS --fail --max-time 20 \
+                     "https://linu.li/sw.js?deploy=$GITHUB_RUN_ID.$versuch" || true)
+            [ -n "$WORKER" ] && break
+            sleep 5
+          done
+          [ -n "$WORKER" ] || {
+            echo "::error::could not read https://linu.li/sw.js after three tries."
+            echo "Without it there is no way to tell what is live, and the note check"
+            echo "below would pass by doing nothing. Re-run once the site answers again."
+            exit 1
+          }
+          LIVE=$(printf '%s' "$WORKER" | sed -n "s/^const DEPLOY_SHA = '\(.*\)';$/\1/p")
+
+          if [ -z "$LIVE" ]; then
+            echo "::notice::the live worker carries no DEPLOY_SHA — it predates this mechanism, nothing to compare against"
+            exit 0
+          fi
+
+          git cat-file -e "$LIVE^{commit}" 2>/dev/null || {
+            echo "::error::the live site runs commit $LIVE, which is not in this history."
+            echo "Someone force-pushed, or the checkout is incomplete. Deploying now would"
+            echo "skip the note check silently, so it stops here instead."
+            exit 1
+          }
+
+          # Only what the website actually hands out. A change to tests or to
+          # the CI workflow reaches no browser and needs no sentence.
+          GEAENDERT=$(git diff --name-only "$LIVE" HEAD -- . \
+            ':(exclude)tests' ':(exclude).tests' ':(exclude).github' \
+            ':(exclude)thisshouldbegitignored' ':(exclude)README.md' \
+            ':(exclude)package.json' ':(exclude)package-lock.json' \
+            ':(exclude).gitignore' ':(exclude)start_server.js' \
+            ':(exclude)test*.js' ':(exclude)test*.py' \
+            ':(exclude)assets/update-note.txt' || true)
+
+          if [ -z "$GEAENDERT" ]; then
+            echo "::notice::nothing the website serves has changed since $LIVE — no note needed, no prompt"
+            exit 0
+          fi
+
+          echo "Geändert seit $LIVE:"; echo "$GEAENDERT" | sed 's/^/  /'
+
+          git diff --name-only "$LIVE" HEAD -- "$NOTIZ" | grep -q . || {
+            echo "::error::$NOTIZ carries no new line, but these files changed since the live version:"
+            echo "$GEAENDERT" | sed 's/^/  /'
+            echo "Add one line saying what changed for a visitor, or a single - if this one does not deserve a prompt."
+            exit 1
+          }
+
+      # The sentences travel inside the worker, next to the commit — one file,
+      # one cache rule, one step. A version.json of its own would need its own
+      # exception in .htaccess, and that is the exception somebody forgets.
+      - name: 🗒️ Carry the sentences into the worker
+        run: |
+          set -euo pipefail
+          python3 - <<'PYTHON'
+          import json, pathlib
+
+          notiz = pathlib.Path("assets/update-note.txt")
+          zeilen = []
+          if notiz.exists():
+              for zeile in notiz.read_text(encoding="utf-8").splitlines():
+                  text = zeile.strip()
+                  # Kommentare und das ausdrückliche "kein Hinweis" fallen raus,
+                  # zählen aber auch nicht mit: die Seite vergleicht Anzahlen.
+                  if text and not text.startswith("#") and text != "-":
+                      zeilen.append(text)
+
+          worker = pathlib.Path("sw.js")
+          text = worker.read_text(encoding="utf-8")
+          marke = "[/* __DEPLOY_NOTES__ */]"
+          if marke not in text:
+              raise SystemExit("::error::sw.js carries no __DEPLOY_NOTES__ marker any more")
+          eingesetzt = json.dumps(zeilen, ensure_ascii=False)
+          worker.write_text(text.replace(marke, eingesetzt, 1), encoding="utf-8")
+          print(f"{len(zeilen)} Zeilen in den Worker geschrieben")
+          PYTHON
+          node --check sw.js || { echo "::error::sw.js no longer parses after the notes were written in"; exit 1; }
+          grep -c 'DEPLOY_NOTES' sw.js
+
       # The mirror below copies whatever is left in the working directory, so
       # anything the site does not need is deleted here first. Done in plain
       # shell rather than as lftp exclude patterns: what this removes can be
@@ -104,6 +222,7 @@ jobs:
           rm -rf tests .tests test-results .jules .Jules
           rm -f test.js test_*.js test-*.js test*.py test*.html test*.png
           rm -f package.json package-lock.json README.md .gitignore start_server.js
+          rm -f assets/update-note.txt
           find tools -type f \( \
             -name 'test.js' -o -name 'test_*.js' -o -name 'test-*.js' \
             -o -name '*.test.js' -o -name '*.spec.js' -o -name 'test-worker.html' \

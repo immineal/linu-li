@@ -73,15 +73,25 @@ test('the worker deletes only its own caches', () => {
         'on this origin and the two would wipe each other out');
 });
 
-test('the worker still waits for nothing it cannot get', () => {
-    /* skipWaiting bleibt, bis das Pop-up da ist, das es ersetzt. Ein Worker,
-       der wartet, ohne dass ihn jemand weckt, lässt einen offenen Tab auf dem
-       alten Stand stehen. Fällt die Zeile weg, bevor der Wecker existiert,
-       soll das auffallen. */
-    assert.ok(/self\.skipWaiting\(\)/.test(sw),
-        'skipWaiting is gone. That is only right once something wakes the waiting ' +
-        'worker — until the update prompt exists, a long-lived tab would never ' +
-        'see a new version at all.');
+test('the worker waits, and something exists to wake it', () => {
+    /* Zwei Hälften, die nur zusammen stimmen. Der Worker darf nicht mehr von
+       allein übernehmen — sonst tauscht er den Code unter einem Werkzeug aus,
+       das gerade eine Datei hält. Und er darf nicht endlos warten, ohne dass
+       ihn jemand weckt — sonst bliebe ein lange offener Reiter für immer auf
+       altem Stand. Fällt eine der beiden weg, fällt der Nutzen der anderen
+       mit. */
+    const install = sw.match(/addEventListener\('install'[\s\S]*?\n\}\);/);
+    assert.ok(install, 'sw.js has no install handler');
+    assert.ok(!/self\.skipWaiting\(\)/.test(install[0]),
+        'the worker takes over on install again — it would swap the code under a tool ' +
+        'that is mid-way through a file, without asking');
+    assert.ok(/data\.frage === 'uebernimm'/.test(sw),
+        'nothing lets the page tell the worker to take over');
+
+    const layout = fs.readFileSync(path.join(ROOT, 'assets/js/layout.js'), 'utf8');
+    assert.ok(/frage: 'uebernimm'/.test(layout),
+        'the page never asks the worker to take over — the waiting worker would only ' +
+        'ever activate once every tab of the site is closed');
 });
 
 /* --------------------------------------------------- 2. der Deploy tut es */
@@ -92,6 +102,34 @@ test('the deploy writes the commit in, and stops if it cannot', () => {
     assert.ok(/grep -q '__DEPLOY_SHA__' sw\.js/.test(deploy),
         'nothing checks the placeholder is still there before replacing it; a rename ' +
         'in sw.js would silently ship a worker that never changes again');
+});
+
+/* --------------------------------- 2b. und sagt, was sich geändert hat */
+
+test('the worker has room for the sentences', () => {
+    assert.ok(/\[\/\* __DEPLOY_NOTES__ \*\/\]/.test(sw),
+        'sw.js carries no __DEPLOY_NOTES__ marker — the deploy would have nowhere to ' +
+        'put what changed, and a visitor would be asked to update without a reason');
+    assert.ok(/DEPLOY_NOTES/.test(sw) && /frage !== 'stand'/.test(sw),
+        'the worker does not answer the page asking what version it is');
+});
+
+test('a deploy that changes the website has to say what changed', () => {
+    assert.ok(/assets\/update-note\.txt/.test(deploy),
+        'the deploy does not look at the note file at all');
+    assert.ok(/git diff --name-only "\$LIVE" HEAD -- "\$NOTIZ"/.test(deploy),
+        'nothing insists the note file changed along with the website');
+    assert.ok(fs.existsSync(path.join(ROOT, 'assets/update-note.txt')),
+        'assets/update-note.txt is gone');
+});
+
+test('the deploy fetches enough history for both checks to work', () => {
+    /* Beide scheitern lautlos an einem flachen Klon: der Live-Vergleich
+       findet den Commit nicht und hält sich für nicht zuständig, und
+       git blame hängt jede Zeile an den Randcommit. */
+    assert.ok(/fetch-depth: 0/.test(deploy),
+        'checkout takes the default shallow clone — the note check would resolve no ' +
+        'live commit and every sentence would claim to belong to this deploy');
 });
 
 /* ------------------------------------------------- 3. die Kopfzeilen */

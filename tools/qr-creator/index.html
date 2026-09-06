@@ -87,7 +87,7 @@
           <!-- CONFIGURATION -->
           <div class="card">
             <label for="qrMode">QR Content Type</label>
-            <select id="qrMode" style="margin-bottom: 1.5rem">
+            <select id="qrMode" data-save style="margin-bottom: 1.5rem">
               <option value="text">URL / Text</option>
               <option value="wifi">WiFi Network</option>
               <option value="contact">Contact (vCard)</option>
@@ -128,7 +128,7 @@
               <div class="split-view" style="margin-bottom: 0">
                 <div>
                   <label>Encryption</label>
-                  <select id="wifiType">
+                  <select id="wifiType" data-save>
                     <option value="WPA">WPA/WPA2</option>
                     <option value="WEP">WEP</option>
                     <option value="nopass">None</option>
@@ -136,7 +136,7 @@
                 </div>
                 <div>
                   <label>Hidden Network?</label>
-                  <select id="wifiHidden">
+                  <select id="wifiHidden" data-save>
                     <option value="false">No</option>
                     <option value="true">Yes</option>
                   </select>
@@ -218,7 +218,7 @@
             </div>
 
             <label style="margin-top: 1rem">Error Correction Level</label>
-            <select id="errorLevel">
+            <select id="errorLevel" data-save>
               <option value="L">Low (7%)</option>
               <option value="M" selected>Medium (15%)</option>
               <option value="Q">Quartile (25%)</option>
@@ -489,6 +489,19 @@
       // Generate generic one on load for UX
       document.getElementById("qrInput").value = "https://linu.li";
       setTimeout(generateQR, 500);
+    
+    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
+       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
+       (assets/js/layout.js). Über den DOM gelesen, weil die Variablen dieses
+       Werkzeugs in einem Bereich liegen, den diese Zeile nicht sieht. */
+    const llFelder = ['qrInput', 'wifiSSID', 'wifiPass', 'vName', 'vLast', 'vPhone',
+        'vEmail', 'vOrg', 'mailTo', 'mailSub', 'mailBody']
+        .map((id) => document.getElementById(id)).filter(Boolean);
+    /* #qrInput ist beim Laden vorbelegt — ohne den Schnappschuss meldete das
+       Werkzeug schon auf der unberührten Seite Arbeit. */
+    const llStart = new Map(llFelder.map((f) => [f, f.value]));
+    window.llHaeltArbeit = () =>
+        llFelder.some((f) => f.value.trim() !== '' && f.value !== llStart.get(f));
     </script>
   </body>
 </html>

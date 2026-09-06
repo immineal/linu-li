@@ -406,3 +406,87 @@ input, select, textarea { max-width: 100%; }
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* ---------------------------------------------------------------- *
+ * "Eine neue Fassung ist da" — der Hinweis aus assets/js/layout.js.
+ *
+ * Modal, weil er eine Frage stellt, deren Antwort die Seite neu lädt: wer
+ * ihn übersieht und weitertippt, verliert sonst beim Klick auf „Neu laden"
+ * etwas, mit dem er nicht gerechnet hat. Erscheint frühestens, wenn jemand
+ * eine Weile nichts getan hat, oder wenn er ohnehin gerade weggeht.
+ * ---------------------------------------------------------------- */
+.ll-update {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.45);
+    /* Auf einem Telefon quer (360×520) ragte die Karte mit fünf Sätzen oben
+       und unten aus dem Bild: beide Knöpfe unerreichbar, kein Rand zum
+       Antippen, und Escape hat ein Telefon nicht. Der Hinweis wäre nicht
+       wegzubekommen gewesen — und der Link, der ihn ausgelöst hat, dauerhaft
+       tot. Jetzt rollt der Hintergrund, und die Liste rollt in sich. */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.ll-update-karte {
+    background: var(--card-bg);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.5rem;
+    max-width: 30rem;
+    width: 100%;
+    max-height: calc(100vh - 3rem);
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+.ll-update-karte h2 {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    margin: 0 0 0.75rem;
+}
+.ll-update-karte ul {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    margin: 0 0 1.25rem;
+    padding-left: 1.1rem;
+    /* Die Knöpfe bleiben sichtbar, egal wie viele Sätze zusammenkommen. */
+    overflow-y: auto;
+    min-height: 0;
+}
+.ll-update-karte h2, .ll-update-knoepfe { flex: 0 0 auto; }
+.ll-update-karte li { margin-bottom: 0.35rem; }
+.ll-update-rest { list-style: none; margin-left: -1.1rem; color: var(--ink-secondary); }
+.ll-update-knoepfe {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: flex-end;
+}
+.ll-update-knoepfe button {
+    font: inherit;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+}
+.ll-update-knoepfe button:hover { border-color: var(--ink-secondary); }
+.ll-update-ja {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: #fff !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .ll-update-karte { animation: ll-update-auf 0.18s ease-out; }
+    @keyframes ll-update-auf {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: none; }
+    }
+}

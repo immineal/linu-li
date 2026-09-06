@@ -13,6 +13,21 @@
 // deploy refuses to run if it is ever missing.
 const DEPLOY_SHA = '__DEPLOY_SHA__';
 
+// The sentences from assets/update-note.txt, oldest first, written in by the
+// deploy. A returning visitor is shown the ones their own version does not
+// have yet, so "there is a new version, take it?" comes with a reason.
+//
+// How "does not have yet" is decided: by counting, not by matching commits.
+// The page asks the running worker how many sentences it knows and the
+// waiting one for its list, and shows the difference. Matching on the
+// deployed commit was the first attempt and it was wrong — the commit moves
+// with every deploy while a sentence is only added by some of them, so a
+// visitor sitting on a commit no sentence belongs to matched nothing and was
+// shown the last five, several of which they already had.
+//
+// Empty in a local checkout, and rightly so: nothing has been deployed here.
+const DEPLOY_NOTES = [/* __DEPLOY_NOTES__ */];
+
 // The cache name, on the other hand, deliberately does NOT carry the commit.
 //
 // Naming it after the deploy sounded right — new deploy, new cache — but it
@@ -53,11 +68,12 @@ self.addEventListener('install', (event) => {
         ))
     );
 
-    // Still here, deliberately. The prompt that is meant to replace it does
-    // not exist yet, and a worker that waits with nothing to wake it would
-    // leave anyone with a long-lived tab on the old code indefinitely. This
-    // line goes when the update prompt lands, not before.
-    self.skipWaiting();
+    // No skipWaiting. The worker installs and then waits, and the page asks
+    // whether to take it (assets/js/layout.js). Taking over unannounced would
+    // swap the code under a tool that is mid-way through a file.
+    //
+    // The wait is not open-ended even if nobody ever answers: a waiting
+    // worker takes over on its own once every tab of the site is closed.
 });
 
 self.addEventListener('activate', (event) => {
@@ -98,6 +114,20 @@ self.addEventListener('activate', (event) => {
 
         await self.clients.claim();
     })());
+});
+
+// The page asks what this worker is, and gets back the commit it was built
+// from plus the sentences. It is the waiting worker that matters: the page
+// reaches it through registration.waiting, so what comes back describes the
+// version on offer, not the one already running.
+self.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data) return;
+    if (data.frage === 'uebernimm') return self.skipWaiting();
+    if (data.frage !== 'stand') return;
+    const antwort = { antwort: 'stand', sha: DEPLOY_SHA, notizen: DEPLOY_NOTES };
+    if (event.ports && event.ports[0]) event.ports[0].postMessage(antwort);
+    else if (event.source) event.source.postMessage(antwort);
 });
 
 self.addEventListener('fetch', (event) => {

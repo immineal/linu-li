@@ -59,7 +59,7 @@
                     <div class="split-view">
                         <div>
                             <label for="scaleSelect">Output Scale <span id="liveDimsPreview" style="font-size:0.8em; font-weight:normal; color:var(--ink-secondary); float:right;"></span></label>
-                            <select id="scaleSelect">
+                            <select id="scaleSelect" data-save>
                                 <option value="1">1x (Original Size)</option>
                                 <option value="2" selected>2x (High Res)</option>
                                 <option value="4">4x (Ultra Res)</option>
@@ -518,6 +518,13 @@
             showToast('Download started', 'success');
         });
 
+    
+    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
+       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
+       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
+       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
+       Datei-Eingabe sich meldet. */
+    window.llHaeltArbeit = () => !!currentFile || !!generatedBlob;
     </script>
 </body>
 </html>

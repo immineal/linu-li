@@ -1,0 +1,18 @@
+# Eine Zeile je Push. Die neueste steht unten.
+#
+# Was hier steht, bekommen wiederkehrende Besucher als Hinweis zu sehen: ein
+# Satz über das, was sich für sie ändert. Kein Commit-Titel, kein Dateiname,
+# kein "diverse Korrekturen".
+#
+# Auf Englisch, wie der Rest der Seite. Der Hinweis selbst ist englisch
+# beschriftet, ein deutscher Satz stünde darin allein.
+#
+# Ein Bindestrich allein heißt: dieser Push braucht keinen Hinweis.
+#
+# Der Deploy besteht auf einer neuen Zeile, sobald sich eine ausgelieferte
+# Datei geändert hat, und bricht sonst ab. Ändert sich nichts Ausgeliefertes,
+# ist auch keine Zeile nötig — dann merkt kein Browser etwas davon.
+#
+# Zeilen, die mit # beginnen, sind Kommentar und erscheinen nirgends.
+The site now picks up fixes reliably instead of holding on to old files for up to a year.
+Tools no longer remember what you type — only settings like format or timezone. Anything stored before has been cleared.

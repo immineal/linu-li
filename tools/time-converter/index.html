@@ -93,7 +93,7 @@
                     <!-- ── ROW: Format / Timezone label+select ── -->
                     <div>
                         <label for="tsFormat">Input Format</label>
-                        <select id="tsFormat">
+                        <select id="tsFormat" data-save>
                             <option value="auto">Auto-detect</option>
                             <option value="s">Seconds</option>
                             <option value="ms">Milliseconds</option>
@@ -104,7 +104,7 @@
                     </div>
                     <div>
                         <label for="manualTz">Select Timezone</label>
-                        <select id="manualTz">
+                        <select id="manualTz" data-save>
                             <option value="local">Local Time</option>
                             <option value="utc">UTC</option>
                         </select>
@@ -113,7 +113,7 @@
                     <!-- ── ROW: Timezone / Date-time picker ── -->
                     <div>
                         <label for="targetTz">Convert to Timezone</label>
-                        <select id="targetTz">
+                        <select id="targetTz" data-save>
                             <!-- Populated via JS -->
                         </select>
                     </div>

@@ -22,7 +22,7 @@
         <!-- ------------------------------------------------------ top bar -->
         <header class="sp-bar">
           <div class="sp-bar-left">
-            <select id="spProductionSelect" class="sp-bar-select" data-no-save="1"
+            <select id="spProductionSelect" class="sp-bar-select"
                     data-i18n-attr="aria-label" aria-label="Production"></select>
             <!-- Ein Zahnrad wie die anderen Zeichen der Leiste. Als Wort nahm
                  es 102 px neben einem Auswahlfeld, das ohnehin die Produktion
@@ -111,7 +111,7 @@
                   <select id="spSceneWhere" class="sp-scene-where" data-bind="scene.placeId"
                           data-i18n-attr="aria-label" aria-label="Plays in"></select>
                   <span class="sp-sep"></span>
-                  <select id="spLabelMode" data-no-save="1" style="width: auto"
+                  <select id="spLabelMode" style="width: auto"
                           data-i18n-attr="aria-label" aria-label="Plan labels">
                     <option value="name" data-i18n>Prop names</option>
                     <option value="custom" data-i18n>Written labels only</option>
@@ -202,10 +202,10 @@
 
                 <div class="sp-scroll" id="spInspectorProps">
                   <div class="sp-palette-head">
-                    <input type="search" id="spPropSearch" data-no-save="1"
+                    <input type="search" id="spPropSearch"
                            data-i18n-attr="placeholder,aria-label"
                            placeholder="Search props" aria-label="Search props" />
-                    <select id="spPropCategory" data-no-save="1"
+                    <select id="spPropCategory"
                             data-i18n-attr="aria-label" aria-label="Prop category"></select>
                     <p class="sp-hint" data-i18n>Drag a prop onto the stage, or click it to drop one in the middle.</p>
                   </div>
@@ -261,11 +261,11 @@
                 <div class="sp-measure is-wide">
                   <h2 data-i18n>Prop library</h2>
                   <div class="sp-btn-row" style="margin-bottom: 1rem">
-                    <input type="search" id="spLibrarySearch" data-no-save="1"
+                    <input type="search" id="spLibrarySearch"
                            data-i18n-attr="placeholder,aria-label"
                            placeholder="Search the library" aria-label="Search the library"
                            style="max-width: 16rem" />
-                    <select id="spLibraryCategory" data-no-save="1" style="width: auto"
+                    <select id="spLibraryCategory" style="width: auto"
                             data-i18n-attr="aria-label" aria-label="Filter by category"></select>
                     <button class="sp-btn is-primary" id="spDrawCustomProp" data-act="draw-custom-prop" data-i18n>Draw a prop</button>
                     <button type="button" class="sp-why" data-explain="draw.open" data-i18n-attr="aria-label" aria-label="What is this?"><svg class="sp-icon sp-why-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4"/><g transform="translate(8 8) scale(0.833) translate(-8 -8)" stroke-width="1.35"><path d="M6.1 6.2a1.95 1.95 0 1 1 2.7 1.8c-.65.3-1.05.85-1.05 1.55v.25"/><path d="M7.75 12.05h.02"/></g></svg></button>

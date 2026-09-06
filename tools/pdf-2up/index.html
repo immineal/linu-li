@@ -119,7 +119,7 @@
                         </div>
                         <div>
                             <label for="cutLine">Cut Line / Crop Marks</label>
-                            <select id="cutLine">
+                            <select id="cutLine" data-save>
                                 <option value="none">None</option>
                                 <option value="dashed">Center Dashed Line</option>
                                 <option value="solid">Center Solid Line</option>
@@ -500,6 +500,13 @@
                 progressContainer.style.display = 'none';
             }
         });
+    
+    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
+       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
+       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
+       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
+       Datei-Eingabe sich meldet. */
+    window.llHaeltArbeit = () => !!currentFile;
     </script>
 </body>
 </html>
