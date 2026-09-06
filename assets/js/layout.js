@@ -11,17 +11,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const inToolsDir = window.location.pathname.includes('/tools/');
     const rootPath = inToolsDir ? '../../' : './';
 
-    // The frame speaks the language the page declares. A German page with an
-    // English header and footer around it reads like a translation someone
-    // gave up on halfway.
-    const de = (document.documentElement.lang || '').toLowerCase().startsWith('de');
+    // A page can ask for a German frame with data-frame="de". Not every German
+    // page wants one: Impressum and Datenschutz are German documents that
+    // belong to the whole site, and their frame stays English with the rest.
+    const de = document.documentElement.getAttribute('data-frame') === 'de';
     const say = (english, german) => (de ? german : english);
     
     // 2. Inject Header
     const headerHTML = `
     <header class="main-header">
         <nav>
-            <a href="${rootPath}" class="logo-link">${say('Tools for Everyone', 'Werkzeuge für alle')}</a>
+            <a href="${rootPath}" class="logo-link">Tools for Everyone</a>
             <div style="display:flex; gap: 1.5rem; align-items: center;">
                 <button id="theme-toggle" class="theme-switch" aria-label="${say('Toggle Dark Mode', 'Zwischen hell und dunkel wechseln')}">
                     <div class="switch-track">
