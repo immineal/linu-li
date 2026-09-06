@@ -5841,6 +5841,16 @@
         /* Nach dem Reiterwechsel ist das Feld erst im nächsten Zeichnen da. */
         window.setTimeout(function () {
             var target = $('[data-explain="' + entry.key + '"]');
+            /* Im Dokument zu stehen heißt nicht, auf dem Schirm zu stehen: ein
+               Feld in einem versteckten Bereich oder einer zugeklappten Klappe
+               wurde hervorgehoben, wo niemand hinsah — und weil es gefunden
+               war, kam auch die Ersatzmeldung nicht. */
+            if (target && target.offsetParent === null &&
+                getComputedStyle(target).position !== 'fixed') {
+                var fold = target.closest('details');
+                if (fold && !fold.open) fold.open = true;
+                if (target.offsetParent === null) target = null;
+            }
             if (!target) {
                 toast(entry.open
                     ? t('You will find “{what}” here: {where}', { what: entry.title, where: entry.open })
