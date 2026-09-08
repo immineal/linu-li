@@ -1,4 +1,4 @@
-const piexif = require('./assets/vendor/piexif.js');
+const piexif = require('../assets/vendor/piexif.js');
 
 const originalBytes = new Uint8Array([
     0xFF, 0xD8, // SOI

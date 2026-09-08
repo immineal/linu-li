@@ -1,5 +1,5 @@
 const fs = require('fs');
-const piexif = require('./assets/vendor/piexif.js');
+const piexif = require('../assets/vendor/piexif.js');
 
 const zeroth = {};
 const exif = {};

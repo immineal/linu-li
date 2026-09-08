@@ -24,7 +24,7 @@ node tests/test-buehnenbild.js
 PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome node tests/test-service-worker.js
 
 # Playwright, needs a server on port 8000
-python3 test_ui.py
+python3 tests/test_ui.py
 ```
 
 `.github/workflows/ci.yml` has the full list. If you add a browser test, add it in two places: as a skip in the jsdom job, and as a `run_test` in the Puppeteer job. Miss one and it runs in the wrong job and fails for a reason that has nothing to do with your test.

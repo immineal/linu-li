@@ -1,5 +1,11 @@
 const assert = require('assert');
 const fs = require('fs');
+const path = require('path');
+
+// require() resolves relative to this file, fs.writeFileSync relative to the
+// working directory. While this test sat in the repository root the two
+// happened to agree; from tests/ they do not, so both go through __dirname.
+const tempFile = path.join(__dirname, 'temp_worker_test.js');
 
 const workerCode = fs.readFileSync('./tools/case-converter/worker.js', 'utf8');
 
@@ -27,9 +33,9 @@ module.exports = {
 };
 `;
 
-fs.writeFileSync('./temp_worker_test.js', workerScript);
+fs.writeFileSync(tempFile, workerScript);
 
-const workerMock = require('./temp_worker_test.js');
+const workerMock = require(tempFile);
 
 console.log('Running worker logic tests...');
 
@@ -62,4 +68,4 @@ assert.deepStrictEqual(workerMock.toWords('123number'), ['123', 'number']);
 assert.deepStrictEqual(workerMock.toWords('mixedCamel_and-snakeCase123'), ['mixed', 'Camel', 'and', 'snake', 'Case', '123']);
 
 console.log('Worker logic tests passed successfully! ✅');
-fs.unlinkSync('./temp_worker_test.js');
+fs.unlinkSync(tempFile);

@@ -1,3 +1,0 @@
-## 2026-04-14 - Accessibility fixes on main page
-**Learning:** Found several UI elements missing proper ARIA labels. For interactive elements that do not have text, it's very important to supply aria-labels.
-**Action:** Applied aria-labels dynamically on interactive elements like the favorite buttons when toggled, and added aria-labels to the main search bar.
