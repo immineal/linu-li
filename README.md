@@ -64,7 +64,13 @@ Five things do reach outside, and none of them carries your file. The EXIF tool 
 
 The [Bühnenbild-Planer](tools/buehnenbild/) is a German planner for stage crews and the largest thing here. You build a running order of scenes, name the places a piece keeps returning to, and lay props out on a stage with wings and curtains. Out of that it prints two documents: A4 ground plans carrying nothing but the drawing, and an *Umbauplan*, a table of what gets struck, set up and moved between every pair of scenes. Props come with oblique illustrations as well as plan-view symbols. There is a guided setup on the first visit and an explanation behind every setting, because the people using it are not the people who built it.
 
-The [Bonn Sperrmüll map](sperrmuell/) shows which streets get a bulky-waste collection on which day, from the city's open data. It covers 185 dates in 2026. It lives outside `tools/` as its own app with its own build and its own service worker, so it comes up on a phone while you are standing in front of the pile with no signal.
+The [Bonn Sperrmüll map](tools/sperrmuell/) shows which streets get a bulky-waste collection on which day, from the city's open data. It covers 185 dates in 2026. It sits with the other tools but stays its own app, with its own build and its own service worker, so it comes up on a phone while you are standing in front of the pile with no signal.
+
+## Addresses
+
+Every tool answers at two of them: `linu.li/tools/qr-creator/` and the short `linu.li/qr-creator/`, which redirects to the first. Nothing has to be registered for that — the server checks whether a directory of that name sits under `tools/` — so a new tool is reachable both ways the day it lands. The sitemap names one address per tool, the long one.
+
+The Bonn map used to live at `linu.li/sperrmuell/` and now answers under `tools/` like everything else. The old address redirects, with a single exception: `/sperrmuell/sw.js` still serves a small worker whose only job is to unregister the one that address installed. A service worker script is never fetched through a redirect — the browser reads that as a failed update and keeps what it has — so without that file the old worker would go on serving the old copy of the map out of its cache and never learn about the move.
 
 ## How it is built
 
@@ -102,8 +108,9 @@ assets/
   vendor/       third-party libraries
   manifest.json PWA manifest
 tools/          one folder per tool, each a standalone page
-sperrmuell/     the Bonn map, its own app with its own service worker
-tests/          three suites, see CONTRIBUTING.md
+  sperrmuell/   the Bonn map, its own app with its own build and worker
+sperrmuell/     the map's old address: one worker that retires itself
+tests/          the suites, see CONTRIBUTING.md
 index.html      the front page
 sw.js           service worker, has to sit at the root to cover the whole site
 ```

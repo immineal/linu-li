@@ -65,11 +65,11 @@ test('the cache name does not move with it', () => {
 });
 
 test('the worker deletes only its own caches', () => {
-    /* /sperrmuell/ bringt einen zweiten Worker auf derselben Herkunft mit,
+    /* /tools/sperrmuell/ bringt einen zweiten Worker auf derselben Herkunft mit,
        dessen activate jeden fremden Cache löscht. Diesen Gefallen zu
        erwidern hieße, dass sich die beiden gegenseitig abräumen. */
     assert.ok(/if \(!name\.startsWith\('ll-toolbox-'\)\) continue;/.test(sw),
-        'activate deletes caches that are not ours — /sperrmuell/ has its own worker ' +
+        'activate deletes caches that are not ours — /tools/sperrmuell/ has its own worker ' +
         'on this origin and the two would wipe each other out');
 });
 
@@ -194,27 +194,27 @@ test('the Sperrmüll map deletes only its own caches too', () => {
     /* Die Gegenrichtung zu der Prüfung weiter oben. Löscht einer der beiden
        fremde Caches, räumen sie sich abwechselnd gegenseitig ab — wer die
        Karte aufmacht, verliert den Offline-Bestand der Toolbox. */
-    const sperr = lies('sperrmuell/sw.js');
+    const sperr = lies('tools/sperrmuell/sw.js');
     assert.ok(/startsWith\("sperrmuell-"\)/.test(sperr),
-        'sperrmuell/sw.js deletes every cache that is not its own, /sw.js included');
+        'tools/sperrmuell/sw.js deletes every cache that is not its own, /sw.js included');
 });
 
 test('the map keeps its hashed bundles and revalidates its dates', () => {
-    const assets = lies('sperrmuell/assets/.htaccess');
+    const assets = lies('tools/sperrmuell/assets/.htaccess');
     assert.ok(/max-age=31536000, immutable/.test(assets),
         'the content-hashed bundles do not get the year they have earned');
-    const daten = lies('sperrmuell/data/.htaccess');
+    const daten = lies('tools/sperrmuell/data/.htaccess');
     assert.ok(/Cache-Control "no-cache"/.test(daten),
         'the collection dates are held for a month — in January that means last ' +
         "year's dates");
 });
 
 test('the map\'s own worker is not caught by the year', () => {
-    /* sperrmuell/sw.js liegt eine Ebene über assets/ und muss die
+    /* tools/sperrmuell/sw.js liegt eine Ebene über assets/ und muss die
        no-cache-Regel aus der Wurzel behalten. */
-    const assets = lies('sperrmuell/assets/.htaccess');
+    const assets = lies('tools/sperrmuell/assets/.htaccess');
     assert.ok(!/sw\.js/.test(assets.replace(/#[^\n]*/g, '')),
-        'sperrmuell/assets/.htaccess reaches the worker with a live directive');
+        'tools/sperrmuell/assets/.htaccess reaches the worker with a live directive');
 });
 
 /* ---------------------------------------- 4. grün geprüft, dann hochgeladen */
