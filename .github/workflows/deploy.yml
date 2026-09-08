@@ -58,7 +58,7 @@ jobs:
       # not necessarily the commit that just passed. Without this the deploy
       # could ship a commit no test ever saw.
       - name: Get the code that passed
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # Empty on a hand-started run, and then checkout takes the branch
           # the run was started from — which is what you want by hand.
