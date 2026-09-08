@@ -18,8 +18,8 @@
  * browser reads a redirected update as a failed one and keeps the worker it
  * has. That worker answers every same-origin GET in its scope out of cache,
  * navigations included, so it would go on serving the old app and the 301
- * underneath it would never be reached. Hence the gravestone at the old
- * address, and hence the exception that lets it be served.
+ * underneath it would never be reached. Hence the script still answering at the old
+ * address, and hence the exception that lets it be served from inside the tool.
  *
  * None of this can be exercised without Apache — `npx serve` and
  * `python3 -m http.server` both ignore .htaccess — so this reads the rules
@@ -34,7 +34,7 @@ const ROOT = path.join(__dirname, '..');
 const lies = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
 const htaccess = lies('.htaccess');
-const grabstein = lies('sperrmuell/sw.js');
+const stilllegung = lies('tools/sperrmuell/abgemeldet-sw.js');
 
 let passed = 0;
 function test(name, fn) {
@@ -69,24 +69,21 @@ test('every tool is covered by it, and nothing else is', () => {
 
     const wurzel = fs.readdirSync(ROOT, { withFileTypes: true })
         .filter((e) => !e.name.startsWith('.')).map((e) => e.name);
-    /* sperrmuell/ ist die eine erlaubte Doppelung: die Regel leitet die alte
-       Adresse absichtlich auf tools/ um, und was in der Wurzel liegen bleibt,
-       ist der Grabstein. Jede andere waere ein Wurzelverzeichnis, das ab
-       sofort niemand mehr erreicht. */
-    const kollision = wurzel.filter((n) => werkzeuge.includes(n) && n !== 'sperrmuell');
+    const kollision = wurzel.filter((n) => werkzeuge.includes(n));
     assert.deepStrictEqual(kollision, [],
         'these exist both in the root and under tools/, so the short address would ' +
         'shadow whatever the root serves: ' + kollision.join(', '));
 });
 
-test('nothing but the gravestone is left behind the redirect', () => {
-    /* Alles unter sperrmuell/ ausser sw.js ist von der Umleitung verdeckt und
-       waere ab sofort nicht mehr abrufbar — lautlos, weil die Umleitung ja
-       eine gueltige Seite liefert. */
-    const rest = fs.readdirSync(path.join(ROOT, 'sperrmuell'));
-    assert.deepStrictEqual(rest, ['sw.js'],
-        'these sit at the old address where the redirect hides them, so nothing can ' +
-        'reach them any more: ' + rest.filter((n) => n !== 'sw.js').join(', '));
+test('the old address has no directory of its own any more', () => {
+    /* Der Sinn des Umzugs war, dass neben tools/ nichts mehr steht. Die
+       Datei, die /sperrmuell/sw.js beantwortet, liegt deshalb im Werkzeug und
+       wird intern dorthin umgeschrieben. Ein Verzeichnis hier waere entweder
+       von der Umleitung verdeckt und damit unerreichbar, oder es waere die
+       Unordnung zurueck. */
+    assert.ok(!fs.existsSync(path.join(ROOT, 'sperrmuell')),
+        'sperrmuell/ is back at the site root — either it is hidden behind the ' +
+        'redirect and unreachable, or the move achieved nothing');
 });
 
 /* ------------------------------------------ 2. die verschobene Karte */
@@ -98,46 +95,74 @@ test('the map answers under tools/ and the old address redirects there', () => {
         'nothing carries /sperrmuell/ and the paths below it to the new address');
 });
 
-test('the moved bundle carries no /sperrmuell/ path any more', () => {
-    /* Vite schreibt den base-Pfad in die Ausgabe. Bleibt einer stehen, holt
-       die Seite ihre Daten von einer Adresse, die nur noch umleitet. */
-    for (const datei of ['index.html', 'assets/index-Ct5wqi0O.js']) {
+test('the built map carries no bare /sperrmuell/ path any more', () => {
+    /* Vite schreibt den base-Pfad in die Ausgabe: in index.html und in das
+       Bundle, das den Worker registriert und die Daten holt. Bleibt einer
+       stehen, fragt die Seite eine Adresse an, die nur noch umleitet.
+
+       Die Dateien werden aufgesammelt statt genannt: ihr Name traegt den
+       Inhalts-Hash und aendert sich bei jedem Bau. */
+    const dateien = ['index.html', 'manifest.webmanifest'];
+    for (const name of fs.readdirSync(path.join(ROOT, 'tools/sperrmuell/assets'))) {
+        if (name.endsWith('.js') || name.endsWith('.css')) dateien.push('assets/' + name);
+    }
+    assert.ok(dateien.some((d) => d.endsWith('.js')),
+        'no built bundle under tools/sperrmuell/assets/ — nothing to check');
+
+    for (const datei of dateien) {
         const inhalt = lies('tools/sperrmuell/' + datei);
         const treffer = inhalt.match(/(?<!\/tools)\/sperrmuell\//g) || [];
         assert.deepStrictEqual(treffer, [],
             `tools/sperrmuell/${datei} still points at the old /sperrmuell/ base ` +
-            `(${treffer.length}x) — rebuilt without changing Vite's base?`);
+            `(${treffer.length}x) — built without base: "/tools/sperrmuell/"?`);
     }
 });
 
 /* ------------------------------------------ 3. der Grabstein */
 
-test('the old worker address is served, not redirected', () => {
-    assert.ok(/RewriteCond %\{REQUEST_URI\} !\^\/sperrmuell\/sw\\\.js\$/.test(htaccess),
-        'sperrmuell/sw.js is no longer excepted from the redirect. A service worker ' +
-        'script fetched through a redirect counts as a failed update, so the old ' +
-        'worker stays installed and goes on serving the old app from its cache');
-    assert.ok(fs.existsSync(path.join(ROOT, 'sperrmuell/sw.js')),
-        'the exception has nothing to serve — sperrmuell/sw.js is gone');
+test('the old worker address is served from inside the tool, not redirected', () => {
+    const intern = htaccess.indexOf(
+        'RewriteRule ^sperrmuell/sw\\.js$ tools/sperrmuell/abgemeldet-sw.js [L]');
+    const umleitung = htaccess.indexOf('RewriteRule ^sperrmuell(?:/(.*))?$');
+    assert.notStrictEqual(intern, -1,
+        'nothing answers /sperrmuell/sw.js any more. A service worker script fetched ' +
+        'through a redirect counts as a failed update, so the old worker would stay ' +
+        'installed and go on serving the old app out of its cache');
+    assert.ok(intern < umleitung,
+        'the 301 stands before the rewrite, so it wins and /sperrmuell/sw.js redirects ' +
+        'after all — order is the whole mechanism here');
+    assert.ok(fs.existsSync(path.join(ROOT, 'tools/sperrmuell/abgemeldet-sw.js')),
+        'the rewrite points at a file that is not there');
 });
 
-test('the gravestone takes the old registration apart', () => {
-    assert.ok(/self\.registration\.unregister\(\)/.test(grabstein),
-        'sperrmuell/sw.js does not unregister itself, so it is just another worker ' +
+test('that rewrite is internal, so the scope stays where the worker needs it', () => {
+    /* Mit R=301 waere es wieder eine Umleitung und alles darueber umsonst.
+       Ohne, bleibt die Adresse /sperrmuell/sw.js, und daher kommt der
+       Geltungsbereich des Workers — nicht daher, wo die Datei liegt. */
+    const zeile = htaccess.split('\n')
+        .find((z) => z.includes('^sperrmuell/sw\\.js$'));
+    assert.ok(zeile, 'the rewrite line is gone');
+    assert.ok(!/\bR=\d{3}\b/.test(zeile),
+        `the worker address is redirected after all: ${zeile.trim()}`);
+});
+
+test('the retiring worker takes the old registration apart', () => {
+    assert.ok(/self\.registration\.unregister\(\)/.test(stilllegung),
+        'the retiring worker does not unregister itself, so it is just another worker ' +
         'holding the old scope');
-    assert.ok(!/addEventListener\(\s*["']fetch["']/.test(grabstein),
-        'sperrmuell/sw.js answers fetches — with a handler in place the requests never ' +
+    assert.ok(!/addEventListener\(\s*["']fetch["']/.test(stilllegung),
+        'the retiring worker answers fetches — with a handler in place the requests never ' +
         'reach the network, and the redirect never gets its turn');
-    assert.ok(/client\.navigate/.test(grabstein),
+    assert.ok(/client\.navigate/.test(stilllegung),
         'open tabs on the old address are never sent through the redirect');
 });
 
-test('the gravestone clears its own caches and only its own', () => {
-    assert.ok(/startsWith\("sperrmuell-"\)/.test(grabstein),
-        'sperrmuell/sw.js deletes caches by some other rule than its own prefix — ' +
+test('the retiring worker clears its own caches and only its own', () => {
+    assert.ok(/startsWith\("sperrmuell-"\)/.test(stilllegung),
+        'the retiring worker deletes caches by some other rule than its own prefix — ' +
         'the toolbox keeps ll-toolbox-* on this same origin and would go with it');
-    assert.ok(!/ll-toolbox/.test(grabstein),
-        'sperrmuell/sw.js names the toolbox cache');
+    assert.ok(!/ll-toolbox/.test(stilllegung),
+        'the retiring worker names the toolbox cache');
 });
 
 if (!process.exitCode) console.log(`${passed} checks passed`);

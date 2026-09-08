@@ -18,3 +18,4 @@ The site now picks up fixes reliably instead of holding on to old files for up t
 Tools no longer remember what you type — only settings like format or timezone. Anything stored before has been cleared.
 Nine tools have left the front page: eight still work at their old addresses and now say so at the top, and the banknote gallery is gone.
 The Bonn Sperrmüll map now lives at linu.li/tools/sperrmuell/ with the other tools, and the old address still takes you there. Every tool also answers at a short address now, so linu.li/qr-creator/ reaches the QR generator.
+-
