@@ -2,7 +2,7 @@
  * Two service workers on one origin, not clearing each other out (Puppeteer).
  *
  * linu.li serves two of them: `/sw.js` for the toolbox, and
- * `/sperrmuell/sw.js` for the Bonn bulky-waste map, which is a separate app
+ * `/tools/sperrmuell/sw.js` for the Bonn bulky-waste map, which is a separate app
  * with its own build and its own cache. Cache Storage is per origin, not per
  * worker, so both of them see both caches — and both of them used to open
  * their activate with the same tidy-looking line:
@@ -19,7 +19,7 @@
  * used to lose one of them.
  *
  * What it catches: the map's worker clearing the toolbox cache. Run against
- * the old sperrmuell/sw.js it fails, which is the point.
+ * the old tools/sperrmuell/sw.js it fails, which is the point.
  *
  * What it does not catch, and why: the same mistake in the other direction,
  * /sw.js clearing the map's cache. A worker's activate only runs when a new
@@ -98,7 +98,7 @@ const bestand = (page) => page.evaluate(async () => {
         }
         await murmelLegen(page, toolboxCache);
 
-        await besuchen(page, '/sperrmuell/');
+        await besuchen(page, '/tools/sperrmuell/');
         const karteCache = (await page.evaluate(() => caches.keys()))
             .find((n) => n.startsWith('sperrmuell-'));
         if (!karteCache) {

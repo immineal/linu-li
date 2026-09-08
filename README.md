@@ -1,6 +1,6 @@
 # linu-li
 
-Small tools that run in a browser tab. Merging a PDF, stripping the GPS out of a photo, decoding a JWT: the sort of thing you look up, use once, and close again.
+Small tools that run in a browser tab. Merging a PDF, stripping the GPS out of a photo, generating a QR code: the sort of thing you look up, use once, and close again.
 
 Live at [linu.li](https://linu.li).
 
@@ -21,7 +21,6 @@ Five things do reach outside, and none of them carries your file. The EXIF tool 
 - [Image extractor](tools/pdf-extractor/) pulls out every image embedded in a PDF
 - [2-up](tools/pdf-2up/) puts two pages on one sheet for booklets
 - [Grayscale](tools/pdf-grayscale/) flattens colour to black and white, which also cleans up phone scans
-- [Watermarker](tools/pdf-watermarker/) stamps text across every page
 
 ### Images
 
@@ -30,22 +29,16 @@ Five things do reach outside, and none of them carries your file. The EXIF tool 
 - [Social cropper](tools/social-cropper/) crops to the ratios Instagram, Twitter and LinkedIn expect
 - [EXIF remover](tools/exif-scrubber/) shows the location and camera data hidden in a photo before it strips it
 - [Favicon generator](tools/favicon-maker/) builds `.ico` and `.png` icons from text, an emoji or an image
-- [SVG to PNG](tools/svg-to-png/) renders a vector file at whatever resolution you need
 
 ### Text
 
-- [Word counter](tools/word-counter/) counts words, characters and sentences, and estimates reading time
 - [Diff checker](tools/diff-checker/) highlights what changed between two texts, side by side or inline
 - [Markdown editor](tools/markdown-editor/) previews as you type and exports HTML
-- [List cleaner](tools/list-cleaner/) removes duplicates, sorts, shuffles and trims
-- [Case converter](tools/case-converter/) moves text between camelCase, snake_case, Title Case and the rest
 - [Lorem generator](tools/lorem-generator/) makes filler text in Latin, tech jargon or corporate speak
 
 ### Developer
 
 - [JSON tools](tools/json-tools/) validate, repair, minify and show a collapsible tree
-- [SQL formatter](tools/sql-formatter/) tidies up a query you inherited
-- [JWT decoder](tools/jwt-debugger/) reads the header and payload and tells you whether it has expired
 - [URL tools](tools/url-tools/) encode, decode, and strip tracking junk such as `utm_source` and `fbclid`
 - [Base64](tools/base64-converter/) converts text or a whole file, both directions
 - [Timestamp converter](tools/time-converter/) turns Unix epochs into dates and back, across time zones
@@ -56,15 +49,32 @@ Five things do reach outside, and none of them carries your file. The EXIF tool 
 
 - [QR generator](tools/qr-creator/) for links, WiFi credentials and contact cards
 - [Colour tools](tools/color-tools/) pick, convert between HEX, RGB and HSL, and check WCAG contrast
-- [Aspect ratio calculator](tools/aspect-ratio/) works out the missing side
 - [Unit converter](tools/unit-converter/) handles length, weight, temperature, speed, storage and currency
-- [Future euro banknotes](tools/future-bank-notes/) is a German gallery of the ten ECB design proposals, with a way to compare and rate them
+
+### No longer developed
+
+These still work and still answer at their old addresses, and they say so at the top of the page. They are off the front page and off the sitemap, and they do not get changes any more.
+
+- [Watermarker](tools/pdf-watermarker/) stamps text across every page
+- [SVG to PNG](tools/svg-to-png/) renders a vector file at whatever resolution you need
+- [Word counter](tools/word-counter/) counts words, characters and sentences, and estimates reading time
+- [List cleaner](tools/list-cleaner/) removes duplicates, sorts, shuffles and trims
+- [Case converter](tools/case-converter/) moves text between camelCase, snake_case, Title Case and the rest
+- [SQL formatter](tools/sql-formatter/) tidies up a query you inherited
+- [JWT decoder](tools/jwt-debugger/) reads the header and payload and tells you whether it has expired
+- [Aspect ratio calculator](tools/aspect-ratio/) works out the missing side
 
 ### Two bigger ones
 
 The [Bühnenbild-Planer](tools/buehnenbild/) is a German planner for stage crews and the largest thing here. You build a running order of scenes, name the places a piece keeps returning to, and lay props out on a stage with wings and curtains. Out of that it prints two documents: A4 ground plans carrying nothing but the drawing, and an *Umbauplan*, a table of what gets struck, set up and moved between every pair of scenes. Props come with oblique illustrations as well as plan-view symbols. There is a guided setup on the first visit and an explanation behind every setting, because the people using it are not the people who built it.
 
-The [Bonn Sperrmüll map](sperrmuell/) shows which streets get a bulky-waste collection on which day, from the city's open data. It covers 185 dates in 2026. It lives outside `tools/` as its own app with its own build and its own service worker, so it comes up on a phone while you are standing in front of the pile with no signal.
+The [Bonn Sperrmüll map](tools/sperrmuell/) shows which streets get a bulky-waste collection on which day, from the city's open data. It covers 185 dates in 2026. It sits with the other tools but stays its own app, with its own build and its own service worker, so it comes up on a phone while you are standing in front of the pile with no signal.
+
+## Addresses
+
+Every tool answers at two of them: `linu.li/tools/qr-creator/` and the short `linu.li/qr-creator/`, which redirects to the first. Nothing has to be registered for that — the server checks whether a directory of that name sits under `tools/` — so a new tool is reachable both ways the day it lands. The sitemap names one address per tool, the long one.
+
+The Bonn map used to live at `linu.li/sperrmuell/` and now answers under `tools/` like everything else. The old address redirects, with a single exception: `/sperrmuell/sw.js` still serves a small worker whose only job is to unregister the one that address installed. A service worker script is never fetched through a redirect — the browser reads that as a failed update and keeps what it has — so without that file the old worker would go on serving the old copy of the map out of its cache and never learn about the move.
 
 ## How it is built
 
@@ -102,8 +112,9 @@ assets/
   vendor/       third-party libraries
   manifest.json PWA manifest
 tools/          one folder per tool, each a standalone page
-sperrmuell/     the Bonn map, its own app with its own service worker
-tests/          three suites, see CONTRIBUTING.md
+  sperrmuell/   the Bonn map, its own app with its own build and worker
+sperrmuell/     the map's old address: one worker that retires itself
+tests/          the suites, see CONTRIBUTING.md
 index.html      the front page
 sw.js           service worker, has to sit at the root to cover the whole site
 ```

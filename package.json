@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "node test.js"
+    "test": "node tests/test-json-tools-browser.js"
   },
   "dependencies": {
     "diff": "^7.0.0",

@@ -7,3 +7,7 @@ node_modules/
 thisshouldbegitignored/
 # Vom Social-Cropper-Test bei jedem Lauf erzeugt und danach geloescht
 test_spec_image.png
+# Vom Playwright-Lauf angelegt
+test-results/
+# Vom Case-Converter-Test bei jedem Lauf erzeugt und danach geloescht
+tests/temp_worker_test.js

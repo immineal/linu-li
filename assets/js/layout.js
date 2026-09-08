@@ -339,6 +339,25 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.insertAdjacentHTML('afterbegin', headerHTML);
     document.body.insertAdjacentHTML('beforeend', footerHTML);
 
+    /* Ein Werkzeug meldet sich mit data-status="archiv" selbst als stillgelegt:
+       es steht nicht mehr auf der Startseite, laeuft aber weiter. Der Hinweis
+       gehoert auf die Seite selbst, denn sie wird von hier an nur noch ueber
+       Lesezeichen und Suchmaschinen erreicht — auf der Startseite steht nichts
+       mehr, was ihn zeigen koennte. Er sitzt oben im Inhalt statt ueber dem
+       Kopf, weil er ein Hinweis ist und keine Warnung. */
+    if (document.documentElement.getAttribute('data-status') === 'archiv') {
+        const platz = document.querySelector('main .container') || document.querySelector('main');
+        if (platz) {
+            platz.insertAdjacentHTML('afterbegin', `
+            <p class="archive-note">
+                ${say('This tool is no longer being developed. It still works, but it is no longer listed on the front page.',
+                      'Dieses Werkzeug wird nicht mehr weiterentwickelt. Es funktioniert weiter, steht aber nicht mehr auf der Startseite.')}
+                ${say('Need it back? Write to', 'Brauchst du es? Schreib an')}
+                <a href="mailto:feedback@linu.li">feedback@linu.li</a>
+            </p>`);
+        }
+    }
+
     // 4. Theme Logic
     const themeToggle = document.getElementById('theme-toggle');
     /* Ohne try/catch fiel hier alles Weitere aus, sobald der Browser den

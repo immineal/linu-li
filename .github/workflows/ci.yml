@@ -39,20 +39,13 @@ jobs:
             fi
           }
 
-          # .tests/ — skip hash-generator: requires Web Worker API (not in jsdom)
-          for f in .tests/*.test.js; do
+          # Every test lives in tests/. The ones listed below need a real
+          # browser and a server, so they run in the puppeteer job instead.
+          for f in tests/test-*.js; do
             [ -f "$f" ] || continue
             case "$f" in
-              .tests/hash-generator.test.js) echo "[SKIP] $f (requires Web Worker)"; continue ;;
-            esac
-            run_test "$f"
-          done
-
-          # tests/ — these drive a real browser against the local server and
-          # run in the puppeteer job instead.
-          for f in tests/test-*.js tests/test_*.js; do
-            [ -f "$f" ] || continue
-            case "$f" in
+              tests/test-hash-generator.js)
+                echo "[SKIP] $f (needs the Web Worker API, which jsdom has not got)"; continue ;;
               tests/test-pdf-watermarker.js|\
               tests/test-diff-checker-xss.js|\
               tests/test-exif-map-marker.js|\
@@ -64,13 +57,15 @@ jobs:
               tests/test-autosave-verhalten.js|\
               tests/test-update-hinweis.js|\
               tests/test-arbeit-haken.js|\
-              tests/test-page-metadata.js)
+              tests/test-page-metadata.js|\
+              tests/test-json-tools-browser.js|\
+              tests/test-archiv-hinweis.js)
                 echo "[SKIP] $f (Puppeteer — runs in puppeteer job)"; continue ;;
             esac
             run_test "$f"
           done
 
-          # Per-tool jsdom tests
+          # Per-tool jsdom tests, which sit next to the tool they cover
           for f in \
             tools/aspect-ratio/aspect-ratio.test.js \
             tools/image-resizer/test.js \
@@ -80,18 +75,6 @@ jobs:
             tools/url-tools/test.js \
             tools/color-tools/test_color_contrast.js \
             tools/unit-converter/test_regression.js; do
-            [ -f "$f" ] && run_test "$f"
-          done
-
-          # Standalone node test files
-          for f in \
-            test_binary_jpeg.js \
-            test_case_converter_worker.js \
-            test_piexif.js \
-            test_piexif_copyright.js \
-            test_piexif_inject.js \
-            test_pw_gen.js \
-            test_syllables.js; do
             [ -f "$f" ] && run_test "$f"
           done
 
@@ -159,7 +142,7 @@ jobs:
             fi
           }
 
-          run_test "test.js"
+          run_test "tests/test-json-tools-browser.js"
           run_test "tests/test-pdf-watermarker.js"
           run_test "tools/social-cropper/social-cropper.spec.js"
           run_test "tests/test-diff-checker-xss.js"
@@ -173,6 +156,7 @@ jobs:
           run_test "tests/test-update-hinweis.js"
           run_test "tests/test-arbeit-haken.js"
           run_test "tests/test-page-metadata.js"
+          run_test "tests/test-archiv-hinweis.js"
 
           echo ""
           echo "Results: $PASS passed, $FAIL failed"
@@ -226,7 +210,7 @@ jobs:
             fi
           }
 
-          run_test "test_ui.py"
+          run_test "tests/test_ui.py"
           run_test "tests/test_favicon.py"
 
           echo ""

@@ -38,6 +38,40 @@
         table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
         th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
         th { opacity: 0.65; font-weight: 600; }
+        code { overflow-wrap: anywhere; }
+        a { overflow-wrap: break-word; }
+        /* In der Tabelle nicht: sonst schrumpfen die Spalten zu Buchstabensaeulen,
+           statt dass der Kasten seitwaerts scrollt. */
+        th code, td code { overflow-wrap: normal; }
+
+        /* Die Tabellen sind breiter als ein Handydisplay. Sie scrollen deshalb
+           in ihrem eigenen Kasten, damit nicht die ganze Seite zu breit wird.
+           Der Schatten am Rand zeigt, dass rechts noch etwas steht:
+           die aeusseren Verlaeufe scrollen mit, die inneren decken sie am Ende ab. */
+        .table-scroll {
+            --edge: rgba(0, 0, 0, 0.25);
+            --edge-fade: rgba(0, 0, 0, 0);
+            overflow-x: auto;
+            margin: 1rem 0;
+            background:
+                linear-gradient(to right, var(--paper) 30%, var(--edge-fade)) left center / 3rem 100% no-repeat local,
+                linear-gradient(to left, var(--paper) 30%, var(--edge-fade)) right center / 3rem 100% no-repeat local,
+                radial-gradient(farthest-side at 0 50%, var(--edge), var(--edge-fade)) left center / 0.9rem 100% no-repeat scroll,
+                radial-gradient(farthest-side at 100% 50%, var(--edge), var(--edge-fade)) right center / 0.9rem 100% no-repeat scroll;
+        }
+        body.dark-mode .table-scroll {
+            --edge: rgba(255, 255, 255, 0.3);
+            --edge-fade: rgba(255, 255, 255, 0);
+        }
+        .table-scroll table { margin: 0; }
+        @media (max-width: 700px) {
+            /* Etwas breiter als noetig: sonst quetschen sich die langen Spalten
+               in schmale Saeulen und die Zeilen werden turmhoch. */
+            .table-scroll table.wide { min-width: 40rem; }
+            .lang-switch { float: none; display: inline-block; margin-bottom: 1rem; }
+            /* "Datenschutzerklaerung" ist breiter als ein 320px-Display. */
+            h1, h2, h3 { hyphens: auto; overflow-wrap: break-word; }
+        }
     </style>
 </head>
 <body>
@@ -78,19 +112,21 @@
 
                 <h2>4. Browser-Speicher (LocalStorage)</h2>
                 <p>Die Seite speichert kleine Datenmengen im <code>localStorage</code> deines Browsers:</p>
-                <table>
-                    <tr><th>Schlüssel</th><th>Inhalt</th><th>Zweck</th></tr>
-                    <tr><td><code>theme</code></td><td><code>dark</code> / <code>light</code></td><td>Gewähltes Farbschema</td></tr>
-                    <tr><td><code>ll_toolbox_favorites</code></td><td>Liste von Tool-IDs</td><td>Angepinnte Favoriten auf der Startseite</td></tr>
-                    <tr><td><code>autosave_&lt;Pfad&gt;_&lt;Feld&gt;</code></td><td>Der Wert eines Einstellungsfeldes, z.&nbsp;B. ein Ausgabeformat, eine Zeitzone, eine Maßeinheit</td><td>Damit ein Werkzeug beim nächsten Mal so eingestellt ist wie zuletzt. Gespeichert wird ausschließlich, was im Quelltext ausdrücklich als Einstellung markiert ist — <strong>keine Texte, Dateien, Passwörter oder Schlüssel, die du in ein Werkzeug eingibst</strong>.</td></tr>
-                    <tr><td><code>ll_autosave_bereinigt_v1</code></td><td><code>1</code></td><td>Merker, dass die einmalige Bereinigung unten schon gelaufen ist</td></tr>
-                    <tr><td><code>linuli_currency_rates</code></td><td>Wechselkurse als JSON</td><td>Einheiten-Umrechner: Kurse zwischenspeichern, statt sie bei jedem Aufruf neu abzufragen</td></tr>
-                    <tr><td><code>linuli_currency_time</code></td><td>Zeitstempel</td><td>Einheiten-Umrechner: Alter der Kurse (sie gelten eine Stunde)</td></tr>
-                    <tr><td><code>sp.planner.v1</code></td><td><strong>Deine gesamte Arbeit im Bühnenbild-Planer</strong>: Titel, Spielstätte, Akte, Szenen, Orte, Notizen, Beschriftungen und selbst hochgeladene Requisitenbilder</td><td>Damit eine Produktion beim nächsten Öffnen noch da ist</td></tr>
-                    <tr><td><code>sp.planner.ui.v1</code></td><td>Schalterstellungen und zuletzt gewählte Ansicht</td><td>Bühnenbild-Planer: Ansicht wiederherstellen</td></tr>
-                    <tr><td><code>sp.planner.aside.v1</code>, <code>sp.planner.rail.v1</code></td><td>Spaltenbreiten in Pixeln</td><td>Bühnenbild-Planer: Aufteilung des Fensters</td></tr>
-                    <tr><td><code>sp.planner.welcomed.v1</code></td><td><code>1</code></td><td>Bühnenbild-Planer: Merker, dass die Einführung gezeigt wurde</td></tr>
-                </table>
+                <div class="table-scroll">
+                    <table class="wide">
+                        <thead><tr><th>Schlüssel</th><th>Inhalt</th><th>Zweck</th></tr></thead>
+                        <tr><td><code>theme</code></td><td><code>dark</code> / <code>light</code></td><td>Gewähltes Farbschema</td></tr>
+                        <tr><td><code>ll_toolbox_favorites</code></td><td>Liste von Tool-IDs</td><td>Angepinnte Favoriten auf der Startseite</td></tr>
+                        <tr><td><code>autosave_&lt;Pfad&gt;_&lt;Feld&gt;</code></td><td>Der Wert eines Einstellungsfeldes, z.&nbsp;B. ein Ausgabeformat, eine Zeitzone, eine Maßeinheit</td><td>Damit ein Werkzeug beim nächsten Mal so eingestellt ist wie zuletzt. Gespeichert wird ausschließlich, was im Quelltext ausdrücklich als Einstellung markiert ist — <strong>keine Texte, Dateien, Passwörter oder Schlüssel, die du in ein Werkzeug eingibst</strong>.</td></tr>
+                        <tr><td><code>ll_autosave_bereinigt_v1</code></td><td><code>1</code></td><td>Merker, dass die einmalige Bereinigung unten schon gelaufen ist</td></tr>
+                        <tr><td><code>linuli_currency_rates</code></td><td>Wechselkurse als JSON</td><td>Einheiten-Umrechner: Kurse zwischenspeichern, statt sie bei jedem Aufruf neu abzufragen</td></tr>
+                        <tr><td><code>linuli_currency_time</code></td><td>Zeitstempel</td><td>Einheiten-Umrechner: Alter der Kurse (sie gelten eine Stunde)</td></tr>
+                        <tr><td><code>sp.planner.v1</code></td><td><strong>Deine gesamte Arbeit im Bühnenbild-Planer</strong>: Titel, Spielstätte, Akte, Szenen, Orte, Notizen, Beschriftungen und selbst hochgeladene Requisitenbilder</td><td>Damit eine Produktion beim nächsten Öffnen noch da ist</td></tr>
+                        <tr><td><code>sp.planner.ui.v1</code></td><td>Schalterstellungen und zuletzt gewählte Ansicht</td><td>Bühnenbild-Planer: Ansicht wiederherstellen</td></tr>
+                        <tr><td><code>sp.planner.aside.v1</code>, <code>sp.planner.rail.v1</code></td><td>Spaltenbreiten in Pixeln</td><td>Bühnenbild-Planer: Aufteilung des Fensters</td></tr>
+                        <tr><td><code>sp.planner.welcomed.v1</code></td><td><code>1</code></td><td>Bühnenbild-Planer: Merker, dass die Einführung gezeigt wurde</td></tr>
+                    </table>
+                </div>
                 <p>Dazu legt die Seite über die <em>Cache Storage</em> deines Browsers zwei Ablagen an — <code>ll-toolbox-v4</code> für die Toolbox und <code>sperrmuell-v1</code> für die Sperrmüll-Karte. Darin liegen ausgelieferte Dateien (Seiten, Skripte, Stilvorlagen, Kartenkacheln), damit die Seite auch ohne Netzverbindung funktioniert. Eingaben landen dort nicht.</p>
                 <p>Diese Daten verlassen dein Gerät nicht und werden nicht an den Server übertragen. Rechtsgrundlage: § 25 Abs. 2 Nr. 2 TDDDG (technisch erforderlich für die angeforderte Funktion). Sie bleiben gespeichert, bis du sie löschst — über die Einstellungen deines Browsers („Website-Daten löschen") oder die Entwicklertools. Der Bühnenbild-Planer hat dafür eine eigene Schaltfläche.</p>
                 <div class="warn-box">
@@ -135,22 +171,26 @@
 
                 <h3>5d. cdn.jsdelivr.net (nur: Zeit-Umrechner)</h3>
                 <p>Der Zeit-Umrechner lädt die Bibliothek <code>chrono-node</code> erst dann von jsDelivr nach, wenn du eine Zeitangabe in natürlicher Sprache auswerten lässt. Vorher findet keine Anfrage statt.</p>
-                <table>
-                    <tr><td>Server</td><td><code>cdn.jsdelivr.net</code> (Betreiber: jsDelivr, Prospect One)</td></tr>
-                    <tr><td>Übertragene Daten</td><td>IP-Adresse, angefragte Modul-Adresse</td></tr>
-                    <tr><td>Zeitpunkt</td><td>Erst beim Auswerten, danach zwischengespeichert</td></tr>
-                    <tr><td>Rechtsgrundlage</td><td>Art. 6 Abs. 1 lit. f DSGVO (technisch notwendig für die Funktion)</td></tr>
-                </table>
+                <div class="table-scroll">
+                    <table>
+                        <tr><td>Server</td><td><code>cdn.jsdelivr.net</code> (Betreiber: jsDelivr, Prospect One)</td></tr>
+                        <tr><td>Übertragene Daten</td><td>IP-Adresse, angefragte Modul-Adresse</td></tr>
+                        <tr><td>Zeitpunkt</td><td>Erst beim Auswerten, danach zwischengespeichert</td></tr>
+                        <tr><td>Rechtsgrundlage</td><td>Art. 6 Abs. 1 lit. f DSGVO (technisch notwendig für die Funktion)</td></tr>
+                    </table>
+                </div>
                 <p>Deine Eingabe selbst wird nicht übertragen — sie wird im Browser ausgewertet, nachdem die Bibliothek geladen ist.</p>
 
                 <h3>5e. Wechselkurse (nur: Einheiten-Umrechner)</h3>
                 <p>Für Währungsumrechnungen holt der Einheiten-Umrechner aktuelle Kurse. Die Anfrage enthält keine Angabe darüber, welchen Betrag oder welche Währung du umrechnest — es wird immer die gesamte Kurstabelle geladen und im Browser gerechnet.</p>
-                <table>
-                    <tr><td>Server</td><td><code>open.er-api.com</code> (Wechselkurse) und <code>api.coincap.io</code> (Kryptowährungen)</td></tr>
-                    <tr><td>Übertragene Daten</td><td>IP-Adresse, angefragte Adresse</td></tr>
-                    <tr><td>Zeitpunkt</td><td>Höchstens einmal pro Stunde, danach aus dem lokalen Zwischenspeicher</td></tr>
-                    <tr><td>Rechtsgrundlage</td><td>Art. 6 Abs. 1 lit. f DSGVO (technisch notwendig für die Funktion)</td></tr>
-                </table>
+                <div class="table-scroll">
+                    <table>
+                        <tr><td>Server</td><td><code>open.er-api.com</code> (Wechselkurse) und <code>api.coincap.io</code> (Kryptowährungen)</td></tr>
+                        <tr><td>Übertragene Daten</td><td>IP-Adresse, angefragte Adresse</td></tr>
+                        <tr><td>Zeitpunkt</td><td>Höchstens einmal pro Stunde, danach aus dem lokalen Zwischenspeicher</td></tr>
+                        <tr><td>Rechtsgrundlage</td><td>Art. 6 Abs. 1 lit. f DSGVO (technisch notwendig für die Funktion)</td></tr>
+                    </table>
+                </div>
 
                 <h2>6. Deine Rechte</h2>
                 <p>Du hast gegenüber dem Verantwortlichen folgende Rechte hinsichtlich der dich betreffenden personenbezogenen Daten:</p>
@@ -205,19 +245,21 @@
 
                 <h2>4. Browser Storage (LocalStorage)</h2>
                 <p>The site stores small amounts of data in your browser's <code>localStorage</code>:</p>
-                <table>
-                    <tr><th>Key</th><th>Content</th><th>Purpose</th></tr>
-                    <tr><td><code>theme</code></td><td><code>dark</code> / <code>light</code></td><td>Chosen colour scheme</td></tr>
-                    <tr><td><code>ll_toolbox_favorites</code></td><td>List of tool IDs</td><td>Pinned favorites on the front page</td></tr>
-                    <tr><td><code>autosave_&lt;path&gt;_&lt;field&gt;</code></td><td>The value of a settings field — an output format, a timezone, a unit</td><td>So a tool comes back set up the way you left it. Only fields explicitly marked as settings in the source are stored — <strong>never text, files, passwords or keys you enter into a tool</strong>.</td></tr>
-                    <tr><td><code>ll_autosave_bereinigt_v1</code></td><td><code>1</code></td><td>Marks that the one-time clear-out described below has run</td></tr>
-                    <tr><td><code>linuli_currency_rates</code></td><td>Exchange rates as JSON</td><td>Unit converter: cached rates instead of fetching them on every visit</td></tr>
-                    <tr><td><code>linuli_currency_time</code></td><td>Timestamp</td><td>Unit converter: age of those rates (they are valid for one hour)</td></tr>
-                    <tr><td><code>sp.planner.v1</code></td><td><strong>All of your work in the stage planner</strong>: titles, venue, acts, scenes, places, notes, labels and any prop images you uploaded</td><td>So a production is still there when you come back</td></tr>
-                    <tr><td><code>sp.planner.ui.v1</code></td><td>Toggle states and the view you last used</td><td>Stage planner: restoring the view</td></tr>
-                    <tr><td><code>sp.planner.aside.v1</code>, <code>sp.planner.rail.v1</code></td><td>Column widths in pixels</td><td>Stage planner: window layout</td></tr>
-                    <tr><td><code>sp.planner.welcomed.v1</code></td><td><code>1</code></td><td>Stage planner: marks that the introduction has been shown</td></tr>
-                </table>
+                <div class="table-scroll">
+                    <table class="wide">
+                        <thead><tr><th>Key</th><th>Content</th><th>Purpose</th></tr></thead>
+                        <tr><td><code>theme</code></td><td><code>dark</code> / <code>light</code></td><td>Chosen colour scheme</td></tr>
+                        <tr><td><code>ll_toolbox_favorites</code></td><td>List of tool IDs</td><td>Pinned favorites on the front page</td></tr>
+                        <tr><td><code>autosave_&lt;path&gt;_&lt;field&gt;</code></td><td>The value of a settings field — an output format, a timezone, a unit</td><td>So a tool comes back set up the way you left it. Only fields explicitly marked as settings in the source are stored — <strong>never text, files, passwords or keys you enter into a tool</strong>.</td></tr>
+                        <tr><td><code>ll_autosave_bereinigt_v1</code></td><td><code>1</code></td><td>Marks that the one-time clear-out described below has run</td></tr>
+                        <tr><td><code>linuli_currency_rates</code></td><td>Exchange rates as JSON</td><td>Unit converter: cached rates instead of fetching them on every visit</td></tr>
+                        <tr><td><code>linuli_currency_time</code></td><td>Timestamp</td><td>Unit converter: age of those rates (they are valid for one hour)</td></tr>
+                        <tr><td><code>sp.planner.v1</code></td><td><strong>All of your work in the stage planner</strong>: titles, venue, acts, scenes, places, notes, labels and any prop images you uploaded</td><td>So a production is still there when you come back</td></tr>
+                        <tr><td><code>sp.planner.ui.v1</code></td><td>Toggle states and the view you last used</td><td>Stage planner: restoring the view</td></tr>
+                        <tr><td><code>sp.planner.aside.v1</code>, <code>sp.planner.rail.v1</code></td><td>Column widths in pixels</td><td>Stage planner: window layout</td></tr>
+                        <tr><td><code>sp.planner.welcomed.v1</code></td><td><code>1</code></td><td>Stage planner: marks that the introduction has been shown</td></tr>
+                    </table>
+                </div>
                 <p>The site also keeps two stores in your browser's <em>Cache Storage</em> — <code>ll-toolbox-v4</code> for the toolbox and <code>sperrmuell-v1</code> for the bulky-waste map. These hold files the site serves (pages, scripts, stylesheets, map tiles) so that it works without a network connection. Nothing you type goes in there.</p>
                 <p>This data stays on your device and is never sent to a server. Legal basis: § 25 (2) No. 2 TDDDG (technically required for the requested functionality). It stays until you remove it — through your browser's settings ("clear site data") or its developer tools. The stage planner has a button of its own for this.</p>
                 <div class="warn-box">
@@ -262,22 +304,26 @@
 
                 <h3>5d. cdn.jsdelivr.net (only: Time Converter)</h3>
                 <p>The time converter loads the <code>chrono-node</code> library from jsDelivr only once you ask it to parse a date written in plain language. Before that, no request is made.</p>
-                <table>
-                    <tr><td>Server</td><td><code>cdn.jsdelivr.net</code> (operated by jsDelivr, Prospect One)</td></tr>
-                    <tr><td>Data transmitted</td><td>IP address, requested module URL</td></tr>
-                    <tr><td>When</td><td>On first parse, cached afterwards</td></tr>
-                    <tr><td>Legal basis</td><td>Art. 6 (1) (f) GDPR (technically required for the feature)</td></tr>
-                </table>
+                <div class="table-scroll">
+                    <table>
+                        <tr><td>Server</td><td><code>cdn.jsdelivr.net</code> (operated by jsDelivr, Prospect One)</td></tr>
+                        <tr><td>Data transmitted</td><td>IP address, requested module URL</td></tr>
+                        <tr><td>When</td><td>On first parse, cached afterwards</td></tr>
+                        <tr><td>Legal basis</td><td>Art. 6 (1) (f) GDPR (technically required for the feature)</td></tr>
+                    </table>
+                </div>
                 <p>What you typed is not transmitted — it is parsed in your browser once the library has loaded.</p>
 
                 <h3>5e. Exchange rates (only: Unit Converter)</h3>
                 <p>For currency conversion the unit converter fetches current rates. The request says nothing about which amount or which currency you are converting — the whole rate table is fetched and the conversion happens in your browser.</p>
-                <table>
-                    <tr><td>Server</td><td><code>open.er-api.com</code> (currencies) and <code>api.coincap.io</code> (cryptocurrencies)</td></tr>
-                    <tr><td>Data transmitted</td><td>IP address, requested URL</td></tr>
-                    <tr><td>When</td><td>At most once an hour, from a local cache in between</td></tr>
-                    <tr><td>Legal basis</td><td>Art. 6 (1) (f) GDPR (technically required for the feature)</td></tr>
-                </table>
+                <div class="table-scroll">
+                    <table>
+                        <tr><td>Server</td><td><code>open.er-api.com</code> (currencies) and <code>api.coincap.io</code> (cryptocurrencies)</td></tr>
+                        <tr><td>Data transmitted</td><td>IP address, requested URL</td></tr>
+                        <tr><td>When</td><td>At most once an hour, from a local cache in between</td></tr>
+                        <tr><td>Legal basis</td><td>Art. 6 (1) (f) GDPR (technically required for the feature)</td></tr>
+                    </table>
+                </div>
 
                 <h2>6. Your Rights</h2>
                 <p>You have the following rights regarding your personal data:</p>

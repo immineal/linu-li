@@ -84,7 +84,7 @@ self.addEventListener('activate', (event) => {
             for (const name of await caches.keys()) {
                 if (name === CACHE_NAME) continue;
 
-                // Only our own. /sperrmuell/ ships a second worker of its
+                // Only our own. /tools/sperrmuell/ ships a second worker of its
                 // own with its own cache, on this same origin — and its
                 // activate deletes every cache that is not its own, this one
                 // included. Returning the favour would leave the two of them

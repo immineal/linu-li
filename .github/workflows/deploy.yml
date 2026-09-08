@@ -161,6 +161,7 @@ jobs:
           # the CI workflow reaches no browser and needs no sentence.
           GEAENDERT=$(git diff --name-only "$LIVE" HEAD -- . \
             ':(exclude)tests' ':(exclude).tests' ':(exclude).github' \
+            ':(exclude).jules' ':(exclude)test-results' \
             ':(exclude)thisshouldbegitignored' ':(exclude)README.md' \
             ':(exclude)package.json' ':(exclude)package-lock.json' \
             ':(exclude).gitignore' ':(exclude)start_server.js' \
@@ -221,7 +222,7 @@ jobs:
       # web server.
       - name: 🧹 Drop everything the website does not serve
         run: |
-          rm -rf tests .tests test-results .jules .Jules
+          rm -rf tests
           rm -f test.js test_*.js test-*.js test*.py test*.html test*.png
           rm -f package.json package-lock.json README.md .gitignore start_server.js
           rm -f assets/update-note.txt

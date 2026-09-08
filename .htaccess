@@ -15,6 +15,36 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
 RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
 
+# 2c. Short addresses for the tools: /qr-creator/ reaches /tools/qr-creator/
+# A link that drops the directory still arrives, which is most of them —
+# typed from memory, read off a screenshot, or written down years ago.
+#
+# A redirect rather than serving the page at both: two addresses answering
+# 200 with the same page is the duplicate content the rule above exists to
+# undo, and the sitemap names one address per tool.
+#
+# The condition asks the file system whether tools/<name>/ is a directory,
+# so nothing has to be listed here and a new tool is reachable the day it
+# lands. A root file such as privacy.html fails that test and is left alone,
+# as is /tools itself — there is no tools/tools.
+RewriteCond %{DOCUMENT_ROOT}/tools/$1 -d
+RewriteRule ^([^/]+)/?$ /tools/$1/ [L,R=301]
+
+# 2d. The Sperrmüll map used to live at /sperrmuell/ and now sits with the
+# rest of the tools. The rule above already catches the bare address; this
+# one carries the paths below it too, so an old link straight to the data
+# still lands.
+#
+# sw.js is deliberately not redirected. Everyone who opened the map before
+# the move has a worker registered from that address which answers every
+# request in the old scope out of its cache. A service worker script is
+# never fetched through a redirect — the browser reads a redirected update
+# as a failure and keeps what it has — so the old address goes on serving a
+# real script, and that script unregisters the worker. sperrmuell/sw.js says
+# the rest.
+RewriteCond %{REQUEST_URI} !^/sperrmuell/sw\.js$
+RewriteRule ^sperrmuell(?:/(.*))?$ /tools/sperrmuell/$1 [L,R=301]
+
 # 3. Remove trailing slashes (Optional, good for SEO consistency)
 # RewriteCond %{REQUEST_FILENAME} !-d
 # RewriteRule ^(.*)/$ /$1 [L,R=301]
