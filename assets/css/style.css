@@ -490,3 +490,21 @@ input, select, textarea { max-width: 100%; }
         to   { opacity: 1; transform: none; }
     }
 }
+
+/* === ARCHIV-HINWEIS === */
+/* Werkzeuge, die nicht mehr weiterentwickelt werden, tragen ihn oben im
+   Inhalt. Gedaempft und ohne Warnfarbe: die Seite tut ja noch, was sie soll,
+   sie waechst nur nicht mehr. Gebaut wird er in layout.js, sobald
+   <html data-status="archiv"> es verlangt. */
+.archive-note {
+    max-width: none;
+    margin: 0 0 2rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--ink-secondary);
+    border-radius: 4px;
+    background: var(--code-bg);
+    color: var(--ink-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}

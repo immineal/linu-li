@@ -21,11 +21,6 @@
 		<lastmod>2025-11-22</lastmod>
 	</url>
 	<url>
-		<loc>https://linu.li/tools/word-counter/</loc>
-		<priority>0.33</priority>
-		<lastmod>2025-11-21</lastmod>
-	</url>
-	<url>
 		<loc>https://linu.li/tools/buehnenbild/</loc>
 		<priority>0.5</priority>
 		<lastmod>2026-09-05</lastmod>
@@ -34,11 +29,6 @@
 		<loc>https://linu.li/tools/buehnenbild/handbuch.html</loc>
 		<priority>0.33</priority>
 		<lastmod>2026-09-05</lastmod>
-	</url>
-	<url>
-		<loc>https://linu.li/tools/future-bank-notes/</loc>
-		<priority>0.5</priority>
-		<lastmod>2026-07-24</lastmod>
 	</url>
 	<url>
 		<loc>https://linu.li/tools/url-tools/</loc>
@@ -56,16 +46,6 @@
 		<lastmod>2025-11-22</lastmod>
 	</url>
 	<url>
-		<loc>https://linu.li/tools/svg-to-png/</loc>
-		<priority>0.33</priority>
-		<lastmod>2025-11-21</lastmod>
-	</url>
-	<url>
-		<loc>https://linu.li/tools/sql-formatter/</loc>
-		<priority>0.33</priority>
-		<lastmod>2025-11-21</lastmod>
-	</url>
-	<url>
 		<loc>https://linu.li/tools/social-cropper/</loc>
 		<priority>0.33</priority>
 		<lastmod>2025-11-22</lastmod>
@@ -79,11 +59,6 @@
 		<loc>https://linu.li/tools/pw-generator/</loc>
 		<priority>0.33</priority>
 		<lastmod>2025-11-21</lastmod>
-	</url>
-	<url>
-		<loc>https://linu.li/tools/pdf-watermarker/</loc>
-		<priority>0.33</priority>
-		<lastmod>2025-11-22</lastmod>
 	</url>
 	<url>
 		<loc>https://linu.li/tools/pdf-splitter/</loc>
@@ -119,16 +94,6 @@
 		<loc>https://linu.li/tools/lorem-generator/</loc>
 		<priority>0.33</priority>
 		<lastmod>2025-11-22</lastmod>
-	</url>
-	<url>
-		<loc>https://linu.li/tools/list-cleaner/</loc>
-		<priority>0.33</priority>
-		<lastmod>2025-11-21</lastmod>
-	</url>
-	<url>
-		<loc>https://linu.li/tools/jwt-debugger/</loc>
-		<priority>0.33</priority>
-		<lastmod>2025-11-21</lastmod>
 	</url>
 	<url>
 		<loc>https://linu.li/tools/json-tools/</loc>
@@ -171,18 +136,8 @@
 		<lastmod>2025-11-21</lastmod>
 	</url>
 	<url>
-		<loc>https://linu.li/tools/case-converter/</loc>
-		<priority>0.33</priority>
-		<lastmod>2025-11-21</lastmod>
-	</url>
-	<url>
 		<loc>https://linu.li/tools/base64-converter/</loc>
 		<priority>0.33</priority>
 		<lastmod>2025-11-22</lastmod>
-	</url>
-	<url>
-		<loc>https://linu.li/tools/aspect-ratio/</loc>
-		<priority>0.33</priority>
-		<lastmod>2025-11-21</lastmod>
 	</url>
 </urlset>

@@ -1,6 +1,6 @@
 # linu-li
 
-Small tools that run in a browser tab. Merging a PDF, stripping the GPS out of a photo, decoding a JWT: the sort of thing you look up, use once, and close again.
+Small tools that run in a browser tab. Merging a PDF, stripping the GPS out of a photo, generating a QR code: the sort of thing you look up, use once, and close again.
 
 Live at [linu.li](https://linu.li).
 
@@ -21,7 +21,6 @@ Five things do reach outside, and none of them carries your file. The EXIF tool 
 - [Image extractor](tools/pdf-extractor/) pulls out every image embedded in a PDF
 - [2-up](tools/pdf-2up/) puts two pages on one sheet for booklets
 - [Grayscale](tools/pdf-grayscale/) flattens colour to black and white, which also cleans up phone scans
-- [Watermarker](tools/pdf-watermarker/) stamps text across every page
 
 ### Images
 
@@ -30,22 +29,16 @@ Five things do reach outside, and none of them carries your file. The EXIF tool 
 - [Social cropper](tools/social-cropper/) crops to the ratios Instagram, Twitter and LinkedIn expect
 - [EXIF remover](tools/exif-scrubber/) shows the location and camera data hidden in a photo before it strips it
 - [Favicon generator](tools/favicon-maker/) builds `.ico` and `.png` icons from text, an emoji or an image
-- [SVG to PNG](tools/svg-to-png/) renders a vector file at whatever resolution you need
 
 ### Text
 
-- [Word counter](tools/word-counter/) counts words, characters and sentences, and estimates reading time
 - [Diff checker](tools/diff-checker/) highlights what changed between two texts, side by side or inline
 - [Markdown editor](tools/markdown-editor/) previews as you type and exports HTML
-- [List cleaner](tools/list-cleaner/) removes duplicates, sorts, shuffles and trims
-- [Case converter](tools/case-converter/) moves text between camelCase, snake_case, Title Case and the rest
 - [Lorem generator](tools/lorem-generator/) makes filler text in Latin, tech jargon or corporate speak
 
 ### Developer
 
 - [JSON tools](tools/json-tools/) validate, repair, minify and show a collapsible tree
-- [SQL formatter](tools/sql-formatter/) tidies up a query you inherited
-- [JWT decoder](tools/jwt-debugger/) reads the header and payload and tells you whether it has expired
 - [URL tools](tools/url-tools/) encode, decode, and strip tracking junk such as `utm_source` and `fbclid`
 - [Base64](tools/base64-converter/) converts text or a whole file, both directions
 - [Timestamp converter](tools/time-converter/) turns Unix epochs into dates and back, across time zones
@@ -56,9 +49,20 @@ Five things do reach outside, and none of them carries your file. The EXIF tool 
 
 - [QR generator](tools/qr-creator/) for links, WiFi credentials and contact cards
 - [Colour tools](tools/color-tools/) pick, convert between HEX, RGB and HSL, and check WCAG contrast
-- [Aspect ratio calculator](tools/aspect-ratio/) works out the missing side
 - [Unit converter](tools/unit-converter/) handles length, weight, temperature, speed, storage and currency
-- [Future euro banknotes](tools/future-bank-notes/) is a German gallery of the ten ECB design proposals, with a way to compare and rate them
+
+### No longer developed
+
+These still work and still answer at their old addresses, and they say so at the top of the page. They are off the front page and off the sitemap, and they do not get changes any more.
+
+- [Watermarker](tools/pdf-watermarker/) stamps text across every page
+- [SVG to PNG](tools/svg-to-png/) renders a vector file at whatever resolution you need
+- [Word counter](tools/word-counter/) counts words, characters and sentences, and estimates reading time
+- [List cleaner](tools/list-cleaner/) removes duplicates, sorts, shuffles and trims
+- [Case converter](tools/case-converter/) moves text between camelCase, snake_case, Title Case and the rest
+- [SQL formatter](tools/sql-formatter/) tidies up a query you inherited
+- [JWT decoder](tools/jwt-debugger/) reads the header and payload and tells you whether it has expired
+- [Aspect ratio calculator](tools/aspect-ratio/) works out the missing side
 
 ### Two bigger ones
 

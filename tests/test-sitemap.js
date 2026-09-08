@@ -46,16 +46,29 @@ for (const url of locs) {
     if (!fs.existsSync(path.join(ROOT, p))) fail(`sitemap lists ${url}, but ${p} is not in the repository`);
 }
 
-// 3. Every tool page is listed.
+// 3. Every tool page is listed — except the ones that are done growing.
+//    A page carrying data-status="archiv" stays reachable but is no longer
+//    advertised: it is off the front page, and it belongs off the sitemap
+//    too. Listing it would ask crawlers to keep sending people to something
+//    nobody maintains any more.
 const toolsDir = path.join(ROOT, 'tools');
 const listedPaths = new Set(locs.map((u) => new URL(u).pathname.replace(/\/?$/, '/')));
+let archiviert = 0;
 for (const tool of fs.readdirSync(toolsDir).sort()) {
-    if (!fs.existsSync(path.join(toolsDir, tool, 'index.html'))) continue;
-    if (!listedPaths.has(`/tools/${tool}/`)) fail(`tools/${tool}/ exists but is missing from sitemap.xml`);
+    const seite = path.join(toolsDir, tool, 'index.html');
+    if (!fs.existsSync(seite)) continue;
+    const istArchiv = /<html[^>]*\sdata-status="archiv"/.test(fs.readFileSync(seite, 'utf8'));
+    if (istArchiv) archiviert++;
+    if (istArchiv && listedPaths.has(`/tools/${tool}/`)) {
+        fail(`tools/${tool}/ is archived, but sitemap.xml still lists it`);
+    }
+    if (!istArchiv && !listedPaths.has(`/tools/${tool}/`)) {
+        fail(`tools/${tool}/ exists but is missing from sitemap.xml`);
+    }
 }
 
 if (process.exitCode) {
     console.error('Sitemap test failed.');
 } else {
-    console.log(`PASS: sitemap — ${locs.length} URLs, all on ${expectedOrigin}, all present, every tool listed`);
+    console.log(`PASS: sitemap — ${locs.length} URLs, all on ${expectedOrigin}, all present, every tool listed, ${archiviert} archived ones left out`);
 }
