@@ -58,7 +58,8 @@ jobs:
               tests/test-update-hinweis.js|\
               tests/test-arbeit-haken.js|\
               tests/test-page-metadata.js|\
-              tests/test-json-tools-browser.js)
+              tests/test-json-tools-browser.js|\
+              tests/test-archiv-hinweis.js)
                 echo "[SKIP] $f (Puppeteer — runs in puppeteer job)"; continue ;;
             esac
             run_test "$f"
@@ -155,6 +156,7 @@ jobs:
           run_test "tests/test-update-hinweis.js"
           run_test "tests/test-arbeit-haken.js"
           run_test "tests/test-page-metadata.js"
+          run_test "tests/test-archiv-hinweis.js"
 
           echo ""
           echo "Results: $PASS passed, $FAIL failed"
