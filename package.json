@@ -1,0 +1,20 @@
+{
+  "name": "sperrmuell",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Bonn Sperrm\u00fcll (bulky-waste) collection map \u2014 exact street/zone geometry by date",
+  "workspaces": [
+    "etl",
+    "app"
+  ],
+  "scripts": {
+    "data": "npm run build --workspace etl && npm run start --workspace etl",
+    "data:from-file": "npm run build --workspace etl && npm run start --workspace etl -- --input",
+    "test": "npm test --workspace etl && npm test --workspace app",
+    "dev": "npm run dev --workspace app",
+    "build": "npm run build --workspace app",
+    "preview": "npm run preview --workspace app",
+    "publish:site": "npm run publish:site --workspace app --"
+  },
+  "license": "MIT"
+}
