@@ -31,18 +31,22 @@ RewriteCond %{DOCUMENT_ROOT}/tools/$1 -d
 RewriteRule ^([^/]+)/?$ /tools/$1/ [L,R=301]
 
 # 2d. The Sperrmüll map used to live at /sperrmuell/ and now sits with the
-# rest of the tools. The rule above already catches the bare address; this
-# one carries the paths below it too, so an old link straight to the data
-# still lands.
+# rest of the tools. The rule above already catches the bare address; the
+# 301 below carries the paths under it too, so an old link straight to the
+# data still lands.
 #
-# sw.js is deliberately not redirected. Everyone who opened the map before
-# the move has a worker registered from that address which answers every
-# request in the old scope out of its cache. A service worker script is
-# never fetched through a redirect — the browser reads a redirected update
-# as a failure and keeps what it has — so the old address goes on serving a
-# real script, and that script unregisters the worker. sperrmuell/sw.js says
-# the rest.
-RewriteCond %{REQUEST_URI} !^/sperrmuell/sw\.js$
+# The one exception comes first, and it is not a redirect but an internal
+# rewrite — the address stays /sperrmuell/sw.js and answers 200 with a file
+# that lives inside the tool. Everyone who opened the map before the move has
+# a worker registered from that address which answers every request in the
+# old scope out of its cache. A service worker script is never fetched
+# through a redirect: the browser reads a redirected update as a failure and
+# keeps the worker it has, so the old app would go on being served and the
+# 301 underneath would never be reached. Answering with a real script instead
+# lets that script take the old registration apart. A worker's scope comes
+# from the address it was requested from, not from where the file sits, so
+# rewriting internally keeps the scope at /sperrmuell/ where it has to be.
+RewriteRule ^sperrmuell/sw\.js$ tools/sperrmuell/abgemeldet-sw.js [L]
 RewriteRule ^sperrmuell(?:/(.*))?$ /tools/sperrmuell/$1 [L,R=301]
 
 # 3. Remove trailing slashes (Optional, good for SEO consistency)

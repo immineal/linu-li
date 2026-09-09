@@ -74,7 +74,7 @@ The [Bonn Sperrmüll map](tools/sperrmuell/) shows which streets get a bulky-was
 
 Every tool answers at two of them: `linu.li/tools/qr-creator/` and the short `linu.li/qr-creator/`, which redirects to the first. Nothing has to be registered for that — the server checks whether a directory of that name sits under `tools/` — so a new tool is reachable both ways the day it lands. The sitemap names one address per tool, the long one.
 
-The Bonn map used to live at `linu.li/sperrmuell/` and now answers under `tools/` like everything else. The old address redirects, with a single exception: `/sperrmuell/sw.js` still serves a small worker whose only job is to unregister the one that address installed. A service worker script is never fetched through a redirect — the browser reads that as a failed update and keeps what it has — so without that file the old worker would go on serving the old copy of the map out of its cache and never learn about the move.
+The Bonn map used to live at `linu.li/sperrmuell/` and now answers under `tools/` like everything else. The old address redirects, with a single exception: `/sperrmuell/sw.js` is rewritten internally — not redirected — to `tools/sperrmuell/abgemeldet-sw.js`, so it still answers 200 with a real script. That script's only job is to unregister the worker that address installed. A service worker script is never fetched through a redirect: the browser reads that as a failed update and keeps what it has, so without this the old worker would go on serving the old copy of the map out of its cache and never learn about the move. A worker's scope comes from the address it was requested from rather than from where the file sits, which is why the file can live inside the tool instead of in a directory of its own at the root.
 
 ## How it is built
 
@@ -113,7 +113,6 @@ assets/
   manifest.json PWA manifest
 tools/          one folder per tool, each a standalone page
   sperrmuell/   the Bonn map, its own app with its own build and worker
-sperrmuell/     the map's old address: one worker that retires itself
 tests/          the suites, see CONTRIBUTING.md
 index.html      the front page
 sw.js           service worker, has to sit at the root to cover the whole site
