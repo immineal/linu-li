@@ -80,6 +80,8 @@ The Bonn map used to live at `linu.li/sperrmuell/` and now answers under `tools/
 
 Plain HTML, CSS and JavaScript. No bundler, no framework, no build step: what is in the repository is what the server sends, and each tool is one self-contained `index.html`. The Bonn map is the exception, a Vite build whose output is committed.
 
+Everything under `tools/sperrmuell/` is that output and nothing in it should be edited here. It is written by `npm run publish:site` in the map's own project, which mirrors its `dist/` into this directory — the two `.htaccess` rules and `abgemeldet-sw.js` included, so the mirror is complete and needs no exceptions. Editing this copy is how the two last came apart: a fix to the map's service worker was made here and never upstream, so the source kept the bug and the next build would have shipped it back out. Tests on both sides watch for that now.
+
 Libraries sit in `assets/vendor/` and are served from here rather than a CDN, so a tool keeps working on a day when someone else's CDN does not. pdf-lib, pdf.js and jsPDF do the PDF work. Cropper.js and piexif handle images, marked and DOMPurify render Markdown safely, jsdiff finds the differences between two texts, sql-formatter reprints queries, and JSONPath runs the queries in the JSON tool. Leaflet draws the map in the EXIF tool. Day.js does dates, JSZip packs up downloads of more than one file, and hashing goes through the Web Crypto API, with crypto-js and sha3 filling in algorithms the browser does not offer. Both fonts, Libre Baskerville and Space Grotesk, are self-hosted as well.
 
 ## Running it locally

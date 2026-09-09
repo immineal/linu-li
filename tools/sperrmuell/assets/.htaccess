@@ -1,11 +1,15 @@
-# Vite writes the content hash into the file name here — index-BfOfI3-e.js
-# changes its name whenever its contents change. That is versioning done
-# properly, so these files can be held for good, and the site-wide
-# "revalidate every script" rule one directory up would only cost a round
-# trip that can never find anything.
+# Vite writes the content hash into the file name here — index-<hash>.js gets
+# a new name whenever its contents change, so no name ever stands for two
+# different files. That is versioning done properly, so these can be held for
+# good, and the site-wide "revalidate every script" rule one directory up
+# would only cost a round trip that can never find anything.
 #
-# This does not reach sperrmuell/sw.js: that one sits a level up and keeps
-# the root's no-cache, which is the one header a service worker must have.
+# Deliberately no example hash in this sentence: it would be wrong after the
+# next build, and a comment nobody can trust is worse than none.
+#
+# This does not reach the two workers, sw.js and abgemeldet-sw.js: both sit a
+# level up and keep the site-wide no-cache, which is the one header a service
+# worker must have.
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresDefault "access plus 1 year"
