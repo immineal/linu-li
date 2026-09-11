@@ -5264,22 +5264,17 @@
     function fitView() {
         var sc = scene();
         if (!sc) return;
-        var view = Object.assign({}, SPPlan.build(planSettings(sc)).view);
         /* Der Ausschnitt richtete sich allein nach dem Bühnenumriss. Ein
            Requisit, das neben der Bühne steht, lag damit hinter dem Rand der
            Zeichenfläche — unsichtbar wegen `overflow: hidden`, mit der Maus
-           nicht mehr zu fassen, und „Einpassen" holte es nicht zurück. Jetzt
-           nimmt der Ausschnitt alles mit, was in der Szene steht. */
-        (sc.placements || []).forEach(function (p) {
-            var hw = Math.max(p.w, p.h) / 2;
-            var x0 = Math.min(view.x, p.x - hw);
-            var y0 = Math.min(view.y, p.y - hw);
-            view.w = Math.max(view.x + view.w, p.x + hw) - x0;
-            view.h = Math.max(view.y + view.h, p.y + hw) - y0;
-            view.x = x0;
-            view.y = y0;
-        });
-        ui.view = view;
+           nicht mehr zu fassen, und „Einpassen" holte es nicht zurück.
+
+           Das wurde hier einmal behoben, indem der Ausschnitt hinterher noch
+           einmal aufgezogen wurde — mit max(w, h) statt der wirklichen
+           Ausdehnung, und nur hier. Der gedruckte Plan bekam davon nichts ab
+           und schnitt weiter ab. Jetzt kann es SPPlan.build selbst, mit der
+           Drehung gerechnet, und beide zeigen dasselbe. */
+        ui.view = Object.assign({}, SPPlan.build(planSettings(sc)).view);
         applyView();
         renderOverlay();
     }

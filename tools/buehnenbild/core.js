@@ -204,6 +204,52 @@
     }
 
     /*
+     * Der Platz, den ein Requisit auf dem Plan wirklich einnimmt — als
+     * achsenparalleles Rechteck, die Drehung eingerechnet.
+     *
+     * Ein 6 m langes Stück quer gestellt ragt 3 m zur Seite, nicht 0,15 m.
+     * Wer w und h ungedreht nimmt, rechnet das Stück klein und schneidet es
+     * ab; wer stattdessen überall max(w, h) nimmt, rechnet es an der kurzen
+     * Seite zu groß, und eine Beschriftung daneben schwebt im Nichts. Beides
+     * ist hier passiert, an zwei verschiedenen Stellen.
+     */
+    function placementBounds(p) {
+        var a = (num(p.rot, 0) * Math.PI) / 180;
+        var cos = Math.abs(Math.cos(a));
+        var sin = Math.abs(Math.sin(a));
+        var w = num(p.w, 0);
+        var h = num(p.h, 0);
+        var halfW = (w * cos + h * sin) / 2;
+        var halfH = (w * sin + h * cos) / 2;
+        return {
+            x: num(p.x, 0) - halfW,
+            y: num(p.y, 0) - halfH,
+            w: halfW * 2,
+            h: halfH * 2,
+            halfW: halfW,
+            halfH: halfH
+        };
+    }
+
+    /* Der Kasten um alles, was in der Szene steht. Null, wenn nichts steht. */
+    function placementsBounds(placements) {
+        var list = placements || [];
+        var box = null;
+        for (var i = 0; i < list.length; i++) {
+            var b = placementBounds(list[i]);
+            if (!box) {
+                box = { x0: b.x, y0: b.y, x1: b.x + b.w, y1: b.y + b.h };
+                continue;
+            }
+            box.x0 = Math.min(box.x0, b.x);
+            box.y0 = Math.min(box.y0, b.y);
+            box.x1 = Math.max(box.x1, b.x + b.w);
+            box.y1 = Math.max(box.y1, b.y + b.h);
+        }
+        return box ? { x: box.x0, y: box.y0, w: box.x1 - box.x0, h: box.y1 - box.y0 } : null;
+    }
+
+    /*
      * Die Grenzen eines einzelnen Feldes, für Zahlenfeld und Prüfung.
      *
      * Manche hängen an der Bühne: eine Gasse, die weiter einrückt als die
@@ -1210,6 +1256,8 @@
         GRID_MAX_LINES: GRID_MAX_LINES,
         stageBound: stageBound,
         propLimits: propLimits,
+        placementBounds: placementBounds,
+        placementsBounds: placementsBounds,
         clampStage: clampStage,
         adoptStage: adoptStage,
         shapeById: shapeById,
