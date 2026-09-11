@@ -22,3 +22,4 @@ The Bonn Sperrmüll map now lives at linu.li/tools/sperrmuell/ with the other to
 -
 Printed ground plans now show what stands beside the stage. Anything in the wings, in storage or behind the set used to be cut off at the stage edge without a word.
 Names on the ground plan now sit against the edge of the thing they belong to, whatever its shape. A table pulled long and flat used to have its name floating a metre or two below it.
+The stage planner no longer lets you zoom out until the stage is a speck, and when you reach the limit it brings the stage back to the middle.

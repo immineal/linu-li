@@ -71,10 +71,18 @@
      *   interactive: adds hit targets and data-id attributes
      *   emphasise: { added: [id], moved: [id] }
      */
-    function build(opts) {
+    /*
+     * Welchen Ausschnitt eine Szene braucht — ohne den Plan dafür zu
+     * zeichnen.
+     *
+     * Herausgezogen, weil die Zeichenfläche das bei jeder Radraste wissen
+     * will, um die Grenze des Herauszoomens zu kennen. Ein ganzer Plan pro
+     * Raste wären Dutzende pro Wisch, jeder mit allen Requisiten, Gassen und
+     * Beschriftungen als Zeichenketten.
+     */
+    function viewOf(opts) {
         var stage = opts.stage || SP.DEFAULT_STAGE;
         var scene = opts.scene || { placements: [] };
-        var resolve = opts.resolve || function () { return null; };
         var out = SP.stageOutline(stage);
         var b = out.bounds;
 
@@ -91,8 +99,7 @@
            hinter der Bühne stehen — Gasse, Lager, Hinterbühne, und das ist
            Absicht. Der Ausschnitt richtete sich trotzdem allein nach dem
            Bühnenumriss, also wurde alles dort abgeschnitten: auf dem Papier
-           und in jeder Vorschau, die diesen Plan benutzt. Auf der
-           Zeichenfläche war dieselbe Stelle längst behoben, hier nicht.
+           und in jeder Vorschau, die diesen Plan benutzt.
 
            Gewachsen wird nur, wenn wirklich etwas draußen steht: ein Plan,
            auf dem alles auf der Bühne ist, sieht aus wie vorher. */
@@ -106,12 +113,33 @@
             view = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
         }
 
+        return {
+            view: view,
+            stageView: stageView,
+            /* Um wie viel der Ausschnitt über die Bühne hinaus musste. */
+            grow: Math.max(view.w / stageView.w, view.h / stageView.h, 1),
+            bounds: b,
+            out: out,
+            pad: pad
+        };
+    }
+
+    function build(opts) {
+        var stage = opts.stage || SP.DEFAULT_STAGE;
+        var scene = opts.scene || { placements: [] };
+        var resolve = opts.resolve || function () { return null; };
+        var sized = viewOf(opts);
+        var out = sized.out;
+        var b = sized.bounds;
+        var pad = sized.pad;
+        var view = sized.view;
+        var grow = sized.grow;
+
         /* Strichstärke und Schrift messen sich am Ausschnitt, nicht an der
            Bühne. Muss der Plan in die Gasse hinausreichen, wird die Bühne auf
            dem Blatt kleiner — eine an der Bühne festgemachte Größe schrumpfte
            mit ihr, bis auf dem Papier nichts mehr zu lesen wäre. Steht nichts
            draußen, ist der Faktor 1 und es bleibt beim Bisherigen. */
-        var grow = Math.max(view.w / stageView.w, view.h / stageView.h, 1);
         var u = (Math.max(b.w, b.h) / 500) * grow;  // one hairline, in metres
         var fs = (Math.max(b.w, b.h) / 55) * grow;  // body type on the plan
         var parts = [];
@@ -788,6 +816,6 @@
             esc(opts.ariaLabel || t('Stage ground plan')) + '">' + plan.inner + '</svg>';
     }
 
-    return { build: build, svg: svg, escape: esc, folds: folds, niceStep: niceStep,
+    return { build: build, viewOf: viewOf, svg: svg, escape: esc, folds: folds, niceStep: niceStep,
              propInner: propInner, keepsAspect: keepsAspect, gripOf: gripOf, GRIPS: GRIPS };
 }));
