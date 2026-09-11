@@ -325,6 +325,62 @@ test('a plan draws the stage, the props and a scale bar', () => {
     assert.ok(!/NaN|undefined/.test(plan.inner), 'the drawing has NaN in it');
 });
 
+test('the plan shows what stands beside the stage, not only what is on it', () => {
+    /* Ein Requisit darf eine Bühnenbreite neben und eine Bühnentiefe hinter
+       der Bühne stehen — Gasse, Lager und Hinterbühne. Der Ausschnitt des
+       Plans richtete sich aber allein nach dem Bühnenumriss, also wurde alles
+       dort lautlos abgeschnitten: auf dem Papier und in der Vorschau. Die
+       Zeichenfläche hatte dieselbe Stelle, dort ist sie längst behoben
+       ("Einpassen" nimmt alles mit) — der gedruckte Plan nicht. */
+    const stage = SP.DEFAULT_STAGE;
+    const b = SP.stageOutline(stage).bounds;
+    const limit = SP.propLimits(stage);
+
+    const gasse = placement('rock', b.x - 3, b.y + b.h / 2);
+    const plan = Plan.build({
+        stage, resolve, units: 'm',
+        scene: { id: 's', placements: [placement('dining-table', 0, 5), gasse] }
+    });
+    const [vx, vy, vw, vh] = plan.viewBox.split(/\s+/).map(Number);
+
+    assert.ok(gasse.x >= limit.x[0] && gasse.x <= limit.x[1],
+        'the test put the prop somewhere the planner would not allow');
+    assert.ok(vx <= gasse.x - gasse.w / 2,
+        `a prop at x=${gasse.x} is cut off on the left: the plan starts at x=${vx}`);
+    assert.ok(vy <= gasse.y - gasse.h / 2 && vy + vh >= gasse.y + gasse.h / 2,
+        `a prop at y=${gasse.y} does not fit between y=${vy} and y=${vy + vh}`);
+});
+
+test('a prop at the far edge of what is allowed still fits on the plan', () => {
+    const stage = SP.DEFAULT_STAGE;
+    const limit = SP.propLimits(stage);
+    const weit = placement('rock', limit.x[1], limit.y[1]);
+    const plan = Plan.build({
+        stage, resolve, units: 'm', scene: { id: 's', placements: [weit] }
+    });
+    const [vx, vy, vw, vh] = plan.viewBox.split(/\s+/).map(Number);
+    assert.ok(vx + vw >= weit.x + weit.w / 2,
+        `the furthest prop the planner allows (x=${weit.x}) is off the right edge (${vx + vw})`);
+    assert.ok(vy + vh >= weit.y + weit.h / 2,
+        `the furthest prop the planner allows (y=${weit.y}) is off the bottom edge (${vy + vh})`);
+});
+
+test('a turned prop is measured by the room it really takes', () => {
+    /* Ein 6 m langes Stueck, quer gedreht an der Hinterkante: es ragt 3 m
+       nach hinten hinaus, nicht 0,15 m. Wer nur w/2 und h/2 nimmt und die
+       Drehung vergisst, rechnet mit 0,15 m und schneidet es ab. */
+    const stage = SP.DEFAULT_STAGE;
+    const b = SP.stageOutline(stage).bounds;
+    const quer = placement('dining-table', 0, b.y + 0.2, { w: 6, h: 0.3, rot: 90 });
+    const plan = Plan.build({
+        stage, resolve, units: 'm', scene: { id: 's', placements: [quer] }
+    });
+    const [, vy] = plan.viewBox.split(/\s+/).map(Number);
+    assert.ok(vy <= quer.y - 3,
+        `turned 90 degrees it reaches 3 m upstage of y=${quer.y}, i.e. to ${quer.y - 3}, ` +
+        `but the plan starts at y=${vy} — the rotation was not counted`);
+});
+
 test('every built-in prop draws without a hole in it', () => {
     Props.LIBRARY.forEach((prop) => {
         assert.ok(prop.w > 0 && prop.h > 0, prop.id + ' has no footprint');

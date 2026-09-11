@@ -20,3 +20,4 @@ Nine tools have left the front page: eight still work at their old addresses and
 The Bonn Sperrmüll map now lives at linu.li/tools/sperrmuell/ with the other tools, and the old address still takes you there. Every tool also answers at a short address now, so linu.li/qr-creator/ reaches the QR generator.
 -
 -
+Printed ground plans now show what stands beside the stage. Anything in the wings, in storage or behind the set used to be cut off at the stage edge without a word.

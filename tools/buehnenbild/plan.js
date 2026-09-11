@@ -81,13 +81,39 @@
         var pad = Math.max(b.w, b.h) * 0.07;
         var audienceFront = out.audience.indexOf('front') !== -1 || out.audience.indexOf('ring') !== -1;
         var bottomPad = pad + (audienceFront ? Math.max(b.w, b.h) * 0.05 : 0);
-        var view = {
+        /* Was die Bühne allein bräuchte. */
+        var stageView = {
             x: b.x - pad, y: b.y - pad,
             w: b.w + pad * 2, h: b.h + pad + bottomPad
         };
 
-        var u = Math.max(b.w, b.h) / 500;          // one hairline, in metres
-        var fs = Math.max(b.w, b.h) / 55;          // body type on the plan
+        /* Ein Requisit darf eine Bühnenbreite neben und eine Bühnentiefe
+           hinter der Bühne stehen — Gasse, Lager, Hinterbühne, und das ist
+           Absicht. Der Ausschnitt richtete sich trotzdem allein nach dem
+           Bühnenumriss, also wurde alles dort abgeschnitten: auf dem Papier
+           und in jeder Vorschau, die diesen Plan benutzt. Auf der
+           Zeichenfläche war dieselbe Stelle längst behoben, hier nicht.
+
+           Gewachsen wird nur, wenn wirklich etwas draußen steht: ein Plan,
+           auf dem alles auf der Bühne ist, sieht aus wie vorher. */
+        var view = stageView;
+        var standing = SP.placementsBounds && SP.placementsBounds(scene.placements);
+        if (standing) {
+            var x0 = Math.min(stageView.x, standing.x - pad);
+            var y0 = Math.min(stageView.y, standing.y - pad);
+            var x1 = Math.max(stageView.x + stageView.w, standing.x + standing.w + pad);
+            var y1 = Math.max(stageView.y + stageView.h, standing.y + standing.h + pad);
+            view = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+        }
+
+        /* Strichstärke und Schrift messen sich am Ausschnitt, nicht an der
+           Bühne. Muss der Plan in die Gasse hinausreichen, wird die Bühne auf
+           dem Blatt kleiner — eine an der Bühne festgemachte Größe schrumpfte
+           mit ihr, bis auf dem Papier nichts mehr zu lesen wäre. Steht nichts
+           draußen, ist der Faktor 1 und es bleibt beim Bisherigen. */
+        var grow = Math.max(view.w / stageView.w, view.h / stageView.h, 1);
+        var u = (Math.max(b.w, b.h) / 500) * grow;  // one hairline, in metres
+        var fs = (Math.max(b.w, b.h) / 55) * grow;  // body type on the plan
         var parts = [];
 
         /* ---------------------------------------------------------- grid */
