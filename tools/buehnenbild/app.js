@@ -5219,10 +5219,42 @@
        Runden auf drei Stellen zu `0 0` — und die Zeichenfläche war leer, ohne
        Weg zurück außer „Einpassen". Nach oben genauso: irgendwann ist die
        Bühne ein Punkt in der Mitte. */
+    /* Der Ausschnitt, in den die Szene gerade passt — Bühne und alles, was
+       daneben steht. Billig gerechnet, ohne den Plan dafür zu zeichnen: das
+       hier hängt an jeder Radraste. */
+    function overview(sc) {
+        var target = sc || scene();
+        return SPPlan.viewOf({ stage: stageOf(target), scene: target }).view;
+    }
+
     function zoomLimit(sc) {
-        var b = SP.stageOutline(stageOf(sc || scene())).bounds;
-        var widest = Math.max(b.w, b.h);
-        return { least: widest / 200, most: widest * 12 };
+        var target = sc || scene();
+        var b = SP.stageOutline(stageOf(target)).bounds;
+        /* Hinein wird an der Bühne gemessen: wer ein Requisit auf den
+           Zentimeter stellt, will nah heran, und ob nebenan noch etwas im
+           Lager steht, ändert daran nichts. */
+        var least = Math.max(b.w, b.h) / 200;
+        /* Hinaus an dem, was zu sehen ist. Die Grenze lag bei der zwölffachen
+           Bühnenbreite — die Bühne war dann ein Achtel des Fensters breit, ein
+           Fleck in der Mitte, und ein Wisch auf dem Trackpad war schnell dort.
+           Das Doppelte dessen, was ohnehin ins Bild passt, ist weit genug für
+           Überblick und nah genug, dass noch etwas zu erkennen ist.
+
+           Am Überblick gemessen und nicht an der Bühne, weil sonst genau die
+           Szenen nicht mehr ganz ins Bild passten, bei denen etwas in der
+           Gasse steht. */
+        var fit = overview(target);
+        return { least: least, most: Math.max(fit.w, fit.h) * 2 };
+    }
+
+    /* Am Anschlag angekommen: den Ausschnitt auf die Arbeit zentrieren. Sonst
+       schiebt ein weiterer Wisch nichts mehr, und was man sehen wollte, liegt
+       weiter irgendwo am Rand. */
+    function centreOnWork() {
+        var fit = overview();
+        if (!fit || !ui.view) return;
+        ui.view.x = fit.x + fit.w / 2 - ui.view.w / 2;
+        ui.view.y = fit.y + fit.h / 2 - ui.view.h / 2;
     }
 
     function holdZoom(factor) {
@@ -5236,27 +5268,36 @@
     function onCanvasWheel(e) {
         if (!ui.view) return;
         e.preventDefault();
-        var factor = holdZoom(e.deltaY > 0 ? 1.12 : 1 / 1.12);
-        if (factor === 1) return;
-        var point = stagePoint(e);
-        ui.view.x = point.x - (point.x - ui.view.x) * factor;
-        ui.view.y = point.y - (point.y - ui.view.y) * factor;
-        ui.view.w *= factor;
-        ui.view.h *= factor;
+        var wanted = e.deltaY > 0 ? 1.12 : 1 / 1.12;
+        var factor = holdZoom(wanted);
+        var stopped = factor !== wanted && wanted > 1;
+        if (factor === 1 && !stopped) return;
+        if (factor !== 1) {
+            var point = stagePoint(e);
+            ui.view.x = point.x - (point.x - ui.view.x) * factor;
+            ui.view.y = point.y - (point.y - ui.view.y) * factor;
+            ui.view.w *= factor;
+            ui.view.h *= factor;
+        }
+        if (stopped) centreOnWork();
         applyView();
         renderOverlay();
     }
 
-    function zoomBy(factor) {
+    function zoomBy(wanted) {
         if (!ui.view) return;
-        factor = holdZoom(factor);
-        if (factor === 1) return;
-        var cx = ui.view.x + ui.view.w / 2;
-        var cy = ui.view.y + ui.view.h / 2;
-        ui.view.w *= factor;
-        ui.view.h *= factor;
-        ui.view.x = cx - ui.view.w / 2;
-        ui.view.y = cy - ui.view.h / 2;
+        var factor = holdZoom(wanted);
+        var stopped = factor !== wanted && wanted > 1;
+        if (factor === 1 && !stopped) return;
+        if (factor !== 1) {
+            var cx = ui.view.x + ui.view.w / 2;
+            var cy = ui.view.y + ui.view.h / 2;
+            ui.view.w *= factor;
+            ui.view.h *= factor;
+            ui.view.x = cx - ui.view.w / 2;
+            ui.view.y = cy - ui.view.h / 2;
+        }
+        if (stopped) centreOnWork();
         applyView();
         renderOverlay();
     }
@@ -5274,7 +5315,7 @@
            Ausdehnung, und nur hier. Der gedruckte Plan bekam davon nichts ab
            und schnitt weiter ab. Jetzt kann es SPPlan.build selbst, mit der
            Drehung gerechnet, und beide zeigen dasselbe. */
-        ui.view = Object.assign({}, SPPlan.build(planSettings(sc)).view);
+        ui.view = Object.assign({}, SPPlan.viewOf(planSettings(sc)).view);
         applyView();
         renderOverlay();
     }

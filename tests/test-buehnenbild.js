@@ -384,6 +384,27 @@ function labelGap(extra) {
     };
 }
 
+test('the cheap view matches the one the drawing uses', () => {
+    /* Die Zeichenflaeche fragt bei jeder Radraste, wie weit sie
+       herauszoomen darf. Dafuer den ganzen Plan zu bauen -- alle Requisiten,
+       Gassen und Namen als Zeichenketten -- waeren Dutzende pro Wisch, also
+       rechnet SPPlan.viewOf nur den Ausschnitt. Laufen die beiden
+       auseinander, zoomt man auf etwas anderes als das Gezeichnete. */
+    const stage = SP.DEFAULT_STAGE;
+    const b = SP.stageOutline(stage).bounds;
+    const faelle = [
+        ['nichts drauf', []],
+        ['alles auf der Buehne', [placement('dining-table', 0, 5)]],
+        ['eines in der Gasse', [placement('rock', b.x - 4, 4)]],
+        ['eines quer hinten', [placement('dining-table', 0, b.y + 0.2, { w: 6, h: 0.3, rot: 90 })]]
+    ];
+    faelle.forEach(([was, placements]) => {
+        const opts = { stage, resolve, units: 'm', scene: { id: 's', placements } };
+        assert.deepStrictEqual(Plan.viewOf(opts).view, Plan.build(opts).view,
+            `viewOf and build disagree about the view (${was})`);
+    });
+});
+
 test('a name keeps the same small gap however the thing is resized', () => {
     /* Der Abstand wurde mit max(w, h) / 2 gerechnet, in alle vier Richtungen
        derselbe. Bei einem quadratischen Stueck stimmt das zufaellig. Zieht man
