@@ -365,6 +365,53 @@ test('a prop at the far edge of what is allowed still fits on the plan', () => {
         `the furthest prop the planner allows (y=${weit.y}) is off the bottom edge (${vy + vh})`);
 });
 
+/* Wie weit der Name eines Requisits von dessen echter Kante entfernt steht.
+   Positiv heisst darunter, gemessen von der Unterkante. */
+function labelGap(extra) {
+    const stage = SP.DEFAULT_STAGE;
+    const p = placement('dining-table', 0, 4.5, extra);
+    const plan = Plan.build({
+        stage, resolve, units: 'm', labels: 'name',
+        scene: { id: 's', placements: [p] }
+    });
+    const m = plan.inner.match(/<text class="sp-item-label" x="([-\d.]+)" y="([-\d.]+)"/);
+    assert.ok(m, 'no label was drawn at all');
+    const box = SP.placementBounds(p);
+    return {
+        below: Number(m[2]) - (p.y + box.halfH),
+        beside: Math.abs(Number(m[1]) - p.x) - box.halfW,
+        at: [Number(m[1]), Number(m[2])]
+    };
+}
+
+test('a name keeps the same small gap however the thing is resized', () => {
+    /* Der Abstand wurde mit max(w, h) / 2 gerechnet, in alle vier Richtungen
+       derselbe. Bei einem quadratischen Stueck stimmt das zufaellig. Zieht man
+       daraus einen flachen Tisch, rutscht der Name nach unten weg: bei
+       2,40 x 0,80 m steht er 1,08 m unter der Kante statt 0,28 m, bei
+       4,00 x 0,40 m schwebt er zwei Meter im Nichts. */
+    const square = labelGap({ w: 1, h: 1 });
+    const flat = labelGap({ w: 2.4, h: 0.8 });
+    const flatter = labelGap({ w: 4, h: 0.4 });
+
+    assert.ok(Math.abs(flat.below - square.below) < 0.05,
+        `a flat 2.4 x 0.8 keeps its name ${flat.below.toFixed(3)} m below its edge, ` +
+        `a square one ${square.below.toFixed(3)} m — the gap should not depend on the shape`);
+    assert.ok(Math.abs(flatter.below - square.below) < 0.05,
+        `a 4.0 x 0.4 keeps its name ${flatter.below.toFixed(3)} m below its edge ` +
+        `instead of ${square.below.toFixed(3)} m`);
+});
+
+test('a name follows a turned thing to where its edge really is', () => {
+    /* Quer gestellt ist der Tisch 0,80 m breit und 2,40 m tief. Der Name
+       gehoert 0,28 m unter die neue Unterkante, nicht unter die alte. */
+    const upright = labelGap({ w: 2.4, h: 0.8 });
+    const turned = labelGap({ w: 2.4, h: 0.8, rot: 90 });
+    assert.ok(Math.abs(turned.below - upright.below) < 0.05,
+        `turned 90 degrees the name sits ${turned.below.toFixed(3)} m from the edge, ` +
+        `upright ${upright.below.toFixed(3)} m — the rotation was not counted`);
+});
+
 test('a turned prop is measured by the room it really takes', () => {
     /* Ein 6 m langes Stueck, quer gedreht an der Hinterkante: es ragt 3 m
        nach hinten hinaus, nicht 0,15 m. Wer nur w/2 und h/2 nimmt und die

@@ -433,12 +433,17 @@
                 interactive: opts.interactive
             };
             body.push(drawProp(p, prop, u, flags));
-            var reach = Math.max(p.w, p.h) / 2;
+            /* Der Platz, den das Stück wirklich einnimmt — quer gestellt ist
+               ein Tisch von 2,40 x 0,80 m eben 0,80 breit und 2,40 tief. */
+            var box = SP.placementBounds(p);
             /* Was auf dem Plan steht, ist für eine Beschriftung im Weg. */
-            solid.push({ x: p.x, y: p.y, w: p.w, h: p.h, r: reach });
+            solid.push({ x: p.x, y: p.y, w: box.w, h: box.h });
             var caption = captionFor(p, prop, index, opts.labels);
             if (caption) {
-                captions.push({ x: p.x, y: p.y, reach: reach, text: caption });
+                captions.push({
+                    x: p.x, y: p.y,
+                    halfW: box.halfW, halfH: box.halfH, text: caption
+                });
             }
         });
         parts.push('<g class="sp-items">' + body.join('') + '</g>');
@@ -470,8 +475,13 @@
                 var w = Math.max(Shapes.textWidth(label.text, fs), fs);
                 var best = null;
                 for (var i = 0; i < SPOTS.length && !best; i++) {
-                    var cx = label.x + SPOTS[i][0] * (label.reach + w / 2 + fs * 0.35);
-                    var cy = label.y + SPOTS[i][1] * (label.reach + line * 0.75);
+                    /* Seitwärts an der halben Breite gemessen, nach oben und
+                       unten an der halben Tiefe. Vorher stand für beides
+                       max(w, h) / 2, also der längeren Seite — bei allem, was
+                       nicht quadratisch war, schwebte der Name an der kurzen
+                       Seite im Nichts, und je flacher gezogen, desto weiter. */
+                    var cx = label.x + SPOTS[i][0] * (label.halfW + w / 2 + fs * 0.35);
+                    var cy = label.y + SPOTS[i][1] * (label.halfH + line * 0.75);
                     if (free(cx, cy, w)) best = { x: cx, y: cy, far: i > 3 };
                 }
                 /* Sind alle acht Plätze besetzt — vier Tassen auf einem Tisch
@@ -479,10 +489,10 @@
                    auf denselben Fleck zu legen. Genau das passierte vorher:
                    drei Namen übereinander und einer davon zweimal. */
                 for (var k = 1; k <= 12 && !best; k++) {
-                    var below = label.y + label.reach + line * (0.75 + k);
+                    var below = label.y + label.halfH + line * (0.75 + k);
                     if (free(label.x, below, w)) best = { x: label.x, y: below, far: true };
                 }
-                if (!best) best = { x: label.x, y: label.y + label.reach + line * 13, far: true };
+                if (!best) best = { x: label.x, y: label.y + label.halfH + line * 13, far: true };
                 taken.push({ x: best.x, y: best.y, w: w, h: line });
                 /* Der Strich nur dort, wo der Name nicht mehr offensichtlich
                    zu seinem Requisit gehört. */
