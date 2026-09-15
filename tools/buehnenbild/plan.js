@@ -528,9 +528,20 @@
                     ? '<path class="sp-label-leader" d="M' + n(label.x) + ' ' + n(label.y) +
                       'L' + n(best.x) + ' ' + n(best.y) + '" stroke-width="' + n(u * 0.8) + '"/>'
                     : '';
-                return leader + '<text class="sp-item-label" x="' + n(best.x) + '" y="' +
-                    n(best.y + fs * 0.35) + '" font-size="' + n(fs) +
-                    '" text-anchor="middle" paint-order="stroke">' + esc(label.text) + '</text>';
+                /* Der helle Rand liegt hinter der Schrift, nicht per
+                   `paint-order` — das Attribut kommt aus dem PDF eines
+                   Druckdialogs so gut wie nie zurück, jedenfalls nicht bei
+                   der Software, die die Meldung ausgelöst hat. Fällt es weg,
+                   malt die Norm den Strich über die Füllung statt darunter,
+                   und ein Strich, so breit wie hier gebraucht, übermalt jeden
+                   Buchstaben bis er weiß auf weiß steht. Zwei Texte an
+                   derselben Stelle brauchen dafür kein Attribut: das zuerst
+                   geschriebene liegt immer unten. */
+                var textAttrs = ' x="' + n(best.x) + '" y="' + n(best.y + fs * 0.35) +
+                    '" font-size="' + n(fs) + '" text-anchor="middle">';
+                return leader +
+                    '<text class="sp-item-label-halo"' + textAttrs + esc(label.text) + '</text>' +
+                    '<text class="sp-item-label"' + textAttrs + esc(label.text) + '</text>';
             });
             parts.push('<g class="sp-labels">' + drawn.join('') + '</g>');
         }
