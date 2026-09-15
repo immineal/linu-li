@@ -296,6 +296,7 @@ body {
 .sp-check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; margin-bottom: 0.4rem; cursor: pointer; color: var(--ink); }
 .sp-check input { width: auto; margin: 0; accent-color: var(--accent); }
 .sp-hint { font-size: 0.76rem; color: var(--sp-muted); line-height: 1.5; }
+.sp-hint.sp-warn { color: var(--accent); }
 .sp-status { font-size: 0.76rem; color: var(--sp-muted); }
 
 /* ------------------------------------------------------------- structure */
