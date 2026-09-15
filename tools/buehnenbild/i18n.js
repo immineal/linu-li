@@ -482,7 +482,7 @@
         'Leave it empty and stay anonymous': 'Leer lassen und anonym bleiben',
         'Sent with it: which tab was open, how wide the window is and which browser. No names, nothing out of your production.':
             'Mitgeschickt wird: welcher Reiter offen war, wie breit das Fenster ist und welcher Browser. Keine Namen, nichts aus deiner Produktion.',
-        'Attach a full backup of everything on this machine': 'Vollständige Sicherung mitschicken',
+        'Send a full backup of everything on this machine with the message': 'Vollständige Sicherung mitschicken',
         'This sends every production, scene, placement and drawing stored in this browser — not just what you typed above. Only tick it if it was asked for.':
             'Das schickt jede Produktion, jede Szene, jede Aufstellung und jede selbst gezeichnete Requisite aus diesem Browser mit — nicht nur, was oben steht. Nur anhaken, wenn danach gefragt wurde.',
         'e.g. A hospital bed on castors, about 1.00 × 2.10 m': 'z. B. Ein Krankenbett auf Rollen, etwa 1,00 × 2,10 m',
@@ -1317,7 +1317,7 @@
         /* --------------------------------------------------- Rückmeldung */
         'feedback.backup': {
             title: 'Vollständige Sicherung',
-            body: 'Hängt dieselbe Datei an, die auch der Back-up-Knopf schreibt: jede Produktion, jede Szene, jede Aufstellung, jede selbst gezeichnete Requisite in diesem Browser. Das macht einen Fehler leichter nachzustellen, gibt aber auch mehr weiter, als die Nachricht selbst sagt — deshalb steht das Häkchen aus, bis jemand danach fragt.'
+            body: 'Schickt denselben Stand mit, den auch der Back-up-Knopf herunterlädt: jede Produktion, jede Szene, jede Aufstellung, jede selbst gezeichnete Requisite in diesem Browser — als Text in der Nachricht, nicht als eigener Anhang. Das macht einen Fehler leichter nachzustellen, gibt aber auch mehr weiter, als die Nachricht selbst sagt — deshalb steht das Häkchen aus, bis jemand danach fragt.'
         },
 
         /* ----------------------------------------------------- Speicher */

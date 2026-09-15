@@ -2350,10 +2350,10 @@
             '<p class="sp-hint">' + esc(t('Sent with it: which tab was open, how wide the window is and which browser. No names, nothing out of your production.')) + '</p>' +
             /* Aus per Vorgabe: eine Sicherung ist mehr, als die Nachricht
                verspricht, und geht niemanden etwas an, der nicht danach
-               gefragt hat. Wer sie doch anhängt, soll das lesen, bevor er
-               auf „Abschicken" kommt, nicht erst danach. */
+               gefragt hat. Wer sie doch mitschickt, soll das lesen, bevor
+               er auf „Abschicken" kommt, nicht erst danach. */
             '<label class="sp-check" style="margin-top:0.7rem"><input type="checkbox" id="spSayBackup"> ' +
-            esc(t('Attach a full backup of everything on this machine')) + why('feedback.backup') + '</label>' +
+            esc(t('Send a full backup of everything on this machine with the message')) + why('feedback.backup') + '</label>' +
             '<p class="sp-hint sp-warn">' + esc(t('This sends every production, scene, placement and drawing stored in this browser — not just what you typed above. Only tick it if it was asked for.')) + '</p>';
 
         var sent = false;
@@ -2410,53 +2410,48 @@
     }
 
     /* Dieselbe Hülle, die auch der Back-up-Knopf schreibt (siehe
-       exportJson) — wer die Sicherung anhängt, soll dieselbe Datei
-       bekommen, die man auch selbst wieder einspielen könnte. */
-    function backupBlob() {
-        var payload = JSON.stringify({
+       exportJson) — wer die Sicherung mitschickt, soll denselben Stand
+       bekommen, den man auch selbst wieder einspielen könnte. */
+    function backupPayload() {
+        return {
             kind: 'linu.li/buehnenbild',
             version: 1,
             exported: new Date().toISOString(),
             data: db
-        }, null, 2);
-        return new Blob([payload], { type: 'application/json' });
+        };
+    }
+
+    function backupBlob() {
+        return new Blob([JSON.stringify(backupPayload(), null, 2)], { type: 'application/json' });
     }
 
     function sendFeedback(kind, text, from, attachBackup) {
         var label = (FEEDBACK_KINDS.filter(function (k) { return k.id === kind; })[0] || {}).label || kind;
-        var subject = 'Bühnenbild-Planer — ' + t(label);
+        var payload = {
+            _subject: 'Bühnenbild-Planer — ' + t(label),
+            kind: kind,
+            message: text,
+            context: feedbackContext()
+        };
+        if (from) payload.email = from;
+        /* Ein echter Datei-Anhang ist eine bezahlte Formspree-Funktion —
+           auf dem kostenlosen Plan kommt dafür nur "File Uploads Not
+           Permitted" zurück, ganz gleich, wie klein die Datei ist. Als
+           eigenes Textfeld im selben JSON läuft dieselbe Sicherung über
+           denselben Weg, den die Rückmeldung ohnehin schon nimmt, und
+           kostet nichts zusätzlich — sie steht danach nur als Text in der
+           Mail statt als Anhang daneben. */
+        if (attachBackup) payload.backup = JSON.stringify(backupPayload(), null, 2);
+
         /* Abgeschickt ist abgeschickt: der Dialog schließt sofort und die
            Nachricht geht im Hintergrund raus. Wer auf eine Bestätigung warten
            muss, schreibt beim nächsten Mal nichts mehr. */
         toast(t('Thank you — it is on its way.'), 'success');
-
-        var request;
-        if (attachBackup) {
-            /* Ein Anhang braucht ein Formular, kein JSON — sonst käme die
-               Sicherung als eine sehr lange Zeichenkette im Text an statt
-               als Datei. */
-            var form = new FormData();
-            form.append('_subject', subject);
-            form.append('kind', kind);
-            form.append('message', text);
-            form.append('context', feedbackContext());
-            if (from) form.append('email', from);
-            form.append('backup', backupBlob(), 'buehnenbild-backup.json');
-            request = fetch('https://formspree.io/f/' + FEEDBACK_FORM, {
-                method: 'POST',
-                headers: { Accept: 'application/json' },
-                body: form
-            });
-        } else {
-            var payload = { _subject: subject, kind: kind, message: text, context: feedbackContext() };
-            if (from) payload.email = from;
-            request = fetch('https://formspree.io/f/' + FEEDBACK_FORM, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify(payload)
-            });
-        }
-        request.then(function (res) {
+        fetch('https://formspree.io/f/' + FEEDBACK_FORM, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(function (res) {
             if (!res.ok) throw new Error(res.status);
         }).catch(function () {
             toast(t('That did not go through. Is there a connection?'), 'error');
