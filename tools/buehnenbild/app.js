@@ -4529,7 +4529,7 @@
         '.sp-curtain path{stroke:#6d6459}.sp-curtain-label{fill:#6d6459}' +
         '.sp-audience{stroke:rgba(0,0,0,.42)}.sp-audience text{fill:rgba(0,0,0,.5)}' +
         '.sp-art .f{fill:rgba(0,0,0,.06)}.sp-art .d{stroke-dasharray:3.5 3}' +
-        '.sp-item-label{fill:#16130f;stroke:#fff;stroke-width:.055;paint-order:stroke}' +
+        '.sp-item-label-halo{fill:none;stroke:#fff;stroke-width:.055}.sp-item-label{fill:#16130f}' +
         '.sp-item-ghost{opacity:.4}.sp-move-arrow{stroke:#6d6459}' +
         '.sp-scale-dark{fill:#16130f;stroke:#16130f}.sp-scale-light{fill:#fff;stroke:#16130f}' +
         '.sp-scale text{fill:rgba(0,0,0,.55)}';
