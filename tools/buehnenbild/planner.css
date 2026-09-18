@@ -285,6 +285,48 @@ body {
 /* ------------------------------------------------------------ Rückmeldung
    Ein Feld, groß genug, dass man hineinschreibt statt abzubrechen. */
 .sp-say-text { min-height: 118px; }
+
+/* Der Technikteil des Rückmeldeformulars. Er steht unter dem Feld, nicht
+   darüber: getippt wird zuerst, angehakt danach. Die Vorschau liegt
+   eingeklappt darunter, weil sie lang ist und die wenigsten sie brauchen —
+   wer sie aufklappt, will sie aber ganz sehen und nicht in einem Fingerhut. */
+.sp-say-technik {
+    display: flex;
+    gap: 0.45rem;
+    align-items: flex-start;
+    margin: 0.2rem 0 0.4rem;
+    font-family: var(--font-heading);
+    font-size: 0.84rem;
+    line-height: 1.4;
+    cursor: pointer;
+}
+.sp-say-technik input { width: auto; margin: 0.15rem 0 0; flex: 0 0 auto; }
+.sp-say-vorschau { margin-bottom: 0.5rem; }
+.sp-say-vorschau > summary {
+    font-size: 0.78rem;
+    color: var(--accent);
+    cursor: pointer;
+}
+.sp-say-vorschau > pre {
+    margin: 0.4rem 0 0;
+    padding: 0.55rem 0.65rem;
+    max-height: 210px;
+    overflow: auto;
+    background: var(--sp-field);
+    border: 1px solid var(--sp-line);
+    border-radius: 3px;
+    font-size: 0.7rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--ink-secondary);
+}
+.sp-say-datei {
+    margin-top: 0.9rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--sp-line);
+}
+.sp-say-datei .sp-hint { margin: 0.45rem 0 0; }
 .sp-feedback-kind { width: 100%; }
 .sp-feedback-kind button { flex: 1 1 0; }
 .sp-palette-say { padding: 0.4rem 0 0.2rem; text-align: center; }
