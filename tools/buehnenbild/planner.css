@@ -338,6 +338,7 @@ body {
 .sp-check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; margin-bottom: 0.4rem; cursor: pointer; color: var(--ink); }
 .sp-check input { width: auto; margin: 0; accent-color: var(--accent); }
 .sp-hint { font-size: 0.76rem; color: var(--sp-muted); line-height: 1.5; }
+.sp-hint.sp-warn { color: var(--accent); }
 .sp-status { font-size: 0.76rem; color: var(--sp-muted); }
 
 /* ------------------------------------------------------------- structure */
@@ -1059,7 +1060,8 @@ body {
 .sp-item-ghost .sp-art * { stroke-dasharray: 3 3; }
 .sp-item-ghost .f { fill: none; }
 .sp-move-arrow { stroke: #b0873a; }
-.sp-item-label { fill: var(--ink); stroke: var(--paper); stroke-width: 0.055; }
+.sp-item-label-halo { fill: none; stroke: var(--paper); stroke-width: 0.055; }
+.sp-item-label { fill: var(--ink); }
 .sp-scale-dark { fill: var(--ink); stroke: var(--ink); }
 .sp-scale-light { fill: var(--paper); }
 .sp-scale text { fill: var(--sp-muted); }
@@ -1177,7 +1179,8 @@ body {
 .sp-sheet .sp-audience { stroke: rgba(0, 0, 0, 0.42); opacity: 1; }
 .sp-sheet .sp-audience text { fill: rgba(0, 0, 0, 0.5); }
 .sp-sheet .sp-art .f { fill: rgba(0, 0, 0, 0.06); }
-.sp-sheet .sp-item-label { fill: #16130f; stroke: #ffffff; }
+.sp-sheet .sp-item-label-halo { stroke: #ffffff; }
+.sp-sheet .sp-item-label { fill: #16130f; }
 .sp-sheet .sp-item-ghost { opacity: 0.42; }
 .sp-sheet .sp-scale-dark { fill: #16130f; stroke: #16130f; }
 .sp-sheet .sp-scale-light { fill: #ffffff; }

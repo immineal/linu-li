@@ -28,7 +28,8 @@
         { id: 'trans', title: 'Umbauten', tab: 'scenes' },
         { id: 'draw', title: 'Requisiten zeichnen', tab: 'props' },
         { id: 'print', title: 'Drucken', tab: 'print' },
-        { id: 'store', title: 'Back-up', tab: null }
+        { id: 'store', title: 'Back-up', tab: null },
+        { id: 'feedback', title: 'Rückmeldung', tab: null }
     ];
 
     /*
@@ -44,6 +45,7 @@
         settings: { dialog: 'settings', open: 'Einstellungen, oben neben dem Stücknamen' },
         backup:   { dialog: 'backup',   open: 'Back-up, oben rechts' },
         draw:     { tab: 'props', dialog: 'draw', open: 'Requisiten, dann „Requisit zeichnen“' },
+        feedback: { dialog: 'feedback', open: 'Rückmeldung, oben rechts — oder „Sag was“, wo eine Suche leer ausgeht' },
         /* Es gibt weder Umbauzeilen in der Ablaufliste noch einen Dialog
            dafür: die Umbau-Einstellungen stehen im rechten Bereich unter
            „Szene“, bei jeder Szene außer der ersten. Der alte Weg zeigte
@@ -71,7 +73,8 @@
         print: { tab: 'print', open: 'Reiter „Drucken“' },
         draw: WHERE.draw,
         trans: WHERE.trans,
-        store: WHERE.backup
+        store: WHERE.backup,
+        feedback: WHERE.feedback
     };
 
     function routeFor(key) {

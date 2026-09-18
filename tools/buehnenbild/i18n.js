@@ -482,6 +482,9 @@
         'Leave it empty and stay anonymous': 'Leer lassen und anonym bleiben',
         'Sent with it: which tab was open, how wide the window is and which browser. No names, nothing out of your production.':
             'Mitgeschickt wird: welcher Reiter offen war, wie breit das Fenster ist und welcher Browser. Keine Namen, nichts aus deiner Produktion.',
+        'Attach a full backup of everything on this machine': 'Vollständige Sicherung mitschicken',
+        'This sends every production, scene, placement and drawing stored in this browser — not just what you typed above. Only tick it if it was asked for.':
+            'Das schickt jede Produktion, jede Szene, jede Aufstellung und jede selbst gezeichnete Requisite aus diesem Browser mit — nicht nur, was oben steht. Nur anhaken, wenn danach gefragt wurde.',
         'e.g. A hospital bed on castors, about 1.00 × 2.10 m': 'z. B. Ein Krankenbett auf Rollen, etwa 1,00 × 2,10 m',
         'e.g. The door swings the wrong way after I mirror the scene': 'z. B. Die Tür schlägt falsch herum auf, nachdem ich die Szene gespiegelt habe',
         'Whatever it is. A sentence is enough.': 'Was auch immer. Ein Satz reicht.',
@@ -494,8 +497,8 @@
         'Measured while the sheets are printing. If it goes wrong on paper, print first and write afterwards.':
             'Gemessen wird beim Drucken. Wenn auf dem Papier etwas schiefgeht, also erst drucken und dann schreiben.',
         'Put everything in a file': 'Alles in eine Datei',
-        'For a fault nobody else can reproduce. The file holds the printed sheets and your whole production in plain text. The form takes no attachments, so send it to feedback@linu.li.':
-            'Für einen Fehler, den sonst niemand nachstellen kann. In der Datei stehen die gedruckten Blätter und deine ganze Produktion im Klartext. Das Formular nimmt keine Anhänge, schick sie also an feedback@linu.li.',
+        'For a fault nobody else can reproduce. The file holds the printed sheets and your whole production in plain text. Send it to feedback@linu.li — it holds more than an attachment does, and it arrives even when the form refuses one.':
+            'Für einen Fehler, den sonst niemand nachstellen kann. In der Datei stehen die gedruckten Blätter und deine ganze Produktion im Klartext. Schick sie an feedback@linu.li: sie trägt mehr als ein Anhang, und sie kommt auch an, wenn das Formular keinen annimmt.',
         'Saved. Send it to feedback@linu.li.': 'Gespeichert. Schick sie an feedback@linu.li.',
         'That did not work.': 'Das hat nicht geklappt.',
         'Tab': 'Reiter',
@@ -1319,6 +1322,12 @@
         'print.footer': {
             title: 'Fußzeile',
             body: 'Steht klein auf jedem Blatt. Gut für den Stand der Fassung, damit auf der Probe niemand mit einem alten Ausdruck arbeitet.'
+        },
+
+        /* --------------------------------------------------- Rückmeldung */
+        'feedback.backup': {
+            title: 'Vollständige Sicherung',
+            body: 'Hängt dieselbe Datei an, die auch der Back-up-Knopf schreibt: jede Produktion, jede Szene, jede Aufstellung, jede selbst gezeichnete Requisite in diesem Browser. Das macht einen Fehler leichter nachzustellen, gibt aber auch mehr weiter, als die Nachricht selbst sagt — deshalb steht das Häkchen aus, bis jemand danach fragt.'
         },
 
         /* ----------------------------------------------------- Speicher */

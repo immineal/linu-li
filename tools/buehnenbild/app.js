@@ -2427,7 +2427,7 @@
             '<input type="email" id="spSayBack" autocomplete="email" placeholder="' +
             esc(t('Leave it empty and stay anonymous')) + '"></div>' +
             '<p class="sp-hint">' + esc(t('Sent with it: which tab was open, how wide the window is and which browser. No names, nothing out of your production.')) + '</p>' +
-            /* Zahlen statt Rückfragen. Wer „etwas ist kaputt" anhakt, hat den
+            /* Zahlen statt Rückfragen. Wer „etwas geht nicht" anhakt, hat den
                Fehler gerade vor sich — das ist der einzige Moment, in dem die
                Messwerte dazu noch existieren. Angehakt ist es deshalb dort
                von selbst, und was mitgeht, steht ausklappbar darunter: was
@@ -2440,10 +2440,17 @@
             '<p class="sp-hint">' +
             esc(t('Measured while the sheets are printing. If it goes wrong on paper, print first and write afterwards.')) +
             '</p>' +
+            /* Aus per Vorgabe: eine Sicherung ist mehr, als die Nachricht
+               verspricht, und geht niemanden etwas an, der nicht danach
+               gefragt hat. Wer sie doch anhängt, soll das lesen, bevor er
+               auf „Abschicken" kommt, nicht erst danach. */
+            '<label class="sp-check" style="margin-top:0.7rem"><input type="checkbox" id="spSayBackup"> ' +
+            esc(t('Attach a full backup of everything on this machine')) + why('feedback.backup') + '</label>' +
+            '<p class="sp-hint sp-warn">' + esc(t('This sends every production, scene, placement and drawing stored in this browser — not just what you typed above. Only tick it if it was asked for.')) + '</p>' +
             '<div class="sp-say-datei"><button type="button" class="sp-btn" id="spSayDatei">' +
             esc(t('Put everything in a file')) + '</button>' +
             '<p class="sp-hint">' +
-            esc(t('For a fault nobody else can reproduce. The file holds the printed sheets and your whole production in plain text. The form takes no attachments, so send it to feedback@linu.li.')) +
+            esc(t('For a fault nobody else can reproduce. The file holds the printed sheets and your whole production in plain text. Send it to feedback@linu.li — it holds more than an attachment does, and it arrives even when the form refuses one.')) +
             '</p></div>';
 
         var sent = false;
@@ -2517,7 +2524,8 @@
                     var text = $('#spSayText', host).value.trim();
                     if (!text) { $('#spSayText', host).focus(); return false; }
                     sendFeedback(chosen, text, $('#spSayBack', host).value.trim(),
-                        technik.checked ? technikBlock() : '');
+                        technik.checked ? technikBlock() : '',
+                        $('#spSayBackup', host).checked);
                     sent = true;
                     close();
                 }
@@ -2526,28 +2534,59 @@
         field.focus();
     }
 
-    function sendFeedback(kind, text, from, technik) {
+    /* Dieselbe Hülle, die auch der Back-up-Knopf schreibt (siehe
+       exportJson) — wer die Sicherung anhängt, soll dieselbe Datei
+       bekommen, die man auch selbst wieder einspielen könnte. */
+    function backupBlob() {
+        var payload = JSON.stringify({
+            kind: 'linu.li/buehnenbild',
+            version: 1,
+            exported: new Date().toISOString(),
+            data: db
+        }, null, 2);
+        return new Blob([payload], { type: 'application/json' });
+    }
+
+    function sendFeedback(kind, text, from, technik, attachBackup) {
         var label = (FEEDBACK_KINDS.filter(function (k) { return k.id === kind; })[0] || {}).label || kind;
-        var payload = {
-            _subject: 'Bühnenbild-Planer — ' + t(label),
-            kind: kind,
-            message: text,
-            context: feedbackContext()
-        };
-        /* Ein eigenes Feld, kein Anhängsel an die Nachricht: Formspree
-           stellt jedes Feld einzeln in die Mail, und so bleibt lesbar, was
-           jemand geschrieben hat und was die Maschine gemessen hat. */
-        if (technik) payload.technik = technik;
-        if (from) payload.email = from;
+        var subject = 'Bühnenbild-Planer — ' + t(label);
         /* Abgeschickt ist abgeschickt: der Dialog schließt sofort und die
            Nachricht geht im Hintergrund raus. Wer auf eine Bestätigung warten
            muss, schreibt beim nächsten Mal nichts mehr. */
         toast(t('Thank you — it is on its way.'), 'success');
-        fetch('https://formspree.io/f/' + FEEDBACK_FORM, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify(payload)
-        }).then(function (res) {
+
+        var request;
+        if (attachBackup) {
+            /* Ein Anhang braucht ein Formular, kein JSON — sonst käme die
+               Sicherung als eine sehr lange Zeichenkette im Text an statt
+               als Datei. */
+            var form = new FormData();
+            form.append('_subject', subject);
+            form.append('kind', kind);
+            form.append('message', text);
+            form.append('context', feedbackContext());
+            if (from) form.append('email', from);
+            if (technik) form.append('technik', technik);
+            form.append('backup', backupBlob(), 'buehnenbild-backup.json');
+            request = fetch('https://formspree.io/f/' + FEEDBACK_FORM, {
+                method: 'POST',
+                headers: { Accept: 'application/json' },
+                body: form
+            });
+        } else {
+            var payload = { _subject: subject, kind: kind, message: text, context: feedbackContext() };
+            /* Ein eigenes Feld, kein Anhängsel an die Nachricht: Formspree
+               stellt jedes Feld einzeln in die Mail, und so bleibt lesbar,
+               was jemand geschrieben hat und was die Maschine gemessen hat. */
+            if (technik) payload.technik = technik;
+            if (from) payload.email = from;
+            request = fetch('https://formspree.io/f/' + FEEDBACK_FORM, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        }
+        request.then(function (res) {
             if (!res.ok) throw new Error(res.status);
         }).catch(function () {
             toast(t('That did not go through. Is there a connection?'), 'error');
@@ -4686,7 +4725,7 @@
         '.sp-curtain path{stroke:#6d6459}.sp-curtain-label{fill:#6d6459}' +
         '.sp-audience{stroke:rgba(0,0,0,.42)}.sp-audience text{fill:rgba(0,0,0,.5)}' +
         '.sp-art .f{fill:rgba(0,0,0,.06)}.sp-art .d{stroke-dasharray:3.5 3}' +
-        '.sp-item-label{fill:#16130f;stroke:#fff;stroke-width:.055;paint-order:stroke}' +
+        '.sp-item-label-halo{fill:none;stroke:#fff;stroke-width:.055}.sp-item-label{fill:#16130f}' +
         '.sp-item-ghost{opacity:.4}.sp-move-arrow{stroke:#6d6459}' +
         '.sp-scale-dark{fill:#16130f;stroke:#16130f}.sp-scale-light{fill:#fff;stroke:#16130f}' +
         '.sp-scale text{fill:rgba(0,0,0,.55)}';
@@ -4866,14 +4905,8 @@
     }
 
     function exportJson() {
-        var payload = JSON.stringify({
-            kind: 'linu.li/buehnenbild',
-            version: 1,
-            exported: new Date().toISOString(),
-            data: db
-        }, null, 2);
         var name = (production().name || 'scene-plan').replace(/[^\w\d\- ]+/g, '').replace(/\s+/g, '-').toLowerCase();
-        downloadBlob(new Blob([payload], { type: 'application/json' }), name + '-scene-plan.json');
+        downloadBlob(backupBlob(), name + '-scene-plan.json');
         toast(t('Backup saved to your downloads.'), 'success');
     }
 
