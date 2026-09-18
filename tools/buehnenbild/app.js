@@ -4473,6 +4473,15 @@
     function fillPrintPortal() {
         var portal = $('#spPrintPortal');
         if (!portal || portal.innerHTML) return false;
+        /* Die Blaetter fehlten hier. Unten stand `pages.join('')` und `pages`
+           war nie angelegt -- in strict mode wirft das, und zwar im
+           beforeprint-Zuhoerer, wo der Wurf nirgends sichtbar wird. Der Vorrat
+           blieb leer, die Druck-CSS blendet alles ausser ihm aus, und wer den
+           Planer ueber Strg+P oder das Browsermenue druckte, bekam ein weisses
+           Blatt. Ueber den Knopf im Reiter fiel es nicht auf: der fuellt den
+           Vorrat selbst, und dann kehrt diese Funktion in Zeile drei um. */
+        var pages = buildSheets();
+        if (!pages.length) return false;
         var o = printOptions();
         var style = document.getElementById('spPageStyle');
         if (!style) {
