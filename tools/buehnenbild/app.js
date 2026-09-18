@@ -9,6 +9,17 @@
 (function () {
     'use strict';
 
+    /* Von Hand gesetzt und von Hand erhöht. Der Deploy stempelt den Commit
+       nur in sw.js, und der Worker ist nicht dieselbe Datei wie diese hier:
+       er kann eine Fassung älter oder jünger sein. Ohne eine Zahl, die genau
+       in app.js steht, lässt sich an einer Rückmeldung nicht ablesen, ob der
+       Absender die korrigierte Fassung überhaupt schon hat — und dann rätselt
+       man an einem Fehler, den man längst behoben hat.
+
+       tests/test-buehnenbild.js besteht darauf, dass sie aussieht wie ein
+       Datum mit Buchstaben dahinter. */
+    var BUILD = '2026-09-18a';
+
     var STORE_KEY = 'sp.planner.v1';
     var UI_KEY = 'sp.planner.ui.v1';
     var UNDO_DEPTH = 40;
@@ -2322,8 +2333,76 @@
             t('Window') + ': ' + window.innerWidth + '×' + window.innerHeight,
             t('Props on the stage') + ': ' + ((sc && sc.placements) ? sc.placements.length : 0),
             t('Language') + ': ' + (navigator.language || '?'),
+            'Build: ' + BUILD + ' / ' + (workerSha || '?'),
             'UA: ' + (navigator.userAgent || '?')
         ].join('\n');
+    }
+
+    /* Welcher Commit gerade als Service Worker läuft. Er beantwortet die
+       Frage, die sonst jede Ferndiagnose aufhält: hat der Absender die
+       Korrektur überhaupt schon? Der Worker weiß es, die Seite fragt ihn
+       einmal beim Start und legt die Antwort hierhin. */
+    var workerSha = null;
+
+    function fragWorkerNachStand() {
+        if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
+        try {
+            var kanal = new MessageChannel();
+            kanal.port1.onmessage = function (e) {
+                if (e.data && e.data.antwort === 'stand') workerSha = e.data.sha;
+            };
+            navigator.serviceWorker.controller.postMessage({ frage: 'stand' }, [kanal.port2]);
+        } catch (err) { /* dann eben ohne */ }
+    }
+
+    /* Der Technikblock, in Zahlen. Er entsteht erst, wenn jemand das Kästchen
+       im Rückmeldeformular anhakt, und was er enthält, steht darunter
+       ausgeklappt — wer etwas mitschickt, soll es vorher lesen können. */
+    function technikBlock() {
+        if (typeof SPDiag === 'undefined') return '(diag.js fehlt)';
+        var sc = scene();
+        return SPDiag.bericht({
+            build: BUILD,
+            sha: workerSha,
+            zustand: 'Reiter: ' + ui.tab +
+                ' · Requisiten in der Szene: ' + ((sc && sc.placements) ? sc.placements.length : 0) +
+                ' · Textfelder hier: ' + zaehleTextfelder(sc) +
+                ' · Textfelder überhaupt: ' + scenes().reduce(function (n, one) {
+                    return n + zaehleTextfelder(one);
+                }, 0) +
+                ' · Szenen: ' + scenes().length
+        }, window);
+    }
+
+    function zaehleTextfelder(sc) {
+        if (!sc || !sc.placements) return 0;
+        return sc.placements.filter(function (p) {
+            var prop = resolveProp(p.propId);
+            return prop && prop.mark === 'label';
+        }).length;
+    }
+
+    /* Der volle Schnappschuss als Datei. Formspree nimmt auf dem freien Tarif
+       keine Anhänge, und was hier drinsteht — die Blätter im Rohzustand, die
+       ganze Produktion — passt ohnehin in kein Formularfeld. Also eine Datei
+       in den Download-Ordner und von dort an ein Postfach. Sie geht nur
+       dorthin, wohin sie selbst sie schickt. */
+    function saveSnapshot() {
+        if (typeof SPDiag === 'undefined') { toast(t('That did not work.'), 'error'); return; }
+        var text;
+        try {
+            text = SPDiag.schnappschuss({
+                build: BUILD, sha: workerSha,
+                zustand: 'Reiter: ' + ui.tab
+            }, window);
+        } catch (err) {
+            toast(t('That did not work.'), 'error');
+            return;
+        }
+        var stempel = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+        downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }),
+            'buehnenbild-diagnose-' + stempel + '.txt');
+        toast(t('Saved. Send it to feedback@linu.li.'), 'success');
     }
 
     /* Was jemand ins Rückmeldeformular getippt und noch nicht abgeschickt hat.
@@ -2347,7 +2426,25 @@
             esc(t('Your e-mail, only if you want an answer')) + '</label>' +
             '<input type="email" id="spSayBack" autocomplete="email" placeholder="' +
             esc(t('Leave it empty and stay anonymous')) + '"></div>' +
-            '<p class="sp-hint">' + esc(t('Sent with it: which tab was open, how wide the window is and which browser. No names, nothing out of your production.')) + '</p>';
+            '<p class="sp-hint">' + esc(t('Sent with it: which tab was open, how wide the window is and which browser. No names, nothing out of your production.')) + '</p>' +
+            /* Zahlen statt Rückfragen. Wer „etwas ist kaputt" anhakt, hat den
+               Fehler gerade vor sich — das ist der einzige Moment, in dem die
+               Messwerte dazu noch existieren. Angehakt ist es deshalb dort
+               von selbst, und was mitgeht, steht ausklappbar darunter: was
+               man verschickt, soll man lesen können. */
+            '<label class="sp-say-technik"><input type="checkbox" id="spSayTechnik"> ' +
+            esc(t('Send the measurements with it')) +
+            '</label>' +
+            '<details class="sp-say-vorschau"><summary>' +
+            esc(t('What does it say?')) + '</summary><pre id="spSayVorschau"></pre></details>' +
+            '<p class="sp-hint">' +
+            esc(t('Measured while the sheets are printing. If it goes wrong on paper, print first and write afterwards.')) +
+            '</p>' +
+            '<div class="sp-say-datei"><button type="button" class="sp-btn" id="spSayDatei">' +
+            esc(t('Put everything in a file')) + '</button>' +
+            '<p class="sp-hint">' +
+            esc(t('For a fault nobody else can reproduce. The file holds the printed sheets and your whole production in plain text. The form takes no attachments, so send it to feedback@linu.li.')) +
+            '</p></div>';
 
         var sent = false;
         var placeholders = {
@@ -2362,6 +2459,28 @@
             $('#spSayBack', body).value = feedbackDraft.back;
         }
 
+        var technik = $('#spSayTechnik', body);
+        var vorschau = $('#spSayVorschau', body);
+        var zeigeTechnik = function () {
+            vorschau.textContent = technik.checked
+                ? technikBlock()
+                : t('Nothing. The box above is not ticked.');
+        };
+        technik.checked = feedbackDraft
+            ? !!feedbackDraft.technik
+            : chosen === 'bug';
+        var technikAngefasst = false;
+        technik.addEventListener('change', function () {
+            technikAngefasst = true;
+            zeigeTechnik();
+        });
+        /* Erst beim Aufklappen gerechnet: das Ausmessen kostet ein Layout,
+           und die meisten klappen nie auf. */
+        $('.sp-say-vorschau', body).addEventListener('toggle', function (e) {
+            if (e.target.open) zeigeTechnik();
+        });
+        $('#spSayDatei', body).addEventListener('click', saveSnapshot);
+
         $('.sp-feedback-kind', body).addEventListener('click', function (e) {
             var btn = e.target.closest('[data-kind]');
             if (!btn) return;
@@ -2370,6 +2489,10 @@
                 b.setAttribute('aria-checked', b === btn ? 'true' : 'false');
             });
             field.placeholder = placeholders[chosen];
+            /* „Etwas ist kaputt" braucht die Messwerte, „ein Requisit fehlt"
+               nicht. Von Hand gesetzt bleibt gesetzt. */
+            if (!technikAngefasst) technik.checked = chosen === 'bug';
+            if ($('.sp-say-vorschau', body).open) zeigeTechnik();
             field.focus();
         });
 
@@ -2383,7 +2506,8 @@
                 if (sent) { feedbackDraft = null; return; }
                 var text = field.value.trim();
                 feedbackDraft = text
-                    ? { kind: chosen, text: field.value, back: $('#spSayBack', body).value }
+                    ? { kind: chosen, text: field.value, back: $('#spSayBack', body).value,
+                        technik: technik.checked }
                     : null;
             },
             actions: [{
@@ -2392,7 +2516,8 @@
                 onClick: function (host, close) {
                     var text = $('#spSayText', host).value.trim();
                     if (!text) { $('#spSayText', host).focus(); return false; }
-                    sendFeedback(chosen, text, $('#spSayBack', host).value.trim());
+                    sendFeedback(chosen, text, $('#spSayBack', host).value.trim(),
+                        technik.checked ? technikBlock() : '');
                     sent = true;
                     close();
                 }
@@ -2401,7 +2526,7 @@
         field.focus();
     }
 
-    function sendFeedback(kind, text, from) {
+    function sendFeedback(kind, text, from, technik) {
         var label = (FEEDBACK_KINDS.filter(function (k) { return k.id === kind; })[0] || {}).label || kind;
         var payload = {
             _subject: 'Bühnenbild-Planer — ' + t(label),
@@ -2409,6 +2534,10 @@
             message: text,
             context: feedbackContext()
         };
+        /* Ein eigenes Feld, kein Anhängsel an die Nachricht: Formspree
+           stellt jedes Feld einzeln in die Mail, und so bleibt lesbar, was
+           jemand geschrieben hat und was die Maschine gemessen hat. */
+        if (technik) payload.technik = technik;
         if (from) payload.email = from;
         /* Abgeschickt ist abgeschickt: der Dialog schließt sofort und die
            Nachricht geht im Hintergrund raus. Wer auf eine Bestätigung warten
@@ -4473,12 +4602,12 @@
     function fillPrintPortal() {
         var portal = $('#spPrintPortal');
         if (!portal || portal.innerHTML) return false;
-        /* Die Blaetter fehlten hier. Unten stand `pages.join('')` und `pages`
-           war nie angelegt -- in strict mode wirft das, und zwar im
-           beforeprint-Zuhoerer, wo der Wurf nirgends sichtbar wird. Der Vorrat
-           blieb leer, die Druck-CSS blendet alles ausser ihm aus, und wer den
-           Planer ueber Strg+P oder das Browsermenue druckte, bekam ein weisses
-           Blatt. Ueber den Knopf im Reiter fiel es nicht auf: der fuellt den
+        /* Die Blätter fehlten hier. Unten stand `pages.join('')` und `pages`
+           war nie angelegt — in strict mode wirft das, und zwar im
+           beforeprint-Zuhörer, wo der Wurf nirgends sichtbar wird. Der Vorrat
+           blieb leer, die Druck-CSS blendet alles außer ihm aus, und wer den
+           Planer über Strg+P oder das Browsermenü druckte, bekam ein weißes
+           Blatt. Über den Knopf im Reiter fiel es nicht auf: der füllt den
            Vorrat selbst, und dann kehrt diese Funktion in Zeile drei um. */
         var pages = buildSheets();
         if (!pages.length) return false;
@@ -4493,7 +4622,25 @@
         style.textContent = '@page { size: A4 ' + (landscape ? 'landscape' : 'portrait') + '; margin: 0; }';
         portal.innerHTML = '<div class="sp-sheets">' + pages.join('') + '</div>';
         portal.hidden = false;
+        vermissDenDruck(portal);
         return true;
+    }
+
+    /* Ausgemessen wird, solange die Blätter im Dokument stehen. Danach räumt
+       der Planer den Vorrat leer, und dann ist nichts mehr zu messen — die
+       Rückmeldung käme ohne die eine Zahl, um die es geht.
+
+       Was hier hineingeht, steht in diag.js. Nichts davon wird von selbst
+       verschickt: es liegt in diesem Reiter und wartet darauf, dass jemand
+       es mitschickt. */
+    function vermissDenDruck(portal) {
+        if (typeof SPDiag === 'undefined') return;
+        try {
+            SPDiag.messeDruck(portal, window);
+            SPDiag.merkeMarkup(portal.innerHTML);
+        } catch (err) {
+            SPDiag.merkeFehler('messeDruck: ' + err.message);
+        }
     }
 
     function doPrint() {
@@ -4519,6 +4666,7 @@
         portal.innerHTML = '<div class="sp-sheets">' + pages.join('') + '</div>';
         portal.hidden = false;
         window.setTimeout(function () {
+            vermissDenDruck(portal);
             window.print();
             window.setTimeout(function () {
                 portal.hidden = true;
@@ -7363,6 +7511,14 @@
 
     function init() {
         if (!$('#spApp')) return;
+        /* Ganz vorn, vor allem anderen: ein Fehler beim Laden der Produktion
+           ist genau der, den man später sucht, und wer erst danach zuhört,
+           hört ihn nicht. */
+        if (typeof SPDiag !== 'undefined') {
+            SPDiag.lauschen(window);
+            SPDiag.holen(window);
+        }
+        fragWorkerNachStand();
         db = load();
         loadUi();
         if (!ui.sceneId || !scene()) ui.sceneId = (scenes()[0] || {}).id;
@@ -7376,6 +7532,19 @@
 
         /* Beim allerersten Öffnen fragen, was ansteht — danach nie wieder. */
         if (!hasBeenWelcomed()) welcomeDialog();
+
+        /* Die Rasterprobe läuft einmal, im Leerlauf, lange nachdem der Planer
+           steht. Sie kostet ein Bild von 320 Punkten Breite und beantwortet
+           die Frage, die man einem fremden Rechner sonst nicht stellen kann:
+           malt dieser Browser winzige Schrift in einer großen Skalierung
+           überhaupt? Sie liegt dann bereit, falls jemand schreibt. */
+        if (typeof SPDiag !== 'undefined') {
+            var spaeter = window.requestIdleCallback ||
+                function (fn) { return window.setTimeout(fn, 3000); };
+            spaeter(function () {
+                SPDiag.probe(window, function () { /* liegt jetzt bereit */ });
+            });
+        }
     }
 
     if (document.readyState === 'loading') {

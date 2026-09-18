@@ -24,3 +24,4 @@ Printed ground plans now show what stands beside the stage. Anything in the wing
 Names on the ground plan now sit against the edge of the thing they belong to, whatever its shape. A table pulled long and flat used to have its name floating a metre or two below it.
 The stage planner no longer lets you zoom out until the stage is a speck, and when you reach the limit it brings the stage back to the middle.
 Printing from the browser menu or with Ctrl+P used to hand the printer a blank sheet. Only the button on the Print tab worked.
+The feedback form in the stage planner can send measurements along, and it can save a full report as a file for faults nobody else can reproduce.

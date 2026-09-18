@@ -488,6 +488,16 @@
         'Send': 'Abschicken',
         'Thank you — it is on its way.': 'Danke — ist unterwegs.',
         'That did not go through. Is there a connection?': 'Das ist nicht durchgegangen. Steht die Verbindung?',
+        'Send the measurements with it': 'Messwerte mitschicken',
+        'What does it say?': 'Was steht drin?',
+        'Nothing. The box above is not ticked.': 'Nichts. Das Kästchen darüber ist nicht angehakt.',
+        'Measured while the sheets are printing. If it goes wrong on paper, print first and write afterwards.':
+            'Gemessen wird beim Drucken. Wenn auf dem Papier etwas schiefgeht, also erst drucken und dann schreiben.',
+        'Put everything in a file': 'Alles in eine Datei',
+        'For a fault nobody else can reproduce. The file holds the printed sheets and your whole production in plain text. The form takes no attachments, so send it to feedback@linu.li.':
+            'Für einen Fehler, den sonst niemand nachstellen kann. In der Datei stehen die gedruckten Blätter und deine ganze Produktion im Klartext. Das Formular nimmt keine Anhänge, schick sie also an feedback@linu.li.',
+        'Saved. Send it to feedback@linu.li.': 'Gespeichert. Schick sie an feedback@linu.li.',
+        'That did not work.': 'Das hat nicht geklappt.',
         'Tab': 'Reiter',
         'Window': 'Fenster',
         'Props on the stage': 'Requisiten auf der Bühne',
