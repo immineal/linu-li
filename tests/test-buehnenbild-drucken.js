@@ -132,6 +132,14 @@ function check(name, fn) {
             const andere = gemessen && gemessen.erstes && gemessen.erstes.andere;
             assert.ok(andere && Object.keys(andere).length > 0,
                 'kein einziges <text> gefunden — dann misst die Messung nichts');
+            /* Mit der Größe, nicht nur mit der Stückzahl: die Frage, die das
+               beantwortet, lautet „ist der fehlende Text der kleinste auf dem
+               Blatt“, und die ist mit einer Anzahl nicht zu beantworten. */
+            const eins = andere[Object.keys(andere)[0]];
+            assert.strictEqual(typeof eins, 'object', 'nur gezählt, nicht gemessen');
+            assert.ok(eins.n > 0, 'keine Stückzahl');
+            assert.ok(typeof eins.min === 'number' && eins.min > 0,
+                'keine Größe: ' + JSON.stringify(eins));
         });
 
         /* Absichtlich am fertigen Text geprüft und nicht an den Zahlen
@@ -209,8 +217,78 @@ function check(name, fn) {
             assert.ok(dialog.vorschau.indexOf('UA:') > -1, 'kein Browser in der Vorschau');
         });
 
+        /* ------------------------------- und wenn niemand gedruckt hat */
+
+        /* Der Grund für diese Prüfung ist eine Datei, die wirklich ankam.
+           Sie war vollständig bis auf die eine Stelle, um die es ging: dort
+           stand „Letzter Druck: keiner“. Die Reihenfolge — erst drucken,
+           dann schreiben — war die einzige Bedingung, und sie hat beim
+           ersten Versuch nicht gehalten. Jetzt misst der Planer selbst, und
+           das muss in einem frischen Reiter gelten, in dem nie gedruckt
+           wurde. */
+        const frisch = await browser.newPage();
+        const frischErrs = [];
+        frisch.on('pageerror', (e) => frischErrs.push(e.message));
+        await frisch.goto(`${BASE}/tools/buehnenbild/`, { waitUntil: 'networkidle2' });
+        await sleep(2500);
+        await frisch.evaluate(() => {
+            const b = document.querySelector('[data-choose="example"]');
+            if (b) b.click();
+        });
+        await sleep(1200);
+
+        const schonGemessen = await frisch.evaluate(() => {
+            const st = window.SPDiag.stand();
+            return !!(st && st.druck);
+        });
+        check('im frischen Reiter ist noch nichts gemessen', () => {
+            assert.ok(!schonGemessen, 'da liegt schon eine Messung — dann prüft das hier nichts');
+        });
+
+        await frisch.evaluate(() => {
+            const b = document.getElementById('spFeedback');
+            if (b) b.click();
+        });
+        await sleep(400);
+        const ohneDruck = await frisch.evaluate(() => {
+            const kasten = document.querySelector('#spSayTechnik');
+            if (!kasten) return null;
+            kasten.checked = true;
+            const details = document.querySelector('.sp-say-vorschau');
+            details.open = true;
+            details.dispatchEvent(new Event('toggle'));
+            const portal = document.getElementById('spPrintPortal');
+            return {
+                vorschau: document.querySelector('#spSayVorschau').textContent || '',
+                vorratLeer: portal.innerHTML === '' && portal.hidden
+            };
+        });
+
+        check('ohne Druck misst der Planer selbst', () => {
+            assert.ok(ohneDruck, 'kein Kästchen im Formular');
+            assert.ok(/ausgemessen ohne Druckdialog/.test(ohneDruck.vorschau),
+                'niemand hat gemessen:\n' + ohneDruck.vorschau.slice(0, 1200));
+            assert.ok(/sp-mark-text/.test(ohneDruck.vorschau),
+                'kein Textfeld in der Messung:\n' + ohneDruck.vorschau.slice(0, 1200));
+            assert.ok(ohneDruck.vorschau.indexOf('NaN') === -1, 'NaN im Bericht');
+        });
+
+        check('die Messung sagt, dass sie vom Bildschirm kommt', () => {
+            /* Misst ein Browser beim Drucken anders als beim Anzeigen, ist
+               genau das der Fehler. Eine Messung, die nicht sagt, woher sie
+               kommt, führt dann in die Irre. */
+            assert.ok(/Am Bildschirm gemessen/.test(ohneDruck.vorschau),
+                'die Vorschau verschweigt, woher die Zahlen kommen');
+        });
+
+        check('der Vorrat bleibt danach leer', () => {
+            assert.ok(ohneDruck.vorratLeer,
+                'die Blätter stehen noch in der Seite — das verschiebt das Layout');
+        });
+
         check('nichts ist unterwegs geworfen worden', () => {
-            assert.deepStrictEqual(errs, [], 'geworfen: ' + errs.join(' | '));
+            assert.deepStrictEqual(errs.concat(frischErrs), [],
+                'geworfen: ' + errs.concat(frischErrs).join(' | '));
         });
 
         console.log('\n' + passed + ' Prüfungen bestanden');
