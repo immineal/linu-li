@@ -18,7 +18,7 @@
 
        tests/test-buehnenbild.js besteht darauf, dass sie aussieht wie ein
        Datum mit Buchstaben dahinter. */
-    var BUILD = '2026-09-19a';
+    var BUILD = '2026-09-19b';
 
     var STORE_KEY = 'sp.planner.v1';
     var UI_KEY = 'sp.planner.ui.v1';
@@ -4447,6 +4447,9 @@
     }
 
     function renderPrintTab() {
+        /* Eine Stelle für alle Wege: Schalter umgelegt, Dokumentart
+           gewechselt, Reiter geöffnet. */
+        setzeSeitenmass();
         var o = printOptions();
         var p = production();
         var doc = printDoc();
@@ -4639,6 +4642,27 @@
        auch Strg+P und das Menü des Browsers. Vorher füllte ihn nur der Knopf,
        und die Druck-CSS blendet alles außer dem Vorrat aus — wer den
        gewohnten Weg nahm, bekam ein weißes Blatt. */
+    /* Die Seitengröße gehört in die Seite, lange bevor jemand druckt.
+
+       Sie stand bisher nur in `fillPrintPortal` und `doPrint`, also wurde
+       sie erst im beforeprint-Zuhörer geschrieben — in dem Moment, in dem
+       der Browser die Seiten schon einteilt. In dem PDF, das die Meldung
+       ausgelöst hat, sind alle sieben Seiten Hochformat (595 × 842), obwohl
+       jedes Blatt darin quer liegt: der Plan lag zusammengeschoben in der
+       oberen Hälfte. Die Regel kam zu spät. */
+    function setzeSeitenmass() {
+        var style = document.getElementById('spPageStyle');
+        if (!style) {
+            style = document.createElement('style');
+            style.id = 'spPageStyle';
+            document.head.appendChild(style);
+        }
+        var quer = printDoc() === 'plans' && printOptions().orientation === 'landscape';
+        var neu = '@page { size: A4 ' + (quer ? 'landscape' : 'portrait') + '; margin: 0; }';
+        if (style.textContent !== neu) style.textContent = neu;
+        return style;
+    }
+
     function fillPrintPortal() {
         var portal = $('#spPrintPortal');
         if (!portal || portal.innerHTML) return false;
@@ -4651,15 +4675,7 @@
            Vorrat selbst, und dann kehrt diese Funktion in Zeile drei um. */
         var pages = buildSheets();
         if (!pages.length) return false;
-        var o = printOptions();
-        var style = document.getElementById('spPageStyle');
-        if (!style) {
-            style = document.createElement('style');
-            style.id = 'spPageStyle';
-            document.head.appendChild(style);
-        }
-        var landscape = printDoc() === 'plans' && o.orientation === 'landscape';
-        style.textContent = '@page { size: A4 ' + (landscape ? 'landscape' : 'portrait') + '; margin: 0; }';
+        setzeSeitenmass();
         portal.innerHTML = '<div class="sp-sheets">' + pages.join('') + '</div>';
         portal.hidden = false;
         vermissDenDruck(portal);
@@ -4730,14 +4746,7 @@
             toast(t('Nothing selected to print.'));
             return;
         }
-        var style = document.getElementById('spPageStyle');
-        if (!style) {
-            style = document.createElement('style');
-            style.id = 'spPageStyle';
-            document.head.appendChild(style);
-        }
-        var landscape = printDoc() === 'plans' && o.orientation === 'landscape';
-        style.textContent = '@page { size: A4 ' + (landscape ? 'landscape' : 'portrait') + '; margin: 0; }';
+        setzeSeitenmass();
 
         portal.innerHTML = '<div class="sp-sheets">' + pages.join('') + '</div>';
         portal.hidden = false;
@@ -7598,6 +7607,9 @@
         wirePanelGrip('#spAsideGrip', 'aside');
         wirePanelGrip('#spRailGrip', 'rail');
         render();
+        /* Auch wer den Druckreiter nie aufmacht, drückt irgendwann Strg+P.
+           Bis hierhin steht die Arbeit, also steht auch die Seitengröße. */
+        setzeSeitenmass();
         setSaveState(t('Saved locally'));
 
         /* Beim allerersten Öffnen fragen, was ansteht — danach nie wieder. */

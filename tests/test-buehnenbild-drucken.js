@@ -54,6 +54,13 @@ function check(name, fn) {
         });
         await sleep(1200);
 
+        /* Vor jedem Druck gelesen: die Regel muss schon dastehen, wenn
+           niemand etwas gedruckt hat. */
+        const seitenmass = await page.evaluate(() => {
+            const el = document.getElementById('spPageStyle');
+            return el ? el.textContent : null;
+        });
+
         /* ------------------------------------------------ Strg+P füllt */
 
         /* window.print anhalten: der Aufruf öffnet sonst einen Dialog, den
@@ -241,6 +248,21 @@ function check(name, fn) {
             assert.ok(dialog.vorschau.indexOf('Letzter Druck') > -1,
                 'die Vorschau nennt den Druck nicht:\n' + dialog.vorschau);
             assert.ok(dialog.vorschau.indexOf('UA:') > -1, 'kein Browser in der Vorschau');
+        });
+
+        /* ---------------------------------------- das Maß der Seite */
+
+        check('die Seitengröße steht in der Seite, bevor jemand druckt', () => {
+            /* Sie stand früher nur im beforeprint-Zuhörer, also in dem
+               Moment, in dem der Browser die Seiten schon einteilt. In dem
+               PDF, das die Meldung ausgelöst hat, sind alle sieben Seiten
+               Hochformat, obwohl jedes Blatt darin quer liegt — der Plan lag
+               zusammengeschoben in der oberen Hälfte. */
+            assert.ok(seitenmass, 'keine @page-Regel in der Seite');
+            assert.ok(/@page\s*\{[^}]*size:\s*A4\s+(landscape|portrait)/.test(seitenmass),
+                'die Regel nennt kein Format: ' + seitenmass);
+            assert.ok(/margin:\s*0/.test(seitenmass),
+                'ohne Rand null passt das Blatt nicht auf die Seite: ' + seitenmass);
         });
 
         /* ------------------------------ was Safari mit auf das Papier nimmt */
