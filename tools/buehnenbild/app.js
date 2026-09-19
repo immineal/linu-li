@@ -18,7 +18,7 @@
 
        tests/test-buehnenbild.js besteht darauf, dass sie aussieht wie ein
        Datum mit Buchstaben dahinter. */
-    var BUILD = '2026-09-18a';
+    var BUILD = '2026-09-18b';
 
     var STORE_KEY = 'sp.planner.v1';
     var UI_KEY = 'sp.planner.ui.v1';
@@ -2360,18 +2360,19 @@
        ausgeklappt — wer etwas mitschickt, soll es vorher lesen können. */
     function technikBlock() {
         if (typeof SPDiag === 'undefined') return '(diag.js fehlt)';
+        sorgeFuerMessung();
+        return SPDiag.bericht({ build: BUILD, sha: workerSha, zustand: zustandZeile() }, window);
+    }
+
+    function zustandZeile() {
         var sc = scene();
-        return SPDiag.bericht({
-            build: BUILD,
-            sha: workerSha,
-            zustand: 'Reiter: ' + ui.tab +
-                ' · Requisiten in der Szene: ' + ((sc && sc.placements) ? sc.placements.length : 0) +
-                ' · Textfelder hier: ' + zaehleTextfelder(sc) +
-                ' · Textfelder überhaupt: ' + scenes().reduce(function (n, one) {
-                    return n + zaehleTextfelder(one);
-                }, 0) +
-                ' · Szenen: ' + scenes().length
-        }, window);
+        return 'Reiter: ' + ui.tab +
+            ' · Requisiten in der Szene: ' + ((sc && sc.placements) ? sc.placements.length : 0) +
+            ' · Textfelder hier: ' + zaehleTextfelder(sc) +
+            ' · Textfelder überhaupt: ' + scenes().reduce(function (n, one) {
+                return n + zaehleTextfelder(one);
+            }, 0) +
+            ' · Szenen: ' + scenes().length;
     }
 
     function zaehleTextfelder(sc) {
@@ -2389,11 +2390,11 @@
        dorthin, wohin sie selbst sie schickt. */
     function saveSnapshot() {
         if (typeof SPDiag === 'undefined') { toast(t('That did not work.'), 'error'); return; }
+        sorgeFuerMessung();
         var text;
         try {
             text = SPDiag.schnappschuss({
-                build: BUILD, sha: workerSha,
-                zustand: 'Reiter: ' + ui.tab
+                build: BUILD, sha: workerSha, zustand: zustandZeile()
             }, window);
         } catch (err) {
             toast(t('That did not work.'), 'error');
@@ -2438,7 +2439,7 @@
             '<details class="sp-say-vorschau"><summary>' +
             esc(t('What does it say?')) + '</summary><pre id="spSayVorschau"></pre></details>' +
             '<p class="sp-hint">' +
-            esc(t('Measured while the sheets are printing. If it goes wrong on paper, print first and write afterwards.')) +
+            esc(t('The planner measures the sheets itself. If the trouble is on paper, print first. Then it measures the print.')) +
             '</p>' +
             /* Aus per Vorgabe: eine Sicherung ist mehr, als die Nachricht
                verspricht, und geht niemanden etwas an, der nicht danach
@@ -4672,13 +4673,49 @@
        Was hier hineingeht, steht in diag.js. Nichts davon wird von selbst
        verschickt: es liegt in diesem Reiter und wartet darauf, dass jemand
        es mitschickt. */
-    function vermissDenDruck(portal) {
+    function vermissDenDruck(portal, ohneDruck) {
         if (typeof SPDiag === 'undefined') return;
         try {
-            SPDiag.messeDruck(portal, window);
+            SPDiag.messeDruck(portal, window, ohneDruck);
             SPDiag.merkeMarkup(portal.innerHTML);
         } catch (err) {
             SPDiag.merkeFehler('messeDruck: ' + err.message);
+        }
+    }
+
+    /* Gemessen wird am gefüllten Druckvorrat — und der stand bisher nur
+       dort, wo jemand vorher gedruckt hatte. Das erste Mal, dass eine solche
+       Datei wirklich ankam, stand darin „Letzter Druck: keiner“: die
+       Reihenfolge war die einzige Bedingung, und sie hat nicht gehalten. Wer
+       einen Fehler meldet, soll sich nicht daran erinnern müssen, in welcher
+       Reihenfolge er ihn meldet. Also baut der Planer die Blätter jetzt
+       selbst, misst sie und räumt sie wieder weg.
+
+       Eine echte Messung aus einem echten Druck bleibt stehen. Die ist mehr
+       wert, weil sie den Druckweg des Browsers genommen hat und nicht den
+       Bildschirmweg. */
+    function sorgeFuerMessung() {
+        if (typeof SPDiag === 'undefined') return;
+        try {
+            if (SPDiag.stand().druck) return;
+        } catch (err) { return; }
+        var portal = $('#spPrintPortal');
+        if (!portal || portal.innerHTML) return;
+        try {
+            var pages = buildSheets();
+            if (!pages.length) return;
+            portal.innerHTML = '<div class="sp-sheets">' + pages.join('') + '</div>';
+            portal.hidden = false;
+            /* Erzwingt den Umbruch. Ohne ihn liefert getScreenCTM den Maßstab
+               von vorhin oder gar nichts, und genau der Maßstab ist die Zahl,
+               um die es geht. */
+            void portal.offsetHeight;
+            vermissDenDruck(portal, true);
+        } catch (err) {
+            try { SPDiag.merkeFehler('Messung ohne Druck: ' + err.message); } catch (e2) { /* dann eben nicht */ }
+        } finally {
+            portal.hidden = true;
+            portal.innerHTML = '';
         }
     }
 

@@ -494,8 +494,8 @@
         'Send the measurements with it': 'Messwerte mitschicken',
         'What does it say?': 'Was steht drin?',
         'Nothing. The box above is not ticked.': 'Nichts. Das Kästchen darüber ist nicht angehakt.',
-        'Measured while the sheets are printing. If it goes wrong on paper, print first and write afterwards.':
-            'Gemessen wird beim Drucken. Wenn auf dem Papier etwas schiefgeht, also erst drucken und dann schreiben.',
+        'The planner measures the sheets itself. If the trouble is on paper, print first. Then it measures the print.':
+            'Der Planer misst die Blätter selbst. Liegt es am Papier, drucke vorher. Dann misst er den Druck.',
         'Put everything in a file': 'Alles in eine Datei',
         'For a fault nobody else can reproduce. The file holds the printed sheets and your whole production in plain text. Send it to feedback@linu.li — it holds more than an attachment does, and it arrives even when the form refuses one.':
             'Für einen Fehler, den sonst niemand nachstellen kann. In der Datei stehen die gedruckten Blätter und deine ganze Produktion im Klartext. Schick sie an feedback@linu.li: sie trägt mehr als ein Anhang, und sie kommt auch an, wenn das Formular keinen annimmt.',

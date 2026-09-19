@@ -59,6 +59,12 @@
     var FEHLER_MAX = 6;
 
     var SITZUNG = 'sp.planner.diag.v1';
+    /* Ein echter Druck überlebt auch das Schließen des Reiters. Wer druckt
+       und danach ein Fenster zumacht, bevor er schreibt, hätte sonst wieder
+       nur Bildschirmzahlen. Zwölf Stunden, damit der Druck von vorgestern
+       nicht als der von eben durchgeht. */
+    var DRUCKFACH = 'sp.planner.diag.druck.v1';
+    var DRUCK_HALTBAR = 12 * 3600 * 1000;
 
     var fehler = [];
     var letzterDruck = null;
@@ -205,6 +211,20 @@
         return info;
     }
 
+    /* Die Größe, in der ein <text> wirklich gesetzt wird: das Angeschriebene
+       mal der Skalierung des viewBox. Dieselbe Rechnung wie beim Textfeld,
+       nur ohne den Rest der Messung — hier zählt allein die Zahl. */
+    function gesetzteGroesse(el) {
+        try {
+            var fs = parseFloat(el.ownerDocument.defaultView
+                .getComputedStyle(el).fontSize);
+            var m = el.getScreenCTM();
+            if (!m || fs !== fs) return null;
+            var massstab = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) || m.a;
+            return fs * massstab;
+        } catch (err) { return null; }
+    }
+
     function textZeile(info) {
         /* Die beiden Zahlen, wegen derer das hier steht: wie groß die Schrift
            gesetzt werden soll, und wie breit der Browser den Text dann
@@ -240,7 +260,7 @@
      * wieder leer, und dann ist nichts mehr zu messen.
      * ------------------------------------------------------------------ */
 
-    function messeDruck(portal, fenster) {
+    function messeDruck(portal, fenster, ohneDruck) {
         fenster = fenster || (typeof window !== 'undefined' ? window : null);
         if (!portal || !fenster) return null;
         var blaetter = [];
@@ -265,17 +285,28 @@
                         }
                         return;
                     }
-                    /* Alles andere wird nur gezählt. Es steht auf demselben
-                       Blatt und wird gedruckt — das allein sagt schon, dass
-                       es nicht die Blätter sind, sondern die Textfelder. */
-                    eintrag.andere[klasse] = (eintrag.andere[klasse] || 0) + 1;
+                    /* Vom übrigen Text zählt die Stückzahl — und die Größe,
+                       in der er gesetzt wird. Auf dem Blatt, um das es hier
+                       geht, ist das Textfeld mit 6,6 px der kleinste Text
+                       weit und breit; der nächste steht bei 7,8, die
+                       Requisitennamen bei 12,6. Ob der fehlende Text der
+                       kleinste ist und wo die Grenze liegt, steht damit in
+                       einer Zeile statt in einer Rückfrage. */
+                    var w = eintrag.andere[klasse];
+                    if (!w) { w = eintrag.andere[klasse] = { n: 0, min: null, max: null }; }
+                    w.n += 1;
+                    var px = gesetzteGroesse(el);
+                    if (typeof px === 'number') {
+                        if (w.min === null || px < w.min) w.min = px;
+                        if (w.max === null || px > w.max) w.max = px;
+                    }
                 });
                 /* Der Rahmen ohne den Text ist genau das, was sie sieht. */
                 eintrag.rahmen = plan.querySelectorAll('.sp-mark-plate').length;
             }
             blaetter.push(eintrag);
         });
-        letzterDruck = { zeit: Date.now(), blaetter: blaetter };
+        letzterDruck = { zeit: Date.now(), blaetter: blaetter, ohneDruck: !!ohneDruck };
         merken(fenster);
         return letzterDruck;
     }
@@ -290,6 +321,14 @@
                 druck: letzterDruck, probe: letzteProbe, fehler: fehler
             }));
         } catch (err) { /* voll oder gesperrt, dann eben nur im Speicher */ }
+        /* Nur der echte Druck, und nur er. Eine Bildschirmmessung ist in
+           jedem Reiter in einer Zehntelsekunde neu gemacht; die hier ist es
+           nicht. Was darin steht, sind Klassennamen, Zeichenzahlen und
+           Größen — kein Wort aus einer Produktion. */
+        if (!letzterDruck || letzterDruck.ohneDruck) return;
+        try {
+            fenster.localStorage.setItem(DRUCKFACH, JSON.stringify(letzterDruck));
+        } catch (err) { /* dann bleibt es beim Reiter */ }
     }
 
     function holen(fenster) {
@@ -302,6 +341,22 @@
             if (alt.druck && !letzterDruck) letzterDruck = alt.druck;
             if (alt.probe && !letzteProbe) letzteProbe = alt.probe;
             if (alt.fehler && !fehler.length) fehler = alt.fehler;
+        } catch (err) { /* unlesbar, dann ohne */ }
+        holeDruck(fenster);
+    }
+
+    /* Ein echter Druck schlägt eine Bildschirmmessung, egal aus welchem
+       Reiter er kommt — er ist der Weg, um den es geht. Sein Alter steht im
+       Bericht, damit niemand ihn für den von eben hält. */
+    function holeDruck(fenster) {
+        if (letzterDruck && !letzterDruck.ohneDruck) return;
+        try {
+            var roh = fenster.localStorage.getItem(DRUCKFACH);
+            if (!roh) return;
+            var alt = JSON.parse(roh);
+            if (!alt || !alt.blaetter || alt.ohneDruck) return;
+            if (!alt.zeit || Date.now() - alt.zeit > DRUCK_HALTBAR) return;
+            letzterDruck = alt;
         } catch (err) { /* unlesbar, dann ohne */ }
     }
 
@@ -486,8 +541,8 @@
 
         zeilen.push('');
         if (!letzterDruck) {
-            zeilen.push('Letzter Druck: keiner in diesem Reiter. ' +
-                '(Erst drucken, dann schreiben — sonst steht hier nichts.)');
+            zeilen.push('Keine Messung. (Der Planer misst beim Schreiben selbst — ' +
+                'steht das hier, ist auch das schiefgegangen.)');
         } else {
             /* Ausführlich nur die Blätter, auf denen ein Textfeld steht.
                Bei zehn Szenen standen vorher zehn Absätze im Bericht, neun
@@ -499,12 +554,31 @@
             var mitFeld = letzterDruck.blaetter.filter(function (b) {
                 return b.felder && b.felder.length;
             });
-            zeilen.push('Letzter Druck (' + vorZeit(letzterDruck.zeit) + ', ' +
+            /* Wer gedruckt hat, hat gemessen, was wirklich zum Drucker ging.
+               Wer nur geschrieben hat, hat dieselben Blätter gemessen — aber
+               am Bildschirm. Geht ein Browser beim Drucken einen anderen Weg
+               als beim Anzeigen, ist genau dieser Unterschied der Fehler,
+               also darf er hier nicht verschwiegen werden. */
+            zeilen.push((letzterDruck.ohneDruck
+                    ? 'Blätter ausgemessen ohne Druckdialog ('
+                    : 'Letzter Druck (') +
+                vorZeit(letzterDruck.zeit) + ', ' +
                 letzterDruck.blaetter.length + ' Blätter, davon ' + mitFeld.length +
                 ' mit Textfeld):');
+            if (letzterDruck.ohneDruck) {
+                zeilen.push('  (Am Bildschirm gemessen. Wer vor dem Schreiben druckt, ' +
+                    'bekommt hier den Druckweg selbst.)');
+            }
             mitFeld.slice(0, BLAETTER_MAX).forEach(function (b) {
                 var andere = Object.keys(b.andere || {}).map(function (k) {
-                    return k + '×' + b.andere[k];
+                    var w = b.andere[k];
+                    /* Blätter aus einer älteren Fassung tragen hier nur eine
+                       Zahl. Die sollen den Bericht nicht zerreißen. */
+                    if (typeof w === 'number') return k + '×' + w;
+                    return k + '×' + w.n + ' (' +
+                        (w.min === null ? '?' : r(w.min, 2) +
+                            (w.max !== null && w.max - w.min > 0.05 ? '–' + r(w.max, 2) : '')) +
+                        ' px)';
                 }).join(', ');
                 zeilen.push('  Blatt ' + b.nummer + '  ' + (b.art || '—') +
                     '  viewBox ' + (b.viewBox || '—') + '  ' + (b.gemalt || '—') +
@@ -604,7 +678,7 @@
         teile.push(abschnitt('2. Die Blätter, wie sie im Dokument standen',
             letztesMarkup
                 ? '(' + letztesMarkup.length + ' Zeichen)\n' + letztesMarkup
-                : '(nicht gedruckt, seit diese Seite offen ist — erst drucken, dann speichern)'));
+                : '(keine Blätter — der Planer konnte sie nicht bauen)'));
         if (fenster) {
             var arbeit = ausSpeicher(fenster, 'sp.planner.v1');
             teile.push(abschnitt('3. Die Arbeit (sp.planner.v1' +

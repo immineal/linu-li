@@ -30,7 +30,7 @@ test('ohne Fenster, ohne Druck und ohne Probe kommt trotzdem ein Bericht', () =>
     const text = Diag.bericht({ build: '2026-09-18a', sha: 'abc1234' }, null);
     assert.ok(text.indexOf('2026-09-18a') > -1, 'die Fassung fehlt');
     assert.ok(text.indexOf('abc1234') > -1, 'der Commit fehlt');
-    assert.ok(/Letzter Druck: keiner/.test(text), 'sagt nicht, dass nicht gedruckt wurde');
+    assert.ok(/Keine Messung/.test(text), 'sagt nicht, dass nichts gemessen wurde');
     assert.ok(/Fehler: keine/.test(text));
 });
 
@@ -111,10 +111,10 @@ test('fehlt eine Messung, steht ein Fragezeichen und kein NaN', () => {
     assert.ok(zeile.indexOf('undefined') === -1, 'undefined im Bericht: ' + zeile);
 });
 
-test('der Schnappschuss sagt es, wenn noch nicht gedruckt wurde', () => {
+test('der Schnappschuss sagt es, wenn keine Blätter da sind', () => {
     Diag.leeren();
     const datei = Diag.schnappschuss({ build: 'x' }, null);
-    assert.ok(/erst drucken, dann speichern/.test(datei),
+    assert.ok(/keine Blätter/.test(datei),
         'schweigt über die fehlenden Blätter');
 });
 
