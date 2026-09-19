@@ -555,13 +555,71 @@
 
         return {
             viewBox: n(view.x) + ' ' + n(view.y) + ' ' + n(view.w) + ' ' + n(view.h),
-            inner: '<defs>' + clip + '</defs>' + parts.join(''),
+            inner: '<defs>' + clip + '</defs>' + grossSetzen(parts.join('')),
             bounds: b,
             view: view,
             unit: u,
             fontSize: fs,
             outline: out
         };
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Schrift, groß genug, dass ein Rasterer sie ernst nimmt
+     *
+     * Der Grundriss rechnet in Bühnenmetern, und das steht so im Markup:
+     * <text font-size="0.116"> für eine Zeile, die auf dem Blatt 6,5
+     * Bildpunkte hoch wird. Erst die Skalierung des viewBox macht aus dem
+     * Bruchteil eines Punktes eine lesbare Zeile.
+     *
+     * Safari auf dem Mac macht das beim Drucken nicht mit. In dem PDF, das
+     * die Meldung ausgelöst hat (Quartz PDFContext, macOS 15.7.9), steht
+     * auf den Planseiten kein einziger Buchstabe aus dem Grundriss: keine
+     * Requisitennamen, keine Textfelder, keine Maßstabszahlen, keine
+     * Vorhangnamen. Die Zeichnungen sind vollständig da, jeder Strich.
+     * Was es in das PDF geschafft hat, war ausschließlich Text mit einer
+     * gewöhnlichen Schriftgröße aus dem HTML daneben. Was gefehlt hat, war
+     * ausschließlich Text, dessen font-size ein Bruchteil von eins war.
+     *
+     * Also wird jede Zeile hundertfach gesetzt und im selben Zug
+     * hundertfach verkleinert. Auf dem Bildschirm ändert das nichts, im
+     * Markup steht danach font-size="11.6" statt "0.116", und kein Rasterer
+     * muss mehr eine Schrift bauen, die kleiner ist als ein Punkt.
+     *
+     * Der helle Rand hinter den Namen bekommt seine Breite aus dem
+     * Stylesheet. Die gilt im äußeren System und würde im inneren zum
+     * Haarstrich, deshalb steht sie danach am Element selbst.
+     * ------------------------------------------------------------------ */
+
+    var LUPE = 100;
+
+    function grossSetzen(markup) {
+        return String(markup).replace(/<text\b([^>]*)>/g, function (ganz, attrs) {
+            /* Zweimal angewandt wäre zehntausendfach. Das schnelle Nachziehen
+               beim Ziehen an einer Ecke setzt ein einzelnes Requisit neu und
+               geht dabei durch dieselbe Stelle wie der ganze Plan; beide
+               Wege müssen dasselbe Markup liefern. */
+            if (attrs.indexOf('scale(' + (1 / LUPE) + ')') > -1) return ganz;
+            var neu = attrs
+                .replace(/\b(font-size|x|y|dx|dy)="([-\d.eE]+)"/g, function (a, name, wert) {
+                    var z = parseFloat(wert);
+                    return z !== z ? a : name + '="' + n(z * LUPE) + '"';
+                });
+            /* Ein vorhandenes transform bleibt stehen und bekommt die
+               Verkleinerung hinten angehängt: sie wirkt damit zuerst, also
+               innen, wo die vergrößerten Zahlen stehen. */
+            if (/\btransform="/.test(neu)) {
+                neu = neu.replace(/\btransform="([^"]*)"/, function (a, t) {
+                    return 'transform="' + t + ' scale(' + (1 / LUPE) + ')"';
+                });
+            } else {
+                neu += ' transform="scale(' + (1 / LUPE) + ')"';
+            }
+            if (neu.indexOf('sp-item-label-halo') > -1) {
+                neu += ' style="stroke-width:' + n(0.055 * LUPE) + '"';
+            }
+            return '<text' + neu + '>';
+        });
     }
 
     function spanAtSafe(stage, y) {
@@ -718,7 +776,11 @@
             inner += '<rect class="sp-hit" x="' + n(-hw) + '" y="' + n(-hh) +
                 '" width="' + n(hw * 2) + '" height="' + n(hh * 2) + '"/>';
         }
-        return inner;
+        /* Auch hier, nicht erst am Ende: beim Ziehen an einer Ecke wird nur
+           dieses eine Requisit neu gesetzt. Käme die Schrift auf dem kurzen
+           Weg anders heraus als auf dem langen, sähe ein Textfeld beim
+           Ziehen anders aus als danach. */
+        return grossSetzen(inner);
     }
 
     function drawProp(placement, prop, u, flags) {
@@ -828,5 +890,6 @@
     }
 
     return { build: build, viewOf: viewOf, svg: svg, escape: esc, folds: folds, niceStep: niceStep,
+             grossSetzen: grossSetzen, LUPE: LUPE,
              propInner: propInner, keepsAspect: keepsAspect, gripOf: gripOf, GRIPS: GRIPS };
 }));
