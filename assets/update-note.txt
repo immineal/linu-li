@@ -29,3 +29,5 @@ Printing from the browser menu or with Ctrl+P used to hand the printer a blank s
 The feedback form in the stage planner can send measurements along, and it can save a full report as a file for faults nobody else can reproduce.
 The stage planner used to need you to print before writing a fault report, or the report arrived without the numbers. It measures the sheets by itself now, and says whether the numbers came from the print or from the screen.
 A fault report now lists how large every other piece of text on the sheet was set, not just how many there were.
+Ground plans printed from Safari on a Mac came out with no writing at all: no prop names, no text frames, no scale figures, while every line of the drawing was there. The plan measures in stage metres, so its letters were set at a fraction of a pixel and Safari left them out of the PDF. They are set a hundred times larger and scaled back down now, which looks the same and prints.
+The lower half of every printed plan page used to come out black on a Mac. The paper texture the site lays over each page went along to the printer.

@@ -377,10 +377,15 @@ function labelGap(extra) {
     const m = plan.inner.match(/<text class="sp-item-label" x="([-\d.]+)" y="([-\d.]+)"/);
     assert.ok(m, 'no label was drawn at all');
     const box = SP.placementBounds(p);
+    /* Die Schrift steht hundertfach vergroessert im Markup und wird im
+       transform wieder verkleinert -- sonst laesst Safari sie auf dem Weg
+       ins PDF ganz weg. Hier interessiert die Stelle in Metern. */
+    const x = Number(m[1]) / Plan.LUPE;
+    const y = Number(m[2]) / Plan.LUPE;
     return {
-        below: Number(m[2]) - (p.y + box.halfH),
-        beside: Math.abs(Number(m[1]) - p.x) - box.halfW,
-        at: [Number(m[1]), Number(m[2])]
+        below: y - (p.y + box.halfH),
+        beside: Math.abs(x - p.x) - box.halfW,
+        at: [x, y]
     };
 }
 
@@ -2560,6 +2565,70 @@ test('a wing note shows the prop, not a smaller thing built to that size', () =>
             count(Plan.propInner(shape, prop, u, {})),
             prop.id + ' is drawn differently on a wing note than in the library');
     });
+});
+
+/* --------------------------------------- font sizes a rasteriser takes */
+
+/* Der Fehler, der das hier ausgelöst hat: auf Mac-Safari kam der Grundriss
+   als PDF ohne einen einzigen Buchstaben heraus. Keine Requisitennamen, kein
+   Textfeld, keine Maßstabszahl — die Zeichnungen vollständig, jeder Strich.
+   In dem PDF (Quartz PDFContext, macOS 15.7.9) stand als Text nur, was aus
+   dem HTML daneben kam. Der einzige Unterschied: im Grundriss rechnet alles
+   in Bühnenmetern, also stand dort font-size="0.116".
+
+   Weniger als eins darf hier nicht mehr vorkommen. */
+
+test('no text in the plan is set smaller than one unit', () => {
+    const production = sampleProduction();
+    let gesehen = 0;
+    production.scenes.forEach((scene) => {
+        const plan = Plan.build({ stage: production.stage, scene, resolve, units: 'm' });
+        const tags = plan.inner.match(/<text\b[^>]*>/g) || [];
+        tags.forEach((tag) => {
+            const m = /font-size="([-\d.]+)"/.exec(tag);
+            assert.ok(m, 'a text without a font-size: ' + tag);
+            gesehen += 1;
+            assert.ok(parseFloat(m[1]) >= 1,
+                'set at a fraction of a unit, which Safari drops on the way to a PDF: ' + tag);
+            assert.ok(/scale\(0\.01\)/.test(tag),
+                'enlarged but never scaled back, so it would print huge: ' + tag);
+        });
+    });
+    assert.ok(gesehen > 0, 'no text in the plan at all — then this checks nothing');
+});
+
+test('enlarging the text leaves the drawing where it was', () => {
+    /* Hundertfach gesetzt und hundertfach verkleinert ist dieselbe Zeile an
+       derselben Stelle. Steht sie danach woanders, ist der Plan kaputt. */
+    const roh = '<text class="sp-mark-text" x="3.4" y="2.1" font-size="0.116" text-anchor="middle">Hallo</text>';
+    const neu = Plan.grossSetzen(roh);
+    const zahl = (name) => parseFloat(new RegExp(name + '="([-\\d.]+)"').exec(neu)[1]);
+    assert.strictEqual(zahl('x') / Plan.LUPE, 3.4, 'x sitzt nicht mehr da, wo es saß');
+    assert.strictEqual(zahl('y') / Plan.LUPE, 2.1, 'y sitzt nicht mehr da, wo es saß');
+    assert.ok(Math.abs(zahl('font-size') / Plan.LUPE - 0.116) < 1e-9,
+        'die Schrift ist nicht mehr gleich groß');
+    assert.ok(/text-anchor="middle"/.test(neu), 'die Ausrichtung ist verlorengegangen');
+});
+
+test('a text that already carries a transform keeps it', () => {
+    /* Die Maßzahlen an den Seiten stehen gedreht. Hängt die Verkleinerung
+       vorn statt hinten, dreht sie mit und die Zahl steht schief. */
+    const neu = Plan.grossSetzen(
+        '<text transform="translate(1.5 2.5) rotate(-90)" font-size="0.14">Breite</text>');
+    assert.ok(/transform="translate\(1\.5 2\.5\) rotate\(-90\) scale\(0\.01\)"/.test(neu),
+        'die Verkleinerung sitzt an der falschen Stelle: ' + neu);
+});
+
+test('the halo behind a name keeps its width', () => {
+    /* Die Breite kommt aus dem Stylesheet und gilt draußen. Drinnen, wo
+       hundertfach gerechnet wird, wäre sie ein Haarstrich, und der helle
+       Rand, der die Namen über den Zeichnungen lesbar hält, wäre weg. */
+    const neu = Plan.grossSetzen(
+        '<text class="sp-item-label-halo" x="1" y="1" font-size="0.2">Sofa</text>');
+    const m = /stroke-width:([\d.]+)/.exec(neu);
+    assert.ok(m, 'der helle Rand bekommt keine Breite mit: ' + neu);
+    assert.ok(Math.abs(parseFloat(m[1]) / Plan.LUPE - 0.055) < 1e-9,
+        'der helle Rand ist nicht mehr gleich breit: ' + m[1]);
 });
 
 console.log('\n' + passed + ' checks passed');

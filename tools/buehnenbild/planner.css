@@ -1859,7 +1859,18 @@ body {
 @media print {
     @page { size: A4; margin: 0; }
     body > *:not(#spPrintPortal) { display: none !important; }
+    /* Die Seite legt über alles eine Papierstruktur: body::after, fest
+       positioniert, ganze Fläche, ein Streifenverlauf mit zwei Prozent
+       Schwarz. Am Bildschirm sieht man sie kaum. Im PDF eines Druckdialogs
+       ist sie ein einziger Verlauf über die ganze Seite (ShadingType 2,
+       Achse über zehntausend Einheiten), und in dem PDF, das die Meldung
+       ausgelöst hat, kam die untere Hälfte jeder Planseite darum schwarz
+       heraus — alles, was das weiße Blatt nicht selbst überdeckt hat.
+       `body > *` fasst ein Pseudoelement nicht an, deshalb hier. */
+    body::before,
+    body::after { display: none !important; content: none !important; }
     body { background: #fff !important; }
+    html { background: #fff !important; }
     #spPrintPortal,
     #spPrintPortal:not([hidden]) {
         display: block !important;

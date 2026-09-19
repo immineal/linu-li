@@ -164,6 +164,32 @@ function check(name, fn) {
             assert.ok(bericht.indexOf('undefined') === -1, 'undefined im Bericht:\n' + bericht);
         });
 
+        const schriften = await page.evaluate(() => {
+            const out = { klein: [], gesetzt: [], anzahl: 0 };
+            document.querySelectorAll('#spPrintPortal text').forEach((el) => {
+                out.anzahl += 1;
+                const fs = parseFloat(el.getAttribute('font-size'));
+                if (!(fs >= 1)) out.klein.push((el.getAttribute('class') || '?') + ' ' + fs);
+                let s = null;
+                try {
+                    const m = el.getScreenCTM();
+                    if (m) s = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+                } catch (err) { /* dann eben nicht */ }
+                if (s) out.gesetzt.push(fs * s);
+            });
+            return out;
+        });
+
+        const ueberzug = await (async () => {
+            await page.emulateMediaType('print');
+            const r = await page.evaluate(() => {
+                const cs = getComputedStyle(document.body, '::after');
+                return { display: cs.display, content: cs.content };
+            });
+            await page.emulateMediaType('screen');
+            return r;
+        })();
+
         /* ------------------------------------------- afterprint räumt ab */
 
         await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
@@ -215,6 +241,40 @@ function check(name, fn) {
             assert.ok(dialog.vorschau.indexOf('Letzter Druck') > -1,
                 'die Vorschau nennt den Druck nicht:\n' + dialog.vorschau);
             assert.ok(dialog.vorschau.indexOf('UA:') > -1, 'kein Browser in der Vorschau');
+        });
+
+        /* ------------------------------ was Safari mit auf das Papier nimmt */
+
+        /* Der Fehler, um den es die ganze Zeit ging. Auf einem Mac kam der
+           Grundriss als PDF ohne einen einzigen Buchstaben heraus — keine
+           Requisitennamen, kein Textfeld, keine Maßstabszahl, die
+           Zeichnungen vollständig. Im PDF (Quartz, macOS 15.7.9) stand als
+           Text nur, was aus dem HTML daneben kam. Der Unterschied war die
+           Schriftgröße im Markup: im Grundriss rechnet alles in
+           Bühnenmetern, dort stand font-size="0.116". */
+
+        check('kein Text auf dem Blatt ist kleiner als eine Einheit gesetzt', () => {
+            assert.ok(schriften.anzahl > 0, 'kein Text im Vorrat — dann prüft das hier nichts');
+            assert.deepStrictEqual(schriften.klein, [],
+                'in Bruchteilen einer Einheit gesetzt, das lässt Safari beim Drucken weg');
+        });
+
+        check('die Schrift landet trotzdem in derselben Größe auf dem Blatt', () => {
+            /* Vergrößert und im selben Zug verkleinert. Käme hier etwas
+               anderes heraus, wäre der Plan verstellt statt repariert. */
+            const klein = Math.min.apply(null, schriften.gesetzt);
+            const gross = Math.max.apply(null, schriften.gesetzt);
+            assert.ok(klein > 2 && gross < 60,
+                'die gesetzten Größen liegen bei ' + klein.toFixed(2) + '–' + gross.toFixed(2) + ' px');
+        });
+
+        check('die Papierstruktur der Seite kommt nicht mit auf das Blatt', () => {
+            /* body::after liegt fest positioniert über der ganzen Seite. Am
+               Bildschirm sieht man sie kaum; im PDF desselben Macs war sie
+               ein Verlauf über die ganze Seite und die untere Hälfte jeder
+               Planseite kam schwarz heraus. */
+            assert.strictEqual(ueberzug.display, 'none',
+                'der Überzug steht noch auf der Druckseite');
         });
 
         /* ------------------------------- und wenn niemand gedruckt hat */

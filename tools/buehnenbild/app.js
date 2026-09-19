@@ -18,7 +18,7 @@
 
        tests/test-buehnenbild.js besteht darauf, dass sie aussieht wie ein
        Datum mit Buchstaben dahinter. */
-    var BUILD = '2026-09-18b';
+    var BUILD = '2026-09-19a';
 
     var STORE_KEY = 'sp.planner.v1';
     var UI_KEY = 'sp.planner.ui.v1';
