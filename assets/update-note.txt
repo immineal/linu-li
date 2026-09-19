@@ -31,3 +31,4 @@ The stage planner used to need you to print before writing a fault report, or th
 A fault report now lists how large every other piece of text on the sheet was set, not just how many there were.
 Ground plans printed from Safari on a Mac came out with no writing at all: no prop names, no text frames, no scale figures, while every line of the drawing was there. The plan measures in stage metres, so its letters were set at a fraction of a pixel and Safari left them out of the PDF. They are set a hundred times larger and scaled back down now, which looks the same and prints.
 The lower half of every printed plan page used to come out black on a Mac. The paper texture the site lays over each page went along to the printer.
+Plans set to landscape used to come out on a portrait page on some Macs, squeezed into the top half. The page size was only written into the page at the moment printing began, which is too late for some browsers.
