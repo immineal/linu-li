@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linus Linhof — Toolbox</title>
-    <meta name="description" content="Free browser-based tools for PDF, images, text, and code. Everything runs locally — no uploads, no tracking. Merge PDFs, compress images, generate QR codes, and more.">
+    <title>Toolbox | Linus Linhof</title>
+    <meta name="description" content="Small tools that run in your browser tab: merge a PDF, strip the GPS out of a photo, make a QR code. The file you pick is never uploaded.">
     <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
     <link rel="stylesheet" href="./assets/css/style.css">
     <link rel="manifest" href="./assets/manifest.json">
     <style>
-        /* --- PAGE SPECIFIC STYLES --- */
         h2 { margin-top: 3.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
         h2:first-of-type { margin-top: 2rem; }
         .category-intro { margin-bottom: 1.5rem; color: var(--ink-secondary); font-size: 0.95rem; }
         .grid-wrapper { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
 
-        /* --- FAVORITES SYSTEM CSS --- */
-        /* Hidden by default to prevent empty space */
+        /* Hidden until something is pinned, or the page opens on an empty
+           heading and a dashed line. */
         .favorites-section {
             display: none; 
             margin-bottom: 3rem;
@@ -24,17 +23,14 @@
             border-bottom: 2px dashed var(--border);
             animation: fadeIn 0.5s ease;
         }
-        /* Only shown when JS adds this class */
         .favorites-section.visible { 
             display: block; 
         }
         
         .card.interactive { position: relative; }
 
-        /* Animation for adding items */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Privacy Badge */
         .privacy-badge {
             display: inline-block;
             background: rgba(107, 144, 128, 0.15);
@@ -48,9 +44,8 @@
         }
         body.dark-mode .privacy-badge { color: #88a899; background: rgba(107, 144, 128, 0.2); }
 
-        /* Hidden keyword tags for search */
+        /* Extra words for the search to match. Never shown. */
         .keywords { display: none; }
-        /* Search highlight */
         mark {
             background: rgba(255, 200, 0, 0.35);
             color: inherit;
@@ -68,10 +63,10 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Toolbox</h1>
-                <p>Free tools that run in your browser. No uploads, no accounts, no tracking.</p>
+                <p>Small tools that run in your browser tab. Nothing you open here is uploaded, and there are no accounts or analytics.</p>
                 <div>                       
                     <a href="./privacy.html" class="privacy-badge" style="text-decoration: none; transition: all 0.2s;">
-                        🔒 100% Client-Side &bull; GDPR Compliant &bull; Offline Ready
+                        Works offline once loaded &bull; What does go online, and when
                     </a>
                     <style>
                         .privacy-badge:hover {
@@ -84,22 +79,18 @@
             </div>
 
             <div style="max-width: 500px; margin: 0 auto 3rem; position: relative;">
-                <input type="text" id="toolSearch" placeholder="Search tools (e.g. 'pdf', 'crop', 'hash')..." aria-label="Search tools"
+                <input type="text" id="toolSearch" placeholder="Search: pdf, crop, hash" aria-label="Search tools"
                     style="padding-left: 2.5rem; border-radius: 50px; margin-bottom: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
-                <span aria-hidden="true" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5;"><circle cx="6.5" cy="6.5" r="4.75"/><path d="M10 10l4.25 4.25"/></svg>
             </div>
 
-            <!-- 0. FAVORITES SECTION (Populated via JS) -->
             <div id="favorites-container" class="favorites-section">
-                <h2>Favorites <span style="font-size: 0.9rem; font-weight: normal; opacity: 0.6;">(Pinned)</span></h2>
-                <div class="grid-wrapper" id="favorites-grid">
-                    <!-- JS puts pinned cards here -->
-                </div>
+                <h2>Pinned</h2>
+                <div class="grid-wrapper" id="favorites-grid"></div>
             </div>
 
-            <!-- 1. PDF TOOLS -->
-            <h2>PDF Tools</h2>
-            <p class="category-intro">Merge, split, and manipulate documents locally.</p>
+            <h2>PDF</h2>
+            <p class="category-intro">Combine, cut up and convert PDFs without sending them anywhere.</p>
             <div class="grid-wrapper">
                 <a href="./tools/pdf-merger/" class="card interactive" data-id="pdf-merger">
                     <h3>PDF Merger</h3>
@@ -121,25 +112,24 @@
                 </a>
                 <a href="./tools/pdf-grayscale/" class="card interactive" data-id="pdf-grayscale">
                     <h3>PDF Grayscale & Scan Cleaner</h3>
-                    <p class="small-text">Convert a color PDF to black & white. Good for printing or cleaning up scanned docs.</p>
+                    <p class="small-text">Turn a colour PDF into black and white. Also cleans up phone scans.</p>
                     <span class="keywords">grayscale black white bw monochrome print scan clean ink save toner pdf convert</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/pdf-2up/" class="card interactive" data-id="pdf-2up">
                     <h3>PDF 2-Up (Booklet Layout)</h3>
-                    <p class="small-text">Put two PDF pages side by side on one sheet — for booklet or double-sided printing.</p>
+                    <p class="small-text">Put two PDF pages side by side on one sheet, for booklets or double-sided printing.</p>
                     <span class="keywords">2up two booklet duplex double sided pages side by side print layout nup pdf</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
             </div>
 
-            <!-- 2. IMAGE TOOLS -->
-            <h2>Image Tools</h2>
-            <p class="category-intro">Compress, convert, and resize visual assets.</p>
+            <h2>Images</h2>
+            <p class="category-intro">Shrink, resize and crop photos, and see what a photo gives away before you share it.</p>
             <div class="grid-wrapper">
                 <a href="./tools/image-compressor/" class="card interactive" data-id="image-compressor">
                     <h3>Image Compressor</h3>
-                    <p class="small-text">Shrink photos to WebP or AVIF with a quality slider. Before/after comparison built in.</p>
+                    <p class="small-text">Shrink photos to WebP or AVIF with a quality slider, and compare before and after.</p>
                     <span class="keywords">compress optimize shrink reduce size photo image webp avif jpg jpeg png quality file size web upload</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
@@ -169,9 +159,8 @@
                 </a>
             </div>
 
-            <!-- 3. TEXT & WRITING -->
-            <h2>Text & Writing</h2>
-            <p class="category-intro">Clean, format, and analyze text.</p>
+            <h2>Text</h2>
+            <p class="category-intro">Compare two versions, write Markdown, make filler text.</p>
             <div class="grid-wrapper">
                 <a href="./tools/markdown-editor/" class="card interactive" data-id="markdown-editor">
                     <h3>Markdown Editor & Preview</h3>
@@ -181,7 +170,7 @@
                 </a>
                 <a href="./tools/diff-checker/" class="card interactive" data-id="diff-checker">
                     <h3>Text / Code Diff Checker</h3>
-                    <p class="small-text">Paste two texts and highlight what changed — additions, deletions, line by line.</p>
+                    <p class="small-text">Paste two texts and see what was added and removed, line by line.</p>
                     <span class="keywords">diff compare difference text code changes added removed highlight inline side by side version</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
@@ -193,9 +182,8 @@
                 </a>
             </div>
 
-            <!-- 4. DEVELOPER & WEB -->
-            <h2>Developer Tools</h2>
-            <p class="category-intro">Encoders, decoders, and debuggers.</p>
+            <h2>Developer</h2>
+            <p class="category-intro">For data you would rather not paste into a stranger's website.</p>
             <div class="grid-wrapper">
                 <a href="./tools/json-tools/" class="card interactive" data-id="json-tools">
                     <h3>JSON Formatter & Validator</h3>
@@ -211,25 +199,24 @@
                 </a>
                 <a href="./tools/base64-converter/" class="card interactive" data-id="base64-converter">
                     <h3>Base64 Encoder / Decoder</h3>
-                    <p class="small-text">Encode text or files to Base64, or decode Base64 strings back. Data URI support.</p>
+                    <p class="small-text">Encode text or files to Base64, or decode Base64 strings back. Handles data URIs too.</p>
                     <span class="keywords">base64 encode decode text file data uri string binary convert atob btoa</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/time-converter/" class="card interactive" data-id="time-converter">
                     <h3>Unix Timestamp Converter</h3>
-                    <p class="small-text">Convert Unix/epoch timestamps to readable dates and back. Supports timezones.</p>
+                    <p class="small-text">Convert Unix/epoch timestamps to readable dates and back, across time zones.</p>
                     <span class="keywords">unix timestamp epoch convert date time seconds milliseconds timezone utc posix</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
             </div>
 
-            <!-- 5. DAILY UTILITIES -->
-            <h2>Daily Utilities</h2>
-            <p class="category-intro">Calculators and helpers for everyday tasks.</p>
+            <h2>Everything else</h2>
+            <p class="category-intro">A map, a stage planner, and the small jobs: passwords, QR codes, colours, units.</p>
             <div class="grid-wrapper">
                 <a href="./tools/sperrmuell/" class="card interactive" data-id="sperrmuell">
                     <h3>Bonn Sperrmüll Map</h3>
-                    <p class="small-text">Look up bulky-waste ("Sperrmüll") pickup dates for any street in Bonn, with an interactive map and address search.</p>
+                    <p class="small-text">Which streets in Bonn get a bulky-waste (Sperrmüll) pickup on which day. Search by address or look on the map.</p>
                     <span class="keywords">sperrmüll bonn bulky waste pickup collection map abfuhrtermine straße adresse abholtermin</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
@@ -241,7 +228,7 @@
                 </a>
                 <a href="./tools/pw-generator/" class="card interactive" data-id="pw-generator">
                     <h3>Password Generator</h3>
-                    <p class="small-text">Generate a strong random password locally. Adjustable length, symbols, numbers.</p>
+                    <p class="small-text">Random passwords from the browser's own cryptographic generator. Set the length, symbols and numbers.</p>
                     <span class="keywords">password generate random strong secure cryptographic symbols numbers letters length passphrase</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
@@ -259,7 +246,7 @@
                 </a>
                 <a href="./tools/unit-converter/" class="card interactive" data-id="unit-converter">
                     <h3>Unit Converter</h3>
-                    <p class="small-text">Convert length, weight, temperature, speed, and digital storage units.</p>
+                    <p class="small-text">Convert length, weight, temperature, speed, digital storage and currency.</p>
                     <span class="keywords">unit convert length weight temperature speed storage km miles celsius fahrenheit gb mb metric imperial</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
@@ -270,57 +257,48 @@
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
             </div>
-            <!-- 6. CONTACT FORM -->
-            <h2>Feedback & Contact</h2>
-            <p class="category-intro">Have an idea for a tool or found a bug? Let me know.</p>
+            <h2>Feedback</h2>
+            <p class="category-intro">An idea for a tool, or something that broke? This goes straight to my inbox.</p>
             <div class="card">
                 <form action="https://formspree.io/f/mankdzjn" method="POST" style="max-width: 600px; margin: 0 auto;">
-                    <label for="email">Your Email</label>
+                    <label for="email">Your email</label>
                     <input type="email" id="email" name="email" placeholder="you@example.com" required>
                     
                     <label for="message">Message</label>
-                    <textarea id="message" name="message" class="code-editor" style="min-height: 150px; background: var(--input-bg); font-family: var(--font-body);" placeholder="I'd love to see a tool that..." required></textarea>
+                    <textarea id="message" name="message" class="code-editor" style="min-height: 150px; background: var(--input-bg); font-family: var(--font-body);" placeholder="Which tool, and what happened or what is missing" required></textarea>
                     
-                    <button type="submit" class="button" style="width: 100%; margin-top: 1rem;">Send Feedback</button>
+                    <button type="submit" class="button" style="width: 100%; margin-top: 1rem;">Send</button>
                 </form>
             </div>
         </div>
     </main>
 
-    <!-- Standard Layout Script -->
     <script src="./assets/js/layout.js"></script>
 
-    <!-- LOGIC: Favorites & Offline PWA -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            
-            /* === FAVORITES SYSTEM === */
             const MAX_FAVES = 6;
             const STORAGE_KEY = 'll_toolbox_favorites';
             const favContainer = document.getElementById('favorites-container');
             const favGrid = document.getElementById('favorites-grid');
-            
-            // 1. Load Saved Favorites
+
             function getFavorites() {
                 return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             }
 
-            // 2. Render the Favorites Grid
             function renderFavorites() {
                 let faves = getFavorites();
-                favGrid.innerHTML = ''; // Clear current
+                favGrid.innerHTML = '';
 
                 if (faves.length > 0) {
                     let validFaves = 0;
 
                     faves.forEach(id => {
-                        // Find original card in the DOM to clone
                         const original = document.querySelector(`.card.interactive[data-id="${id}"]`);
                         if (original) {
                             const clone = original.cloneNode(true);
-                            // Re-bind the heart click on the clone
+                            // cloneNode does not copy listeners.
                             const btn = clone.querySelector('.fav-btn');
-                            // Ensure btn exists (in case original logic hasn't run yet)
                             if(btn) {
                                 btn.addEventListener('click', (e) => {
                                     e.preventDefault();
@@ -333,7 +311,8 @@
                         }
                     });
 
-                    // If we had IDs but none matched valid cards (e.g. tools renamed), hide section
+                    // A stored id can outlive its card (a tool renamed or taken
+                    // off the front page), so count what actually matched.
                     if (validFaves > 0) {
                         favContainer.style.display = 'block';
                         setTimeout(() => favContainer.classList.add('visible'), 10);
@@ -343,16 +322,13 @@
                     }
 
                 } else {
-                    // Strict Hide
                     favContainer.classList.remove('visible');
                     favContainer.style.display = 'none';
                 }
 
-                // Update heart state on ALL cards (original list)
                 updateHeartStates();
             }
 
-            // 3. Update Visual State of Hearts
             function updateHeartStates() {
                 const faves = getFavorites();
                 document.querySelectorAll('.fav-btn').forEach(btn => {
@@ -362,29 +338,26 @@
                         if (faves.includes(parentId)) {
                             btn.classList.add('active');
                             btn.innerHTML = '&#9829;'; // Filled heart
-                            btn.setAttribute('aria-label', 'Remove from Favorites');
-                            btn.setAttribute('title', 'Remove from Favorites');
+                            btn.setAttribute('aria-label', 'Unpin');
+                            btn.setAttribute('title', 'Unpin');
                         } else {
                             btn.classList.remove('active');
                             btn.innerHTML = '&#9825;'; // Empty heart
-                            btn.setAttribute('aria-label', 'Pin to Favorites');
-                            btn.setAttribute('title', 'Pin to Favorites');
+                            btn.setAttribute('aria-label', 'Pin to the top');
+                            btn.setAttribute('title', 'Pin to the top');
                         }
                     }
                 });
             }
 
-            // 4. Toggle Logic
             function toggleFavorite(id) {
                 let faves = getFavorites();
                 
                 if (faves.includes(id)) {
-                    // Remove
                     faves = faves.filter(favId => favId !== id);
                 } else {
-                    // Add
                     if (faves.length >= MAX_FAVES) {
-                        showToast(`Maximum ${MAX_FAVES} favorites allowed.`, 'error');
+                        showToast(`You can pin up to ${MAX_FAVES} tools.`, 'error');
                         return;
                     }
                     faves.push(id);
@@ -394,7 +367,6 @@
                 renderFavorites();
             }
 
-            // 5. Init: Inject Buttons into Original Cards
             const allCards = document.querySelectorAll('.card.interactive[data-id]');
             allCards.forEach(card => {
                 const id = card.getAttribute('data-id');
@@ -405,11 +377,11 @@
                 const btn = document.createElement('button');
                 btn.className = 'fav-btn';
                 btn.innerHTML = '&#9825;'; // Empty heart default
-                btn.title = 'Pin to Favorites';
-                btn.setAttribute('aria-label', 'Pin to Favorites');
+                btn.title = 'Pin to the top';
+                btn.setAttribute('aria-label', 'Pin to the top');
                 
                 btn.addEventListener('click', (e) => {
-                    e.preventDefault(); // Prevent link navigation
+                    e.preventDefault(); // the button sits inside the card's link
                     e.stopPropagation();
                     toggleFavorite(id);
                 });
@@ -417,15 +389,12 @@
                 card.appendChild(btn);
             });
 
-            // Initial Render
             renderFavorites();
 
-            /* === OFFLINE PWA SUPPORT ===
-               layout.js registers the worker for every page, this one
-               included. Registering it a second time here only raced with
-               that one. */
+            /* No service worker registration here. layout.js registers it for
+               every page, this one included, and a second registration here
+               only raced with that one. */
 
-            // === INSTANT SEARCH LOGIC ===
             const searchInput = document.getElementById('toolSearch');
             const searchGridWrappers = document.querySelectorAll('.grid-wrapper:not(#favorites-grid)');
 
@@ -452,7 +421,6 @@
                     grid.style.display = 'grid';
                     if (desc) desc.style.display = 'block';
                     if (title) title.style.display = 'block';
-                    // Restore all cards inside
                     Array.from(grid.children).forEach(c => c.style.display = '');
                 });
             }
@@ -469,11 +437,9 @@
                 const term = e.target.value.trim().toLowerCase();
 
                 if (!term) {
-                    // Clear search — back to normal layout
                     searchResultsGrid.style.display = 'none';
                     searchResultsGrid.innerHTML = '';
                     showCategories();
-                    // Restore favorites
                     const hasItems = document.getElementById('favorites-grid').children.length > 0;
                     if (hasItems) {
                         favContainer.style.display = 'block';
@@ -482,18 +448,16 @@
                     return;
                 }
 
-                // Hide the categorized layout and favorites
                 hideCategories();
                 favContainer.classList.remove('visible');
                 favContainer.style.display = 'none';
 
-                // Build flat results from matching cards (cloned so originals stay in DOM)
+                // Clones, so the originals stay where they are for when the search is cleared.
                 searchResultsGrid.innerHTML = '';
                 const matches = allToolCards.filter(card =>
                     card.textContent.toLowerCase().includes(term)
                 );
 
-                // Highlight: wrap matched text in <mark> inside h3 and .small-text
                 function highlightNode(el, term) {
                     if (!el) return;
                     el.childNodes.forEach(node => {
@@ -515,15 +479,15 @@
                     const p = document.createElement('p');
                     p.style.opacity = '0.5';
                     p.style.gridColumn = '1/-1';
-                    p.textContent = 'No tools found for "' + term + '".';
+                    p.textContent = 'Nothing matches "' + term + '".';
                     searchResultsGrid.appendChild(p);
                 } else {
                     matches.forEach(card => {
                         const clone = card.cloneNode(true);
-                        // Highlight in title and description only (not keywords span)
+                        // Not in the keywords span: it is hidden, a mark there shows nothing.
                         highlightNode(clone.querySelector('h3'), term);
                         highlightNode(clone.querySelector('.small-text'), term);
-                        // Re-attach fav button listener on clone
+                        // cloneNode does not copy listeners.
                         const btn = clone.querySelector('.fav-btn');
                         const id = clone.getAttribute('data-id');
                         if (btn && id) {

@@ -4,7 +4,7 @@ if ('serviceWorker' in navigator) {
     // and the site was never actually available offline.
     navigator.serviceWorker.register('/sw.js')
         .then(neueVersionAnbieten)
-        .catch(err => console.error('SW Registration Failed', err));
+        .catch(err => console.error('Service worker registration failed:', err));
 
     // Visitors from before still carry that /assets/ registration around.
     // It controls nothing, but it holds an old cache — send it on its way.
@@ -287,8 +287,6 @@ if (!document.querySelector('link[rel="manifest"]')) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Determine paths based on current location
-    // Check if we are inside the 'tools' directory
     const inToolsDir = window.location.pathname.includes('/tools/');
     const rootPath = inToolsDir ? '../../' : './';
 
@@ -297,14 +295,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // belong to the whole site, and their frame stays English with the rest.
     const de = document.documentElement.getAttribute('data-frame') === 'de';
     const say = (english, german) => (de ? german : english);
-    
-    // 2. Inject Header
+
     const headerHTML = `
     <header class="main-header">
         <nav>
-            <a href="${rootPath}" class="logo-link">Tools for Everyone</a>
+            <a href="${rootPath}" class="logo-link">linu.li</a>
             <div style="display:flex; gap: 1.5rem; align-items: center;">
-                <button id="theme-toggle" class="theme-switch" aria-label="${say('Toggle Dark Mode', 'Zwischen hell und dunkel wechseln')}">
+                <button id="theme-toggle" class="theme-switch" aria-label="${say('Switch between light and dark', 'Zwischen hell und dunkel wechseln')}">
                     <div class="switch-track">
                         <div class="switch-thumb"></div>
                     </div>
@@ -312,23 +309,18 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </nav>
     </header>`;
-    
-    // 3. Inject Footer
+
     const footerHTML = `
     <footer style="text-align: center; padding: 3rem 1rem; opacity: 0.8; font-size: 0.9rem; border-top: 1px solid var(--border); margin-top: auto;">
-        
-        <!-- Donation Section -->
         <div style="margin-bottom: 1.5rem;">
             <a href="https://ko-fi.com/linuslinhof" target="_blank" rel="noopener noreferrer" class="donate-btn">
-                <span>☕</span> ${say('Buy me a coffee', 'Spendier mir einen Kaffee')}
+                ${say('Buy me a coffee', 'Spendier mir einen Kaffee')}
             </a>
         </div>
 
         <p style="margin: 0 auto; text-align: center;">
-            &copy; ${new Date().getFullYear()} Linus Linhof. ${say('Built for utility.', 'Gebaut, damit es etwas nützt.')}
+            &copy; ${new Date().getFullYear()} Linus Linhof
         </p>
-        
-        <!-- Links with auto margins -->
         <p style="margin: 0.5rem auto 0; opacity: 0.7; text-align: center;">
             <a href="${rootPath}impressum.html">${say('Impressum / Legal', 'Impressum')}</a> &bull; 
             <a href="${rootPath}privacy.html">${say('Privacy / Datenschutz', 'Datenschutz')}</a>
@@ -350,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (platz) {
             platz.insertAdjacentHTML('afterbegin', `
             <p class="archive-note">
-                ${say('This tool is no longer being developed. It still works, but it is no longer listed on the front page.',
+                ${say('Nobody is working on this tool any more. It still works, but it is off the front page.',
                       'Dieses Werkzeug wird nicht mehr weiterentwickelt. Es funktioniert weiter, steht aber nicht mehr auf der Startseite.')}
                 ${say('Need it back? Write to', 'Brauchst du es? Schreib an')}
                 <a href="mailto:feedback@linu.li">feedback@linu.li</a>
@@ -358,7 +350,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 4. Theme Logic
     const themeToggle = document.getElementById('theme-toggle');
     /* Ohne try/catch fiel hier alles Weitere aus, sobald der Browser den
        Zugriff sperrt (privates Fenster, Website-Daten blockiert): die Seite
@@ -366,8 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
        Bereinigung weiter unten wurde nie erreicht. */
     let savedTheme = null;
     try { savedTheme = localStorage.getItem('theme'); } catch (err) { /* gesperrt */ }
-    
-    // Default to dark mode unless user has explicitly chosen light
+
     if (savedTheme !== 'light') {
         document.body.classList.add('dark-mode');
     }
@@ -380,9 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 5. Auto-Save State Logic (Global)
-    //
-    // Opt-in, and it has to stay opt-in.
+    // Remembering fields across reloads. Opt-in, and it has to stay opt-in.
     //
     // This used to read `textarea[id], input[type="text"][id], select[id]` —
     // every text field on every page — with a short list of exceptions. That
@@ -445,18 +433,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (savedValue !== null) wiederherstellen(input, savedValue);
 
         let debounceTimer;
-        // Save on Input
         input.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
-            // ⚡ Bolt Performance Optimization:
-            // Debounce synchronous localStorage writes to prevent main-thread
-            // blocking and UI jank during rapid typing (especially in large textareas).
+            // A textarea fires this on every keystroke, and a localStorage
+            // write is synchronous.
             debounceTimer = setTimeout(() => {
                 localStorage.setItem(storageKey, e.target.value);
             }, 300);
         });
-        
-        // Save on Change (for selects)
+
         input.addEventListener('change', (e) => {
             localStorage.setItem(storageKey, e.target.value);
         });
@@ -481,8 +466,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => beobachter.disconnect(), 10_000);
     }
 
-    // Helper: Clear specific autosave. Nothing in the site calls it; it is
-    // here for a tool that wants to forget a field on demand.
+    // Nothing in the site calls this. It is here for a tool that wants to
+    // forget a field on demand.
     window.clearAutoSave = function(elementIds) {
         if (!Array.isArray(elementIds)) elementIds = [elementIds];
         elementIds.forEach(id => {
@@ -491,9 +476,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-/* === GLOBAL UTILITY FUNCTIONS === */
+// The helpers below are globals on purpose: the tools call them directly.
 
-// Show Toast Notification
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return; 
@@ -507,16 +491,14 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// Copy Text to Clipboard
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        showToast('Copied to clipboard!', 'success');
+        showToast('Copied to clipboard', 'success');
     }).catch(err => {
-        showToast('Failed to copy', 'error');
+        showToast('Could not copy to the clipboard', 'error');
     });
 }
 
-// Format File Size (Bytes -> KB/MB)
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -525,7 +507,6 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Setup Drag and Drop Zone
 function setupDropZone(dropZone, fileInput, onFilesSelected) {
     if (!dropZone || !fileInput) return;
 
@@ -559,11 +540,9 @@ function setupDropZone(dropZone, fileInput, onFilesSelected) {
 const PAGE_TITLE = document.title;
 
 function setupSEO() {
-    // 1. Get Page Details
     const h1 = document.querySelector('h1');
-    const descP = document.querySelector('.tool-header p') || document.querySelector('p'); // Fallback to first p
-    
-    // Default values if H1 is missing
+    const descP = document.querySelector('.tool-header p') || document.querySelector('p');
+
     // An h1 can be present but render to nothing — the scene planner's wordmark
     // collapses to 0x0, so innerText is empty and the tab was called "| Linus
     // Linhof". Fall back to the page's own <title>, read once at load so a
@@ -579,20 +558,13 @@ function setupSEO() {
 
     const heading = renderedText(h1).trim() || PAGE_TITLE.split('|')[0].trim();
     const titleText = heading ? heading + ' | Linus Linhof' : 'Linus Linhof Toolbox';
-    const descText = renderedText(descP).trim() || 'A privacy-first suite of web utilities.';
+    const descText = renderedText(descP).trim() || 'Small tools that run in your browser tab.';
     const currentUrl = window.location.href;
-    
-    // Determine path to social image (assuming you put one at assets/og-image.jpg)
-    // We need to calculate relative path back to root
-    const inToolsDir = window.location.pathname.includes('/tools/');
-    const origin = window.location.origin;
-    // Replace this URL with your actual hosted image URL for best social reliability
-    const imagePath = `${origin}/assets/og-image.jpg`; 
+    // Open Graph wants an absolute URL.
+    const imagePath = `${window.location.origin}/assets/og-image.jpg`;
 
-    // 2. Set Document Title
     document.title = titleText;
 
-    // 3. Helper to update/create meta tags
     const setMeta = (name, value, isProperty = false) => {
         const attr = isProperty ? 'property' : 'name';
         let element = document.querySelector(`meta[${attr}="${name}"]`);
@@ -604,30 +576,21 @@ function setupSEO() {
         element.setAttribute('content', value);
     };
 
-    // 4. Set Standard Meta
     setMeta('description', descText);
     setMeta('theme-color', '#faf6f2');
 
-    // 5. Set Open Graph (Facebook/LinkedIn/Discord)
     setMeta('og:title', titleText, true);
     setMeta('og:description', descText, true);
     setMeta('og:image', imagePath, true);
     setMeta('og:url', currentUrl, true);
     setMeta('og:type', 'website', true);
 
-    // 6. Set Twitter Card
     setMeta('twitter:card', 'summary_large_image');
     setMeta('twitter:title', titleText);
     setMeta('twitter:description', descText);
     setMeta('twitter:image', imagePath);
 }
 
-// === CALL IT INSIDE YOUR EXISTING LISTENER ===
 document.addEventListener('DOMContentLoaded', () => {
-    // ... your existing header/footer injection code ...
-
-    // Run SEO Setup
-    setupSEO(); 
-    
-    // ... rest of your code ...
+    setupSEO();
 });

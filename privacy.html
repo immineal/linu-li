@@ -77,15 +77,15 @@
 <body>
     <main>
         <div class="container">
-            <div class="lang-switch" onclick="toggleLang()">Switch Language (DE/EN)</div>
+            <div class="lang-switch" onclick="toggleLang()">Deutsch / English</div>
 
-            <!-- ==================== GERMAN ==================== -->
+            <!-- Deutsch -->
             <div id="lang-de">
                 <h1>Datenschutzerklärung</h1>
                 <p style="opacity:0.6; font-size:0.9rem;">Stand: September 2026</p>
 
                 <div class="note-box">
-                    <strong>Kurzzusammenfassung:</strong> Die Werkzeuge auf linu.li verarbeiten deine Dateien und Eingaben ausschließlich lokal im Browser — es werden keine Inhalte an einen Server übertragen. Bei bestimmten Werkzeugen werden Drittanbieter-Anfragen ausgelöst, die unten vollständig aufgeführt sind.
+                    <strong>Kurz gesagt:</strong> Die Werkzeuge auf linu.li verarbeiten deine Dateien und Eingaben in deinem Browser. Was du in ein Werkzeug gibst, wird an keinen Server übertragen. Ins Netz gehen nur: Kartenkacheln, zwei nachgeladene Bibliotheken, Wechselkurse und die beiden Formulare für Nachrichten an mich. Abschnitt 5 nennt jedes davon und sagt, was es erhält.
                 </div>
 
                 <h2>1. Verantwortliche Stelle</h2>
@@ -107,8 +107,8 @@
                 </ul>
                 <p>Diese Daten werden in Server-Log-Dateien gespeichert, sind technisch für den Betrieb notwendig und werden nicht mit anderen Daten zusammengeführt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an stabilem und sicherem Betrieb). Die Datenschutzerklärung von All-Inkl ist abrufbar unter <a href="https://all-inkl.com/datenschutzinformationen/" target="_blank" rel="noopener">all-inkl.com/datenschutzinformationen</a>.</p>
 
-                <h2>3. Lokale Verarbeitung (Client-Side Processing)</h2>
-                <p>Die Kernfunktionen dieser Toolbox — PDF-Bearbeitung, Bildkomprimierung, Textverarbeitung, Hash-Berechnung usw. — laufen vollständig im Arbeitsspeicher deines Browsers. Dateien, die du auswählst oder ziehst, verlassen dein Gerät zu keinem Zeitpunkt. Es findet keine Übertragung an unseren Server statt.</p>
+                <h2>3. Verarbeitung im Browser</h2>
+                <p>Die Werkzeuge selbst (PDF-Bearbeitung, Bildkomprimierung, Textverarbeitung, Hash-Berechnung usw.) laufen vollständig im Arbeitsspeicher deines Browsers. Dateien, die du auswählst oder hineinziehst, verlassen dein Gerät zu keinem Zeitpunkt, auch nicht in Richtung dieses Servers.</p>
 
                 <h2>4. Browser-Speicher (LocalStorage)</h2>
                 <p>Die Seite speichert kleine Datenmengen im <code>localStorage</code> deines Browsers:</p>
@@ -117,7 +117,7 @@
                         <thead><tr><th>Schlüssel</th><th>Inhalt</th><th>Zweck</th></tr></thead>
                         <tr><td><code>theme</code></td><td><code>dark</code> / <code>light</code></td><td>Gewähltes Farbschema</td></tr>
                         <tr><td><code>ll_toolbox_favorites</code></td><td>Liste von Tool-IDs</td><td>Angepinnte Favoriten auf der Startseite</td></tr>
-                        <tr><td><code>autosave_&lt;Pfad&gt;_&lt;Feld&gt;</code></td><td>Der Wert eines Einstellungsfeldes, z.&nbsp;B. ein Ausgabeformat, eine Zeitzone, eine Maßeinheit</td><td>Damit ein Werkzeug beim nächsten Mal so eingestellt ist wie zuletzt. Gespeichert wird ausschließlich, was im Quelltext ausdrücklich als Einstellung markiert ist — <strong>keine Texte, Dateien, Passwörter oder Schlüssel, die du in ein Werkzeug eingibst</strong>.</td></tr>
+                        <tr><td><code>autosave_&lt;Pfad&gt;_&lt;Feld&gt;</code></td><td>Der Wert eines Einstellungsfeldes, z.&nbsp;B. ein Ausgabeformat, eine Zeitzone, eine Maßeinheit</td><td>Damit ein Werkzeug beim nächsten Mal so eingestellt ist wie zuletzt. Gespeichert wird ausschließlich, was im Quelltext ausdrücklich als Einstellung markiert ist. <strong>Texte, Dateien, Passwörter oder Schlüssel, die du in ein Werkzeug eingibst, werden nicht gespeichert.</strong></td></tr>
                         <tr><td><code>ll_autosave_bereinigt_v1</code></td><td><code>1</code></td><td>Merker, dass die einmalige Bereinigung unten schon gelaufen ist</td></tr>
                         <tr><td><code>linuli_currency_rates</code></td><td>Wechselkurse als JSON</td><td>Einheiten-Umrechner: Kurse zwischenspeichern, statt sie bei jedem Aufruf neu abzufragen</td></tr>
                         <tr><td><code>linuli_currency_time</code></td><td>Zeitstempel</td><td>Einheiten-Umrechner: Alter der Kurse (sie gelten eine Stunde)</td></tr>
@@ -128,28 +128,28 @@
                         <tr><td><code>sp.planner.diag.druck.v1</code></td><td>Messwerte vom letzten Drucken: Klassennamen, Zeichenzahlen, Schriftgrößen, Maßstäbe. Kein Text aus deiner Produktion</td><td>Bühnenbild-Planer: damit eine Fehlermeldung die Zahlen vom Drucken mitbringt, auch wenn der Reiter dazwischen zugegangen ist. Nach zwölf Stunden ungenutzt</td></tr>
                     </table>
                 </div>
-                <p>Dazu legt die Seite über die <em>Cache Storage</em> deines Browsers zwei Ablagen an — <code>ll-toolbox-v4</code> für die Toolbox und <code>sperrmuell-v1</code> für die Sperrmüll-Karte. Darin liegen ausgelieferte Dateien (Seiten, Skripte, Stilvorlagen, Kartenkacheln), damit die Seite auch ohne Netzverbindung funktioniert. Eingaben landen dort nicht.</p>
-                <p>Diese Daten verlassen dein Gerät nicht und werden nicht an den Server übertragen. Rechtsgrundlage: § 25 Abs. 2 Nr. 2 TDDDG (technisch erforderlich für die angeforderte Funktion). Sie bleiben gespeichert, bis du sie löschst — über die Einstellungen deines Browsers („Website-Daten löschen") oder die Entwicklertools. Der Bühnenbild-Planer hat dafür eine eigene Schaltfläche.</p>
+                <p>Dazu legt die Seite über die <em>Cache Storage</em> deines Browsers zwei Ablagen an: <code>ll-toolbox-v4</code> für die Toolbox und <code>sperrmuell-v1</code> für die Sperrmüll-Karte. Darin liegen ausgelieferte Dateien (Seiten, Skripte, Stilvorlagen, Kartenkacheln), damit die Seite auch ohne Netzverbindung funktioniert. Eingaben landen dort nicht.</p>
+                <p>Diese Daten verlassen dein Gerät nicht und werden nicht an den Server übertragen. Rechtsgrundlage: § 25 Abs. 2 Nr. 2 TDDDG (technisch erforderlich für die angeforderte Funktion). Sie bleiben gespeichert, bis du sie löschst, über die Einstellungen deines Browsers („Website-Daten löschen") oder die Entwicklertools. Der Bühnenbild-Planer hat dafür eine eigene Schaltfläche.</p>
                 <div class="warn-box">
-                    <p><strong>Korrektur, Stand September 2026.</strong> An dieser Stelle standen bis zum 6. September 2026 nur zwei Schlüssel, und einer davon (<code>darkMode</code>) existierte gar nicht. Tatsächlich hat die Seite bis dahin den Inhalt <em>jedes</em> Textfelds auf <em>jeder</em> Werkzeugseite gespeichert — 88 Felder auf 29 Seiten — und nie wieder gelöscht. Betroffen waren auch vertrauliche Eingaben, etwa das WLAN-Passwort im QR-Creator und der Signierschlüssel im JWT-Debugger.</p>
-                    <p>Seit dem 6. September 2026 wird nur noch gespeichert, was im Quelltext ausdrücklich als Einstellung markiert ist. Beim nächsten Aufruf der Seite löscht dein Browser außerdem einmalig alle unter <code>autosave_</code> abgelegten Altbestände. Übertragen wurde nie etwas — die Daten lagen ausschließlich in deinem eigenen Browser.</p>
+                    <p><strong>Korrektur, Stand September 2026.</strong> An dieser Stelle standen bis zum 6. September 2026 nur zwei Schlüssel, und einer davon (<code>darkMode</code>) existierte gar nicht. Tatsächlich hat die Seite bis dahin den Inhalt <em>jedes</em> Textfelds auf <em>jeder</em> Werkzeugseite gespeichert (88 Felder auf 29 Seiten) und nie wieder gelöscht. Betroffen waren auch vertrauliche Eingaben, etwa das WLAN-Passwort im QR-Creator und der Signierschlüssel im JWT-Debugger.</p>
+                    <p>Seit dem 6. September 2026 wird nur noch gespeichert, was im Quelltext ausdrücklich als Einstellung markiert ist. Beim nächsten Aufruf der Seite löscht dein Browser außerdem einmalig alle unter <code>autosave_</code> abgelegten Altbestände. Übertragen wurde nie etwas. Die Daten lagen ausschließlich in deinem eigenen Browser.</p>
                 </div>
 
                 <h2>5. Drittanbieter-Anfragen</h2>
-                <p>Alle Bibliotheken (PDF.js, pdf-lib, Leaflet, Cropper.js usw.) sind <strong>lokal auf unserem Server gehostet</strong> und werden nicht von externen CDNs nachgeladen. Folgende Ausnahmen bestehen:</p>
+                <p>Alle Bibliotheken (PDF.js, pdf-lib, Leaflet, Cropper.js usw.) liegen <strong>auf diesem Server</strong> und werden nicht von fremden CDNs nachgeladen. Ausnahmen sind diese:</p>
 
                 <h3>5a. OpenStreetMap (EXIF Metadata Remover und Sperrmüll-Karte)</h3>
-                <p>Das Werkzeug „EXIF Metadata Remover" zeigt bei Bildern mit GPS-Koordinaten eine Karte an. Kartenbilder (Kacheln) werden dabei von den Servern der OpenStreetMap Foundation geladen:</p>
+                <p>Das Werkzeug „EXIF Metadata Remover" kann bei Bildern mit GPS-Koordinaten eine Karte anzeigen, die Sperrmüll-Karte zeigt eine, sobald sie geöffnet wird. In beiden Fällen kommen die Kartenbilder (Kacheln) von den Servern der OpenStreetMap Foundation:</p>
                 <ul>
                     <li>Server: <code>*.tile.openstreetmap.org</code></li>
                     <li>Übertragene Daten: IP-Adresse, angefragte Kachel-Koordinaten (Ausschnitt der Karte, nicht die exakten GPS-Koordinaten des Bildes)</li>
                     <li>Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Kartendarstellung)</li>
                     <li>Datenschutzinformation OSM: <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener">osmfoundation.org/wiki/Privacy_Policy</a></li>
                 </ul>
-                <p>Die GPS-Koordinaten aus dem Bild selbst werden <strong>nicht</strong> an OSM übertragen. Kacheln werden nur geladen, wenn du aktiv ein Bild mit GPS-Daten analysierst. Du kannst die Kartenanzeige in der Benutzeroberfläche ausblenden.</p>
+                <p>Die GPS-Koordinaten aus dem Bild selbst werden <strong>nicht</strong> an OSM übertragen. Im EXIF-Werkzeug lädt die Karte erst, wenn du sie bei einem Bild mit GPS-Daten ausdrücklich über den Knopf anforderst.</p>
 
                 <div class="warn-box">
-                    Die Kartenanzeige im EXIF-Werkzeug löst Anfragen an OpenStreetMap-Server aus. Dabei wird deine IP-Adresse übertragen. Wenn du das vermeiden möchtest, wähle keine Bilder mit GPS-Daten, oder deaktiviere die Karte manuell.
+                    Sobald die Karte lädt, erfährt OpenStreetMap deine IP-Adresse. Wenn du das nicht möchtest, fordere die Karte im EXIF-Werkzeug nicht an. Die Metadaten siehst und entfernst du auch ohne sie.
                 </div>
 
                 <h3>5b. esm.sh / jsquash (nur: Image Compressor)</h3>
@@ -160,7 +160,7 @@
                     <li>Zeitpunkt: nur beim ersten Aufruf des Image Compressor, dann gecacht</li>
                     <li>Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (technisch notwendig für die Funktion)</li>
                 </ul>
-                <p>Die zu komprimierenden Bilddateien verlassen dein Gerät nicht — nur die Codec-Bibliothek selbst wird geladen.</p>
+                <p>Die Bilder selbst verlassen dein Gerät nicht. Geladen wird nur die Codec-Bibliothek.</p>
 
                 <h3>5c. Formspree (Kontaktformular und Rückmeldung im Bühnenbild-Planer)</h3>
                 <p>Das Kontaktformular auf der Startseite verwendet den Dienst <strong>Formspree</strong> (Formspree Inc., San Francisco, USA). Wenn du das Formular absendest, werden deine eingegebenen Daten (E-Mail-Adresse, Nachricht) an Formspree übertragen und von dort an meine E-Mail-Adresse weitergeleitet.</p>
@@ -170,7 +170,7 @@
                     <li>Datenschutzerklärung Formspree: <a href="https://formspree.io/legal/privacy-policy" target="_blank" rel="noopener">formspree.io/legal/privacy-policy</a></li>
                 </ul>
                 <p>Die Rückmeldung im Bühnenbild-Planer hat ein Kästchen „Messwerte mitschicken". Ist es angehakt, gehen Zahlen über den Browser mit: Fenstergröße, Schriftstand, was beim letzten Drucken gemessen wurde, zuletzt aufgetretene Fehlermeldungen. Was mitgeschickt wird, steht im Formular ausklappbar darunter, bevor du abschickst. Text aus deiner Produktion ist nicht darunter.</p>
-                <p>Der Knopf „Alles in eine Datei" daneben speichert einen vollständigen Diagnosebericht auf dein Gerät. In dieser Datei steht deine Produktion im Klartext. Sie wird nirgendwohin übertragen — was damit geschieht, entscheidest du.</p>
+                <p>Der Knopf „Alles in eine Datei" daneben speichert einen vollständigen Diagnosebericht auf dein Gerät. In dieser Datei steht deine Produktion im Klartext. Sie wird nirgendwohin übertragen. Was damit geschieht, entscheidest du.</p>
 
                 <h3>5d. cdn.jsdelivr.net (nur: Zeit-Umrechner)</h3>
                 <p>Der Zeit-Umrechner lädt die Bibliothek <code>chrono-node</code> erst dann von jsDelivr nach, wenn du eine Zeitangabe in natürlicher Sprache auswerten lässt. Vorher findet keine Anfrage statt.</p>
@@ -182,10 +182,10 @@
                         <tr><td>Rechtsgrundlage</td><td>Art. 6 Abs. 1 lit. f DSGVO (technisch notwendig für die Funktion)</td></tr>
                     </table>
                 </div>
-                <p>Deine Eingabe selbst wird nicht übertragen — sie wird im Browser ausgewertet, nachdem die Bibliothek geladen ist.</p>
+                <p>Deine Eingabe selbst wird nicht übertragen. Ausgewertet wird sie im Browser, sobald die Bibliothek geladen ist.</p>
 
                 <h3>5e. Wechselkurse (nur: Einheiten-Umrechner)</h3>
-                <p>Für Währungsumrechnungen holt der Einheiten-Umrechner aktuelle Kurse. Die Anfrage enthält keine Angabe darüber, welchen Betrag oder welche Währung du umrechnest — es wird immer die gesamte Kurstabelle geladen und im Browser gerechnet.</p>
+                <p>Für Währungsumrechnungen holt der Einheiten-Umrechner aktuelle Kurse. Die Anfrage enthält keine Angabe darüber, welchen Betrag oder welche Währung du umrechnest. Es wird immer die gesamte Kurstabelle geladen, gerechnet wird im Browser.</p>
                 <div class="table-scroll">
                     <table>
                         <tr><td>Server</td><td><code>open.er-api.com</code> (Wechselkurse) und <code>api.coincap.io</code> (Kryptowährungen)</td></tr>
@@ -215,13 +215,13 @@
                 <p>Diese Website verwendet keine Analyse-Dienste (kein Google Analytics, kein Matomo, keine Heatmaps), keine Werbe-Cookies und keine Social-Media-Plugins, die ohne dein Zutun Daten übertragen.</p>
             </div>
 
-            <!-- ==================== ENGLISH ==================== -->
+            <!-- English -->
             <div id="lang-en" style="display: none;">
                 <h1>Privacy Policy</h1>
                 <p style="opacity:0.6; font-size:0.9rem;">Last updated: September 2026</p>
 
                 <div class="note-box">
-                    <strong>Short version:</strong> The tools on linu.li process your files and inputs entirely in your browser — nothing is sent to a server. Certain tools trigger third-party network requests, which are fully documented below.
+                    <strong>Short version:</strong> the tools on linu.li work on your files and inputs in your browser. Nothing you give a tool is sent to a server. What does go over the network: map tiles, two libraries loaded on demand, exchange rates and the two forms that send me a message. Section 5 names each one and what it receives.
                 </div>
 
                 <h2>1. Controller</h2>
@@ -231,7 +231,7 @@
                     Email: <a href="mailto:immineal@immineal.com">immineal@immineal.com</a>
                 </p>
 
-                <h2>2. Hosting and Server Logs</h2>
+                <h2>2. Hosting and server logs</h2>
                 <p>This website is hosted by <strong>All-Inkl.com</strong> (ALL-INKL.COM – Neue Medien Münnich, Hauptstraße 68, 02742 Friedersdorf, Germany). When you visit the site, your browser automatically sends the following data to the web server:</p>
                 <ul>
                     <li>IP address</li>
@@ -243,17 +243,17 @@
                 </ul>
                 <p>This data is stored in server log files, is technically necessary for operation, and is not combined with other data sources. Legal basis: Art. 6 (1) (f) GDPR (legitimate interest in stable and secure operation). All-Inkl's privacy policy: <a href="https://all-inkl.com/datenschutzinformationen/" target="_blank" rel="noopener">all-inkl.com/datenschutzinformationen</a>.</p>
 
-                <h2>3. Local Processing (Client-Side)</h2>
-                <p>The core tools — PDF editing, image compression, text processing, hash generation, etc. — run entirely in your browser's memory. Files you select or drag in never leave your device. Nothing is transmitted to our server.</p>
+                <h2>3. Processing in your browser</h2>
+                <p>The tools themselves (PDF editing, image compression, text processing, hashing and so on) run entirely in your browser's memory. Files you select or drag in never leave your device, not even for this site's own server.</p>
 
-                <h2>4. Browser Storage (LocalStorage)</h2>
+                <h2>4. Browser storage (localStorage)</h2>
                 <p>The site stores small amounts of data in your browser's <code>localStorage</code>:</p>
                 <div class="table-scroll">
                     <table class="wide">
                         <thead><tr><th>Key</th><th>Content</th><th>Purpose</th></tr></thead>
                         <tr><td><code>theme</code></td><td><code>dark</code> / <code>light</code></td><td>Chosen colour scheme</td></tr>
                         <tr><td><code>ll_toolbox_favorites</code></td><td>List of tool IDs</td><td>Pinned favorites on the front page</td></tr>
-                        <tr><td><code>autosave_&lt;path&gt;_&lt;field&gt;</code></td><td>The value of a settings field — an output format, a timezone, a unit</td><td>So a tool comes back set up the way you left it. Only fields explicitly marked as settings in the source are stored — <strong>never text, files, passwords or keys you enter into a tool</strong>.</td></tr>
+                        <tr><td><code>autosave_&lt;path&gt;_&lt;field&gt;</code></td><td>The value of a settings field, such as an output format, a timezone or a unit</td><td>So a tool comes back set up the way you left it. Only fields explicitly marked as settings in the source are stored. <strong>Text, files, passwords or keys you enter into a tool are never stored.</strong></td></tr>
                         <tr><td><code>ll_autosave_bereinigt_v1</code></td><td><code>1</code></td><td>Marks that the one-time clear-out described below has run</td></tr>
                         <tr><td><code>linuli_currency_rates</code></td><td>Exchange rates as JSON</td><td>Unit converter: cached rates instead of fetching them on every visit</td></tr>
                         <tr><td><code>linuli_currency_time</code></td><td>Timestamp</td><td>Unit converter: age of those rates (they are valid for one hour)</td></tr>
@@ -264,28 +264,28 @@
                         <tr><td><code>sp.planner.diag.druck.v1</code></td><td>Measurements from the last print: class names, character counts, font sizes, scales. Nothing from your production</td><td>Stage planner: so a fault report can carry the numbers from the print even if the tab was closed in between. Unused after twelve hours</td></tr>
                     </table>
                 </div>
-                <p>The site also keeps two stores in your browser's <em>Cache Storage</em> — <code>ll-toolbox-v4</code> for the toolbox and <code>sperrmuell-v1</code> for the bulky-waste map. These hold files the site serves (pages, scripts, stylesheets, map tiles) so that it works without a network connection. Nothing you type goes in there.</p>
-                <p>This data stays on your device and is never sent to a server. Legal basis: § 25 (2) No. 2 TDDDG (technically required for the requested functionality). It stays until you remove it — through your browser's settings ("clear site data") or its developer tools. The stage planner has a button of its own for this.</p>
+                <p>The site also keeps two stores in your browser's <em>Cache Storage</em>: <code>ll-toolbox-v4</code> for the toolbox and <code>sperrmuell-v1</code> for the bulky-waste map. These hold files the site serves (pages, scripts, stylesheets, map tiles) so that it works without a network connection. Nothing you type goes in there.</p>
+                <p>This data stays on your device and is never sent to a server. Legal basis: § 25 (2) No. 2 TDDDG (technically required for the requested functionality). It stays until you remove it, through your browser's settings ("clear site data") or its developer tools. The stage planner has a button of its own for this.</p>
                 <div class="warn-box">
-                    <p><strong>Correction, September 2026.</strong> Until 6 September 2026 this section listed two keys, one of which (<code>darkMode</code>) never existed. What the site actually did until then was store the contents of <em>every</em> text field on <em>every</em> tool page — 88 fields across 29 pages — and never delete any of it. That included confidential input, such as the WiFi password in the QR creator and the signing secret in the JWT debugger.</p>
-                    <p>Since 6 September 2026 only fields explicitly marked as settings are stored, and the next time you open the site your browser clears out everything left under <code>autosave_</code>, once. Nothing was ever transmitted — the data was only ever in your own browser.</p>
+                    <p><strong>Correction, September 2026.</strong> Until 6 September 2026 this section listed two keys, one of which (<code>darkMode</code>) never existed. What the site actually did until then was store the contents of <em>every</em> text field on <em>every</em> tool page (88 fields across 29 pages) and never delete any of it. That included confidential input, such as the WiFi password in the QR creator and the signing secret in the JWT debugger.</p>
+                    <p>Since 6 September 2026 only fields explicitly marked as settings are stored, and the next time you open the site your browser clears out everything left under <code>autosave_</code>, once. Nothing was ever transmitted. The data was only ever in your own browser.</p>
                 </div>
 
-                <h2>5. Third-Party Requests</h2>
-                <p>All libraries (PDF.js, pdf-lib, Leaflet, Cropper.js, etc.) are <strong>self-hosted on our server</strong> and are not loaded from external CDNs. The following exceptions apply:</p>
+                <h2>5. Third-party requests</h2>
+                <p>All libraries (PDF.js, pdf-lib, Leaflet, Cropper.js, etc.) are <strong>served from this site's own server</strong> and are not loaded from external CDNs. The following exceptions apply:</p>
 
                 <h3>5a. OpenStreetMap (EXIF Metadata Remover and the bulky-waste map)</h3>
-                <p>The EXIF Metadata Remover tool displays a map when an image contains GPS coordinates. Map tiles are loaded from the OpenStreetMap Foundation's servers:</p>
+                <p>The EXIF Metadata Remover can show a map when an image contains GPS coordinates, and the bulky-waste map shows one as soon as it opens. Either way the map images (tiles) come from the OpenStreetMap Foundation's servers:</p>
                 <ul>
                     <li>Server: <code>*.tile.openstreetmap.org</code></li>
                     <li>Data transmitted: IP address, requested tile coordinates (a map region, not the exact GPS coordinates from the image)</li>
                     <li>Legal basis: Art. 6 (1) (f) GDPR (legitimate interest in providing the map display)</li>
                     <li>OSM privacy policy: <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener">osmfoundation.org/wiki/Privacy_Policy</a></li>
                 </ul>
-                <p>The GPS coordinates from the image are <strong>not</strong> transmitted to OSM. Tiles are only fetched when you actively inspect an image that contains GPS data. The map can be hidden from the UI.</p>
+                <p>The GPS coordinates from the image are <strong>not</strong> transmitted to OSM. In the EXIF tool the map only loads when you ask for it with the button that appears for an image with GPS data.</p>
 
                 <div class="warn-box">
-                    The map display in the EXIF tool triggers requests to OpenStreetMap servers, transmitting your IP address. To avoid this, don't analyse images with GPS data, or dismiss the map manually.
+                    Once the map loads, OpenStreetMap sees your IP address. If you would rather it did not, don't ask for the map in the EXIF tool. You can see and strip the metadata without it.
                 </div>
 
                 <h3>5b. esm.sh / jsquash (only: Image Compressor)</h3>
@@ -296,7 +296,7 @@
                     <li>Timing: only on first use of the Image Compressor, then browser-cached</li>
                     <li>Legal basis: Art. 6 (1) (f) GDPR (technically necessary for the tool's function)</li>
                 </ul>
-                <p>Your image files are not transmitted — only the codec library itself is fetched.</p>
+                <p>Your images are not transmitted. Only the codec library itself is fetched.</p>
 
                 <h3>5c. Formspree (contact form and the feedback button in the stage planner)</h3>
                 <p>The contact form on the homepage uses <strong>Formspree</strong> (Formspree Inc., San Francisco, USA). When you submit the form, your input (email address, message) is sent to Formspree and forwarded to my email address.</p>
@@ -318,10 +318,10 @@
                         <tr><td>Legal basis</td><td>Art. 6 (1) (f) GDPR (technically required for the feature)</td></tr>
                     </table>
                 </div>
-                <p>What you typed is not transmitted — it is parsed in your browser once the library has loaded.</p>
+                <p>What you typed is not transmitted. It is parsed in your browser once the library has loaded.</p>
 
                 <h3>5e. Exchange rates (only: Unit Converter)</h3>
-                <p>For currency conversion the unit converter fetches current rates. The request says nothing about which amount or which currency you are converting — the whole rate table is fetched and the conversion happens in your browser.</p>
+                <p>For currency conversion the unit converter fetches current rates. The request says nothing about which amount or which currency you are converting. The whole rate table is always fetched, and the conversion happens in your browser.</p>
                 <div class="table-scroll">
                     <table>
                         <tr><td>Server</td><td><code>open.er-api.com</code> (currencies) and <code>api.coincap.io</code> (cryptocurrencies)</td></tr>
@@ -331,7 +331,7 @@
                     </table>
                 </div>
 
-                <h2>6. Your Rights</h2>
+                <h2>6. Your rights</h2>
                 <p>You have the following rights regarding your personal data:</p>
                 <ul>
                     <li>Right of access (Art. 15 GDPR)</li>
@@ -347,7 +347,7 @@
                     <strong>Right to object (Art. 21 GDPR):</strong> Where processing is based on Art. 6 (1) (f) GDPR (legitimate interest), you have the right to object at any time. Contact: <a href="mailto:immineal@immineal.com">immineal@immineal.com</a>
                 </div>
 
-                <h2>7. No Analytics, No Tracking</h2>
+                <h2>7. No analytics, no tracking</h2>
                 <p>This website uses no analytics services (no Google Analytics, no Matomo, no heatmaps), no advertising cookies, and no social media plugins that transmit data without your action.</p>
             </div>
         </div>
