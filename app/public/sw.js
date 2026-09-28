@@ -1,9 +1,9 @@
 /**
- * Minimal offline support: cache the app shell and ETL data so the map and
- * the currently loaded dates keep working without a network connection.
- * Same-origin requests (HTML/JS/CSS/data) use stale-while-revalidate so the
- * app responds instantly from cache while refreshing in the background.
- * OSM basemap tiles use network-first with a cache fallback.
+ * Offline support for the map. The page, its scripts and the collection
+ * data come out of the cache first and are refreshed from the network
+ * behind that, so the map opens on a phone with no signal and shows the
+ * dates it loaded last. OSM tiles go the other way: network first, and the
+ * cache only when there is no connection.
  */
 
 const CACHE_NAME = "sperrmuell-v1";
@@ -18,7 +18,7 @@ self.addEventListener("activate", (event) => {
       .keys()
       // Only this app's own caches. linu.li serves a second worker from the
       // site root (/sw.js) with its own cache, on this same origin, and this
-      // line used to delete it — so opening the map wiped whatever the
+      // line used to delete it, so opening the map wiped whatever the
       // toolbox had stored for offline use. The root worker has the matching
       // restriction; without both, the two of them take turns clearing each
       // other out.
