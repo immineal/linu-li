@@ -1,0 +1,156 @@
+# Sperrmüll Bonn
+
+A self-hosted, mobile-first map of Bonn's bulky-waste ("Sperrmüll")
+collection: the exact streets and collection-zone polygons scheduled for
+each date, built from bonnorange's official open data and OpenStreetMap
+geometry.
+
+## Quick start
+
+```sh
+npm install
+npm run data    # ETL: builds data/*.geojson + data/index.json
+npm run dev     # starts the app (prints a Network URL — open that on your phone)
+```
+
+On first run, `npm run data` downloads the official CSV and Bonn's street/
+address/Ortsteil geometry from OpenStreetMap (via Overpass) and caches
+everything under `.cache/`. Subsequent runs reuse the cache and finish in a
+few seconds.
+
+For a production build:
+
+```sh
+npm run build
+npm run preview
+```
+
+## Publishing
+
+The app is served from `linu.li/tools/sperrmuell/`, out of the
+[linu-li](https://github.com/immineal/linu-li) repository, which commits the
+built output rather than building on deploy. Publishing is therefore a copy:
+
+```sh
+npm run build
+npm run publish:site -- --dry   # what would change
+npm run publish:site            # do it, then commit over there
+```
+
+`dist/` is a complete picture of the directory it feeds, so the copy is a
+plain mirror with `--delete` and nothing to exclude. Two consequences worth
+knowing:
+
+- `base` lives in `app/vite.config.ts`, not on the command line. Build with
+  the wrong one and every asset request goes to the domain root and 404s.
+- The files that decide how the build is *served* live in `app/serve/` and are
+  emitted into `dist/` by `servePlugin`: the two `.htaccess` rules (a year of
+  cache for the content-hashed bundles, revalidation for the collection
+  dates), and `abgemeldet-sw.js`.
+
+That last one is the app's own history. Until September 2026 it answered at
+`linu.li/sperrmuell/`, and everyone who opened it then still carries a service
+worker registered from that address, which answers every request in the old
+scope out of its cache. A worker script is never fetched through a redirect —
+the browser reads that as a failed update and keeps what it has — so the old
+address cannot simply 301 to the new one. It serves `abgemeldet-sw.js`
+instead, whose only job is to take that registration apart.
+
+Do not hand-edit anything under `tools/sperrmuell/` in the website's
+repository. That is how the two last drifted: the service worker's cache
+restriction was fixed there and never here, so the source kept the bug and the
+next build would have shipped it straight back out. `test/serve.test.ts`
+guards that one from this side now.
+
+## What you'll see
+
+- A map of Bonn with streets scheduled for the current date highlighted,
+  color-coded per collection date.
+- **Solid** lines = geometry matched exactly to OSM address data for that
+  house-number range. **Dashed** lines = approximate (full street shown,
+  reason given).
+- A date scrubber (defaults to today/the next collection date) to step
+  through the year's collection dates.
+- Address search ("Straße Hausnummer") — jumps to the matching segment and
+  shows its three collection dates for the year.
+- Toggleable layers for collection-zone polygons and Ortsteil (district)
+  boundaries.
+- A "Datenqualität" panel (bottom sheet) with match-rate stats, the cluster
+  validation badge, and source attribution.
+
+## How it works
+
+```
+etl/          Node/TypeScript pipeline -> data/
+app/          Vite + MapLibre GL frontend, reads data/
+app/serve/    files that shape how the build is served, emitted into dist/
+app/scripts/  publish.mjs — mirrors dist/ into the website's repository
+data/         generated build artifacts (gitignored, recreate with `npm run data`)
+```
+
+The ETL pipeline (`npm run data`):
+
+1. Parses bonnorange's "Abfuhrtermine 2026" CSV, filters to `PLAN_BEZ ===
+   "Sperrmüll"`, and builds one segment per CSV row: street, Ortsteil, PLZ,
+   a house-number predicate (even/odd ranges + `HNR_NEG` toggles), and its
+   three collection dates.
+2. Fetches Bonn's administrative boundary, `highway=*` ways, address
+   nodes/ways, and Ortsteil (admin_level=10) polygons from OpenStreetMap via
+   Overpass.
+3. Matches each segment's street name to OSM ways (disambiguating by
+   Ortsteil where the name occurs more than once in Bonn), then clips the
+   way geometry to the segment's house-number range using the real
+   `addr:housenumber` points.
+4. Groups segments that share a date into per-date collection-zone polygons
+   and validates that every segment contributes to exactly 3 zones (one per
+   collection date).
+5. Writes `data/segments.geojson`, `data/routes.geojson`,
+   `data/ortsteile.geojson`, and `data/index.json` (build stats + validation
+   report).
+
+## Data quality
+
+Every segment in `data/segments.geojson` has a `geometryConfidence`:
+
+| Value         | Meaning                                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------------------------- |
+| `exact`       | Clipped to real OSM `addr:housenumber` points within the segment's range. |
+| `approximate` | Full street geometry shown because no usable address data was found, or the street name is ambiguous across Bonn. The reason is in `confidenceNote`. |
+| `unmatched`   | No OSM way found for this street name. `geometry` is `null`; listed in `data/index.json` under `unmatchedSegments` and not drawn on the map. |
+
+`npm run data` exits non-zero if the overall match rate drops below 95%, the
+exact-match rate drops below 75%, or the per-date route-cluster validation
+fails (every segment must contribute to exactly 3 date clusters). The
+current build matches ~99% of segments (~95% exact, ~4% approximate, <1%
+unmatched) — see `data/index.json` for the latest numbers.
+
+## Offline / restricted-network fallback
+
+If `opendata.bonn.de` or `overpass-api.de` aren't reachable from your
+environment:
+
+- Download the CSV manually and run:
+  ```sh
+  npm run data:from-file -- /path/to/ABFUHRTERMINE2026OpenData.csv
+  ```
+- Once Overpass has succeeded once, its responses are cached under
+  `.cache/osm/`, so later `npm run data` runs don't need network access to
+  Overpass again.
+
+## Testing
+
+```sh
+npm test
+```
+
+Runs the etl and app unit test suites (Vitest), covering CSV parsing (BOM,
+German number/date formats, `HNR_NEG`, house-number ranges), street-name
+normalization, predicate/containment logic, date filtering, address search,
+and a matching/clipping test against a synthetic street — plus a real-data
+check against the 15.06.2026 Röttgen/Ippendorf/Lengsdorf collection.
+
+## License & attribution
+
+- Code: [MIT](LICENSE)
+- Data in `data/`: derived from bonnorange AöR (CC BY 4.0) and OpenStreetMap
+  (ODbL) — see [ATTRIBUTION.md](ATTRIBUTION.md)
