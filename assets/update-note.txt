@@ -35,3 +35,4 @@ Plans set to landscape used to come out on a portrait page on some Macs, squeeze
 -
 The PDF grayscale tool is now the PDF compressor at linu.li/pdf-compressor/: pick a size such as 10 MB and it gets the file under it, keeping the text selectable. The grey and scan clean-up options are still there, and the old address leads to it.
 The timestamp converter's "Get Timestamp" button did nothing. It works again and shows the time in microseconds and nanoseconds too.
+The PDF compressor no longer changes colours: on iPhones the preview could drop a page's photo, and grey or colour-profiled images could come out in slightly different tones. Paging through the preview also shows at once which page is being drawn.
