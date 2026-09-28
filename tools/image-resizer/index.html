@@ -14,7 +14,7 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Bulk Image Resizer</h1>
-                <p>Resize multiple images to a specific width while maintaining aspect ratio. Process happens entirely in your browser.</p>
+                <p>Resizes a batch of images to a given width or height and keeps the aspect ratio. The images are not uploaded anywhere.</p>
             </div>
 
             <div class="card">
@@ -34,15 +34,15 @@
                     <div>
                         <label for="outputFormat">Output Format</label>
                         <select id="outputFormat" data-save>
-                            <option value="image/jpeg">JPEG (Efficient)</option>
-                            <option value="image/png">PNG (Lossless)</option>
-                            <option value="image/webp">WebP (Modern)</option>
+                            <option value="image/jpeg">JPEG</option>
+                            <option value="image/png">PNG (lossless)</option>
+                            <option value="image/webp">WebP</option>
                         </select>
                     </div>
                     <div style="display: flex; align-items: flex-end; padding-bottom: 0.5rem;">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                             <input type="checkbox" id="smartCrop" disabled>
-                            <span>Smart Crop (Center)</span>
+                            <span>Crop to exact size, keeping the centre</span>
                         </label>
                     </div>
                 </div>
@@ -61,8 +61,7 @@
                 </div>
 
                 <div class="drop-zone" id="dropZone">
-                    <span class="drop-icon">🖼️</span>
-                    <p>Drag & Drop images here</p>
+                    <p>Drop images here</p>
                     <p style="font-size: 0.8rem; color: var(--ink-secondary);">(JPG, PNG, WEBP)</p>
                     <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
                 </div>
@@ -79,7 +78,7 @@
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
-                    <h3 style="text-align: center;">Processing Complete!</h3>
+                    <h3 style="text-align: center;">Done</h3>
                     <p style="text-align: center; margin-bottom: 1rem;" id="resultStats"></p>
                     
                     <div style="display: flex; justify-content: center;">
@@ -94,7 +93,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        // === DOM ELEMENTS ===
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileListEl = document.getElementById('fileList');
@@ -114,17 +112,14 @@
         const resultStats = document.getElementById('resultStats');
         const downloadZipBtn = document.getElementById('downloadZipBtn');
 
-        // === STATE ===
         let selectedFiles = [];
         let zipBlob = null;
 
-        // === INITIALIZATION ===
         document.addEventListener('DOMContentLoaded', () => {
-            // Setup Layout Helper
             setupDropZone(dropZone, fileInput, handleFiles);
         });
 
-        // Security Utility
+        // File names go into innerHTML below.
         function escapeHTML(str) {
             if (!str) return '';
             return str
@@ -135,12 +130,11 @@
                 .replace(/'/g, '&#039;');
         }
 
-        // Update Quality Label
         qualityRange.addEventListener('input', (e) => {
             qualityValue.textContent = e.target.value;
         });
 
-        // Toggle Smart Crop based on Width and Height
+        // Cropping only means something when both sides are fixed.
         function updateSmartCropToggle() {
             if (targetWidthInput.value && targetHeightInput.value) {
                 smartCropInput.disabled = false;
@@ -153,7 +147,7 @@
         targetWidthInput.addEventListener('input', updateSmartCropToggle);
         targetHeightInput.addEventListener('input', updateSmartCropToggle);
 
-        // Toggle Quality Slider based on format (PNG doesn't use quality in canvas toBlob)
+        // toBlob ignores quality for PNG, so the slider would do nothing.
         outputFormatInput.addEventListener('change', (e) => {
             if (e.target.value === 'image/png') {
                 qualityWrapper.classList.add('hidden');
@@ -162,7 +156,6 @@
             }
         });
 
-        // === FILE HANDLING ===
         function handleFiles(fileList) {
             const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             
@@ -197,11 +190,11 @@
             resizeBtn.disabled = selectedFiles.length === 0;
             
             if (selectedFiles.length > 0) {
-                resultBox.classList.add('hidden'); // Hide old results if new files added
+                resultBox.classList.add('hidden');
             }
         }
 
-        // Exposed to global scope for the onclick handler
+        // Global because the list items call it from an inline onclick.
         window.removeFile = function(index) {
             selectedFiles.splice(index, 1);
             updateFileList();
@@ -212,14 +205,12 @@
             updateFileList();
             resultBox.classList.add('hidden');
             progressContainer.style.display = 'none';
-            fileInput.value = ''; // Reset input
+            fileInput.value = '';
         });
 
-        // === IMAGE PROCESSING LOGIC ===
         resizeBtn.addEventListener('click', async () => {
             if (selectedFiles.length === 0) return;
 
-            // UI Reset
             resizeBtn.disabled = true;
             clearBtn.disabled = true;
             resultBox.classList.add('hidden');
@@ -238,17 +229,15 @@
             let totalSizeOriginal = 0;
             let totalSizeNew = 0;
 
-            // Optional: concurrency control. For now, sequential to avoid massive memory spikes,
-            // but the worker prevents main thread blocking.
+            // One file at a time, so a large batch never holds every decoded
+            // image in memory at once.
             try {
                 for (let i = 0; i < selectedFiles.length; i++) {
                     const file = selectedFiles[i];
                     totalSizeOriginal += file.size;
 
-                    // Process individual image
                     const result = await resizeImage(file, width, height, format, quality, smartCrop);
-                    
-                    // Add to ZIP
+
                     const extension = format === 'image/jpeg' ? 'jpg' : format.split('/')[1];
                     const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
                     
@@ -258,7 +247,7 @@
                         .replace(/{height}/g, result.height)
                         .replace(/{ext}/g, extension);
 
-                    // fallback if naming pattern doesn't end in ext
+                    // A pattern without {ext} would otherwise give files with no extension.
                     if (!newName.endsWith('.' + extension)) {
                         newName += '.' + extension;
                     }
@@ -266,17 +255,14 @@
                     zip.file(newName, result.blob);
                     totalSizeNew += result.blob.size;
 
-                    // Update Progress
                     processedCount++;
                     const percentage = Math.round((processedCount / selectedFiles.length) * 100);
                     progressBar.style.width = `${percentage}%`;
                 }
 
-                // Generate ZIP
                 showToast('Generating ZIP file...', 'info');
                 zipBlob = await zip.generateAsync({type: "blob"});
 
-                // Show Results
                 const savedPercent = Math.round((1 - (totalSizeNew / totalSizeOriginal)) * 100);
                 const savedStr = savedPercent > 0 ? `(Saved ${savedPercent}%)` : '';
                 
@@ -286,18 +272,17 @@
                 `;
                 
                 resultBox.classList.remove('hidden');
-                showToast('Batch processing complete!', 'success');
+                showToast('All images resized.', 'success');
 
             } catch (err) {
                 console.error(err);
-                showToast('An error occurred during processing.', 'error');
+                showToast('Resizing failed. One of the images may be damaged.', 'error');
             } finally {
                 resizeBtn.disabled = false;
                 clearBtn.disabled = false;
             }
         });
 
-        // === WORKER SETUP ===
         const workerScript = `
             self.onmessage = async function(e) {
                 const { file, targetWidth, targetHeight, format, quality, smartCrop } = e.data;
@@ -312,16 +297,15 @@
                         finalWidth = targetWidth;
                         finalHeight = targetHeight;
                         if (smartCrop) {
-                            // Calculate crop area to cover target aspect ratio
                             const targetAspect = targetWidth / targetHeight;
                             const currentAspect = bitmap.width / bitmap.height;
                             if (currentAspect > targetAspect) {
-                                // Image is wider than target aspect
+                                // Wider than the target: trim the sides.
                                 sWidth = bitmap.height * targetAspect;
                                 sHeight = bitmap.height;
                                 sx = (bitmap.width - sWidth) / 2;
                             } else {
-                                // Image is taller than target aspect
+                                // Taller than the target: trim top and bottom.
                                 sWidth = bitmap.width;
                                 sHeight = bitmap.width / targetAspect;
                                 sy = (bitmap.height - sHeight) / 2;
@@ -344,8 +328,8 @@
                         ctx.drawImage(bitmap, sx, sy, sWidth, sHeight, 0, 0, finalWidth, finalHeight);
                         blob = await canvas.convertToBlob({ type: format, quality: quality });
                     } else {
-                        // Main thread fallback should be handled outside worker if OffscreenCanvas doesn't exist,
-                        // but modern browsers support OffscreenCanvas in workers.
+                        // resizeImage checks for OffscreenCanvas before starting
+                        // a worker, so this only fires if that check is removed.
                         throw new Error("OffscreenCanvas not supported in worker.");
                     }
 
@@ -358,7 +342,6 @@
         const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
         const workerUrl = URL.createObjectURL(workerBlob);
 
-        // Core Resize Function using Web Worker
         function resizeImage(file, targetWidth, targetHeight, format, quality, smartCrop) {
             return new Promise((resolve, reject) => {
                 if (typeof OffscreenCanvas !== 'undefined' && window.Worker) {
@@ -377,7 +360,7 @@
                     };
                     worker.postMessage({ file, targetWidth, targetHeight, format, quality, smartCrop });
                 } else {
-                    // Fallback to main thread
+                    // No OffscreenCanvas: do the same work on the main thread.
                     const objectUrl = URL.createObjectURL(file);
                     const img = new Image();
                     img.src = objectUrl;
@@ -436,7 +419,6 @@
             });
         }
 
-        // === DOWNLOAD HANDLER ===
         downloadZipBtn.addEventListener('click', () => {
             if (!zipBlob) return;
             

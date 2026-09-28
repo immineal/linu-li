@@ -8,27 +8,26 @@ const assert = require('assert');
     const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
-    // We expect a local server running on port 3000
+    // Needs a server on port 3000.
     await page.goto('http://localhost:3000/tools/social-cropper/index.html', { waitUntil: 'networkidle2' });
 
-    // --- TEST SETUP: Generate a test image ---
     execSync('convert -size 400x300 xc:transparent test_spec_image.png');
 
     const fileInput = await page.$('#fileInput');
     await fileInput.uploadFile('test_spec_image.png');
 
     await page.waitForSelector('.cropper-container');
-    console.log('Image loaded successfully.');
+    console.log('Image loaded.');
 
-    // --- TEST 1: Aspect Ratio Precision ---
+    // The 16:9 button must pass the full float, not a rounded 1.78.
     await page.evaluate(() => {
         document.querySelector('button[data-ratio="1.7777777777777777"]').click();
     });
     let cropperRatio = await page.evaluate(() => cropper.options.aspectRatio);
     assert.strictEqual(cropperRatio, 1.7777777777777777, 'Aspect ratio should be exactly 1.7777777777777777');
-    console.log('Test 1 Passed: Aspect Ratio is precise.');
+    console.log('PASS: 16:9 ratio is exact');
 
-    // --- TEST 2: Circular Mask State Toggling ---
+    // The round mask forces 1:1 and gives the old ratio back when switched off.
     await page.evaluate(() => {
         document.querySelector('#circleToggle').click();
     });
@@ -48,9 +47,9 @@ const assert = require('assert');
 
     currentRatio = await page.evaluate(() => cropper.options.aspectRatio);
     assert.strictEqual(currentRatio, 1.7777777777777777, 'Aspect ratio should be restored to previous value after turning off circular mask');
-    console.log('Test 2 Passed: Circular mask state toggles correctly.');
+    console.log('PASS: round mask forces 1:1 and restores the previous ratio');
 
-    // --- TEST 3: Rotation and Transparency Crop (No Crash) ---
+    // Rotating a transparent image and cropping it must not throw.
     await page.evaluate(() => {
         const range = document.querySelector('#rotateRange');
         range.value = -45;
@@ -66,24 +65,23 @@ const assert = require('assert');
 
     const isResultVisible = await page.evaluate(() => !document.querySelector('#resultBox').classList.contains('hidden'));
     assert.strictEqual(isResultVisible, true, 'Result box should be visible after successful crop');
-    console.log('Test 3 Passed: Crop completes without crash, result box is visible.');
+    console.log('PASS: rotated crop shows a result');
 
-    // --- TEST 4: Reset on "Upload New" ---
+    // Choosing another image clears the round mask.
     await page.evaluate(() => {
-        document.querySelector('#circleToggle').click(); // toggle on
-        document.querySelector('#btnClear').click(); // click upload new
+        document.querySelector('#circleToggle').click();
+        document.querySelector('#btnClear').click();
     });
 
     const circleCheckedAfterClear = await page.evaluate(() => document.querySelector('#circleToggle').checked);
     assert.strictEqual(circleCheckedAfterClear, false, 'Circle toggle should be reset after clearing');
-    console.log('Test 4 Passed: States reset correctly on "Upload New".');
+    console.log('PASS: round mask cleared by Choose Another');
 
-    // Restore cropper for subsequent tests
+    // The clear above destroyed the cropper; the next checks need one.
     const fileInputRestored = await page.$('#fileInput');
     await fileInputRestored.uploadFile('test_spec_image.png');
     await page.waitForSelector('.cropper-container');
 
-    // --- TEST 5: Platform Selector updates aspect ratios ---
     await page.evaluate(() => {
         const platformSelect = document.querySelector('#platformSelect');
         platformSelect.value = 'ig';
@@ -93,20 +91,18 @@ const assert = require('assert');
     const igRatiosCount = await page.evaluate(() => document.querySelectorAll('#ratioButtonsContainer button').length);
     assert.strictEqual(igRatiosCount, 4, 'Instagram platform should have 4 ratio templates');
 
-    // Test Twitter ratio update (e.g. Header 3:1)
     await page.evaluate(() => {
         const platformSelect = document.querySelector('#platformSelect');
         platformSelect.value = 'twitter';
         platformSelect.dispatchEvent(new Event('change'));
-        // Click second button (Header 3:1)
+        // Header, 3:1
         document.querySelectorAll('#ratioButtonsContainer button')[1].click();
     });
 
     const twitterRatio = await page.evaluate(() => cropper.options.aspectRatio);
     assert.strictEqual(twitterRatio, 3, 'Aspect ratio should be exactly 3 for Twitter Header');
-    console.log('Test 5 Passed: Platform selector updates UI and aspect ratios correctly.');
+    console.log('PASS: platform templates replace the ratio buttons');
 
-    // --- TEST 6: WebP format export extension ---
     await page.evaluate(() => {
         const formatSelect = document.querySelector('#formatSelect');
         formatSelect.value = 'webp';
@@ -119,9 +115,9 @@ const assert = require('assert');
 
     const downloadHref = await page.evaluate(() => document.querySelector('#btnDownload').href);
     assert.strictEqual(downloadHref.startsWith('data:image/webp'), true, 'Download link should contain image/webp data URI');
-    console.log('Test 6 Passed: Export format properly updates file extension and data URI.');
+    console.log('PASS: WebP export gets a .webp name and an image/webp data URI');
 
-    console.log('All tests passed successfully!');
+    console.log('All social cropper tests passed.');
 
     await browser.close();
     if (fs.existsSync('test_spec_image.png')) {

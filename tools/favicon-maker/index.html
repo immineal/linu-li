@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Favicon Generator | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
-    <!-- Dynamic Favicon Link -->
+    <!-- draw() swaps this for the icon being made, so the tab shows it at real size. -->
     <link rel="icon" type="image/png" href="../../assets/favicon.svg" id="dynamic-favicon">
     
     <style>
@@ -76,23 +76,20 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Favicon Generator</h1>
-                <p>Design simple text, emoji, or image-based favicons. <br>Look at your browser tab to see the live preview!</p>
+                <p>Makes a favicon from a letter, an emoji or an image, as PNG, ICO or a full set with a web manifest.<br>The icon in this browser tab changes as you edit.</p>
             </div>
 
             <div class="split-view">
-                
-                <!-- LEFT: CONTROLS -->
+
                 <div class="card">
-                    
-                    <!-- TYPE SELECTOR -->
+
                     <div class="button-group" style="margin-bottom: 1.5rem;">
                         <button class="button active" id="modeText" onclick="setMode('text')">Text / Emoji</button>
-                        <button class="button outline" id="modeImage" onclick="setMode('image')">Upload Image</button>
+                        <button class="button outline" id="modeImage" onclick="setMode('image')">Image</button>
                     </div>
 
-                    <!-- TEXT CONTROLS -->
                     <div id="textControls">
-                        <label>Text or Emoji (Max 2 chars)</label>
+                        <label>Text or Emoji (up to 2 characters)</label>
                         <input type="text" id="inputText" value="L" maxlength="2" style="font-size: 1.5rem; text-align: center;">
                         
                         <div class="split-view" style="margin-bottom: 0;">
@@ -115,11 +112,9 @@
                         </div>
                     </div>
 
-                    <!-- IMAGE CONTROLS -->
                     <div id="imageControls" class="hidden">
                         <div class="drop-zone" id="dropZone" style="padding: 1.5rem; min-height: 120px;">
-                            <span style="font-size: 1.5rem;">🖼️</span>
-                            <p style="margin: 0.5rem 0;">Upload Logo</p>
+                            <p style="margin: 0.5rem 0;">Drop an image here</p>
                             <input type="file" id="fileInput" class="hidden" accept="image/*">
                         </div>
                         <div style="margin-top: 1rem;">
@@ -128,13 +123,12 @@
                         </div>
                         <div style="margin-top: 1rem; display: flex; align-items: center; gap: 0.5rem;">
                             <input type="checkbox" id="autoRemoveBg" style="width: auto;">
-                            <label for="autoRemoveBg" style="margin: 0; cursor: pointer;">🪄 Auto-Remove Background</label>
+                            <label for="autoRemoveBg" style="margin: 0; cursor: pointer;">Remove a plain background</label>
                         </div>
                     </div>
 
                     <hr style="border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0;">
 
-                    <!-- SHAPE & COLORS -->
                     <div class="split-view">
                         <div>
                             <label>Shape / Background</label>
@@ -160,16 +154,15 @@
 
                 </div>
 
-                <!-- RIGHT: PREVIEW -->
                 <div class="card" style="display: flex; flex-direction: column;">
-                    <label>High-Res Preview (512px)</label>
+                    <label>Preview (512 px)</label>
                     
                     <div class="preview-area">
                         <canvas id="previewCanvas" width="512" height="512"></canvas>
                     </div>
 
                     <div class="tab-preview-hint">
-                        ⬆️ Look at your browser tab! ⬆️
+                        The tab at the top of this window shows it at real size.
                     </div>
 
                     <div style="margin-top: auto;">
@@ -190,21 +183,18 @@
     <script src="../../assets/vendor/jszip.min.js"></script>
     
     <script>
-        // --- DOM Elements ---
         const canvas = document.getElementById('previewCanvas');
         const ctx = canvas.getContext('2d');
-        
-        // Inputs
+
         const inputText = document.getElementById('inputText');
         const fontSize = document.getElementById('fontSize');
         const fontFamily = document.getElementById('fontFamily');
         const shapeSelect = document.getElementById('shapeSelect');
         const bgColor = document.getElementById('bgColor');
-        const bgColorGroup = document.getElementById('bgColorGroup'); // Added Group
+        const bgColorGroup = document.getElementById('bgColorGroup');
         const fgColor = document.getElementById('fgColor');
         const fgColorGroup = document.getElementById('fgColorGroup');
-        
-        // Modes
+
         const modeTextBtn = document.getElementById('modeText');
         const modeImageBtn = document.getElementById('modeImage');
         const textControls = document.getElementById('textControls');
@@ -214,13 +204,11 @@
         const imgScale = document.getElementById('imgScale');
         const autoRemoveBg = document.getElementById('autoRemoveBg');
 
-        // Download
         const downloadPng = document.getElementById('downloadPng');
         const downloadIco = document.getElementById('downloadIco');
         const downloadZip = document.getElementById('downloadZip');
         const tabIcon = document.getElementById('dynamic-favicon');
 
-        // State
         let currentMode = 'text';
         let uploadedImage = null;
         let originalUploadedImageSrc = null;
@@ -242,14 +230,12 @@
             }
         };
 
-        // --- Initialization ---
         window.addEventListener('DOMContentLoaded', () => {
             updateUIForShape();
             draw();
             setupDropZone(dropZone, fileInput, handleFile);
         });
 
-        // --- Event Listeners ---
         [inputText, fontSize, fontFamily, bgColor, fgColor, imgScale].forEach(el => {
             el.addEventListener('input', draw);
             el.addEventListener('change', draw);
@@ -261,7 +247,7 @@
             }
         });
 
-        // Special handling for shape to toggle background color visibility
+        // A transparent shape has no background colour to choose.
         shapeSelect.addEventListener('change', () => {
             updateUIForShape();
             draw();
@@ -290,7 +276,7 @@
                 modeTextBtn.classList.add('outline');
                 textControls.classList.add('hidden');
                 imageControls.classList.remove('hidden');
-                fgColorGroup.classList.add('hidden'); // Hide text color picker in image mode
+                fgColorGroup.classList.add('hidden');
             }
             draw();
         }
@@ -356,13 +342,10 @@
             tempImg.src = src;
         }
 
-        // --- Core Drawing Logic ---
         function draw() {
-            // 1. Clear
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const size = canvas.width;
-            
-            // 2. Draw Background Shape
+
             const shape = shapeSelect.value;
             ctx.fillStyle = bgColor.value;
 
@@ -387,9 +370,8 @@
                 ctx.closePath();
                 ctx.fill();
             }
-            // 'none' does nothing (transparent)
+            // 'none' leaves the canvas transparent.
 
-            // 3. Draw Content
             if (currentMode === 'text') {
                 const text = inputText.value;
                 const fSize = fontSize.value;
@@ -400,7 +382,7 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                // Adjust vertical alignment slightly for emojis/text visual center
+                // Baseline 'middle' sits a little high for most letters and emoji.
                 const yOffset = size / 2 + (fSize * 0.05); 
                 ctx.fillText(text, size / 2, yOffset);
             } 
@@ -408,7 +390,7 @@
                 const scale = imgScale.value / 100;
                 const drawSize = size * scale;
                 
-                // Calculate square crop from center of uploaded image
+                // Centre square of the image.
                 const srcSize = Math.min(uploadedImage.width, uploadedImage.height);
                 const srcX = (uploadedImage.width - srcSize) / 2;
                 const srcY = (uploadedImage.height - srcSize) / 2;
@@ -416,28 +398,20 @@
                 const x = (size - drawSize) / 2;
                 const y = (size - drawSize) / 2;
                 
+                // Not clipped to the shape: the image sits on top of the background.
                 ctx.save();
-                // Clip to shape if needed, to ensure image doesn't bleed out of rounded corners
-                if (shape !== 'none') {
-                    // Note: For most favicon use cases, users prefer the image *on top* of the shape
-                    // without clipping, or clipping *to* the shape.
-                    // Standard behavior: Image floats above background.
-                }
                 ctx.drawImage(uploadedImage, srcX, srcY, srcSize, srcSize, x, y, drawSize, drawSize);
                 ctx.restore();
             }
 
-            // 4. Update Live Preview (Browser Tab)
             updateTabIcon();
         }
 
-        // --- Live Browser Preview ---
         function updateTabIcon() {
             const dataUrl = canvas.toDataURL('image/png');
             tabIcon.href = dataUrl;
         }
 
-        // --- Download Handlers ---
         downloadPng.addEventListener('click', () => {
             const link = document.createElement('a');
             link.download = 'favicon.png';
@@ -457,7 +431,7 @@
                 showToast('ICO Downloaded', 'success');
             } catch(e) {
                 console.error(e);
-                showToast('Error generating ICO', 'error');
+                showToast('Could not build the ICO file.', 'error');
             }
         });
 
@@ -473,7 +447,6 @@
 
                 const zip = new JSZip();
 
-                // Generate sizes
                 const sizes = {
                     'apple-touch-icon.png': 180,
                     'favicon-32x32.png': 32,
@@ -496,11 +469,9 @@
                     zip.file(filename, base64Data, {base64: true});
                 }
 
-                // Add favicon.ico
                 const icoBlob = generateIco(canvas);
                 zip.file('favicon.ico', icoBlob);
 
-                // Add manifest
                 const manifest = {
                     "name": "My Web App",
                     "short_name": "App",
@@ -534,23 +505,22 @@
                 showToast('ZIP Downloaded', 'success');
             } catch(e) {
                 console.error(e);
-                showToast('Error generating ZIP', 'error');
+                showToast('Could not build the ZIP file.', 'error');
             } finally {
                 downloadZip.disabled = false;
                 downloadZip.textContent = 'Download Full Set (ZIP)';
             }
         });
 
-        // --- Simple ICO Generator (Binary) ---
+        // An ICO file holding one PNG.
         function generateIco(sourceCanvas) {
-            // Resize to standard 256x256 for ICO (max standard size)
+            // 256 is the largest size an ICO directory entry can state.
             const icoCanvas = document.createElement('canvas');
             icoCanvas.width = 256;
             icoCanvas.height = 256;
             const ictx = icoCanvas.getContext('2d');
             ictx.drawImage(sourceCanvas, 0, 0, 256, 256);
-            
-            // Convert to PNG buffer
+
             const dataUrl = icoCanvas.toDataURL('image/png');
             const byteString = atob(dataUrl.split(',')[1]);
             const pngBuffer = new Uint8Array(byteString.length);
@@ -580,7 +550,6 @@
                 imageOffset, 0, 0, 0
             ]);
 
-            // Combine
             const icoFile = new Uint8Array(header.length + entry.length + pngBuffer.length);
             icoFile.set(header, 0);
             icoFile.set(entry, header.length);
@@ -589,7 +558,7 @@
             return new Blob([icoFile], { type: 'image/x-icon' });
         }
 
-        // Expose to global for onclicks
+        // The mode buttons call it from inline onclick.
         window.setMode = setMode;
     
     /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?

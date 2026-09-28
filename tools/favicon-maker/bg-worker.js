@@ -4,27 +4,27 @@ self.onmessage = function(e) {
     if (action === 'removeBackground') {
         const data = imageData.data;
 
-        // Sample the top-left corner pixel as the background color
+        // The top-left pixel is taken as the background colour.
         const bgR = data[0];
         const bgG = data[1];
         const bgB = data[2];
         const bgA = data[3];
 
-        // If the top-left pixel is already highly transparent, we might not have a background
+        // A corner that is already transparent means there is no background to remove.
         if (bgA < 10) {
             self.postMessage({ action: 'removeBackground', success: true, imageData });
             return;
         }
 
-        // Fast simple color difference threshold based on Manhattan distance
+        // Colour distance is the Manhattan distance in RGB.
         const tol = tolerance || 30;
 
-        // Use a flood-fill algorithm to remove continuous background color
-        // This avoids removing parts of the image that happen to match the background color but are inside the foreground.
-        const stack = [[0, 0]]; // Start at top-left
+        // Flood fill from the edges, so a patch of the same colour inside the
+        // subject stays.
+        const stack = [[0, 0]];
         const visited = new Uint8Array(width * height);
 
-        // Also add other corners to stack just in case
+        // All four corners, in case the subject touches one of them.
         stack.push([width - 1, 0]);
         stack.push([0, height - 1]);
         stack.push([width - 1, height - 1]);
@@ -42,14 +42,11 @@ self.onmessage = function(e) {
             const b = data[idx + 2];
             const a = data[idx + 3];
 
-            // Calculate color distance
             const dist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
 
             if (dist <= tol && a > 10) {
-                // Set pixel to transparent
                 data[idx + 3] = 0;
 
-                // Add neighbors
                 if (x > 0) stack.push([x - 1, y]);
                 if (x < width - 1) stack.push([x + 1, y]);
                 if (y > 0) stack.push([x, y - 1]);

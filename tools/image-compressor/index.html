@@ -3,22 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Image Compressor | Linus Linhof</title>
+    <title>Image Compressor | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
-    
-    <!-- Libraries -->
+
     <script src="../../assets/vendor/jszip.min.js"></script>
     <script src="../../assets/vendor/FileSaver.min.js"></script>
 
     <style>
-        /* --- MODE TABS --- */
         .mode-tabs { display: flex; gap: 1rem; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; }
         .mode-tab { padding: 0.5rem 1rem; cursor: pointer; font-weight: 500; opacity: 0.6; transition: all 0.2s; border-bottom: 2px solid transparent; margin-bottom: -2px; }
         .mode-tab:hover { opacity: 1; color: var(--accent); }
         .mode-tab.active { opacity: 1; color: var(--accent); border-bottom-color: var(--accent); }
 
-        /* --- COMPARISON SLIDER --- */
         .compare-wrapper {
             position: relative; width: 100%; max-width: 100%; margin: 0 auto 2rem; border-radius: 4px; overflow: hidden;
             border: 1px solid var(--border);
@@ -26,8 +23,8 @@
             background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%);
             background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
             user-select: none; cursor: ew-resize; line-height: 0;
-            min-height: 200px; /* Fix for layout jump */
-            display: block; /* Ensure it takes space */
+            min-height: 200px; /* keeps the page from jumping while the first image loads */
+            display: block;
         }
         .img-original { display: block; width: 100%; height: auto; pointer-events: none; }
         .img-modified-container { position: absolute; top: 0; left: 0; bottom: 0; width: 50%; overflow: hidden; border-right: 2px solid var(--accent); background: inherit; z-index: 2; }
@@ -37,8 +34,7 @@
             color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;
             font-size: 1.2rem; transform: translateY(-50%); box-shadow: 0 2px 6px rgba(0,0,0,0.2); pointer-events: none; z-index: 3; line-height: 1;
         }
-        
-        /* UPDATED: Bigger labels */
+
         .label-badge { 
             position: absolute; 
             top: 10px; 
@@ -54,13 +50,12 @@
         }
         .label-before { right: 10px; } .label-after { left: 10px; }
 
-        /* --- CONTROLS --- */
         .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; background: var(--input-bg); padding: 1.5rem; border-radius: 4px; }
         .stat-diff { font-family: var(--font-mono); font-size: 0.9rem; }
         .stat-good { color: var(--accent-secondary); font-weight: bold; }
         .stat-bad { color: var(--accent); }
 
-        /* Fix for weird focus box on sliders */
+        /* The global focus ring draws a box around the whole slider track. */
         input[type="range"]:focus { outline: none; box-shadow: none; }
     </style>
 </head>
@@ -68,27 +63,23 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Smart Image Compressor</h1>
-                <p>Intelligent compression using WebAssembly (MozJPEG, OxiPNG, WebP, AVIF).<br><span style="font-size: 0.85rem; color: var(--ink-secondary);">(Note: Compression engines are downloaded from ESM.sh on first use)</span></p>
+                <h1>Image Compressor</h1>
+                <p>Re-encodes images as WebP, AVIF, MozJPEG or OxiPNG, with an optional resize.<br><span style="font-size: 0.85rem; color: var(--ink-secondary);">The encoders are downloaded from esm.sh the first time you use one. Your images stay on this device.</span></p>
             </div>
 
             <div class="card">
-                
-                <!-- TABS -->
+
                 <div class="mode-tabs">
                     <div class="mode-tab active" id="tabSingle" onclick="switchMode('single')">Single Image (Detailed)</div>
                     <div class="mode-tab" id="tabBulk" onclick="switchMode('bulk')">Bulk Mode (Batch)</div>
                 </div>
 
-                <!-- DROP ZONE -->
                 <div class="drop-zone" id="dropZone">
-                    <span class="drop-icon">🖼️</span>
-                    <p id="dropText">Drag & Drop an image here</p>
+                    <p id="dropText">Drop an image here</p>
                     <p style="font-size: 0.8rem; opacity: 0.7;">JPG, PNG, WEBP, AVIF</p>
                     <input type="file" id="fileInput" class="hidden" multiple accept="image/*">
                 </div>
 
-                <!-- === SINGLE MODE === -->
                 <div id="singleModeUI">
                     <div class="compare-wrapper hidden" id="compareWrapper">
                         <img id="imgOrg" class="img-original" src="" alt="Original">
@@ -138,7 +129,6 @@
                     </div>
                 </div>
 
-                <!-- === BULK MODE === -->
                 <div id="bulkModeUI" class="hidden">
                     <div class="settings-grid" style="margin-bottom: 2rem;">
                         <div>
@@ -168,9 +158,8 @@
 
                     <ul class="file-list" id="bulkFileList"></ul>
 
-                    <!-- Bulk Summary Section -->
                     <div id="bulkSummary" class="hidden" style="text-align: center; margin-top: 1.5rem; padding: 1rem; background: var(--paper); border: 1px solid var(--border); border-radius: 4px;">
-                        <h3 style="margin-bottom: 0.5rem;">Batch Completed</h3>
+                        <h3 style="margin-bottom: 0.5rem;">Done</h3>
                         <p id="bulkSavingsText" style="font-size: 1.2rem; font-weight: bold; color: var(--accent-secondary);">Saved 0 MB (0%)</p>
                     </div>
 
@@ -188,9 +177,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        /* =========================================
-           WORKER BRIDGE
-           ========================================= */
         class CompressionWorker {
             constructor() {
                 this.worker = new Worker('./worker.js', { type: 'module' });
@@ -219,22 +205,15 @@
 
         const compressor = new CompressionWorker();
 
-        /* =========================================
-           MAIN UI LOGIC
-           ========================================= */
-        
-        // DOM & State
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
-        
-        // Single UI Elements
+
         const singleFormat = document.getElementById('singleFormat');
         const singleQuality = document.getElementById('singleQuality');
         const singleQualityWrapper = document.getElementById('singleQualityWrapper');
         const singleQualityVal = document.getElementById('singleQualityVal');
         const singleResize = document.getElementById('singleResize');
-        
-        // Bulk UI Elements
+
         const bulkFormat = document.getElementById('bulkFormat');
         const bulkQuality = document.getElementById('bulkQuality');
         const bulkQualityWrapper = document.getElementById('bulkQualityWrapper');
@@ -247,17 +226,15 @@
         let bulkQueue = [];
         let debounceTimer;
 
-        // Setup
         document.addEventListener('DOMContentLoaded', () => {
             setupDropZone(dropZone, fileInput, handleFiles);
             initComparisonEvents();
             window.addEventListener('resize', syncComparisonImages);
             
             updateQualityVisibility('single');
-            switchMode('single'); // Explicit initialize
+            switchMode('single');
         });
 
-        // --- Mode Switching ---
         window.switchMode = function(mode) {
             currentMode = mode;
             document.getElementById('tabSingle').classList.toggle('active', mode === 'single');
@@ -267,7 +244,8 @@
             
             updateDropText();
 
-            // FIX: If we switch back to single mode and a file exists, force layout recalc
+            // The comparison was hidden while in bulk mode and measured 0 wide.
+            // Force a layout so syncComparisonImages reads the real width.
             if (mode === 'single' && singleFile) {
                 void document.getElementById('singleModeUI').offsetHeight;
                 syncComparisonImages();
@@ -284,16 +262,15 @@
                 dropZoneEl.classList.add('hidden');
             } else {
                 dropZoneEl.classList.remove('hidden');
-                txt.textContent = currentMode === 'single' ? "Drag & Drop an image" : "Drag & Drop multiple images";
+                txt.textContent = currentMode === 'single' ? "Drop an image here" : "Drop images here";
             }
         }
 
-        // --- File Handling ---
         function handleFiles(files) {
             const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') && f.size > 0);
             if (validFiles.length === 0) {
                 if (typeof showToast === 'function') {
-                    showToast('No valid image files selected. Files might be empty or unsupported.', 'error');
+                    showToast('None of these files is an image this tool can read, or they are empty.', 'error');
                 }
                 return;
             }
@@ -307,7 +284,6 @@
             }
         }
 
-        // --- IMAGE PROCESSING PIPELINE ---
         async function processImagePipeline(file, format, quality, targetWidth) {
             const bitmap = await createImageBitmap(file);
             let w = bitmap.width;
@@ -330,9 +306,6 @@
             return new Blob([arrayBuffer], { type: format });
         }
 
-        /* =========================================
-           SINGLE MODE IMPLEMENTATION
-           ========================================= */
         function loadSingleFile(file) {
             singleFile = file;
             document.getElementById('singleStatOriginal').textContent = `Original: ${formatFileSize(file.size)}`;
@@ -351,7 +324,7 @@
             };
             imgOrg.onerror = () => {
                 if (typeof showToast === 'function') {
-                    showToast('Failed to load image. It may be corrupt or unsupported.', 'error');
+                    showToast('Could not open this image. It may be damaged or in a format the browser cannot read.', 'error');
                 }
                 document.getElementById('singleResetBtn').click();
             };
@@ -402,7 +375,6 @@
             }
         }
 
-        // --- DYNAMIC SLIDER CONFIGURATION ---
         function updateQualityVisibility(mode) {
             const formatEl = mode === 'single' ? singleFormat : bulkFormat;
             const wrapperEl = mode === 'single' ? singleQualityWrapper : bulkQualityWrapper;
@@ -412,32 +384,27 @@
             const format = formatEl.value;
             const isPng = format === 'image/png';
             const isAvif = format === 'image/avif';
-            
-            // Visibility
+
             wrapperEl.style.display = isPng ? 'none' : 'block';
 
-            // Slider Attributes & Label Logic
             const labelNode = wrapperEl.querySelector('label').childNodes[0];
             
             if (isAvif) {
-                // AVIF: Speed Mode (0 to 10)
+                // For AVIF the slider sets encoder speed; worker.js expects it.
                 labelNode.nodeValue = "Encoding Speed (0=Slow, 10=Fast): ";
                 sliderEl.min = 0;
                 sliderEl.max = 10;
-                sliderEl.value = 6; // Default to decent speed
+                sliderEl.value = 6;
             } else {
-                // WebP/JPEG: Quality Mode (0 to 100)
                 labelNode.nodeValue = "Quality (0-100): ";
                 sliderEl.min = 0;
                 sliderEl.max = 100;
-                sliderEl.value = 75; // Default Quality
+                sliderEl.value = 75;
             }
-            
-            // Update display text
+
             valEl.textContent = sliderEl.value;
         }
 
-        // Single Mode Events
         singleFormat.addEventListener('change', () => {
             updateQualityVisibility('single');
             processSingleImage();
@@ -474,9 +441,6 @@
             updateDropText();
         });
 
-        /* =========================================
-           BULK MODE EVENTS
-           ========================================= */
         bulkFormat.addEventListener('change', () => {
             updateQualityVisibility('bulk');
         });
@@ -578,9 +542,6 @@
             document.getElementById('bulkDownloadBtn').classList.add('hidden');
         });
 
-        /* =========================================
-           HELPERS (Comparison Slider)
-           ========================================= */
         function initComparisonEvents() {
             let drag = false;
             const wrapper = document.getElementById('compareWrapper');

@@ -62,7 +62,6 @@
             z-index: 1;
             pointer-events: none;
         }
-        /* Grid lines for context */
         .preview-box-container::before {
             content: '';
             position: absolute;
@@ -79,12 +78,11 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Aspect Ratio Calculator</h1>
-                <p>Calculate dimensions based on common ratios or custom values.</p>
+                <p>Pick a ratio, type a width or a height, and it works out the other side.</p>
             </div>
 
             <div class="card">
-                
-                <!-- VISUAL PREVIEW -->
+
                 <div class="preview-box-container" id="previewContainer">
                     <img id="bgImg" style="display: none;">
                     <div id="shape" class="preview-shape" style="width: 160px; height: 90px;">
@@ -95,13 +93,11 @@
 
                 <div style="margin-bottom: 2rem; text-align: center;">
                     <input type="file" id="bgUpload" accept="image/*" style="display: none;">
-                    <button class="button sm" onclick="document.getElementById('bgUpload').click()">Upload Background Image</button>
-                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;">Upload an image to visualize the crop box over it.</p>
+                    <button class="button sm" onclick="document.getElementById('bgUpload').click()">Choose Background Image</button>
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;">Puts one of your pictures behind the box, to see what that ratio would keep. It stays on your device.</p>
                 </div>
 
-                <!-- CONTROLS -->
                 <div class="split-view">
-                    <!-- Ratio Selection -->
                     <div>
                         <label>Displays & Video</label>
                         <div class="button-group" style="margin-bottom: 1rem; flex-wrap: wrap;">
@@ -128,7 +124,6 @@
                         </div>
                     </div>
 
-                    <!-- Dimension Calculation -->
                     <div>
                         <label>Dimensions (px)</label>
                         <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center;">
@@ -144,7 +139,7 @@
                         </div>
                         
                         <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--ink-secondary); text-align: center;">
-                            Adjust either Width or Height to calculate the other.
+                            Change either side and the other follows.
                         </div>
                     </div>
                 </div>
@@ -155,7 +150,6 @@
     
     <script src="../../assets/js/layout.js"></script>
     <script>
-        // Elements
         const ratioW = document.getElementById('ratioW');
         const ratioH = document.getElementById('ratioH');
         const widthInput = document.getElementById('widthInput');
@@ -167,25 +161,21 @@
         const resizeHandle = document.getElementById('resizeHandle');
         const previewContainer = document.getElementById('previewContainer');
 
-        // State
         let currentW = 16;
         let currentH = 9;
         let isResizing = false;
         let startX, startY, startWidth, startHeight;
 
-        // Math util
         function gcd(a, b) {
             return b === 0 ? a : gcd(b, a % b);
         }
 
-        // --- 1. Ratio Logic ---
         function setRatio(w, h) {
             ratioW.value = w;
             ratioH.value = h;
             updateCalculations('ratio');
         }
 
-        // --- 2. Calculation Logic ---
         function updateCalculations(source) {
             let pW = parseFloat(ratioW.value);
             let pH = parseFloat(ratioH.value);
@@ -196,24 +186,20 @@
             const rH = Math.abs(pH);
             const ratio = rW / rH;
 
-            // Update Preview Shape text and size
             if (shapeText) shapeText.textContent = `${rW}:${rH}`;
             
-            // Visual Logic: Fit shape within 250px box while keeping ratio
-            // Skip visual update if we are manually dragging the box
+            // Fit the shape in a 250 px box. While it is being dragged, the
+            // mouse sets its size instead.
             if (!isResizing) {
                 if (ratio > 1) {
-                    // Wider
                     shape.style.width = '250px';
                     shape.style.height = `${250 / ratio}px`;
                 } else {
-                    // Taller
                     shape.style.height = '250px';
                     shape.style.width = `${250 * ratio}px`;
                 }
             }
 
-            // Update Inputs
             if (source === 'width') {
                 const w = Math.max(0, parseFloat(widthInput.value) || 0);
                 heightInput.value = Math.round((w * rH) / rW);
@@ -221,20 +207,18 @@
                 const h = Math.max(0, parseFloat(heightInput.value) || 0);
                 widthInput.value = Math.round((h * rW) / rH);
             } else {
-                // Source is Ratio change, update Height based on current Width
+                // A new ratio keeps the width and recalculates the height.
                 const w = Math.max(0, parseFloat(widthInput.value) || 0);
                 heightInput.value = Math.round((w * rH) / rW);
             }
         }
 
-        // --- 3. Event Listeners ---
         ratioW.addEventListener('input', () => updateCalculations('ratio'));
         ratioH.addEventListener('input', () => updateCalculations('ratio'));
         
         widthInput.addEventListener('input', () => updateCalculations('width'));
         heightInput.addEventListener('input', () => updateCalculations('height'));
 
-        // Background Upload Logic
         bgUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -247,7 +231,6 @@
             }
         });
 
-        // Resize Logic
         resizeHandle.addEventListener('mousedown', (e) => {
             isResizing = true;
             shape.classList.add('dragging');
@@ -263,25 +246,21 @@
             if (!isResizing) return;
             const containerRect = previewContainer.getBoundingClientRect();
 
-            // Calculate new dimensions based on mouse movement
             let newWidth = startWidth + (e.clientX - startX);
             let newHeight = startHeight + (e.clientY - startY);
 
-            // Clamp minimum size to prevent collapsing
             newWidth = Math.max(20, newWidth);
             newHeight = Math.max(20, newHeight);
 
-            // Update shape visual size directly
             shape.style.width = `${newWidth}px`;
             shape.style.height = `${newHeight}px`;
 
-            // Calculate exact ratio, simplify, and update inputs without triggering visual jump
             const divisor = gcd(Math.round(newWidth), Math.round(newHeight));
             let rW = Math.round(newWidth) / divisor;
             let rH = Math.round(newHeight) / divisor;
 
-            // Defend against massive unsimplified ratios (e.g., 241:199)
-            // If the ratio numbers are too large, fall back to rounding to 1 decimal place
+            // A drag rarely lands on a tidy ratio, and 241:199 tells nobody
+            // anything, so large terms are rounded to one decimal place.
             if (rW > 100 || rH > 100) {
                const rawRatio = newWidth / newHeight;
                if (rawRatio > 1) {
@@ -306,12 +285,11 @@
                 isResizing = false;
                 shape.classList.remove('dragging');
                 document.documentElement.style.cursor = 'default';
-                // Snap visual to normalized 250px box
+                // Back to the 250 px box.
                 updateCalculations('ratio');
             }
         });
 
-        // Init
         setRatio(16, 9);
     
     /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
