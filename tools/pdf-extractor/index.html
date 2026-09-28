@@ -4,20 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Image Extractor | Linus Linhof</title>
-    <!-- Paths relative to /tools/tools/[tool-name]/index.html -->
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
-    <!-- External Libraries -->
-    <!-- JSZip for bundling images -->
     <script src="../../assets/vendor/jszip.min.js"></script>
-    <!-- FileSaver for saving the zip -->
     <script src="../../assets/vendor/FileSaver.min.js"></script>
-    <!-- PDF.js for parsing -->
     <script src="../../assets/vendor/pdf.min.js"></script>
     
     <style>
-        /* Minimal custom styling for the image grid, reusing existing variables */
         .image-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -41,7 +35,7 @@
             width: 100%;
             height: 120px;
             object-fit: contain;
-            background-color: #fff; /* To see transparent PNGs clearly */
+            background-color: #fff; /* transparent PNGs would vanish on a dark card */
             border-radius: 2px;
             margin-bottom: 0.5rem;
         }
@@ -63,23 +57,19 @@
         <div class="container">
             <div class="tool-header">
                 <h1>PDF Image Extractor</h1>
-                <p>Upload a PDF to automatically scrape and extract all embedded images.</p>
+                <p>Pulls out the images, text and fonts embedded in a PDF, page by page.</p>
             </div>
 
             <div class="card">
                 
-                <!-- SECTION: FILE UPLOAD -->
                 <div class="drop-zone" id="dropZone">
-                    <span class="drop-icon">🖼️</span>
-                    <p>Drag & Drop PDF file here</p>
-                    <p style="font-size: 0.85rem; opacity: 0.7;">(Extracts bitmaps, JPEGs, PNGs, Texts, and Fonts)</p>
+                    <p>Drop a PDF here</p>
+                    <p style="font-size: 0.85rem; opacity: 0.7;">Images come out as PNG, text as one file per page</p>
                     <input type="file" id="fileInput" class="hidden" accept="application/pdf">
                 </div>
                 
-                <!-- SECTION: FILE INFO -->
                 <ul class="file-list" id="fileList"></ul>
 
-                <!-- SECTION: CONTROLS -->
                 <div class="hidden" id="controlPanel">
                     <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 1rem; flex-wrap: wrap;">
                         <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
@@ -93,42 +83,34 @@
                         </label>
                     </div>
                     <div class="button-group">
-                        <button class="button" id="processBtn">Extract Assets</button>
+                        <button class="button" id="processBtn">Extract</button>
                         <button class="button outline" id="resetBtn">Reset</button>
                     </div>
                 </div>
 
-                <!-- SECTION: PROGRESS -->
                 <div class="progress-container" id="progressContainer">
                     <div class="progress-fill" id="progressBar"></div>
                 </div>
                 <p id="statusText" style="text-align: center; font-size: 0.9rem; margin-top: 0.5rem; display: none;"></p>
 
-                <!-- SECTION: RESULTS -->
                 <div class="result-box hidden" id="resultBox">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <h3>Extracted Assets <span id="imgCount" style="font-weight: normal; font-size: 0.9rem; color: var(--ink-secondary);"></span></h3>
+                        <h3>Extracted <span id="imgCount" style="font-weight: normal; font-size: 0.9rem; color: var(--ink-secondary);"></span></h3>
                         <button class="button secondary sm" id="downloadAllBtn">Download All (.zip)</button>
                     </div>
                     
-                    <div class="image-grid" id="imageGrid">
-                        <!-- Assets injected here -->
-                    </div>
+                    <div class="image-grid" id="imageGrid"></div>
                 </div>
 
             </div>
         </div>
     </main>
     
-    <!-- CORE LAYOUT SCRIPT -->
     <script src="../../assets/js/layout.js"></script>
     
-    <!-- TOOL LOGIC -->
     <script>
-        // Configure PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
 
-        // DOM Elements
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
@@ -144,11 +126,10 @@
         const downloadAllBtn = document.getElementById('downloadAllBtn');
 
         let currentFile = null;
-        let extractedImages = []; // Stores { blob, filename }
+        let extractedImages = [];
         let extractedTexts = [];
         let extractedFonts = [];
 
-        // 1. Initialize Drop Zone
         setupDropZone(dropZone, fileInput, handleFileSelection);
 
         function handleFileSelection(files) {
@@ -156,23 +137,21 @@
             
             const file = files[0];
             if (file.type !== 'application/pdf') {
-                showToast('Please upload a valid PDF file.', 'error');
+                showToast('That is not a PDF.', 'error');
                 return;
             }
 
             currentFile = file;
-            
-            // Update UI
+
             fileList.innerHTML = `
                 <li class="file-item">
                     <div class="file-info">
-                        <span style="font-size: 1.5rem;">📄</span>
                         <div>
                             <div class="file-name"></div>
                             <div class="file-size">${formatFileSize(file.size)}</div>
                         </div>
                     </div>
-                    <button class="remove-file" onclick="resetTool()">×</button>
+                    <button class="remove-file" aria-label="Remove file" onclick="resetTool()">×</button>
                 </li>
             `;
             fileList.querySelector('.file-name').textContent = file.name;
@@ -182,14 +161,13 @@
             resultBox.classList.add('hidden');
         }
 
-        // 2. Process Logic
         processBtn.addEventListener('click', async () => {
             if (!currentFile) return;
 
             processBtn.disabled = true;
             progressContainer.style.display = 'block';
             statusText.style.display = 'block';
-            statusText.textContent = 'Initializing PDF...';
+            statusText.textContent = 'Opening PDF...';
             progressBar.style.width = '5%';
             imageGrid.innerHTML = '';
             extractedImages = [];
@@ -201,7 +179,7 @@
             const doFonts = document.getElementById('extractFontsCb').checked;
 
             if (!doImages && !doText && !doFonts) {
-                showToast('Please select at least one asset type to extract.', 'error');
+                showToast('Tick at least one of images, text or fonts.', 'error');
                 processBtn.disabled = false;
                 progressContainer.style.display = 'none';
                 statusText.style.display = 'none';
@@ -217,17 +195,16 @@
                 let imagesFoundTotal = 0;
                 let textFoundTotal = 0;
                 let fontsFoundTotal = 0;
-                let processedFonts = new Set(); // Prevent duplicates
+                let processedFonts = new Set(); // a font is set again on every page that uses it
 
                 const documentFragment = document.createDocumentFragment();
 
                 for (let i = 1; i <= numPages; i++) {
-                    // Chunking to keep UI highly responsive for huge PDFs
+                    // Let the progress bar repaint on long documents
                     if (i % 5 === 0) {
                         await new Promise(r => setTimeout(r, 0));
                     }
 
-                    // Update Progress
                     const percent = Math.round((i / numPages) * 100);
                     progressBar.style.width = `${percent}%`;
                     statusText.textContent = `Scanning page ${i} of ${numPages}...`;
@@ -236,7 +213,6 @@
                     try {
                         page = await pdf.getPage(i);
                         
-                        // Extract Text
                         if (doText) {
                             try {
                                 const textContent = await page.getTextContent();
@@ -261,7 +237,6 @@
                             }
                         }
 
-                        // Extract Images and Fonts via Operators
                         if (doImages || doFonts) {
                             const operatorList = await page.getOperatorList();
                             
@@ -273,7 +248,6 @@
                             for (let j = 0; j < operatorList.fnArray.length; j++) {
                                 const op = operatorList.fnArray[j];
                                 
-                                // Process Images
                                 if (doImages && validImgOperators.includes(op)) {
                                     const imgName = operatorList.argsArray[j][0];
                                     try {
@@ -291,7 +265,6 @@
                                     }
                                 }
 
-                                // Process Fonts
                                 if (doFonts && op === pdfjsLib.OPS.setFont) {
                                     const fontName = operatorList.argsArray[j][0];
                                     if (!processedFonts.has(fontName)) {
@@ -300,7 +273,7 @@
                                             const fontObj = await page.commonObjs.has(fontName) ? await page.commonObjs.get(fontName) : await page.objs.get(fontName);
                                             if (fontObj && fontObj.data && fontObj.data.length > 0) {
                                                 const blob = new Blob([fontObj.data], { type: 'application/octet-stream' });
-                                                // Check for OpenType / TrueType signature roughly
+                                                // Guess the extension from the first four bytes
                                                 let ext = "bin";
                                                 if (fontObj.data[0] === 0x00 && fontObj.data[1] === 0x01 && fontObj.data[2] === 0x00 && fontObj.data[3] === 0x00) {
                                                     ext = "ttf";
@@ -342,19 +315,18 @@
                     pdf.destroy();
                 } catch (e) {}
 
-                // Append all extracted elements to the grid in one go, limiting reflows
+                // One append for all cards, not one reflow per card
                 imageGrid.appendChild(documentFragment);
 
-                // Finish
                 progressBar.style.width = '100%';
                 const totalAssets = imagesFoundTotal + textFoundTotal + fontsFoundTotal;
-                statusText.textContent = `Complete! Found ${totalAssets} assets.`;
-                imgCount.textContent = `(${totalAssets} assets)`;
+                statusText.textContent = `Found ${totalAssets} files.`;
+                imgCount.textContent = `(${totalAssets})`;
                 resultBox.classList.remove('hidden');
                 
                 if (totalAssets === 0) {
-                    showToast('No extractable assets found in this PDF matching the selected types.', 'info');
-                    imageGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--ink-secondary);">No valid assets found based on your filters.</p>';
+                    showToast('Nothing of the ticked kinds in this PDF.', 'info');
+                    imageGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--ink-secondary);">Nothing found.</p>';
                     downloadAllBtn.disabled = true;
                 } else {
                     downloadAllBtn.disabled = false;
@@ -362,27 +334,25 @@
                     if(imagesFoundTotal) msg.push(`${imagesFoundTotal} images`);
                     if(textFoundTotal) msg.push(`${textFoundTotal} texts`);
                     if(fontsFoundTotal) msg.push(`${fontsFoundTotal} fonts`);
-                    showToast(`Successfully extracted: ${msg.join(', ')}.`, 'success');
+                    showToast(`Extracted ${msg.join(', ')}.`, 'success');
                 }
 
             } catch (error) {
                 console.error(error);
-                showToast('Error processing PDF: ' + error.message, 'error');
-                statusText.textContent = 'Error occurred.';
+                showToast('Could not read this PDF: ' + error.message, 'error');
+                statusText.textContent = 'Stopped with an error.';
             } finally {
                 processBtn.disabled = false;
             }
         });
 
-        // 3. Image Processing Helper
-        // Converts PDF Image Object -> HTML Canvas -> Blob
         async function processPdfImage(img, pageNum, index) {
             if (!img || !img.width || !img.height) return null;
 
             const width = img.width;
             const height = img.height;
             
-            // Skip tiny images (likely icons or artifacts)
+            // Under 20px it is usually a bullet or a rule, not a picture
             if (width < 20 || height < 20) return null;
 
             const canvas = document.createElement('canvas');
@@ -390,56 +360,40 @@
             canvas.height = height;
             const ctx = canvas.getContext('2d');
 
-            // Handle different image kinds defined by PDF.js
-            // 1 = Grayscale, 2 = RGB, 3 = CMYK (converted by PDF.js mostly), etc.
-            // Using a temporary canvas to paint the RGBA data provided by PDF.js
-            
             let imageData = ctx.createImageData(width, height);
 
             if (img.kind === pdfjsLib.ImageKind.GRAYSCALE_1BPP) {
-                // 1 bit per pixel
-                 const data = img.data;
-                 const len = width * height;
-                 // This decoding is complex, usually PDF.js provides a bitmap in newer versions
-                 // Fallback: if bitmap exists (browser supported), use it
+                 // 1-bit images are only taken when pdf.js has decoded them already
                  if (img.bitmap) {
                      ctx.drawImage(img.bitmap, 0, 0);
                  } else {
-                     // Skip complex manual decoding for brevity in this tool context
-                     // or return null if unsupported format
-                     return null; 
+                     return null;
                  }
             } else if (img.bitmap) {
-                // Valid ImageBitmap (fastest)
                 ctx.drawImage(img.bitmap, 0, 0);
             } else if (img.data) {
-                // Raw RGBA data
-                // If the array is Uint8ClampedArray, we can put it directly
-                // Some PDF images might need color space conversion, handled by PDF.js usually
                 if (img.data.length === width * height * 4) {
                     imageData.data.set(img.data);
                     ctx.putImageData(imageData, 0, 0);
                 } else if (img.data.length === width * height * 3) {
-                    // RGB to RGBA
                     const src = img.data;
                     const dest = imageData.data;
                     let j = 0;
                     for (let i = 0; i < src.length; i += 3) {
-                        dest[j++] = src[i];     // R
-                        dest[j++] = src[i + 1]; // G
-                        dest[j++] = src[i + 2]; // B
-                        dest[j++] = 255;        // Alpha
+                        dest[j++] = src[i];
+                        dest[j++] = src[i + 1];
+                        dest[j++] = src[i + 2];
+                        dest[j++] = 255;
                     }
                     ctx.putImageData(imageData, 0, 0);
                 } else {
-                     // Fallback for masks or other formats
-                     return null; 
+                     // Masks and other layouts are skipped
+                     return null;
                 }
             } else {
                 return null;
             }
 
-            // Determine Extension
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
             if (!blob) return null;
 
@@ -454,7 +408,6 @@
             };
         }
 
-        // 4. UI Helper: Create Grid Card
         function createCardForImage(imgObj) {
             const div = document.createElement('div');
             div.className = 'image-card';
@@ -479,7 +432,7 @@
             div.appendChild(meta);
             div.appendChild(btn);
 
-            return div;  // ← was missing in main
+            return div;
         }
 
         function createCardForText(txtObj) {
@@ -494,12 +447,12 @@
             preview.style.overflow = 'hidden';
             preview.style.background = '#fafafa';
             preview.style.border = '1px solid #eee';
-            preview.textContent = txtObj.preview;  // ← safe, no innerHTML
+            preview.textContent = txtObj.preview;
 
             const meta = document.createElement('div');
             meta.className = 'image-meta';
             meta.title = txtObj.filename;
-            meta.textContent = '📄 Text';
+            meta.textContent = 'Text';
 
             const btn = document.createElement('button');
             btn.className = 'button sm outline';
@@ -512,7 +465,7 @@
             div.appendChild(meta);
             div.appendChild(btn);
 
-            return div;  // ← was missing in main
+            return div;
         }
 
         function createCardForFont(fntObj) {
@@ -527,7 +480,7 @@
             preview.style.fontSize = '2rem';
             preview.style.background = '#fafafa';
             preview.style.border = '1px solid #eee';
-            preview.textContent = '🔤';
+            preview.textContent = 'Aa';
 
             const meta = document.createElement('div');
             meta.className = 'image-meta';
@@ -545,10 +498,9 @@
             div.appendChild(meta);
             div.appendChild(btn);
 
-            return div;  // ← was missing in main
+            return div;
         }
 
-        // 5. Download Functions
         window.downloadSingle = (url, filename) => {
             const a = document.createElement('a');
             a.href = url;
@@ -561,7 +513,7 @@
         downloadAllBtn.addEventListener('click', () => {
             if (extractedImages.length === 0 && extractedTexts.length === 0 && extractedFonts.length === 0) return;
             
-            showToast('Zipping assets...', 'info');
+            showToast('Packing the ZIP...', 'info');
             const zip = new JSZip();
 
             if (extractedImages.length > 0) {
@@ -581,11 +533,10 @@
 
             zip.generateAsync({ type: "blob" }).then(function(content) {
                 saveAs(content, `assets_${currentFile.name.replace('.pdf', '')}.zip`);
-                showToast('Download started!', 'success');
+                showToast('Download started.', 'success');
             });
         });
 
-        // 6. Reset Logic
         resetBtn.addEventListener('click', resetTool);
         
         function resetTool() {
@@ -608,7 +559,7 @@
             progressContainer.style.display = 'none';
             statusText.style.display = 'none';
             progressBar.style.width = '0%';
-            fileInput.value = ''; // Clear input
+            fileInput.value = '';
         }
     
     /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?

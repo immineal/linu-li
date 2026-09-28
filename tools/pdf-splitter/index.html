@@ -7,13 +7,11 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
-    <!-- External Libraries -->
     <script src="../../assets/vendor/jszip.min.js"></script>
     <script src="../../assets/vendor/pdf-lib.min.js"></script>
     <script src="../../assets/vendor/FileSaver.min.js"></script>
     
     <style>
-        /* Page Grid */
         .page-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
@@ -44,7 +42,6 @@
             border-color: var(--accent);
         }
 
-        /* Badge for page count */
         .page-count-badge {
             display: inline-block;
             background: var(--accent-secondary);
@@ -73,24 +70,20 @@
         <div class="container">
             <div class="tool-header">
                 <h1>PDF Splitter</h1>
-                <p>Extract specific pages or explode the entire document into separate files.</p>
+                <p>Saves the pages you pick as separate PDFs, one per page, packed into a ZIP. Pick nothing and every page gets its own file.</p>
             </div>
 
             <div class="card">
                 
-                <!-- SECTION: FILE UPLOAD -->
                 <div class="drop-zone" id="dropZone">
-                    <span class="drop-icon">📄</span>
-                    <p>Drag & Drop PDF file here</p>
+                    <p>Drop a PDF here</p>
                     <p style="font-size: 0.8rem; opacity: 0.7;">or click to browse</p>
                     <input type="file" id="fileInput" class="hidden" accept=".pdf">
                 </div>
 
-                <!-- SELECTED FILE DISPLAY -->
                 <ul class="file-list hidden" id="fileListContainer">
                     <li class="file-item">
                         <div class="file-info">
-                            <span style="font-size: 1.5rem;">📑</span>
                             <div>
                                 <div style="display: flex; align-items: center;">
                                     <div class="file-name" id="fileName">filename.pdf</div>
@@ -103,32 +96,28 @@
                     </li>
                 </ul>
 
-                <!-- SECTION: OPTIONS -->
                 <div id="optionsPanel" class="hidden" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
-                    <label for="pageRange">Page Range (Optional)</label>
+                    <label for="pageRange">Pages</label>
                     <p style="font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 0.5rem;">
-                        Leave empty to extract all pages. <span id="rangeHint"></span>
+                        Type a range or click the numbers. Empty means all pages. <span id="rangeHint"></span>
                     </p>
                     <input type="text" id="pageRange" placeholder="e.g. 1-5, 8">
                     <div class="page-grid" id="pageGrid"></div>
                 </div>
 
-                <!-- SECTION: CONTROLS -->
                 <div class="button-group">
                     <button class="button" id="splitBtn" disabled>Split PDF</button>
                     <button class="button outline" id="resetBtn">Reset</button>
                 </div>
 
-                <!-- SECTION: PROGRESS BAR -->
                 <div class="progress-container" id="progressContainer">
                     <div class="progress-fill" id="progressBar"></div>
                 </div>
 
-                <!-- SECTION: RESULTS -->
                 <div class="result-box hidden" id="resultBox">
                     <div style="text-align: center;">
-                        <h3 style="margin-bottom: 0.5rem;">Success!</h3>
-                        <p id="resultMessage">Your PDF has been split.</p>
+                        <h3 style="margin-bottom: 0.5rem;">Done</h3>
+                        <p id="resultMessage">The PDF is split.</p>
                         
                         <div class="button-group" style="justify-content: center;">
                             <button class="button secondary" id="downloadBtn">Download ZIP</button>
@@ -140,12 +129,9 @@
         </div>
     </main>
     
-    <!-- CORE LAYOUT SCRIPT -->
     <script src="../../assets/js/layout.js"></script>
     
-    <!-- TOOL LOGIC -->
     <script>
-        // --- DOM Elements ---
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileListContainer = document.getElementById('fileListContainer');
@@ -167,58 +153,50 @@
         const resultMessage = document.getElementById('resultMessage');
         const downloadBtn = document.getElementById('downloadBtn');
 
-        // --- State Variables ---
         let currentFile = null;
-        let loadedPdfDoc = null; // Store parsed PDF here to avoid re-loading
+        let loadedPdfDoc = null;
         let totalPages = 0;
         let zipBlob = null;
 
-        // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             setupDropZone(dropZone, fileInput, handleFileSelection);
         });
 
-        // --- File Handling ---
         async function handleFileSelection(files) {
             if (files.length === 0) return;
             
             const file = files[0];
             if (file.type !== 'application/pdf') {
-                showToast('Please upload a valid PDF file.', 'error');
+                showToast('That is not a PDF.', 'error');
                 return;
             }
 
             currentFile = file;
             fileNameDisplay.textContent = file.name;
             fileSizeDisplay.textContent = formatFileSize(file.size);
-            
-            // Show loading state
+
             dropZone.classList.add('hidden');
             fileListContainer.classList.remove('hidden');
-            pageCountBadge.innerHTML = '<div class="loading-spinner"></div> Analyzing...';
+            pageCountBadge.innerHTML = '<div class="loading-spinner"></div> Counting pages...';
             pageCountBadge.classList.remove('hidden');
             
             try {
-                // Pre-load PDF to count pages
+                // Loaded once here for the page count and the grid
                 const arrayBuffer = await file.arrayBuffer();
                 loadedPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
                 totalPages = loadedPdfDoc.getPageCount();
-                
-                // Update UI with count
-                pageCountBadge.textContent = `${totalPages} ${totalPages === 1 ? 'Page' : 'Pages'}`;
-                rangeHint.textContent = `Valid range: 1 - ${totalPages}`;
-                pageRangeInput.placeholder = `e.g. 1-${Math.min(5, totalPages)}, ${Math.min(8, totalPages)}`;
-                
-                // Generate Page Grid
-                renderPageGrid(totalPages);
 
-                // Enable Controls
+                pageCountBadge.textContent = `${totalPages} ${totalPages === 1 ? 'Page' : 'Pages'}`;
+                rangeHint.textContent = `Pages 1 to ${totalPages}.`;
+                pageRangeInput.placeholder = `e.g. 1-${Math.min(5, totalPages)}, ${Math.min(8, totalPages)}`;
+
+                renderPageGrid(totalPages);
                 optionsPanel.classList.remove('hidden');
                 splitBtn.disabled = false;
 
             } catch (err) {
                 console.error(err);
-                showToast('Error reading PDF. Is it password protected?', 'error');
+                showToast('Could not read this PDF. It may be password protected.', 'error');
                 pageCountBadge.classList.add('hidden');
                 resetTool();
             }
@@ -246,10 +224,9 @@
             pageCountBadge.classList.add('hidden');
         }
 
-        // --- Helper: Render Page Grid ---
         function renderPageGrid(maxPages) {
             pageGrid.innerHTML = '';
-            // Only render up to 1000 pages to prevent DOM overload
+            // Past 1000 buttons the grid gets slow to build and useless to scroll
             const limit = Math.min(maxPages, 1000);
             for (let i = 1; i <= limit; i++) {
                 const item = document.createElement('div');
@@ -267,12 +244,11 @@
                 msg.style.gridColumn = '1 / -1';
                 msg.style.fontSize = '0.85rem';
                 msg.style.color = 'var(--ink-secondary)';
-                msg.textContent = `Showing first 1000 pages. Use the text input for higher pages.`;
+                msg.textContent = `Only the first 1000 pages are shown here. Type higher page numbers into the field.`;
                 pageGrid.appendChild(msg);
             }
         }
 
-        // --- Helper: Sync Grid to Input ---
         function updateRangeInputFromGrid() {
             const selected = Array.from(pageGrid.querySelectorAll('.page-grid-item.selected'))
                                   .map(el => parseInt(el.dataset.page))
@@ -283,7 +259,7 @@
                 return;
             }
 
-            // Group into ranges
+            // Runs of neighbours become "3-7", so the field stays readable
             const ranges = [];
             let start = selected[0];
             let end = start;
@@ -302,7 +278,6 @@
             pageRangeInput.value = ranges.join(', ');
         }
 
-        // Listen to input changes to sync back to grid
         pageRangeInput.addEventListener('input', () => {
             if (totalPages === 0) return;
             const toSelect = getPagesToExtract(pageRangeInput.value, totalPages);
@@ -317,10 +292,10 @@
             });
         });
 
-        // --- Helper: Parse Page Ranges ---
+        // Page numbers in the field are 1-based, the returned indices 0-based.
+        // tools/pdf-splitter/test.js reads this function out of the file.
         function getPagesToExtract(rangeStr, maxPages) {
             if (!rangeStr.trim()) {
-                // Return all pages (0 to max-1)
                 const pages = new Set();
                 for (let i = 0; i < maxPages; i++) pages.add(i);
                 return pages;
@@ -337,7 +312,7 @@
                         const s = Math.min(start, end);
                         const e = Math.max(start, end);
                         for (let i = s; i <= e; i++) {
-                            if (i >= 1 && i <= maxPages) pages.add(i - 1); // Convert 1-based to 0-based
+                            if (i >= 1 && i <= maxPages) pages.add(i - 1);
                         }
                     }
                 } else {
@@ -351,22 +326,20 @@
             return pages;
         }
 
-        // --- Split Logic ---
         splitBtn.addEventListener('click', async () => {
             if (!currentFile) return;
 
             try {
                 splitBtn.disabled = true;
-                splitBtn.textContent = 'Processing...';
+                splitBtn.textContent = 'Splitting...';
                 progressContainer.style.display = 'block';
                 progressBar.style.width = '5%';
 
-                // Parse Range
                 const indicesToExtractSet = getPagesToExtract(pageRangeInput.value, totalPages);
                 const indicesToExtract = Array.from(indicesToExtractSet).sort((a, b) => a - b);
                 
                 if (indicesToExtract.length === 0) {
-                    throw new Error("No valid pages selected.");
+                    throw new Error("None of those pages exist in this PDF.");
                 }
 
                 const fileBuffer = await currentFile.arrayBuffer();
@@ -381,17 +354,17 @@
                     } else if (data.type === 'done') {
                         zipBlob = data.zipBlob;
                         progressBar.style.width = '100%';
-                        resultMessage.textContent = `Successfully extracted ${indicesToExtract.length} pages.`;
+                        resultMessage.textContent = indicesToExtract.length === 1 ? '1 page saved.' : `${indicesToExtract.length} pages saved, one file each.`;
                         resultBox.classList.remove('hidden');
-                        showToast('PDF split successfully!', 'success');
+                        showToast('Split.', 'success');
 
                         splitBtn.textContent = 'Split PDF';
                         splitBtn.disabled = false;
                         progressContainer.style.display = 'none';
                         worker.terminate();
                     } else if (data.type === 'error') {
-                        console.error("Worker error:", data.message);
-                        showToast('Error: ' + data.message, 'error');
+                        console.error(data.message);
+                        showToast('Could not split: ' + data.message, 'error');
                         splitBtn.textContent = 'Split PDF';
                         splitBtn.disabled = false;
                         progressContainer.style.display = 'none';
@@ -400,8 +373,8 @@
                 };
                 
                 worker.onerror = (err) => {
-                    console.error("Worker generic error:", err);
-                    showToast('Error processing file in worker.', 'error');
+                    console.error(err);
+                    showToast('The split stopped with an error.', 'error');
                     splitBtn.textContent = 'Split PDF';
                     splitBtn.disabled = false;
                     progressContainer.style.display = 'none';
@@ -417,7 +390,7 @@
 
             } catch (error) {
                 console.error(error);
-                showToast('Error: ' + error.message, 'error');
+                showToast(error.message, 'error');
                 splitBtn.textContent = 'Split PDF';
                 splitBtn.disabled = false;
                 progressContainer.style.display = 'none';

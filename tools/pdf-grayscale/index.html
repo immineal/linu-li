@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
-    <!-- Libraries for Rasterization and PDF Generation -->
     <script src="../../assets/vendor/pdf.min.js"></script>
     <script src="../../assets/vendor/jspdf.umd.min.js"></script>
     <script src="../../assets/vendor/FileSaver.min.js"></script>
@@ -21,7 +20,7 @@
             margin-bottom: 1.5rem;
             text-align: center;
             overflow: hidden;
-            display: none; /* Hidden until file loaded */
+            display: none;
         }
         canvas#previewCanvas {
             max-width: 100%;
@@ -62,8 +61,6 @@
             left: 0;
             width: 100%;
             height: 100%;
-            /* Object-fit is not needed for absolute positioning if canvases match,
-               but helpful if we force width:100% and height:100% */
             object-fit: contain;
             clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
         }
@@ -83,7 +80,7 @@
         #compareSlider::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 4px;
-            height: 100vh; /* Make it very tall to simulate a line */
+            height: 100vh; /* a thumb this tall draws the divider line */
             max-height: 1000px;
             background: var(--primary);
             box-shadow: 0 0 0 3px rgba(255,255,255,0.8);
@@ -106,65 +103,57 @@
         <div class="container">
             <div class="tool-header">
                 <h1>PDF Grayscale & Scan Cleaner</h1>
-                <p>Convert to Grayscale and clean up scans for printing.</p>
+                <p>Turns a PDF grey. For scans it can also whiten the background, darken faint text and straighten a tilted page. Every page becomes an image, so text in the result can no longer be selected.</p>
             </div>
 
             <div class="card">
                 
-                <!-- SECTION: UPLOAD -->
                 <div class="drop-zone" id="dropZone">
-                    <span class="drop-icon">🖨️</span>
-                    <p>Drag & Drop PDF file here</p>
+                    <p>Drop a PDF here</p>
                     <input type="file" id="fileInput" class="hidden" accept="application/pdf">
                 </div>
 
-                <!-- Selected File Info -->
                 <ul class="file-list" id="fileList"></ul>
 
-                <!-- SECTION: LIVE PREVIEW -->
                 <div id="previewSection" class="preview-container">
-                    <label style="margin-bottom: 0.5rem; display: block; text-align: left;">Page 1 Preview (Live Adjustment)</label>
+                    <label style="margin-bottom: 0.5rem; display: block; text-align: left;">Preview of page 1</label>
                     <div class="compare-wrapper" id="compareWrapper">
                         <canvas id="previewCanvasBefore" class="compare-canvas"></canvas>
                         <canvas id="previewCanvasAfter" class="compare-canvas"></canvas>
                         <input type="range" id="compareSlider" min="0" max="100" value="50">
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;">
-                        <span>&larr; Before (Original)</span>
-                        <span>After (Processed) &rarr;</span>
+                        <span>&larr; After</span>
+                        <span>Before &rarr;</span>
                     </div>
                 </div>
 
-                <!-- SECTION: OPTIONS -->
                 <div id="optionsPanel" class="hidden" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
                     
                     <div class="split-view">
-                        <!-- Quality Settings -->
                         <div>
                             <label>Output DPI</label>
                             <select id="dpiSelect" data-save>
-                                <option value="1.5">150 DPI (Fast / Draft)</option>
-                                <option value="2.0" selected>200 DPI (Standard)</option>
-                                <option value="3.0">300 DPI (High Quality)</option>
+                                <option value="1.5">150 DPI (draft)</option>
+                                <option value="2.0" selected>200 DPI</option>
+                                <option value="3.0">300 DPI (sharpest)</option>
                             </select>
-                            <p style="font-size: 0.8rem; color: var(--ink-secondary);">Higher DPI = clearer text but larger file size.</p>
+                            <p style="font-size: 0.8rem; color: var(--ink-secondary);">More DPI makes small text sharper and the file larger.</p>
                         </div>
 
-                        <!-- Cleaning Settings -->
                         <div>
-                            <label>Scan Cleaning Mode</label>
+                            <label>Scan cleaning</label>
                             <label class="toggle-wrapper">
                                 <input type="checkbox" id="cleanerToggle" class="toggle-checkbox">
                                 <div class="toggle-switch"></div>
-                                <span>Enable Background Removal</span>
+                                <span>Clean up the scan</span>
                             </label>
                         </div>
                     </div>
 
                     <div class="split-view" style="margin-top: 1rem;">
-                        <!-- Deskew Settings -->
                         <div style="flex: 1;">
-                            <label>Deskew Rotation (Degrees)</label>
+                            <label>Straighten (degrees)</label>
                             <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
                                 <input type="range" id="deskewSlider" min="-5" max="5" step="0.1" value="0" style="flex: 1;">
                                 <span id="valDeskew" style="width: 40px; text-align: right; font-size: 0.9rem; color: var(--ink-secondary);">0.0°</span>
@@ -174,12 +163,11 @@
                         <div style="flex: 1;"></div>
                     </div>
 
-                    <!-- CLEANER SLIDERS (Conditional) -->
                     <div id="cleanerControls" class="hidden">
                         <div class="settings-group">
-                            <label>Background Threshold (White Point)</label>
+                            <label>White point</label>
                             <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-bottom: 0.5rem;">
-                                Pixels lighter than this will become pure white. Increase to remove gray backgrounds.
+                                Anything lighter than this turns white. Lower it to take out a grey paper background.
                             </p>
                             <input type="range" id="whitePoint" min="100" max="255" value="200">
                             <div class="range-labels">
@@ -190,9 +178,9 @@
                         </div>
 
                         <div class="settings-group">
-                            <label>Text Darkness (Black Point)</label>
+                            <label>Black point</label>
                             <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-bottom: 0.5rem;">
-                                Pixels darker than this will become pure black. Increase to make faint text bolder.
+                                Anything darker than this turns black. Raise it to make faint text darker.
                             </p>
                             <input type="range" id="blackPoint" min="0" max="150" value="50">
                             <div class="range-labels">
@@ -205,23 +193,20 @@
 
                 </div>
 
-                <!-- SECTION: CONTROLS -->
                 <div class="button-group hidden" id="controlButtons">
-                    <button class="button" id="convertBtn">Process Entire PDF</button>
+                    <button class="button" id="convertBtn">Convert PDF</button>
                     <button class="button outline" id="resetBtn">Reset</button>
                 </div>
 
-                <!-- SECTION: PROGRESS -->
                 <div class="progress-container" id="progressContainer">
                     <div class="progress-fill" id="progressBar"></div>
                 </div>
                 <p id="statusText" style="text-align: center; font-size: 0.9rem; margin-top: 0.5rem; display: none; color: var(--ink-secondary);"></p>
 
-                <!-- SECTION: RESULTS -->
                 <div class="result-box hidden" id="resultBox">
                     <div style="text-align: center;">
-                        <h3>Success!</h3>
-                        <p>Your PDF has been processed.</p>
+                        <h3>Done</h3>
+                        <p>The converted PDF is ready.</p>
                         <div class="big-display" id="finalSizeDisplay" style="font-size: 1.5rem; margin-top: 0.5rem;"></div>
                         <button class="button secondary" id="downloadBtn">Download PDF</button>
                     </div>
@@ -234,11 +219,9 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        // PDF.js Worker Setup
         pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
         const { jsPDF } = window.jspdf;
 
-        // Elements
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
@@ -252,8 +235,7 @@
         const resultBox = document.getElementById('resultBox');
         const downloadBtn = document.getElementById('downloadBtn');
         const finalSizeDisplay = document.getElementById('finalSizeDisplay');
-        
-        // Settings Elements
+
         const dpiSelect = document.getElementById('dpiSelect');
         const cleanerToggle = document.getElementById('cleanerToggle');
         const cleanerControls = document.getElementById('cleanerControls');
@@ -266,7 +248,6 @@
         const valDeskew = document.getElementById('valDeskew');
         const autoDeskewBtn = document.getElementById('autoDeskewBtn');
 
-        // Preview Elements
         const previewSection = document.getElementById('previewSection');
         const previewCanvasBefore = document.getElementById('previewCanvasBefore');
         const previewCtxBefore = previewCanvasBefore.getContext('2d', { willReadFrequently: true });
@@ -276,16 +257,17 @@
 
         let currentFile = null;
         let outputBlob = null;
-        let pdfDoc = null; // Loaded PDF document
-        let page1Viewport = null; // To keep aspect ratio for preview
-        let originalPreviewData = null; // Copy of page 1 raw pixels for live filtering
+        let pdfDoc = null;
+        let page1Viewport = null;
+        let originalPreviewData = null; // page 1 unfiltered, so each slider move starts from the original
         let deskewAngle = 0;
         let workerResolvers = {};
 
-        // Web Worker Setup for Performance
+        // Pixel work runs in a worker so the sliders stay responsive on large pages.
+        // tests/test-pdf-grayscale.js reads the code out of this string.
         const workerCode = `
             function calculateDeskewAngle(data, width, height) {
-                // Downsample for performance (check every nth pixel)
+                // Every 4th pixel in each direction is enough to find the angle
                 const step = 4;
                 let maxVariance = 0;
                 let bestAngle = 0;
@@ -390,7 +372,7 @@
             return new Promise(resolve => {
                 const id = Math.random().toString(36).substring(2);
                 workerResolvers[id] = resolve;
-                const arrayCopy = new Uint8ClampedArray(data); // copy to avoid neutering original
+                const arrayCopy = new Uint8ClampedArray(data); // transferring would empty the caller's buffer
                 imageWorker.postMessage({ type: 'process', id, data: arrayCopy, cleanEnabled, whitePoint, blackPoint }, [arrayCopy.buffer]);
             });
         }
@@ -431,24 +413,21 @@
             }
         }
 
-        // 1. File Handling
         setupDropZone(dropZone, fileInput, handleFileSelect);
 
         async function handleFileSelect(files) {
             if (files.length > 0 && files[0].type === 'application/pdf') {
                 currentFile = files[0];
-                
-                // UI Reset
+
                 renderFileList();
                 optionsPanel.classList.remove('hidden');
                 controlButtons.classList.remove('hidden');
                 dropZone.classList.add('hidden');
                 resultBox.classList.add('hidden');
 
-                // Load PDF Page 1 for Preview
                 await loadPreview(currentFile);
             } else {
-                showToast('Please upload a valid PDF file', 'error');
+                showToast('That is not a PDF.', 'error');
             }
         }
 
@@ -473,6 +452,7 @@
 
             const removeBtn = document.createElement('button');
             removeBtn.className = 'remove-file';
+            removeBtn.setAttribute('aria-label', 'Remove file');
             removeBtn.onclick = resetTool;
             removeBtn.textContent = '×';
 
@@ -501,7 +481,6 @@
 
         resetBtn.addEventListener('click', resetTool);
 
-        // 2. Preview System
         async function loadPreview(file) {
             try {
                 statusText.style.display = 'block';
@@ -514,8 +493,8 @@
                 previewSection.style.display = 'block';
 
             } catch (err) {
-                console.error("CONVERT ERROR:", err);
-                showToast("Could not load PDF preview.", "error");
+                console.error(err);
+                showToast("Could not open this PDF.", "error");
             }
         }
 
@@ -528,7 +507,6 @@
 
             await renderRotatedPage(page, 1.0, previewCanvasBefore, previewCtxBefore, deskewAngle);
 
-            // Sync canvas sizes
             previewCanvasAfter.width = previewCanvasBefore.width;
             previewCanvasAfter.height = previewCanvasBefore.height;
 
@@ -538,7 +516,6 @@
             updatePreview();
         }
 
-        // 3. Live Filter Updates
         let previewUpdateId = 0;
         async function updatePreview() {
             if (!originalPreviewData) return;
@@ -550,6 +527,7 @@
             const myUpdateId = ++previewUpdateId;
             const processedArray = await processImageDataAsync(originalPreviewData.data, isCleaning, wPoint, bPoint);
 
+            // A newer slider move has already started; drop this stale result
             if (myUpdateId !== previewUpdateId) return;
 
             const processed = new ImageData(
@@ -561,19 +539,12 @@
             previewCtxAfter.putImageData(processed, 0, 0);
         }
 
-        // Slider Event
         compareSlider.addEventListener('input', (e) => {
             const val = e.target.value;
-            // The before canvas is fully visible.
-            // The after canvas is overlaid and clipped.
-            // 0% slider = 0% of AFTER visible (fully before).
-            // 100% slider = 100% of AFTER visible (fully after).
-            // Wait, let's make it intuitive: left side is AFTER, right side is BEFORE.
-            // polygon(0 0, val% 0, val% 100%, 0 100%) means from x=0 to x=val% is visible.
+            // The processed canvas lies on top, shown from the left edge up to the slider
             previewCanvasAfter.style.clipPath = `polygon(0 0, ${val}% 0, ${val}% 100%, 0 100%)`;
         });
 
-        // Event Listeners for Settings
         cleanerToggle.addEventListener('change', () => {
             if (cleanerToggle.checked) {
                 cleanerControls.classList.remove('hidden');
@@ -585,7 +556,7 @@
 
         whitePointSlider.addEventListener('input', (e) => {
             valWhite.textContent = e.target.value;
-            // Prevent crossing
+            // The stretch in the worker divides by the gap between the two points
             if (parseInt(e.target.value) <= parseInt(blackPointSlider.value)) {
                 blackPointSlider.value = parseInt(e.target.value) - 10;
                 valBlack.textContent = blackPointSlider.value;
@@ -616,10 +587,9 @@
             if (!originalPreviewData) return;
             autoDeskewBtn.disabled = true;
             statusText.style.display = 'block';
-            statusText.textContent = "Calculating deskew angle...";
+            statusText.textContent = "Measuring the tilt...";
 
-            // To calculate skew accurately, we pass the original data before rotation
-            // We temporarily render without rotation to get pure data
+            // Measure an unrotated render; the preview may already be turned by hand
             const page = await pdfDoc.getPage(1);
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
@@ -637,11 +607,9 @@
         });
 
 
-        // 4. Main Batch Processing Logic
         convertBtn.addEventListener('click', async () => {
             if (!pdfDoc) return;
 
-            // Lock UI
             convertBtn.disabled = true;
             resetBtn.disabled = true;
             progressContainer.style.display = 'block';
@@ -652,25 +620,23 @@
             try {
                 const totalPages = pdfDoc.numPages;
                 const scale = parseFloat(dpiSelect.value);
-                
-                // Get Settings Snapshot
+
+                // Read once, so moving a slider mid-run cannot change half the pages
                 const isCleaning = cleanerToggle.checked;
                 const wPoint = parseInt(whitePointSlider.value);
                 const bPoint = parseInt(blackPointSlider.value);
 
-                // Initialize output PDF
                 const outPdf = new jsPDF({
                     orientation: 'p',
                     unit: 'px',
                     format: 'a4',
                     compress: true
                 });
-                outPdf.deletePage(1); 
+                outPdf.deletePage(1); // jsPDF starts with an A4 page; each page below brings its own size
 
                 for (let i = 1; i <= totalPages; i++) {
                     statusText.textContent = `Processing page ${i} of ${totalPages}...`;
 
-                    // 1. Render Page to Canvas at requested DPI with rotation
                     const page = await pdfDoc.getPage(i);
                     const viewport = page.getViewport({ scale: scale });
 
@@ -679,7 +645,6 @@
 
                     await renderRotatedPage(page, scale, canvas, ctx, deskewAngle);
 
-                    // 2. Manipulate Pixel Data asynchronously with Worker
                     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     
                     const processedArray = await processImageDataAsync(imgData.data, isCleaning, wPoint, bPoint);
@@ -687,21 +652,18 @@
 
                     ctx.putImageData(processedData, 0, 0);
 
-                    // 3. Add to new PDF
-                    // Use JPEG with modest compression to keep file size down
-                    const imgUrl = canvas.toDataURL('image/jpeg', 0.75); 
+                    // JPEG: a page stored as PNG makes the PDF many times larger
+                    const imgUrl = canvas.toDataURL('image/jpeg', 0.75);
                     const pdfW = viewport.width / scale;
                     const pdfH = viewport.height / scale;
 
                     outPdf.addPage([pdfW, pdfH]);
                     outPdf.addImage(imgUrl, 'JPEG', 0, 0, pdfW, pdfH);
 
-                    // Update Progress
                     const percent = Math.round((i / totalPages) * 100);
                     progressBar.style.width = `${percent}%`;
                 }
 
-                // Finish
                 outputBlob = outPdf.output('blob');
                 finalSizeDisplay.textContent = formatFileSize(outputBlob.size);
                 
@@ -712,19 +674,18 @@
                     resultBox.classList.remove('hidden');
                     convertBtn.disabled = false;
                     resetBtn.disabled = false;
-                    showToast('Conversion successful', 'success');
+                    showToast('Converted.', 'success');
                 }, 500);
 
             } catch (err) {
-                console.error("CONVERT ERROR:", err);
-                showToast('Error processing PDF. Memory limit exceeded?', 'error');
+                console.error(err);
+                showToast('Conversion failed. On a long PDF a lower DPI may help.', 'error');
                 convertBtn.disabled = false;
                 resetBtn.disabled = false;
-                statusText.textContent = "Error occurred.";
+                statusText.textContent = "Stopped with an error.";
             }
         });
 
-        // 5. Download
         downloadBtn.addEventListener('click', () => {
             if (!outputBlob) return;
             const name = currentFile.name.replace('.pdf', '_clean.pdf');
