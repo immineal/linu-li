@@ -12,7 +12,7 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Case Converter</h1>
-                <p>Transform text between UPPERCASE, lowercase, Title Case, camelCase, and more.</p>
+                <p>Rewrites text in UPPERCASE, lowercase, Title Case, camelCase, snake_case and a few others.</p>
             </div>
 
             <div class="card">
@@ -21,7 +21,7 @@
                     <p style="margin: 0; pointer-events: none;">Drag and drop a .txt file here, or paste below</p>
                     <input type="file" id="fileInput" accept=".txt" style="display: none;">
                 </div>
-                <textarea id="textInput" class="code-editor" style="min-height: 200px;" placeholder="Type or paste your text here..."></textarea>
+                <textarea id="textInput" class="code-editor" style="min-height: 200px;" placeholder="Type or paste text here"></textarea>
 
                 <div class="button-group" style="margin-bottom: 1.5rem; justify-content: center;" id="modeButtons">
                     <button class="button outline" data-mode="upper" onclick="setMode('upper')">UPPERCASE</button>
@@ -64,7 +64,6 @@
         let activeMode = null;
         let worker = null;
 
-        // Initialize Web Worker
         if (window.Worker) {
             worker = new Worker('worker.js');
             worker.onmessage = function(e) {
@@ -79,7 +78,6 @@
 
         function setMode(type) {
             activeMode = type;
-            // Update button visual states
             modeButtons.forEach(btn => {
                 if (btn.getAttribute('data-mode') === type) {
                     btn.classList.add('primary');
@@ -105,13 +103,12 @@
             }
         }
 
-        // Real-time feedback
         textInput.addEventListener('input', convert);
 
         copyBtn.addEventListener('click', () => {
             copyToClipboard(outputBox.value);
             const originalText = copyBtn.innerText;
-            copyBtn.innerText = 'Copied!';
+            copyBtn.innerText = 'Copied';
             setTimeout(() => {
                 copyBtn.innerText = originalText;
             }, 2000);
@@ -129,7 +126,7 @@
             textInput.focus();
         });
 
-        // Setup Drag and Drop Zone if utility is available
+        // setupDropZone comes from layout.js, which may have failed to load.
         if (typeof setupDropZone === 'function') {
             setupDropZone(dropZone, fileInput, (files) => {
                 const file = files[0];

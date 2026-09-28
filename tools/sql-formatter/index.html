@@ -14,12 +14,11 @@
         <div class="container">
             <div class="tool-header">
                 <h1>SQL Formatter</h1>
-                <p>Beautify messy SQL queries. Supports Standard SQL, MySQL, and PostgreSQL.</p>
+                <p>Reindents a query and capitalises the keywords. Knows Standard SQL, MySQL, PostgreSQL and PL/SQL, and can turn CREATE TABLE statements into TypeScript interfaces or Prisma models.</p>
             </div>
 
             <div class="split-view">
                 
-                <!-- INPUT -->
                 <div class="card" style="display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <label for="inputSql" style="margin: 0;">Input SQL</label>
@@ -38,7 +37,6 @@
                     <textarea id="inputSql" class="code-editor" style="flex-grow: 1; min-height: 400px;" placeholder="SELECT * FROM users WHERE id = 1..."></textarea>
                 </div>
 
-                <!-- OUTPUT -->
                 <div class="card" style="display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <label style="margin: 0;">Formatted Result</label>
@@ -62,7 +60,6 @@
         const formatBtn = document.getElementById('formatBtn');
         const copyBtn = document.getElementById('copyBtn');
 
-        // Setup Web Worker
         const worker = new Worker('worker.js');
         let workerMessageId = 0;
         const pendingResolvers = new Map();
@@ -137,7 +134,6 @@
             }
         }
 
-        // Drag and Drop
         const inputCard = inputSql.closest('.card');
 
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -176,23 +172,22 @@
                         formatQuery();
                     };
                     reader.onerror = () => {
-                        if (typeof showToast === 'function') showToast('Failed to read file', 'error');
+                        if (typeof showToast === 'function') showToast('Could not read the file', 'error');
                     };
                     reader.readAsText(file);
                 } else {
-                    if (typeof showToast === 'function') showToast('Please drop a .sql or text file', 'error');
+                    if (typeof showToast === 'function') showToast('Drop a .sql or plain text file', 'error');
                 }
             }
         }, false);
 
-        // Event Listeners
         if (formatBtn) {
             formatBtn.addEventListener('click', async () => {
                 const success = await formatQuery();
                 if (success) {
-                    if (languageSelect.value !== 'auto_detect' && typeof showToast === 'function') showToast('Success', 'success');
+                    if (languageSelect.value !== 'auto_detect' && typeof showToast === 'function') showToast('Formatted', 'success');
                 } else if (inputSql.value.trim() !== '') {
-                    if (typeof showToast === 'function') showToast('Failed to process SQL', 'error');
+                    if (typeof showToast === 'function') showToast('Could not format this SQL', 'error');
                 }
             });
         }
@@ -203,9 +198,8 @@
             }
         });
 
-        // Load default placeholder example
         inputSql.value = "SELECT id, username, email FROM users WHERE active = 1 AND created_at > '2023-01-01' ORDER BY username ASC LIMIT 10;";
-        setTimeout(formatQuery, 100); // Format on load
+        setTimeout(formatQuery, 100);
     
     /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
        Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis

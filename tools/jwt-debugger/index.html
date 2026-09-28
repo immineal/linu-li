@@ -20,7 +20,7 @@
             justify-content: space-between;
             align-items: center;
         }
-        /* Standard JWT Colors */
+        /* The colours jwt.io uses for the three parts, so they look familiar. */
         .color-header { color: #fb015b; }
         .color-payload { color: #d63aff; }
         .color-signature { color: #00b9f1; }
@@ -37,14 +37,12 @@
             margin-left: 10px;
         }
 
-        /* JSON Syntax Highlighting */
         .json-key { color: var(--accent); font-weight: bold; }
         .json-string { color: var(--accent-secondary); }
         .json-number { color: #d63aff; }
         .json-boolean { color: #00b9f1; }
         .json-null { color: #fb015b; }
 
-        /* Signature Verification */
         .signature-controls {
             margin-top: 1rem;
             display: flex;
@@ -75,12 +73,11 @@
         <div class="container">
             <div class="tool-header">
                 <h1>JWT Decoder</h1>
-                <p>Decode JSON Web Tokens (JWT) to view their header and payload. <br>Client-side only; tokens never leave your browser.</p>
+                <p>Shows the header and payload of a JSON Web Token, with <code>exp</code>, <code>iat</code> and <code>nbf</code> as dates. Give it the secret or public key and it checks the signature too.</p>
             </div>
 
             <div class="split-view">
                 
-                <!-- INPUT -->
                 <div class="card" style="display: flex; flex-direction: column;">
                     <label for="jwtInput">Encoded Token</label>
                     <textarea id="jwtInput" class="code-editor" style="flex-grow: 1; min-height: 400px; color: var(--ink-secondary);" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
@@ -90,10 +87,8 @@
                     </div>
                 </div>
 
-                <!-- OUTPUT -->
                 <div class="card">
                     
-                    <!-- HEADER -->
                     <div class="jwt-section">
                         <div class="jwt-label color-header">
                             Header
@@ -102,7 +97,6 @@
                         <div id="outHeader" class="code-editor border-header" style="min-height: 100px; overflow-y: auto; padding: 1rem; white-space: pre-wrap;"></div>
                     </div>
 
-                    <!-- PAYLOAD -->
                     <div class="jwt-section">
                         <div class="jwt-label color-payload">
                             Payload
@@ -111,14 +105,13 @@
                         <div id="outPayload" class="code-editor border-payload" style="min-height: 250px; overflow-y: auto; padding: 1rem; white-space: pre-wrap;"></div>
                     </div>
 
-                    <!-- SIGNATURE -->
                     <div class="jwt-section">
                         <div class="jwt-label color-signature">
                             Signature
                             <span style="font-size: 0.7rem; opacity: 0.7;">VERIFICATION</span>
                         </div>
                         <div class="code-editor border-signature" style="min-height: 60px; font-family: var(--font-mono); word-break: break-all; color: var(--ink-secondary); padding: 1rem;">
-                            <span id="outSignature">waiting for input...</span>
+                            <span id="outSignature">no token yet</span>
                         </div>
                         <div class="signature-controls">
                             <input type="text" id="signatureSecret" placeholder="Secret (HMAC) or Public Key (RSA/PEM)" autocomplete="off" spellcheck="false">
@@ -172,7 +165,7 @@
                     cls = 'json-null';
                 }
 
-                // Add timestamp annotations for exp, iat, nbf
+                // exp, iat and nbf are Unix seconds; show them as dates next to the number.
                 const offset = arguments[arguments.length - 2];
                 if (cls === 'json-number' && (jsonStr.substring(Math.max(0, offset - 20), offset).match(/"(exp|iat|nbf)"\s*:\s*$/))) {
                     const ts = parseInt(match, 10);
@@ -209,10 +202,10 @@
 
             const parts = token.split('.');
             if (parts.length < 2 || parts.length > 3) {
-                outHeader.textContent = "Invalid Token Format";
+                outHeader.textContent = "Not a JWT: it needs two or three parts separated by dots.";
                 outPayload.textContent = "";
                 outSignature.textContent = "";
-                updateSignatureStatus('invalid', 'Invalid Token');
+                updateSignatureStatus('invalid', 'Not a token');
                 return;
             }
 
@@ -232,7 +225,7 @@
                 }
 
             } catch (e) {
-                outHeader.textContent = "Error decoding token. " + e.message;
+                outHeader.textContent = "Could not decode the token. " + e.message;
                 outPayload.textContent = "";
                 outSignature.textContent = "";
                 updateSignatureStatus('invalid', 'Error');
@@ -246,9 +239,9 @@
                     case 0: break;
                     case 2: output += '=='; break;
                     case 3: output += '='; break;
-                    default: return ''; // Handle malformed without crashing
+                    default: return ''; // a length of 1 mod 4 is never valid base64
                 }
-                // Decode using TextDecoder for robust UTF-8 support
+                // atob gives bytes as a string; TextDecoder turns them back into UTF-8.
                 const binaryStr = window.atob(output);
                 const bytes = new Uint8Array(binaryStr.length);
                 for (let i = 0; i < binaryStr.length; i++) {
@@ -256,7 +249,7 @@
                 }
                 return new TextDecoder().decode(bytes);
             } catch (e) {
-                return ''; // Prevent crashes on completely invalid base64
+                return '';
             }
         }
 
@@ -283,7 +276,7 @@
         async function verifySignature(token, parts, header) {
             const secretOrKey = signatureSecret.value;
             if (!secretOrKey) {
-                updateSignatureStatus('waiting', 'Awaiting Secret/Key');
+                updateSignatureStatus('waiting', 'Needs secret or key');
                 return;
             }
 
@@ -315,7 +308,7 @@
                     );
                 } else if (alg.startsWith('RS')) {
                     const hashAlg = `SHA-${alg.substring(2)}`;
-                    // Basic PEM parsing
+                    // Takes a bare base64 key or one wrapped in PEM lines.
                     const pemHeader = "-----BEGIN PUBLIC KEY-----";
                     const pemFooter = "-----END PUBLIC KEY-----";
                     let pemContents = secretOrKey;
@@ -341,18 +334,18 @@
                         data
                     );
                 } else {
-                    updateSignatureStatus('invalid', `Unsupported Alg: ${alg}`);
+                    updateSignatureStatus('invalid', `Cannot check ${alg}`);
                     return;
                 }
 
                 if (isValid) {
-                    updateSignatureStatus('valid', 'Signature Verified');
+                    updateSignatureStatus('valid', 'Signature valid');
                 } else {
-                    updateSignatureStatus('invalid', 'Invalid Signature');
+                    updateSignatureStatus('invalid', 'Signature does not match');
                 }
             } catch (e) {
                 console.error(e);
-                updateSignatureStatus('invalid', 'Verification Error');
+                updateSignatureStatus('invalid', 'Could not check');
             }
         }
 
@@ -370,7 +363,7 @@
         function resetOutputs() {
             outHeader.textContent = "";
             outPayload.textContent = "";
-            outSignature.textContent = "waiting for input...";
+            outSignature.textContent = "no token yet";
             updateSignatureStatus('waiting', 'Waiting');
         }
 
@@ -388,7 +381,7 @@
                 input.value = text;
                 decode();
             } catch (err) {
-                showToast('Clipboard permission denied', 'error');
+                showToast('The browser did not allow reading the clipboard', 'error');
             }
         });
     

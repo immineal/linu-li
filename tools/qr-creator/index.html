@@ -7,15 +7,13 @@
     <link rel="stylesheet" href="../../assets/css/style.css" />
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg" />
 
-    <!-- QR Code Library -->
     <script src="../../assets/vendor/qrcode.min.js"></script>
 
     <style>
-      /* Square Container for the QR Preview */
       .qr-square-container {
         width: 100%;
-        max-width: 400px; /* Reasonable max width */
-        aspect-ratio: 1 / 1; /* Force Square */
+        max-width: 400px;
+        aspect-ratio: 1 / 1;
         margin: 0 auto 1.5rem auto;
         border: 1px solid var(--border);
         background: var(--paper);
@@ -63,7 +61,6 @@
         display: block;
       }
 
-      /* Form toggling */
       .input-group-wrapper {
         display: none;
       }
@@ -78,13 +75,12 @@
         <div class="tool-header">
           <h1>QR Code Generator</h1>
           <p>
-            Create generic codes, auto-connect WiFi codes, or digital contact
-            cards.
+            Makes a QR code from a link or text, from WiFi credentials a phone
+            can join with, from a contact card, or from an email.
           </p>
         </div>
 
         <div class="split-view">
-          <!-- CONFIGURATION -->
           <div class="card">
             <label for="qrMode">QR Content Type</label>
             <select id="qrMode" data-save style="margin-bottom: 1.5rem">
@@ -102,7 +98,6 @@
               "
             />
 
-            <!-- 1. URL / TEXT INPUT -->
             <div id="form-text" class="input-group-wrapper active">
               <label for="qrInput">Content</label>
               <textarea
@@ -113,7 +108,6 @@
               ></textarea>
             </div>
 
-            <!-- 2. WIFI INPUT -->
             <div id="form-wifi" class="input-group-wrapper">
               <label>Network Name (SSID)</label>
               <input type="text" id="wifiSSID" placeholder="MyHomeNetwork" />
@@ -144,7 +138,6 @@
               </div>
             </div>
 
-            <!-- 3. CONTACT INPUT -->
             <div id="form-contact" class="input-group-wrapper">
               <div class="split-view">
                 <div>
@@ -166,7 +159,6 @@
               <input type="text" id="vOrg" placeholder="Acme Corp" />
             </div>
 
-            <!-- 4. EMAIL INPUT -->
             <div id="form-email" class="input-group-wrapper">
               <label>Email Address</label>
               <input
@@ -195,7 +187,6 @@
               "
             />
 
-            <!-- STYLING -->
             <div class="split-view" style="margin-bottom: 0">
               <div>
                 <label for="colorDark">Dots Color</label>
@@ -226,7 +217,6 @@
             </select>
           </div>
 
-          <!-- RESULT -->
           <div
             class="card"
             style="
@@ -238,7 +228,6 @@
           >
             <label style="align-self: flex-start">Preview</label>
 
-            <!-- Square Container -->
             <div class="qr-square-container" id="canvasContainer">
               <div class="qr-placeholder">Enter data to see preview</div>
               <div class="qr-warning-banner" id="qrWarning"></div>
@@ -256,7 +245,6 @@
 
     <script src="../../assets/js/layout.js"></script>
     <script>
-      // Global Elements
       const qrMode = document.getElementById("qrMode");
       const forms = {
         text: document.getElementById("form-text"),
@@ -274,7 +262,6 @@
 
       let currentDataUrl = null;
 
-      // --- Web Worker Setup ---
       const qrcodeUrl = new URL('../../assets/vendor/qrcode.min.js', window.location.href).href;
       const workerCode = `
             importScripts('${qrcodeUrl}');
@@ -291,19 +278,15 @@
                     finalLevel = levelsToTry[i];
                     try {
                         const opts = { ...options, errorCorrectionLevel: finalLevel };
-                        // qrcode library requires a canvas element or it falls back to creating one.
-                        // In a WebWorker, 'document' is undefined, so toDataURL fails.
-                        // We must use 'image/jpeg' or 'image/png' via Data URL by having it generate an SVG string first,
-                        // or generate a base64 encoded string using the pure JS implementation by asking for string type 'svg'.
+                        // toDataURL needs a canvas, and a worker has no document to make
+                        // one from. The SVG string output needs neither.
                         opts.type = 'svg';
                         const svgString = await QRCode.toString(text, opts);
-                        // Convert SVG to Data URL
                         dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
                         success = true;
                         break;
                     } catch (err) {
                         errorMsg = err.message || 'Data too long';
-                        // Continue to next lower level
                     }
                 }
 
@@ -318,16 +301,12 @@
       const workerUrl = URL.createObjectURL(blob);
       const qrWorker = new Worker(workerUrl);
 
-      // --- 1. Mode Switching ---
       qrMode.addEventListener("change", () => {
-        // Hide all forms
         Object.values(forms).forEach((el) => el.classList.remove("active"));
-        // Show selected form
         const selected = forms[qrMode.value];
         if (selected) selected.classList.add("active");
       });
 
-      // --- 2. Data Formatting Logic ---
       function getQRData() {
         const mode = qrMode.value;
 
@@ -335,12 +314,12 @@
           const ssid = document.getElementById("wifiSSID").value.trim();
           const pass = document.getElementById("wifiPass").value;
           const type = document.getElementById("wifiType").value;
-          const hidden = document.getElementById("wifiHidden").value; // 'true' or 'false'
+          const hidden = document.getElementById("wifiHidden").value; // the string 'true' or 'false'
 
           if (!ssid) return null;
 
-          // Standard WiFi String: WIFI:S:mynetwork;T:WPA;P:mypass;H:false;;
-          // Note: Escaping special characters in SSID and Password according to standard
+          // WIFI:S:mynetwork;T:WPA;P:mypass;H:true;;
+          // Backslash, semicolon and colon inside a value have to be escaped.
           const escapeStr = (str) => str.replace(/([\\;:])/g, "\\$1");
 
           let wifiStr = `WIFI:S:${escapeStr(ssid)};T:${type};`;
@@ -357,7 +336,7 @@
 
           if (!n && !l && !o) return null;
 
-          // Strict vCard 3.0
+          // vCard 3.0
           let vcard = `BEGIN:VCARD\nVERSION:3.0\nN:${l};${n};;;\nFN:${(n + " " + l).trim()}`;
           if (o) vcard += `\nORG:${o}`;
           if (p) vcard += `\nTEL;TYPE=CELL:${p}`;
@@ -379,23 +358,21 @@
           if (query.length > 0) url += `?${query.join("&")}`;
           return url;
         } else {
-          // Default: Text/URL
           return document.getElementById("qrInput").value.trim();
         }
       }
 
-      // --- 3. Generation Logic ---
+      // Tried from the chosen level downwards until the data fits.
       const ALL_LEVELS = ["H", "Q", "M", "L"];
 
       qrWorker.onmessage = function (e) {
         const { success, dataUrl, targetLevel, finalLevel, error } = e.data;
 
         if (success) {
-          // Clear container and append new image
           const img = document.createElement("img");
           img.src = dataUrl;
 
-          // Preserve warning banner
+          // The banner lives in the container, so it goes back in after the wipe.
           container.innerHTML = "";
           container.appendChild(img);
           container.appendChild(warningBanner);
@@ -404,7 +381,7 @@
           downloadBtn.disabled = false;
 
           if (targetLevel !== finalLevel) {
-            warningBanner.textContent = `Data too long. Automatically lowered error correction from ${targetLevel} to ${finalLevel}.`;
+            warningBanner.textContent = `Too much data for level ${targetLevel}, so this code uses ${finalLevel}.`;
             warningBanner.classList.add("visible");
           } else {
             warningBanner.classList.remove("visible");
@@ -412,7 +389,7 @@
         } else {
           console.error("Worker error:", error);
           container.innerHTML =
-            '<div class="qr-placeholder" style="color: var(--danger);">Data too long for any Error Correction Level</div>';
+            '<div class="qr-placeholder" style="color: var(--danger);">Too much data for a QR code, even at the lowest error correction</div>';
           container.appendChild(warningBanner);
           warningBanner.classList.remove("visible");
           downloadBtn.disabled = true;
@@ -433,7 +410,6 @@
           return;
         }
 
-        // Determine fallback levels
         const target = errorLevel.value;
         const targetIndex = ALL_LEVELS.indexOf(target);
         const levelsToTry = ALL_LEVELS.slice(targetIndex);
@@ -447,7 +423,6 @@
           },
         };
 
-        // Offload to worker
         qrWorker.postMessage({
           text,
           options,
@@ -456,14 +431,12 @@
         });
       }
 
-      // Debounce generation for real-time typing
       let debounceTimer;
       function debouncedGenerateQR() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(generateQR, 300);
       }
 
-      // Add input listeners for real-time updates
       document.querySelectorAll("input, select, textarea").forEach((el) => {
         if (el.id === "qrMode") {
           el.addEventListener("change", generateQR);
@@ -486,7 +459,7 @@
         document.body.removeChild(a);
       });
 
-      // Generate generic one on load for UX
+      // Start with a code on screen rather than an empty box.
       document.getElementById("qrInput").value = "https://linu.li";
       setTimeout(generateQR, 500);
     

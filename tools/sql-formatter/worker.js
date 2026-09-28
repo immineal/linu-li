@@ -19,7 +19,7 @@ self.onmessage = function(e) {
             const prismaCode = parseSqlToSchema(raw, 'prisma');
             self.postMessage({ id, success: true, result: prismaCode });
         } else if (action === 'auto_detect') {
-            // Very simple heuristic
+            // Looks for a few keywords only one dialect uses; anything else stays Standard SQL.
             let bestDialect = 'sql';
             const s = raw.toLowerCase();
             if (s.includes('auto_increment')) bestDialect = 'mysql';

@@ -105,7 +105,7 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Word & Character Counter</h1>
-                <p>Real-time analysis of your text. Counts words, characters, sentences, and estimates reading time.</p>
+                <p>Counts words, characters and sentences as you type, and estimates reading time at 200 words a minute.</p>
             </div>
 
             <div class="card">
@@ -129,7 +129,7 @@
                     </div>
                 </div>
 
-                <textarea id="textInput" class="code-editor" style="font-family: var(--font-body); font-size: 1.1rem; padding: 1.5rem; min-height: 400px;" placeholder="Start typing or paste your text here..."></textarea>
+                <textarea id="textInput" class="code-editor" style="font-family: var(--font-body); font-size: 1.1rem; padding: 1.5rem; min-height: 400px;" placeholder="Type or paste text here"></textarea>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; color: var(--ink-secondary); font-size: 0.9rem;">
                     <span id="readTime">Reading Time: 0 min</span>
@@ -145,7 +145,7 @@
                 <div class="analysis-card">
                     <h3>Keyword Density</h3>
                     <ul class="keyword-list" id="keywordList">
-                        <li class="keyword-item"><span class="keyword-word" style="color: var(--ink-secondary);">No keywords yet...</span></li>
+                        <li class="keyword-item"><span class="keyword-word" style="color: var(--ink-secondary);">Nothing to count yet</span></li>
                     </ul>
                 </div>
                 <div class="analysis-card">
@@ -169,7 +169,6 @@
         const copyBtn = document.getElementById('copyBtn');
         const clearBtn = document.getElementById('clearBtn');
         
-        // Stats Elements
         const elWord = document.getElementById('wordCount');
         const elChar = document.getElementById('charCount');
         const elCharNoSpace = document.getElementById('charNoSpaceCount');
@@ -179,7 +178,7 @@
         const elFleschScore = document.getElementById('fleschScore');
         const elFleschLevel = document.getElementById('fleschLevel');
 
-        // Web Worker Setup
+        // The worker is built from a string so the tool stays a single file.
         const workerCode = `
             const charSegmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
             const wordSegmenter = new Intl.Segmenter(undefined, { granularity: 'word' });
@@ -303,7 +302,7 @@
                     elKeywordList.appendChild(li);
                 });
             } else {
-                elKeywordList.innerHTML = '<li class="keyword-item"><span class="keyword-word" style="color: var(--ink-secondary);">No keywords yet...</span></li>';
+                elKeywordList.innerHTML = '<li class="keyword-item"><span class="keyword-word" style="color: var(--ink-secondary);">Nothing to count yet</span></li>';
             }
         };
 
@@ -327,7 +326,6 @@
             if(textInput.value) copyToClipboard(textInput.value);
         });
 
-        // Init
         updateStats();
     
     /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?

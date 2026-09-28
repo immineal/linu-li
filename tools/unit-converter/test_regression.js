@@ -6,7 +6,7 @@ const path = require('path');
 const htmlPath = path.join(__dirname, 'index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
-// Mock fetch and localStorage before running scripts
+// fetch and localStorage are replaced before the page script runs.
 const mockLocalStorage = {};
 
 const dom = new JSDOM(html, {
@@ -15,7 +15,6 @@ const dom = new JSDOM(html, {
 });
 const window = dom.window;
 
-// Define a safe mock for fetch
 window.fetch = async (url) => {
     if (url.includes('er-api.com')) {
         return {
@@ -29,14 +28,13 @@ window.fetch = async (url) => {
     return { json: async () => ({}) };
 };
 
-// Define mock for localStorage
 window.localStorage = {
   getItem: key => mockLocalStorage[key] || null,
   setItem: (key, value) => mockLocalStorage[key] = String(value),
   removeItem: key => delete mockLocalStorage[key]
 };
 
-// Extract inline script and expose internal factors
+// The page script keeps these in its own scope; the tests need them on window.
 const scriptElements = dom.window.document.querySelectorAll('script');
 const inlineScript = scriptElements[1].textContent;
 const evalCode = `
@@ -59,23 +57,23 @@ let passed = true;
 function assertApprox(actual, expected, message, tolerance) {
     tolerance = tolerance || 1e-6;
     if (Math.abs(actual - expected) <= tolerance) {
-        console.log('✅ PASS: ' + message);
+        console.log('ok   ' + message);
     } else {
-        console.error('❌ FAIL: ' + message + ' (Expected: ~' + expected + ', Actual: ' + actual + ')');
+        console.error('FAIL ' + message + ' (Expected: ~' + expected + ', Actual: ' + actual + ')');
         passed = false;
     }
 }
 
 function assertEqual(actual, expected, message) {
     if (String(actual) !== String(expected)) {
-        console.error(`❌ FAIL: ${message} (Expected: ${expected}, Actual: ${actual})`);
+        console.error(`FAIL ${message} (Expected: ${expected}, Actual: ${actual})`);
         passed = false;
     } else {
-        console.log(`✅ PASS: ${message}`);
+        console.log(`ok   ${message}`);
     }
 }
 
-// 1. Test Absolute Zero Logic
+// Temperatures stop at absolute zero.
 window.setCategory('temp');
 unitFrom.value = 'Celsius (°C)';
 unitTo.value = 'Fahrenheit (°F)';
@@ -93,7 +91,7 @@ inputFrom.dispatchEvent(new window.Event('input'));
 assertEqual(inputTo.value, '0', 'Absolute zero clamping (-300C -> 0K)');
 assertEqual(inputFrom.value, '-273.15', 'Input clamps to -273.15C');
 
-// 2. Test Non-Negative Unit Logic
+// Lengths, weights, speeds and sizes cannot go below zero.
 window.setCategory('length');
 inputFrom.value = '-10';
 inputFrom.dispatchEvent(new window.Event('input'));
@@ -115,7 +113,7 @@ inputFrom.value = '-100';
 inputFrom.dispatchEvent(new window.Event('input'));
 assertEqual(inputTo.value, '0', 'Negative data converts to 0');
 
-// 3. Test Currency and Local Caching Layers
+// Currency: built-in rates first, fetched ones after.
 window.setCategory('currency');
 unitFrom.value = 'USD';
 unitTo.value = 'EUR';
@@ -123,15 +121,14 @@ inputFrom.value = '100';
 inputFrom.dispatchEvent(new window.Event('input'));
 assertEqual(inputTo.value, '90', 'Fallback default rates working (100 USD -> 90 EUR)');
 
-// Trigger manual fetch (opt-in simulated)
+// The page only fetches when asked, so ask.
 window.fetchExchangeRates();
 
-// Wait for async fetch in script to complete
 setTimeout(() => {
     inputFrom.dispatchEvent(new window.Event('input'));
     assertEqual(inputTo.value, '85', 'Async fetch exchange rates update correctly (100 USD -> 85 EUR)');
 
-    // Test NLP logic
+    // Typed queries such as "5 km in miles".
     nlpInput.value = '5 km in miles';
     nlpInput.dispatchEvent(new window.Event('input'));
     assertEqual(inputFrom.value, '5', 'NLP correctly sets inputFrom value');
@@ -146,10 +143,6 @@ setTimeout(() => {
     assertEqual(unitTo.value, 'EUR', 'NLP sets unitTo for currency');
     assertEqual(inputTo.value, '85.425', 'NLP converts currency using newly fetched rates');
 
-    // --- Comprehensive NLP Tests ---
-    console.log('\n--- Running Comprehensive NLP Tests ---');
-
-    // Reset to a known state before each NLP test
     const resetState = () => {
         window.setCategory('length');
         inputFrom.value = '1';
@@ -157,7 +150,6 @@ setTimeout(() => {
         unitTo.value = 'ft';
     };
 
-    // 1. Invalid formats
     resetState();
     nlpInput.value = 'just some random text';
     nlpInput.dispatchEvent(new window.Event('input'));
@@ -168,7 +160,6 @@ setTimeout(() => {
     nlpInput.dispatchEvent(new window.Event('input'));
     assertEqual(inputFrom.value, '1', 'NLP ignores empty string');
 
-    // 2. Case insensitivity
     resetState();
     nlpInput.value = '5 KM To MILES';
     nlpInput.dispatchEvent(new window.Event('input'));
@@ -176,20 +167,17 @@ setTimeout(() => {
     assertEqual(unitFrom.value, 'km', 'NLP handles case insensitivity (unitFrom)');
     assertEqual(unitTo.value, 'mi', 'NLP handles case insensitivity (unitTo)');
 
-    // 3. Mismatched categories
     resetState();
     nlpInput.value = '5 km to kg';
     nlpInput.dispatchEvent(new window.Event('input'));
     assertEqual(inputFrom.value, '1', 'NLP ignores mismatched categories (km to kg)');
     assertEqual(unitFrom.value, 'm', 'NLP maintains state on mismatch');
 
-    // 4. Unrecognized units
     resetState();
     nlpInput.value = '5 km to foo';
     nlpInput.dispatchEvent(new window.Event('input'));
     assertEqual(inputFrom.value, '1', 'NLP ignores unrecognized units (foo)');
 
-    // 5. Synonym parsing & Various keyword formats & Numeric variations
     resetState();
     nlpInput.value = '0.5 meters per second in mph';
     nlpInput.dispatchEvent(new window.Event('input'));
@@ -197,9 +185,7 @@ setTimeout(() => {
     assertEqual(unitFrom.value, 'm/s', 'NLP sets correct synonym unit (m/s)');
     assertEqual(unitTo.value, 'mph', 'NLP sets correct synonym unit (mph)');
 
-    console.log('--- End Comprehensive NLP Tests ---\n');
-
-    // 4. Test Extreme Formatting
+    // Very small and very large results.
     window.setCategory('data');
 unitFrom.value = 'B';
 unitTo.value = 'TB';

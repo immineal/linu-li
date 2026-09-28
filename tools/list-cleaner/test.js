@@ -1,7 +1,6 @@
 const fs = require('fs');
 const assert = require('assert');
 
-console.log("Loading List Cleaner...");
 const html = fs.readFileSync('tools/list-cleaner/index.html', 'utf-8');
 const jsCode = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
@@ -65,7 +64,7 @@ const document = {
 global.document = document;
 global.window = {};
 
-// We need to bypass the layout.js which is not loaded, but mock the clipboard
+// layout.js is not loaded here, so copyToClipboard has to be stubbed
 let clipboardText = '';
 const navigatorMock = {
     clipboard: {
@@ -90,21 +89,19 @@ async function runTests() {
     function runTest(name, testFn) {
         try {
             testFn();
-            console.log(`✅ ${name}`);
+            console.log(`ok   ${name}`);
             testsPassed++;
         } catch (e) {
-            console.error(`❌ ${name}`);
+            console.error(`FAIL ${name}`);
             console.error(`   ${e.message}`);
             testsFailed++;
         }
     }
 
-    // Helper for async timeout
     const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    console.log("\nRunning Tests...");
 
-    // Test 1: Empty state line count
+    // Empty state line count
     listInput.value = '';
     triggerInputFn();
     await wait(150); // Wait for debounce
@@ -112,14 +109,14 @@ async function runTests() {
         assert.strictEqual(inputCount.textContent, '0 lines');
     });
 
-    // Test 2: Output empty state line count
+    // Output empty state line count
     listInput.value = '';
     processList('sortAZ');
     runTest("Processing empty state should report 0 output lines", () => {
         assert.strictEqual(outputCount.textContent, '0 lines');
     });
 
-    // Test 3: Normal line count
+    // Normal line count
     listInput.value = 'Line 1\nLine 2';
     triggerInputFn();
     await wait(150);
@@ -127,7 +124,7 @@ async function runTests() {
         assert.strictEqual(inputCount.textContent, '2 lines');
     });
 
-    // Test 4: Enormous list doesn't freeze or timeout during line counting
+    // Enormous list doesn't freeze or timeout during line counting
     const hugeList = Array.from({length: 100000}, (_, i) => `Line ${i}`).join('\n');
     listInput.value = hugeList;
     const start = Date.now();
@@ -139,7 +136,7 @@ async function runTests() {
         assert.strictEqual(inputCount.textContent, '100000 lines');
     });
 
-    // Test 5: Case-insensitive deduplication
+    // Case-insensitive deduplication
     listInput.value = 'apple\nApple\nbanana\nBanana';
     processList('dedupInsensitive');
     runTest("Case-insensitive deduplication removes mixed case duplicates", () => {
@@ -147,21 +144,21 @@ async function runTests() {
         assert.strictEqual(outputCount.textContent, '2 lines');
     });
 
-    // Test 6: Standard deduplication
+    // Standard deduplication
     listInput.value = 'apple\nApple\napple\nbanana';
     processList('dedup');
     runTest("Standard deduplication is case-sensitive", () => {
         assert.strictEqual(listOutput.value, 'apple\nApple\nbanana');
     });
 
-    // Test 7: Remove empty lines
+    // Remove empty lines
     listInput.value = 'a\n\n\nb\n\nc';
     processList('empty');
     runTest("Remove empty lines should eliminate consecutive blanks", () => {
         assert.strictEqual(listOutput.value, 'a\nb\nc');
     });
 
-    // Test 8: Copy to clipboard
+    // Copy to clipboard
     listOutput.value = 'Item 1\nItem 2\nItem 3';
     clipboardText = '';
     copyResult();
