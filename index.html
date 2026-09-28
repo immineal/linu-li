@@ -110,10 +110,10 @@
                     <span class="keywords">extract images photos pictures assets embedded download save jpg png pdf scrape</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
-                <a href="./tools/pdf-grayscale/" class="card interactive" data-id="pdf-grayscale">
-                    <h3>PDF Grayscale & Scan Cleaner</h3>
-                    <p class="small-text">Turn a colour PDF into black and white. Also cleans up phone scans.</p>
-                    <span class="keywords">grayscale black white bw monochrome print scan clean ink save toner pdf convert</span>
+                <a href="./tools/pdf-compressor/" class="card interactive" data-id="pdf-compressor">
+                    <h3>PDF Compressor</h3>
+                    <p class="small-text">Get a PDF under a size limit such as 10 MB. Shows a page of the result before you download it.</p>
+                    <span class="keywords">compress compressor shrink reduce smaller size limit mb email upload attachment optimize downsample grayscale black white scan clean pdf</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
                 <a href="./tools/pdf-2up/" class="card interactive" data-id="pdf-2up">
@@ -282,8 +282,12 @@
             const favContainer = document.getElementById('favorites-container');
             const favGrid = document.getElementById('favorites-grid');
 
+            // Tools that were renamed, so a pin made under the old name survives
+            const RENAMED = { 'pdf-grayscale': 'pdf-compressor' };
+
             function getFavorites() {
-                return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+                const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+                return stored.map((id) => RENAMED[id] || id);
             }
 
             function renderFavorites() {

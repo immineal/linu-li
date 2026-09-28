@@ -49,6 +49,12 @@ RewriteRule ^([^/]+)/?$ /tools/$1/ [L,R=301]
 RewriteRule ^sperrmuell/sw\.js$ tools/sperrmuell/abgemeldet-sw.js [L]
 RewriteRule ^sperrmuell(?:/(.*))?$ /tools/sperrmuell/$1 [L,R=301]
 
+# 2e. The grayscale and scan cleaner became the PDF compressor, which kept
+# its clean-up options. The short-address rule above only fires for a
+# directory that exists, so both the long and the short old address are
+# carried here.
+RewriteRule ^(?:tools/)?pdf-grayscale(?:/.*)?$ /tools/pdf-compressor/ [L,R=301]
+
 # 3. Remove trailing slashes (Optional, good for SEO consistency)
 # RewriteCond %{REQUEST_FILENAME} !-d
 # RewriteRule ^(.*)/$ /$1 [L,R=301]

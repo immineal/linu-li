@@ -165,4 +165,27 @@ test('the retiring worker clears its own caches and only its own', () => {
         'the retiring worker names the toolbox cache');
 });
 
+/* ------------------------------------------ 4. umbenannte Werkzeuge */
+
+test('a renamed tool keeps its old addresses, long and short', () => {
+    /* Die Kurzadressen-Regel greift nur, solange tools/<name>/ existiert.
+       Nach einer Umbenennung fehlt das Verzeichnis, also braucht die alte
+       Adresse ihre eigene Umleitung, sonst landet ein alter Link auf der
+       404-Seite. */
+    const renamed = { 'pdf-grayscale': 'pdf-compressor' };
+    for (const [alt, neu] of Object.entries(renamed)) {
+        assert.ok(!fs.existsSync(path.join(ROOT, 'tools', alt)),
+            `tools/${alt}/ still exists, so it was not renamed after all`);
+        assert.ok(fs.existsSync(path.join(ROOT, 'tools', neu, 'index.html')),
+            `tools/${neu}/ is missing`);
+        const regel = htaccess.split('\n').find((z) => z.startsWith('RewriteRule') && z.includes(alt));
+        assert.ok(regel, `nothing redirects /${alt}/ any more`);
+        const muster = new RegExp(regel.split(/\s+/)[1]);
+        for (const pfad of [`${alt}`, `${alt}/`, `tools/${alt}/`, `tools/${alt}/index.html`]) {
+            assert.ok(muster.test(pfad), `${pfad} is not caught by: ${regel}`);
+        }
+        assert.ok(regel.includes(`/tools/${neu}/ [L,R=301]`), `the rule does not send /${alt}/ to /tools/${neu}/`);
+    }
+});
+
 if (!process.exitCode) console.log(`${passed} checks passed`);

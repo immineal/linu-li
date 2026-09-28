@@ -20,7 +20,7 @@ Five things do reach outside, and none of them carries your file. The EXIF tool 
 - [Splitter](tools/pdf-splitter/) cuts by page range, or explodes a file into one PDF per page
 - [Image extractor](tools/pdf-extractor/) pulls out every image embedded in a PDF
 - [2-up](tools/pdf-2up/) puts two pages on one sheet for booklets
-- [Grayscale](tools/pdf-grayscale/) flattens colour to black and white, which also cleans up phone scans
+- [Compressor](tools/pdf-compressor/) gets a PDF under a size limit you pick, and shows a page of the result first. It shrinks only the images unless you ask it to turn whole pages into pictures, which is also where the scan clean-up lives
 
 ### Images
 

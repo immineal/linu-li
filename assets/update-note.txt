@@ -33,3 +33,4 @@ Ground plans printed from Safari on a Mac came out with no writing at all: no pr
 The lower half of every printed plan page used to come out black on a Mac. The paper texture the site lays over each page went along to the printer.
 Plans set to landscape used to come out on a portrait page on some Macs, squeezed into the top half. The page size was only written into the page at the moment printing began, which is too late for some browsers.
 -
+The PDF grayscale tool is now the PDF compressor at linu.li/pdf-compressor/: pick a size such as 10 MB and it gets the file under it, keeping the text selectable. The grey and scan clean-up options are still there, and the old address leads to it.

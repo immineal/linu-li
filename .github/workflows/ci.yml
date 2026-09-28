@@ -59,6 +59,7 @@ jobs:
               tests/test-arbeit-haken.js|\
               tests/test-page-metadata.js|\
               tests/test-json-tools-browser.js|\
+              tests/test-pdf-compressor-browser.js|\
               tests/test-archiv-hinweis.js|\
               tests/test-buehnenbild-zoom.js|\
               tests/test-buehnenbild-drucken.js)
@@ -145,6 +146,7 @@ jobs:
           }
 
           run_test "tests/test-json-tools-browser.js"
+          run_test "tests/test-pdf-compressor-browser.js"
           run_test "tests/test-pdf-watermarker.js"
           run_test "tools/social-cropper/social-cropper.spec.js"
           run_test "tests/test-diff-checker-xss.js"
