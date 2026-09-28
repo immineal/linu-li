@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Password Generator | Linus Linhof</title>
+    <title>Password Generator | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     <style>
@@ -35,7 +35,6 @@
             width: 0%;
             transition: width 0.3s, background 0.3s;
         }
-        /* Colors for strength */
         .weak { background: var(--accent); width: 30%; }
         .medium { background: #e6c229; width: 60%; }
         .strong { background: var(--accent-secondary); width: 100%; }
@@ -46,12 +45,11 @@
         <div class="container" style="max-width: 800px;">
             <div class="tool-header">
                 <h1>Password Generator</h1>
-                <p>Create strong, secure passwords instantly in your browser.</p>
+                <p>Random passwords, or passphrases from the 2048-word BIP39 list. The randomness comes from the Web Crypto API.</p>
             </div>
 
             <div class="card">
                 
-                <!-- DISPLAY -->
                 <div class="password-display" id="passwordOutput">Generate to start...</div>
                 
                 <div class="strength-bar" style="margin-bottom: 0.5rem;">
@@ -66,7 +64,6 @@
                     <button class="button secondary" id="copyBtn">Copy Password</button>
                 </div>
 
-                <!-- SETTINGS -->
                 <div style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
                     <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; justify-content: center;">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
@@ -75,7 +72,7 @@
                         </label>
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                             <input type="radio" name="mode" value="passphrase" id="modePassphrase">
-                            Memorable Passphrase
+                            Passphrase
                         </label>
                     </div>
 
@@ -140,7 +137,6 @@
     <script src="../../assets/js/layout.js"></script>
     <script src="words.js"></script>
     <script>
-        // Elements
         const output = document.getElementById('passwordOutput');
         const strengthMeter = document.getElementById('strengthMeter');
         const entropyDisplay = document.getElementById('entropyDisplay');
@@ -156,20 +152,21 @@
         const generateBtn = document.getElementById('generateBtn');
         const copyBtn = document.getElementById('copyBtn');
 
-        // Checkboxes
         const chkUpper = document.getElementById('chkUppercase');
         const chkLower = document.getElementById('chkLowercase');
         const chkNum = document.getElementById('chkNumbers');
         const chkSym = document.getElementById('chkSymbols');
         const chkAmbiguous = document.getElementById('chkAmbiguous');
 
-        // Charsets
         const charsUpper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const charsLower = "abcdefghijklmnopqrstuvwxyz";
         const charsNum = "0123456789";
         const charsSym = "!@#$%^&*()_+~`|}{[]:;?><,./-=";
         const ambiguous = "Il1O0";
 
+        // Random values at or above the last whole multiple of the list length
+        // are drawn again. Without that, the modulo would favour the first
+        // entries slightly.
         function getSecureRandomWord(wordlist) {
             const maxValid = 4294967295 - (4294967295 % wordlist.length);
             const array = new Uint32Array(1);
@@ -206,7 +203,7 @@
                     }
                     password = words.join(separator);
                 } catch (err) {
-                    output.textContent = "Error generating passphrase.";
+                    output.textContent = "Could not generate a passphrase.";
                     strengthMeter.className = "strength-fill weak";
                     return;
                 }
@@ -219,7 +216,7 @@
                     return;
                 }
                 if (length > 2048) {
-                    length = 2048; // Cap length to avoid browser freezing and quota issues
+                    length = 2048; // the slider stops at 64; this catches a value set some other way
                 }
 
                 let charset = "";
@@ -229,7 +226,6 @@
                 if (chkNum.checked) charset += charsNum;
                 if (chkSym.checked) charset += charsSym;
 
-                // Remove ambiguous if requested
                 if (chkAmbiguous.checked) {
                     for (let char of ambiguous) {
                         charset = charset.split(char).join('');
@@ -243,7 +239,7 @@
                 }
 
                 try {
-                    const maxValid = 4294967295 - (4294967295 % charset.length); // 2^32 - 1
+                    const maxValid = 4294967295 - (4294967295 % charset.length); // same rejection as above; 2^32 - 1
                     const array = new Uint32Array(1);
                     for (let i = 0; i < length; i++) {
                         let rand;
@@ -254,7 +250,7 @@
                         password += charset[rand % charset.length];
                     }
                 } catch (err) {
-                    output.textContent = "Error generating password.";
+                    output.textContent = "Could not generate a password.";
                     strengthMeter.className = "strength-fill weak";
                     return;
                 }
@@ -269,21 +265,20 @@
             let entropy = 0;
 
             if (isPassphrase) {
-                // Passphrase strength based on bits of entropy (each word is 11 bits in BIP39)
+                // 2048 words, so each one adds 11 bits
                 const wordCount = parseInt(wordsRange.value, 10);
                 entropy = wordCount * 11;
 
-                if (entropy >= 44) score = 5; // Strong
-                else if (entropy >= 33) score = 3; // Medium
-                else score = 1; // Weak
+                if (entropy >= 44) score = 5;
+                else if (entropy >= 33) score = 3;
+                else score = 1;
             } else {
                 let poolSize = 0;
                 if (chkUpper.checked) poolSize += 26;
                 if (chkLower.checked) poolSize += 26;
                 if (chkNum.checked) poolSize += 10;
                 if (chkSym.checked) poolSize += 29;
-                
-                // Exact ambiguous removal
+
                 if (chkAmbiguous.checked) {
                     if (chkUpper.checked) poolSize -= 2; // I, O
                     if (chkLower.checked) poolSize -= 1; // l
@@ -294,10 +289,9 @@
                     entropy = pw.length * Math.log2(poolSize);
                 }
 
-                // Standard entropy guidelines
-                if (entropy >= 60) score = 5; // Strong
-                else if (entropy >= 40) score = 3; // Medium
-                else score = 1; // Weak
+                if (entropy >= 60) score = 5;
+                else if (entropy >= 40) score = 3;
+                else score = 1;
             }
 
             strengthMeter.className = "strength-fill";
@@ -317,7 +311,6 @@
             entropyDisplay.textContent = `Entropy: ~${Math.round(entropy)} bits (${label})`;
         }
 
-        // Event Listeners
         [modeChars, modePassphrase].forEach(el => {
             el.addEventListener('change', () => {
                 if (modeChars.checked) {
@@ -354,13 +347,12 @@
             if (text &&
                 !text.includes('Please select') &&
                 text !== 'Length must be greater than 0.' &&
-                text !== 'Error generating password.' &&
+                text !== 'Could not generate a password.' &&
                 text !== 'Generate to start...') {
                 copyToClipboard(text);
             }
         });
 
-        // Init
         generate();
 
     </script>

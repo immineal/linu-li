@@ -6,7 +6,7 @@ self.onmessage = function (e) {
     const file = e.data.file;
     if (!file) return;
 
-    const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+    const chunkSize = 5 * 1024 * 1024; // every algorithm is fed piece by piece, so the file is never in memory whole
     const md5Algo = CryptoJS.algo.MD5.create();
     const sha256Algo = CryptoJS.algo.SHA256.create();
     const sha512Algo = CryptoJS.algo.SHA512.create();
@@ -15,7 +15,7 @@ self.onmessage = function (e) {
     const sha3_256Algo = self.sha3_256.create();
     const sha3_512Algo = self.sha3_512.create();
 
-    // blake2b context (512 bit = 64 bytes)
+    // 64 bytes = BLAKE2b-512
     const blake2bCtx = self.blakejs.blake2bInit(64, null);
 
     const reader = new FileReaderSync();
@@ -26,7 +26,6 @@ self.onmessage = function (e) {
             const slice = file.slice(offset, offset + chunkSize);
             const arrayBuffer = reader.readAsArrayBuffer(slice);
 
-            // CryptoJS needs WordArray
             const wordArray = arrayBufferToWordArray(arrayBuffer);
 
             md5Algo.update(wordArray);
@@ -34,7 +33,6 @@ self.onmessage = function (e) {
             sha512Algo.update(wordArray);
             sha1Algo.update(wordArray);
 
-            // js-sha3 and blakejs can take ArrayBuffer directly
             sha3_256Algo.update(arrayBuffer);
             sha3_512Algo.update(arrayBuffer);
 
@@ -42,7 +40,6 @@ self.onmessage = function (e) {
 
             offset += chunkSize;
 
-            // Calculate progress
             const progress = Math.min(100, Math.round((offset / file.size) * 100));
             self.postMessage({ type: 'progress', progress });
         }

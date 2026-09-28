@@ -10,10 +10,12 @@ self.addEventListener('message', (e) => {
                 try {
                     const temp = JSON.parse(processedRaw);
                     if (typeof temp === 'string') processedRaw = temp;
-                } catch (e) { /* Ignore */ }
+                } catch (e) { /* not a JSON string literal, so use it as it is */ }
             }
 
-            // Aggressive Repair
+            // Close string values whose closing quote is missing before a line
+            // break or a closing brace. JSON5 handles the rest (unquoted keys,
+            // single quotes, trailing commas).
             processedRaw = processedRaw.replace(/:\s*"([^"]*?)(,\s*[\r\n]|\s*[\r\n])/g, ': "$1"$2');
             processedRaw = processedRaw.replace(/:\s*"([^"]*?)\s*}/g, ': "$1"}');
 
@@ -21,7 +23,7 @@ self.addEventListener('message', (e) => {
 
             if (mode === 'csv') {
                 if (!Array.isArray(parsed)) {
-                    throw new Error('CSV requires an Array');
+                    throw new Error('CSV export needs an array at the top level');
                 }
                 const headers = Array.from(new Set(parsed.flatMap(o => o ? Object.keys(o) : [])));
                 const csvRows = [headers.join(',')];
@@ -43,7 +45,7 @@ self.addEventListener('message', (e) => {
                 const jsonString = JSON.stringify(parsed, null, space);
 
                 let highlightedHtml = null;
-                if (indent !== 'min' && jsonString.length < 500000) { // Only syntax highlight if reasonable size (~500kb)
+                if (indent !== 'min' && jsonString.length < 500000) { // the highlighting regex stalls on larger input
                     let html = jsonString.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     highlightedHtml = html.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
                         let cls = 'color: var(--ink);';
@@ -82,7 +84,7 @@ self.addEventListener('message', (e) => {
         try {
             if (mode === 'csv') {
                 if (!Array.isArray(parsedData)) {
-                    throw new Error('CSV requires an Array');
+                    throw new Error('CSV export needs an array at the top level');
                 }
                 const headers = Array.from(new Set(parsedData.flatMap(o => o ? Object.keys(o) : [])));
                 const csvRows = [headers.join(',')];
@@ -104,8 +106,7 @@ self.addEventListener('message', (e) => {
                 const jsonString = JSON.stringify(parsedData, null, space);
 
                 let highlightedHtml = null;
-                if (indent !== 'min' && jsonString.length < 500000) { // Only syntax highlight if reasonable size (~500kb)
-                    // Basic syntax highlight in worker
+                if (indent !== 'min' && jsonString.length < 500000) { // the highlighting regex stalls on larger input
                     let html = jsonString.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     highlightedHtml = html.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
                         let cls = 'color: var(--ink);';

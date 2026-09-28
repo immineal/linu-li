@@ -3,7 +3,8 @@ const fs = require('fs');
 function runTests() {
     console.log("Running URL Cleaner edge-case regression tests...");
 
-    // Read the actual HTML file and extract the inline logic
+    // The click handler is cut out of the page and run on its own; the
+    // "// Decode Logic" comment after it in index.html marks where it ends.
     const html = fs.readFileSync('tools/url-tools/index.html', 'utf8');
     const match = html.match(/cleanBtn\.addEventListener\('click', \(\) => \{([\s\S]*?)\}\);\s*\/\/\s*Decode Logic/);
     const paramsMatch = html.match(/const paramsToRemove = new Set\(\[([\s\S]*?)\]\);/);
@@ -25,12 +26,11 @@ function runTests() {
             showToast: (msg, type) => { toast = msg; },
             displayResult: (text) => { result = text; },
             document: {
-                getElementById: () => null // mock to avoid failure when manipulating DOM
+                getElementById: () => null
             },
             paramsToRemove: new Set(paramsMatch[1].replace(/['\n\r\s]/g, '').split(','))
         };
 
-        // Prepend paramsToRemove definition so it is available in scope
         const scriptBody = `
             const paramsToRemove = this.paramsToRemove;
             const document = this.document;
@@ -47,10 +47,10 @@ function runTests() {
         const out = testLogic(input);
         const success = out.result === expectedResult && out.toast.includes(expectedToastSubstring);
         if (success) {
-            console.log(`✅ ${testName}`);
+            console.log(`PASS: ${testName}`);
             passed++;
         } else {
-            console.log(`❌ ${testName}`);
+            console.log(`FAIL: ${testName}`);
             console.log(`   Expected Result: '${expectedResult}', Got: '${out.result}'`);
             console.log(`   Expected Toast to include: '${expectedToastSubstring}', Got: '${out.toast}'`);
             failed++;
@@ -61,7 +61,7 @@ function runTests() {
         "Empty input",
         "   ",
         "",
-        "Please enter a URL"
+        "Paste a URL first"
     );
 
     assertResult(
@@ -103,7 +103,7 @@ function runTests() {
         "Bulk URL Processing",
         "https://example.com/?utm_source=a\nhttps://example.com/?fbclid=b",
         "https://example.com/\nhttps://example.com/",
-        "Cleaned 2 URLs!"
+        "Cleaned 2 URLs"
     );
 
     console.log(`\nTests completed: ${passed} passed, ${failed} failed.`);

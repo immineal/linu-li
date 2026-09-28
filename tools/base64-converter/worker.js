@@ -1,4 +1,3 @@
-// Base64 chars
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 function encodeBase64Chunk(bytes, isLast) {
@@ -7,7 +6,6 @@ function encodeBase64Chunk(bytes, isLast) {
     const remainder = len % 3;
     const end = len - remainder;
 
-    // Process in multiples of 3
     for (let i = 0; i < end; i += 3) {
         result += chars[bytes[i] >> 2];
         result += chars[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4)];
@@ -15,7 +13,7 @@ function encodeBase64Chunk(bytes, isLast) {
         result += chars[bytes[i + 2] & 63];
     }
 
-    // Handle padding for the final chunk
+    // Only the final chunk may end on a partial group and get padding
     if (isLast && remainder > 0) {
         if (remainder === 1) {
             result += chars[bytes[end] >> 2];
@@ -38,7 +36,7 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof self !== 'undefined') {
     self.onmessage = async function(e) {
         const { file } = e.data;
-        const chunkSize = 3 * 1024 * 1024; // 3MB multiples for perfect Base64 padding (since 3 bytes = 4 b64 chars)
+        const chunkSize = 3 * 1024 * 1024; // a multiple of 3, so no chunk but the last needs padding
         let offset = 0;
 
         try {

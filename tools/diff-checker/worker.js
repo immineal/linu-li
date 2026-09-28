@@ -1,7 +1,6 @@
 importScripts('../../assets/vendor/diff.min.js');
 importScripts('../../assets/vendor/highlight.min.js');
 
-// Helper for Highlighting
 function formatCode(code, language) {
     if (!code || code.trim() === '') return code || ' ';
     try {
@@ -9,7 +8,6 @@ function formatCode(code, language) {
             return hljs.highlight(code, { language }).value;
         }
     } catch (e) { }
-    // Fallback: simple escape
     return code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
@@ -32,13 +30,14 @@ self.onmessage = function(e) {
     let diffObj = null;
     let language = 'plaintext';
 
-    // Detect Language for formatting (only if we have right side text)
+    // The language is guessed from the new version only, and from its first
+    // thousand characters, because highlightAuto tries every grammar it has.
     if (text2 && typeof text2 === 'string') {
         try {
             const detected = hljs.highlightAuto(text2.slice(0, 1000));
             language = detected.language || 'plaintext';
         } catch (err) {
-            console.error("Worker highlight detection error", err);
+            console.error('Language detection failed', err);
         }
     }
 
@@ -63,7 +62,6 @@ self.onmessage = function(e) {
     }
 
 
-    // Calculate Inline Rows
     const inlineRows = [];
     let lineNumLeft = 1;
     let lineNumRight = 1;
@@ -84,7 +82,8 @@ self.onmessage = function(e) {
         });
     });
 
-    // Calculate Side-by-Side Rows
+    // Removed and added lines are held back until the next unchanged part,
+    // then paired up so a changed line sits opposite its replacement.
     let sideRows = [];
     let leftBuffer = [];
     let rightBuffer = [];
