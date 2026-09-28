@@ -3,7 +3,7 @@ importScripts('../../assets/vendor/pdf-lib.min.js');
 self.onmessage = async (e) => {
     const files = e.data.files;
     if (!files || files.length < 2) {
-        self.postMessage({ type: 'error', message: 'Please select at least 2 PDFs to merge.' });
+        self.postMessage({ type: 'error', message: 'Add at least two PDFs.' });
         return;
     }
 
@@ -16,22 +16,19 @@ self.onmessage = async (e) => {
             const file = files[i];
             const fileArrayBuffer = await file.arrayBuffer();
 
-            // Load the source PDF, ignoring encryption to bypass owner passwords
+            // ignoreEncryption lets through files that only carry an owner password (no printing, no copying)
             const pdf = await PDFDocument.load(fileArrayBuffer, { ignoreEncryption: true });
             const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
 
-            // Add each page to the new document
             copiedPages.forEach((page) => mergedPdf.addPage(page));
 
-            // Send progress update
+            // The last 10% is left for save()
             const percent = Math.round(((i + 1) / totalFiles) * 90);
             self.postMessage({ type: 'progress', percent });
         }
 
-        // Serialize the PDFDocument to bytes
         const mergedPdfBytes = await mergedPdf.save();
 
-        // Send the final result back
         self.postMessage({ type: 'done', data: mergedPdfBytes });
 
     } catch (error) {

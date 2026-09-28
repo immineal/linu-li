@@ -14,7 +14,6 @@ self.onmessage = async function(e) {
         for (let i = 0; i < indicesToExtract.length; i++) {
             const pageIndex = indicesToExtract[i];
 
-            // Create new PDF for single page
             const newPdf = await PDFLib.PDFDocument.create();
             const [copiedPage] = await newPdf.copyPages(loadedPdfDoc, [pageIndex]);
             newPdf.addPage(copiedPage);
@@ -22,7 +21,7 @@ self.onmessage = async function(e) {
             const pdfBytes = await newPdf.save();
             const pageNum = pageIndex + 1;
 
-            // Filename padding (e.g., page_01.pdf) for correct sorting
+            // Zero-padded so page_10 does not sort before page_2
             const pad = totalPages > 99 ? 3 : (totalPages > 9 ? 2 : 1);
             const numStr = String(pageNum).padStart(pad, '0');
 

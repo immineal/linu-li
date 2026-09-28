@@ -38,7 +38,7 @@ const DEPLOY_NOTES = [/* __DEPLOY_NOTES__ */];
 // of the cache changes, and at no other time. v3 is inherited once, below.
 const CACHE_NAME = 'll-toolbox-v4';
 
-// 1. Core Assets (Always cached immediately)
+// Fetched on install, before any page has asked for them.
 // Absolute paths: the worker runs at the root, not next to these files.
 const PRECACHE_URLS = [
     '/',

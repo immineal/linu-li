@@ -118,7 +118,7 @@ async function main() {
             }
         });
 
-        await runTest("Presets execute setRatio successfully", (document, window) => {
+        await runTest("Preset buttons set the ratio", (document, window) => {
             const ratioW = document.getElementById('ratioW');
             const ratioH = document.getElementById('ratioH');
 

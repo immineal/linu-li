@@ -12,7 +12,7 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Base64 Converter</h1>
-                <p>Encode text and images to Base64 strings, or decode strings back to readable text.</p>
+                <p>Encode text or any file as Base64, or decode Base64 back into text. Images, audio and PDFs get a preview.</p>
             </div>
 
             <div class="card">
@@ -27,7 +27,7 @@
 
                 <div id="textModeSection">
                     <label for="textInput">Input Text / Base64 String</label>
-                    <textarea id="textInput" class="code-editor" placeholder="Type text to encode, or paste a Base64 string to decode..."></textarea>
+                    <textarea id="textInput" class="code-editor" placeholder="Text to encode, or Base64 to decode"></textarea>
                     
                     <div class="button-group">
                         <button class="button" id="encodeBtn">Encode to Base64</button>
@@ -38,15 +38,14 @@
 
                 <div id="imageModeSection" class="hidden">
                     <div class="drop-zone" id="dropZone">
-                        <span class="drop-icon">📄</span>
-                        <p>Drag & Drop any file here</p>
-                        <p style="font-size: 0.8rem; color: var(--ink-secondary);">(Images, Audio, Video, PDF, Archives, etc.)</p>
+                        <p>Drop a file here, or click to pick one</p>
+                        <p style="font-size: 0.8rem; color: var(--ink-secondary);">Any kind of file</p>
                         <input type="file" id="fileInput" class="hidden" accept="*">
                     </div>
                     
                     <ul class="file-list" id="fileList"></ul>
                     <div id="progressContainer" class="hidden" style="margin-top: 1rem; text-align: center; color: var(--ink-secondary);">
-                        <p id="progressText">Processing... 0 MB</p>
+                        <p id="progressText">Encoding… 0 MB</p>
                     </div>
                 </div>
 
@@ -55,7 +54,7 @@
                     
                     <div id="imagePreviewContainer" class="hidden" style="text-align: center; margin-bottom: 1.5rem; padding: 1rem; background: var(--paper); border: 1px solid var(--border); border-radius: 4px;">
                         <img id="imagePreview" src="" alt="Preview" style="max-width: 100%; max-height: 300px; height: auto; border-radius: 4px;">
-                        <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem; margin-bottom: 0;">Image Preview (Auto-detected)</p>
+                        <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem; margin-bottom: 0;">Preview</p>
                     </div>
 
                     <textarea id="outputArea" class="code-editor" readonly></textarea>
@@ -72,7 +71,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        // --- DOM ELEMENTS ---
         const modeTextBtn = document.getElementById('modeTextBtn');
         const modeImageBtn = document.getElementById('modeImageBtn');
         const textModeSection = document.getElementById('textModeSection');
@@ -92,17 +90,15 @@
         const imagePreviewContainer = document.getElementById('imagePreviewContainer');
         const imagePreview = document.getElementById('imagePreview');
 
-        // --- STATE ---
-        let currentMode = 'text'; // 'text' or 'image'
+        let currentMode = 'text'; // or 'image', which is the file mode
 
-        // --- 1. MODE SWITCHING LOGIC ---
         function switchMode(mode) {
             currentMode = mode;
             resultBox.classList.add('hidden');
             outputArea.value = '';
             imagePreviewContainer.classList.add('hidden');
             imagePreviewContainer.innerHTML = '';
-            fileList.innerHTML = ''; // Clear file list
+            fileList.innerHTML = '';
 
             if (mode === 'text') {
                 textModeSection.classList.remove('hidden');
@@ -122,9 +118,9 @@
         modeTextBtn.addEventListener('click', () => switchMode('text'));
         modeImageBtn.addEventListener('click', () => switchMode('image'));
 
-        // --- 2. TEXT LOGIC (UTF-8 SUPPORT & AUTO-IMAGE DETECT) ---
-        
-        // Helper: Unicode-safe Encode
+        // btoa() only takes Latin-1, so text goes through UTF-8 bytes first.
+        // The bytes go to fromCharCode in chunks because one call with a long
+        // array throws a RangeError.
         function utf8_to_b64(str) {
             try {
                 const bytes = new TextEncoder().encode(str);
@@ -135,20 +131,17 @@
                 }
                 return window.btoa(binString);
             } catch (e) {
-                throw new Error('Encoding failed.');
+                throw new Error('Could not encode this text');
             }
         }
 
-        // Helper: Unicode-safe Decode
         function b64_to_utf8(str) {
             try {
-                // Strip Data URI prefix if present
+                // Accepts a whole data: URI, line breaks, and missing padding
                 if (str.includes('base64,')) {
                     str = str.split('base64,')[1];
                 }
-                // Strip whitespace
                 str = str.replace(/\s+/g, '');
-                // Add padding
                 while (str.length % 4 !== 0) {
                     str += '=';
                 }
@@ -158,22 +151,20 @@
                 for (let i = 0; i < binString.length; i++) {
                     bytes[i] = binString.charCodeAt(i);
                 }
-                // fatal: true ensures it throws if it's binary data and not valid text
+                // fatal: true throws on bytes that are not UTF-8 text, instead of
+                // showing a screen of replacement characters
                 return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
             } catch (e) {
-                throw new Error('Invalid Base64 string.');
+                throw new Error('Not valid Base64, or not text once decoded');
             }
         }
 
-        // --- AUTO MEDIA DETECTION ON INPUT ---
         textInput.addEventListener('input', () => {
             const val = textInput.value.trim();
             if (!val) {
-                // If empty, hide preview if it was shown
                 if (imagePreviewContainer.classList.contains('hidden') === false) {
                     imagePreviewContainer.classList.add('hidden');
                     imagePreviewContainer.innerHTML = '';
-                    // If no output area content, hide result box too
                     if (!outputArea.value) resultBox.classList.add('hidden');
                 }
                 return;
@@ -183,31 +174,27 @@
 
         function detectAndPreviewMedia(str) {
             let mediaSrc = null;
-            let mediaType = null; // 'image', 'audio', 'video', 'pdf'
+            let mediaType = null; // 'image', 'audio', 'video' or 'pdf'
 
-            // 1. Check for explicit Data URI (e.g., data:image/png;base64,...)
             const dataUriMatch = str.match(/^data:(image|audio|video|application\/pdf)[\w\/+-]*;base64,/i);
             if (dataUriMatch) {
                 mediaSrc = str;
                 mediaType = dataUriMatch[1];
                 if (mediaType === 'application/pdf') mediaType = 'pdf';
             } 
-            // 2. Check for Raw Base64 Signatures (Magic Numbers)
+            // Without a data: prefix the type is guessed from the first bytes of
+            // the file, as they look once encoded (\x89PNG is iVBORw0KGgo).
             else {
-                // Images
                 if (str.startsWith('iVBORw0KGgo')) { mediaSrc = `data:image/png;base64,${str}`; mediaType = 'image'; }
                 else if (str.startsWith('/9j/')) { mediaSrc = `data:image/jpeg;base64,${str}`; mediaType = 'image'; }
                 else if (str.startsWith('R0lGOD')) { mediaSrc = `data:image/gif;base64,${str}`; mediaType = 'image'; }
-                else if (str.startsWith('UklGR')) { mediaSrc = `data:image/webp;base64,${str}`; mediaType = 'image'; } // Note: WEBP could also be RIFF (WAV/AVI) but we assume image for WEBP
-                // Audio
+                else if (str.startsWith('UklGR')) { mediaSrc = `data:image/webp;base64,${str}`; mediaType = 'image'; } // RIFF, which WAV and AVI also start with
                 else if (str.startsWith('SUQzAAA')) { mediaSrc = `data:audio/mp3;base64,${str}`; mediaType = 'audio'; } // ID3
                 else if (str.startsWith('T2dnUw')) { mediaSrc = `data:audio/ogg;base64,${str}`; mediaType = 'audio'; } // OggS
-                // PDF
                 else if (str.startsWith('JVBERi0xLjQ=')) { mediaSrc = `data:application/pdf;base64,${str}`; mediaType = 'pdf'; } // %PDF-1.4
             }
 
             if (mediaSrc) {
-                // Clear previous contents
                 imagePreviewContainer.innerHTML = '';
 
                 let element;
@@ -229,11 +216,11 @@
                 }
 
                 element.src = mediaSrc;
-                element.id = 'imagePreview'; // Maintain id for generic references if any
+                element.id = 'imagePreview'; // tests/test-base64-converter.js looks for it by this id
 
                 const label = document.createElement('p');
                 label.style.cssText = "font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem; margin-bottom: 0;";
-                label.innerText = `Media Preview (Auto-detected ${mediaType})`;
+                label.innerText = `Preview (looks like ${mediaType === 'pdf' ? 'a PDF' : mediaType})`;
 
                 imagePreviewContainer.appendChild(element);
                 imagePreviewContainer.appendChild(label);
@@ -249,30 +236,30 @@
         encodeBtn.addEventListener('click', () => {
             const input = textInput.value.trim();
             if (!input) {
-                showToast('Please enter text to encode', 'error');
+                showToast('Nothing to encode', 'error');
                 return;
             }
             try {
                 const result = utf8_to_b64(input);
                 showResult(result);
-                showToast('Encoded successfully', 'success');
+                showToast('Encoded', 'success');
             } catch (err) {
-                showToast('Encoding error', 'error');
+                showToast('Could not encode this text', 'error');
             }
         });
 
         decodeBtn.addEventListener('click', () => {
             const input = textInput.value.trim();
             if (!input) {
-                showToast('Please enter a string to decode', 'error');
+                showToast('Nothing to decode', 'error');
                 return;
             }
             try {
                 const result = b64_to_utf8(input);
                 showResult(result);
-                showToast('Decoded successfully', 'success');
+                showToast('Decoded', 'success');
             } catch (err) {
-                showToast('Invalid Base64 string provided', 'error');
+                showToast('Not valid Base64, or not text once decoded', 'error');
             }
         });
 
@@ -284,10 +271,8 @@
             textInput.focus();
         });
 
-        // --- 3. FILE LOGIC (WITH WORKER) ---
-
         let currentWorker = null;
-        let fileChunks = []; // Store chunks for clipboard
+        let fileChunks = []; // kept whole for Copy; the textarea only shows the first megabyte
         const progressContainer = document.getElementById('progressContainer');
         const progressText = document.getElementById('progressText');
         
@@ -296,10 +281,8 @@
             
             const file = files[0];
             
-            // Update UI with file info
             updateFileList(file);
             
-            // Clean up previous run
             if (currentWorker) {
                 currentWorker.terminate();
             }
@@ -308,16 +291,12 @@
             resultBox.classList.add('hidden');
             imagePreviewContainer.classList.add('hidden');
             progressContainer.classList.remove('hidden');
-            progressText.innerText = 'Processing... 0 MB';
+            progressText.innerText = 'Encoding… 0 MB';
 
-            // Start Worker
-            // When trailing slashes on URL are omitted, browser might request /tools/worker.js
-            // To ensure it fetches from the current directory reliably:
             currentWorker = new Worker('./worker.js');
 
             let totalBytesProcessed = 0;
 
-            // Add mime-type prefix for Data URI if possible
             let prefix = '';
             if (file.type) {
                 prefix = `data:${file.type};base64,`;
@@ -328,34 +307,35 @@
                 const msg = e.data;
                 if (msg.type === 'chunk') {
                     fileChunks.push(msg.chunk);
-                    totalBytesProcessed += (msg.chunk.length / 4) * 3; // Approx size
-                    progressText.innerText = `Processing... ${(totalBytesProcessed / (1024 * 1024)).toFixed(1)} MB`;
+                    totalBytesProcessed += (msg.chunk.length / 4) * 3; // back from Base64 length to bytes
+                    progressText.innerText = `Encoding… ${(totalBytesProcessed / (1024 * 1024)).toFixed(1)} MB`;
                 } else if (msg.type === 'done') {
                     progressContainer.classList.add('hidden');
                     showToast('File converted to Base64', 'success');
 
-                    // Show result, avoid crashing on massive strings
+                    // Putting hundreds of megabytes into a textarea hangs the tab, so
+                    // it gets the first megabyte.
                     let previewString = '';
                     let totalSize = 0;
                     for(let i = 0; i < fileChunks.length; i++) {
                         previewString += fileChunks[i];
-                        if (previewString.length > 1024 * 1024) { // Max 1MB preview
-                            previewString = previewString.substring(0, 1024 * 1024) + '\n\n... [Truncated for preview due to file size]';
+                        if (previewString.length > 1024 * 1024) {
+                            previewString = previewString.substring(0, 1024 * 1024) + '\n\n[Only the first megabyte is shown. Copy Result copies all of it.]';
                             break;
                         }
                     }
                     showResult(previewString);
 
-                    // Preview if it's media (we use a limited subset for prefix or full string)
+                    // The type is recognised from the prefix and the first chunk
                     if (prefix && fileChunks.length > 1) {
-                        detectAndPreviewMedia(prefix + fileChunks[1]); // Pass prefix and first chunk to detect
+                        detectAndPreviewMedia(prefix + fileChunks[1]);
                     } else if (fileChunks.length > 0) {
                         detectAndPreviewMedia(fileChunks[0]);
                     }
 
                 } else if (msg.type === 'error') {
                     progressContainer.classList.add('hidden');
-                    showToast('Error processing file: ' + msg.error, 'error');
+                    showToast('Could not read the file: ' + msg.error, 'error');
                 }
             };
             
@@ -369,7 +349,7 @@
         }
 
         function updateFileList(file) {
-            fileList.innerHTML = ''; // Only allowing single file for this tool
+            fileList.innerHTML = ''; // one file at a time
             const li = document.createElement('li');
             li.className = 'file-item';
             li.innerHTML = `
@@ -382,7 +362,7 @@
             fileList.appendChild(li);
         }
 
-        // Exposed to global scope for the onclick in HTML
+        // global for the onclick on the remove button
         window.clearImageSelection = function() {
             if (currentWorker) {
                 currentWorker.terminate();
@@ -390,33 +370,30 @@
             }
             fileChunks = [];
             fileList.innerHTML = '';
-            fileInput.value = ''; // Reset input
+            fileInput.value = '';
             progressContainer.classList.add('hidden');
             resultBox.classList.add('hidden');
             imagePreviewContainer.classList.add('hidden');
             imagePreviewContainer.innerHTML = '';
         };
 
-        // --- 4. SHARED HELPERS ---
-
         function showResult(content) {
             outputArea.value = content;
             resultBox.classList.remove('hidden');
-            // Auto-scroll to result
             resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        // Helper: Copy Result (Exposed to Window)
         window.copyResult = async function() {
             if (fileChunks.length > 0 && currentMode === 'image') {
                 try {
-                    // Blob-based copy for massive arrays without exceeding V8 string limits
+                    // Copied as a Blob because joining the chunks into one string
+                    // can exceed the engine's maximum string length.
                     const blob = new Blob(fileChunks, { type: 'text/plain' });
                     const item = new ClipboardItem({ 'text/plain': blob });
                     await navigator.clipboard.write([item]);
-                    showToast('Copied to clipboard!', 'success');
+                    showToast('Copied to clipboard', 'success');
                 } catch (err) {
-                    showToast('Failed to copy massive file', 'error');
+                    showToast('Could not copy. The file may be too large for the clipboard.', 'error');
                 }
             } else {
                 const content = outputArea.value;

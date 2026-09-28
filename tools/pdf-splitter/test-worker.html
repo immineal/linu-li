@@ -9,7 +9,7 @@
             importScripts('../../assets/vendor/pdf-lib.min.js', '../../assets/vendor/jszip.min.js');
             self.onmessage = function(e) {
                 if (typeof PDFLib !== 'undefined' && typeof JSZip !== 'undefined') {
-                    self.postMessage('Loaded libraries successfully');
+                    self.postMessage('Libraries loaded');
                 } else {
                     self.postMessage('Failed to load libraries');
                 }

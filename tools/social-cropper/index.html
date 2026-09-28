@@ -23,7 +23,6 @@
         #image-to-crop { max-width: 100%; display: block; }
         #cropped-result { max-width: 100%; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
-        /* Circular Crop Styling */
         .cropper-view-box.circle-crop {
             border-radius: 50%;
             outline: 0;
@@ -32,8 +31,7 @@
         .cropper-face.circle-crop {
             background-color: inherit !important;
         }
-        
-        /* Toolbar Icons */
+
         .toolbar {
             display: flex;
             gap: 1rem;
@@ -52,14 +50,13 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Social Media Cropper</h1>
-                <p>Crop, rotate, and mask images for social media profiles and posts.</p>
+                <p>Crops a picture to the shapes Instagram, Twitter and LinkedIn expect, with rotation and a round mask for profile photos.</p>
             </div>
 
             <div class="card">
                 
                 <div class="drop-zone" id="dropZone">
-                    <span class="drop-icon">🖼️</span>
-                    <p>Drag & Drop an image here</p>
+                    <p>Drop an image here</p>
                     <p style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.5rem;">Supports JPG, PNG, WEBP</p>
                     <input type="file" id="fileInput" class="hidden" accept="image/*">
                 </div>
@@ -69,7 +66,6 @@
                         <img id="image-to-crop" src="" alt="Image to crop">
                     </div>
 
-                    <!-- NEW: Toolbar for Rotation & Mask -->
                     <div class="toolbar">
                         <div class="tool-control">
                             <label for="rotateRange">Rotation: <span id="rotateVal">0</span>°</label>
@@ -98,7 +94,7 @@
                             <label for="formatSelect" style="display: block; margin-bottom: 0.5rem;">Export Format</label>
                             <select id="formatSelect" data-save style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;">
                                 <option value="png">PNG (Transparency)</option>
-                                <option value="webp">WebP (Optimized)</option>
+                                <option value="webp">WebP</option>
                                 <option value="jpeg">JPEG (White Background)</option>
                             </select>
                         </div>
@@ -116,7 +112,7 @@
                     <div class="button-group">
                         <button class="button" id="btnCrop">Crop & Export</button>
                         <button class="button secondary outline" id="btnReset">Reset</button>
-                        <button class="button outline" id="btnClear">Upload New</button>
+                        <button class="button outline" id="btnClear">Choose Another</button>
                     </div>
                 </div>
 
@@ -196,7 +192,7 @@
             if (!files.length) return;
             const file = files[0];
             if (!file.type.startsWith('image/')) {
-                showToast('Please upload an image file.', 'error');
+                showToast('That file is not an image.', 'error');
                 return;
             }
 
@@ -234,7 +230,6 @@
             });
         }
 
-        // --- Feature: Rotation ---
         rotateRange.addEventListener('input', (e) => {
             if (!cropper) return;
             const val = parseInt(e.target.value);
@@ -242,7 +237,7 @@
             rotateVal.textContent = val;
         });
 
-        // --- Feature: Circular Mask Visuals ---
+        // Remembered so switching the round mask off gives back the ratio it replaced.
         let previousAspectRatio = 1;
 
         circleToggle.addEventListener('change', (e) => {
@@ -250,23 +245,20 @@
             const viewBox = document.querySelector('.cropper-view-box');
             
             if (e.target.checked) {
-                // Save current aspect ratio visually selected
                 const activeBtn = document.querySelector('.button-group .active-ratio, .button-group .secondary');
                 if (activeBtn) {
                     previousAspectRatio = parseFloat(activeBtn.getAttribute('data-ratio'));
                 } else {
                     previousAspectRatio = NaN;
                 }
-                cropper.setAspectRatio(1); // Force square for circle
+                cropper.setAspectRatio(1);
                 viewBox.classList.add('circle-crop');
-                // Disable aspect ratio buttons visually
                 ratioButtons.forEach(b => b.disabled = true);
                 updateRatioButtons(document.querySelector('[data-ratio="1"]'));
             } else {
                 viewBox.classList.remove('circle-crop');
                 ratioButtons.forEach(b => b.disabled = false);
 
-                // Restore previous aspect ratio
                 cropper.setAspectRatio(previousAspectRatio);
                 const prevBtn = Array.from(ratioButtons).find(b => parseFloat(b.getAttribute('data-ratio')) === previousAspectRatio || (isNaN(previousAspectRatio) && isNaN(parseFloat(b.getAttribute('data-ratio')))));
                 if (prevBtn) {
@@ -334,7 +326,7 @@
             }
         });
 
-        // --- Feature: Round Export Logic ---
+        // The round mask in the editor is only CSS; the export has to cut the circle itself.
         function getRoundedCanvas(sourceCanvas, format) {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
@@ -394,7 +386,7 @@
             btnDownload.textContent = `Download ${format.toUpperCase()}`;
             
             resultBox.scrollIntoView({ behavior: 'smooth' });
-            showToast('Image cropped!', 'success');
+            showToast('Cropped.', 'success');
         });
 
         btnReset.addEventListener('click', () => {

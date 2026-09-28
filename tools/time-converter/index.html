@@ -11,13 +11,11 @@
     <script src="../../assets/vendor/dayjs-utc.js"></script>
     <script src="../../assets/vendor/dayjs-relativeTime.js"></script>
     <script src="../../assets/vendor/dayjs-localizedFormat.js"></script>
-    <!-- Added Timezone Plugin -->
     <script src="../../assets/vendor/dayjs-timezone.js"></script>
 
     <style>
-        /* Polyfill style to make datetime input match the project's text inputs 
-           (Since the base CSS targets input[type="text"] specifically)
-        */
+        /* The base CSS only styles input[type="text"], so the date picker is
+           made to match here. */
         input[type="datetime-local"] {
             width: 100%; 
             padding: 0.8rem 1rem; 
@@ -25,7 +23,7 @@
             border: 1px solid var(--border); 
             background: var(--input-bg); 
             color: var(--input-text);
-            font-family: var(--font-mono); /* Mono looks better for aligning numbers */
+            font-family: var(--font-mono);
             font-size: 0.95rem; 
             border-radius: 4px;
             transition: all 0.3s ease;
@@ -35,8 +33,7 @@
             border-color: var(--accent); 
             box-shadow: 0 0 0 3px rgba(196, 77, 60, 0.1);
         }
-        
-        /* Hero Section Styling */
+
         .hero-time {
             font-family: var(--font-heading);
             color: var(--accent-secondary);
@@ -51,7 +48,7 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Unix Timestamp Converter</h1>
-                <p>View the current epoch time or convert between timestamps, local time, and specific timezones.</p>
+                <p>Shows the current Unix time, and converts between timestamps and dates in your own time zone or another one.</p>
             </div>
 
             <div class="card">
@@ -69,20 +66,19 @@
                     </div>
                 </div>
 
-                <!-- Two-column aligned grid: rows lock across columns -->
+                <!-- One grid, not two columns, so each row lines up across both
+                     sides. Children go left, right, left, right. -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" id="converterGrid">
 
-                    <!-- ── ROW: Section headings ── -->
                     <h3 style="margin-bottom: 0.75rem;">Timestamp &rarr; Date</h3>
                     <h3 style="margin-bottom: 0.75rem;">Date &rarr; Timestamp</h3>
 
-                    <!-- ── ROW: First inputs ── -->
                     <div>
                         <label for="tsInput">Enter Timestamp</label>
                         <input type="number" id="tsInput" placeholder="e.g. 1678886400">
                     </div>
                     <div>
-                        <label for="nlInput">Natural Language Date <span style="font-size: 0.8em; color: var(--ink-secondary); font-weight: normal;">(Optional, requires internet)</span></label>
+                        <label for="nlInput">Natural Language Date <span style="font-size: 0.8em; color: var(--ink-secondary); font-weight: normal;">(fetches a parser from jsDelivr on first use)</span></label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" id="nlInput" placeholder="e.g. Next Friday at 5pm" style="margin-bottom: 0; flex: 1;">
                             <button class="button sm outline" id="parseNlBtn" style="flex-shrink: 0; align-self: stretch;">Parse</button>
@@ -90,7 +86,6 @@
                         <div id="nlFeedback" style="font-size: 0.8rem; color: var(--accent); margin-top: 0.4rem; min-height: 1.1em;"></div>
                     </div>
 
-                    <!-- ── ROW: Format / Timezone label+select ── -->
                     <div>
                         <label for="tsFormat">Input Format</label>
                         <select id="tsFormat" data-save>
@@ -110,11 +105,9 @@
                         </select>
                     </div>
 
-                    <!-- ── ROW: Timezone / Date-time picker ── -->
                     <div>
                         <label for="targetTz">Convert to Timezone</label>
                         <select id="targetTz" data-save>
-                            <!-- Populated via JS -->
                         </select>
                     </div>
                     <div>
@@ -125,7 +118,6 @@
                         </div>
                     </div>
 
-                    <!-- ── ROW: Buttons ── -->
                     <div class="button-group" style="margin-top: 0.5rem;">
                         <button class="button" id="convertToDateBtn">Convert</button>
                         <button class="button outline" id="clearTsBtn">Clear</button>
@@ -135,7 +127,6 @@
                         <button class="button outline" id="clearDateBtn">Clear</button>
                     </div>
 
-                    <!-- ── ROW: Results (each spans its column, shown/hidden independently) ── -->
                     <div class="result-box hidden" id="tsResultBox">
                         <label>GMT / UTC</label>
                         <input type="text" readonly id="resUtc" style="font-family: var(--font-mono); font-size: 0.9rem;" onclick="this.select()">
@@ -165,7 +156,6 @@
 
                 </div>
                 <style>
-                    /* Stack to single column on mobile */
                     @media (max-width: 768px) {
                         #converterGrid { grid-template-columns: 1fr !important; }
                     }
@@ -178,19 +168,16 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        // Initialize Day.js plugins
         dayjs.extend(window.dayjs_plugin_utc);
         dayjs.extend(window.dayjs_plugin_relativeTime);
         dayjs.extend(window.dayjs_plugin_localizedFormat);
         dayjs.extend(window.dayjs_plugin_timezone);
 
-        // DOM Elements
         const currentTimestampDisplay = document.getElementById('currentTimestamp');
         const currentHumanTimeDisplay = document.getElementById('currentHumanTime');
         const pauseBtn = document.getElementById('pauseBtn');
         const copyCurrentBtn = document.getElementById('copyCurrentBtn');
 
-        // Left Column (TS -> Date)
         const tsInput = document.getElementById('tsInput');
         const targetTz = document.getElementById('targetTz');
         const tsFormat = document.getElementById('tsFormat');
@@ -203,7 +190,6 @@
         const resZone = document.getElementById('resZone');
         const resRelative = document.getElementById('resRelative');
 
-        // Right Column (Date -> TS)
         const manualTz = document.getElementById('manualTz');
         const nlInput = document.getElementById('nlInput');
         const parseNlBtn = document.getElementById('parseNlBtn');
@@ -216,27 +202,25 @@
         const resTsSeconds = document.getElementById('resTsSeconds');
         const resTsMillis = document.getElementById('resTsMillis');
 
-        // State
         let isPaused = false;
         let timerInterval;
 
-        // Common Timezones List
         const commonTimezones = [
             { name: "UTC (Coordinated Universal Time)", zone: "UTC" },
-            { name: "🇺🇸 New York (EST/EDT)", zone: "America/New_York" },
-            { name: "🇺🇸 Los Angeles (PST/PDT)", zone: "America/Los_Angeles" },
-            { name: "🇺🇸 Chicago (CST/CDT)", zone: "America/Chicago" },
-            { name: "🇬🇧 London (GMT/BST)", zone: "Europe/London" },
-            { name: "🇫🇷 Paris (CET/CEST)", zone: "Europe/Paris" },
-            { name: "🇩🇪 Berlin (CET/CEST)", zone: "Europe/Berlin" },
-            { name: "🇷🇺 Moscow (MSK)", zone: "Europe/Moscow" },
-            { name: "🇦🇪 Dubai (GST)", zone: "Asia/Dubai" },
-            { name: "🇮🇳 Mumbai (IST)", zone: "Asia/Kolkata" },
-            { name: "🇸🇬 Singapore (SGT)", zone: "Asia/Singapore" },
-            { name: "🇨🇳 Shanghai (CST)", zone: "Asia/Shanghai" },
-            { name: "🇯🇵 Tokyo (JST)", zone: "Asia/Tokyo" },
-            { name: "🇦🇺 Sydney (AEST/AEDT)", zone: "Australia/Sydney" },
-            { name: "🇳🇿 Auckland (NZST/NZDT)", zone: "Pacific/Auckland" }
+            { name: "New York (EST/EDT)", zone: "America/New_York" },
+            { name: "Los Angeles (PST/PDT)", zone: "America/Los_Angeles" },
+            { name: "Chicago (CST/CDT)", zone: "America/Chicago" },
+            { name: "London (GMT/BST)", zone: "Europe/London" },
+            { name: "Paris (CET/CEST)", zone: "Europe/Paris" },
+            { name: "Berlin (CET/CEST)", zone: "Europe/Berlin" },
+            { name: "Moscow (MSK)", zone: "Europe/Moscow" },
+            { name: "Dubai (GST)", zone: "Asia/Dubai" },
+            { name: "Mumbai (IST)", zone: "Asia/Kolkata" },
+            { name: "Singapore (SGT)", zone: "Asia/Singapore" },
+            { name: "Shanghai (CST)", zone: "Asia/Shanghai" },
+            { name: "Tokyo (JST)", zone: "Asia/Tokyo" },
+            { name: "Sydney (AEST/AEDT)", zone: "Australia/Sydney" },
+            { name: "Auckland (NZST/NZDT)", zone: "Pacific/Auckland" }
         ];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -244,15 +228,13 @@
             startClock();
             setDatePickerToNow();
             
-            // Try to guess user's timezone to set default selection
             const userZone = dayjs.tz.guess();
             if (userZone) {
-                // Check if it exists in our list, otherwise just default to index 0 (UTC) or try to match
+                // Only preselected when the visitor's zone is one of the fifteen
                 const exists = Array.from(targetTz.options).some(opt => opt.value === userZone);
                 if (exists) targetTz.value = userZone;
             }
 
-            // Add enter key support
             tsInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') convertToDateBtn.click();
             });
@@ -277,18 +259,15 @@
             });
         }
 
-        /* === CLOCK LOGIC === */
         function startClock() {
-            updateClock(); // Run once immediately
+            updateClock();
             timerInterval = setInterval(updateClock, 1000);
         }
 
         function updateClock() {
             if (!isPaused) {
                 const now = dayjs();
-                // Update Unix TS
                 currentTimestampDisplay.textContent = now.unix();
-                // Update Human Time
                 currentHumanTimeDisplay.textContent = now.format('dddd, MMM D, YYYY h:mm:ss A');
             }
         }
@@ -303,7 +282,6 @@
             copyToClipboard(currentTimestampDisplay.textContent);
         });
 
-        /* === DATE INPUT HELPERS === */
         function setDatePickerToNow() {
             const now = dayjs();
             // datetime-local requires format YYYY-MM-DDTHH:mm:ss
@@ -312,14 +290,13 @@
 
         setNowBtn.addEventListener('click', setDatePickerToNow);
 
-        /* === TIMESTAMP TO DATE CONVERSION === */
         convertToDateBtn.addEventListener('click', () => {
             const inputVal = tsInput.value.trim();
             const selectedZone = targetTz.value;
             const selectedFormat = tsFormat.value;
             
             if (!inputVal) {
-                showToast('Please enter a timestamp', 'error');
+                showToast('Enter a timestamp first', 'error');
                 return;
             }
 
@@ -327,7 +304,7 @@
             try {
                 tsBigInt = BigInt(inputVal);
             } catch (e) {
-                showToast('Invalid timestamp format', 'error');
+                showToast('A timestamp is a whole number', 'error');
                 return;
             }
 
@@ -368,15 +345,13 @@
             dayObj = dayjs(msValue);
 
             if (!dayObj.isValid()) {
-                showToast('Invalid date result', 'error');
+                showToast('That timestamp is out of the range a date can show', 'error');
                 return;
             }
 
-            // Render Results
             resUtc.value = dayObj.utc().format('YYYY-MM-DD HH:mm:ss [UTC]');
-            resLocal.value = dayObj.format('YYYY-MM-DD HH:mm:ss Z'); // Local
-            
-            // Convert to selected timezone
+            resLocal.value = dayObj.format('YYYY-MM-DD HH:mm:ss Z');
+
             resZone.value = dayObj.tz(selectedZone).format('YYYY-MM-DD HH:mm:ss Z');
             
             resRelative.textContent = dayObj.fromNow();
@@ -390,39 +365,33 @@
             tsResultBox.classList.add('hidden');
         });
 
-        /* === DATE TO TIMESTAMP CONVERSION === */
         convertToTsBtn.addEventListener('click', () => {
             const dateVal = dateInput.value;
             const tzMode = manualTz.value;
             
             if (!dateVal) {
-                showToast('Please select a date', 'error');
+                showToast('Pick a date first', 'error');
                 return;
             }
 
             let dayObj;
             if (tzMode === 'utc') {
-                // If UTC is selected, treat the input as UTC
                 dayObj = dayjs.utc(dateVal);
             } else {
-                // Local time
                 dayObj = dayjs(dateVal);
             }
             
             if (!dayObj.isValid()) {
-                showToast('Invalid date selected', 'error');
+                showToast('That is not a valid date', 'error');
                 return;
             }
 
             resTsSeconds.value = dayObj.unix();
             resTsMillis.value = dayObj.valueOf();
             
-            // Support BigInt scaling for micro/nano when derived from a precise value
-            // For normal date inputs, we just pad with zeros
             resTsMicro.value = BigInt(dayObj.valueOf()) * 1000n;
             resTsNano.value = BigInt(dayObj.valueOf()) * 1000000n;
 
-            // Always show them to provide feature parity with left column
             resTsMicroContainer.classList.remove('hidden');
             resTsNanoContainer.classList.remove('hidden');
 
@@ -436,11 +405,10 @@
             dateResultBox.classList.add('hidden');
         });
 
-        /* === NATURAL LANGUAGE PARSING === */
         parseNlBtn.addEventListener('click', async () => {
             const text = nlInput.value.trim();
             if (!text) {
-                nlFeedback.textContent = "Please enter some text";
+                nlFeedback.textContent = "Type a date first";
                 return;
             }
 
@@ -448,25 +416,25 @@
             parseNlBtn.disabled = true;
 
             try {
-                // Dynamically import chrono-node via ESM
+                // Imported only when someone uses this field, so opening the page
+                // makes no request to jsDelivr.
                 const chronoModule = await import('https://cdn.jsdelivr.net/npm/chrono-node@2.7.7/+esm');
                 const parsedDate = chronoModule.parseDate(text);
 
                 if (parsedDate) {
-                    nlFeedback.textContent = "Parsed successfully!";
-                    nlFeedback.style.color = "var(--success, #2e7d32)"; // Assuming a success color exists, fallback to green
+                    nlFeedback.textContent = "Found a date";
+                    nlFeedback.style.color = "var(--success, #2e7d32)";
 
-                    // Update date input and trigger conversion
                     dateInput.value = dayjs(parsedDate).format('YYYY-MM-DDTHH:mm:ss');
-                    manualTz.value = 'local'; // Chrono parses into local by default unless timezone specified
+                    manualTz.value = 'local'; // chrono returns local time unless the text names a zone
                     convertToTsBtn.click();
                 } else {
-                    nlFeedback.textContent = "Could not parse date from text";
+                    nlFeedback.textContent = "No date found in that";
                     nlFeedback.style.color = "var(--accent)";
                 }
             } catch (err) {
-                console.error("Failed to load chrono-node", err);
-                nlFeedback.textContent = "Error loading parser. Check internet connection.";
+                console.error('Could not load chrono-node', err);
+                nlFeedback.textContent = "Could not load the parser from jsDelivr. This field needs a connection.";
                 nlFeedback.style.color = "var(--accent)";
             } finally {
                 parseNlBtn.textContent = 'Parse';
@@ -474,7 +442,6 @@
             }
         });
 
-        /* === UTILITY === */
         window.copyInput = function(elementId) {
             const val = document.getElementById(elementId).value;
             copyToClipboard(val);

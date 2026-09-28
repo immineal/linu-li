@@ -1,4 +1,4 @@
-// We define the small words set here for Smart Title Case (AP style)
+// Words Smart Title leaves in lower case unless they open or close the title (AP style).
 const smallWords = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'en', 'for', 'if', 'in', 'nor', 'of', 'on', 'or', 'per', 'the', 'to', 'v', 'vs', 'via']);
 
 self.onmessage = function(e) {
@@ -22,7 +22,7 @@ self.onmessage = function(e) {
     }
 
     function smartTitleCase(t) {
-        // Matches sequence of letters/numbers (with internal hyphens/apostrophes) or sequence of non-letters/numbers
+        // A token is either a word (hyphens and apostrophes inside it allowed) or a run of everything else.
         const regex = /([\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*)|([^\p{L}\p{N}]+)/gu;
 
         let tokens = [];
@@ -48,7 +48,6 @@ self.onmessage = function(e) {
             let token = tokens[i];
             if (token.type === 'word') {
                 let lower = token.value.toLowerCase();
-                // Check if it's not a small word, or it's first/last/forced
                 if (i === firstWordIdx || i === lastWordIdx || forceCaps || !smallWords.has(lower)) {
                     res += lower.split('-').map(part => {
                         if (!part) return '';
@@ -60,9 +59,9 @@ self.onmessage = function(e) {
                 forceCaps = false;
             } else {
                 res += token.value;
-                // Force caps after terminal punctuation or start of quotes
-                // The trim() isn't sufficient for single quotes right after space, e.g., " 'the"
-                // token is " '"
+                // Capitalise after a sentence end or an opening quote or bracket. The
+                // quote can sit after a space in the same token (" 'the"), hence the
+                // second pattern.
                 if (/[:.!?—]\s*$/.test(token.value) || /[\s"'([]*["'(][\s"'([]*$/.test(token.value)) {
                     forceCaps = true;
                 }

@@ -12,21 +12,19 @@
         <div class="container">
             <div class="tool-header">
                 <h1>List Cleaner</h1>
-                <p>Organize messy lists: sort, remove duplicates, randomize, or add prefixes/suffixes.</p>
+                <p>Sorts a list, removes duplicates and empty lines, shuffles it, or puts the same text before or after every line.</p>
             </div>
 
             <div class="split-view">
                 
-                <!-- INPUT COLUMN -->
                 <div class="card" style="display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <label for="listInput" style="margin: 0;">Input List</label>
                         <span id="inputCount" style="font-size: 0.8rem; color: var(--ink-secondary);">0 lines</span>
                     </div>
-                    <textarea id="listInput" class="code-editor" style="flex-grow: 1; min-height: 400px;" placeholder="Paste your list here (one item per line)..."></textarea>
+                    <textarea id="listInput" class="code-editor" style="flex-grow: 1; min-height: 400px;" placeholder="Paste a list, one item per line"></textarea>
                 </div>
 
-                <!-- CONTROLS & OUTPUT COLUMN -->
                 <div class="card">
                     <label>Actions</label>
                     <div class="button-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem;">
@@ -74,7 +72,6 @@
         const prefixInput = document.getElementById('prefixInput');
         const suffixInput = document.getElementById('suffixInput');
 
-        // Update line count on type
         let inputTimeout;
         listInput.addEventListener('input', () => {
             clearTimeout(inputTimeout);
@@ -93,7 +90,6 @@
                 return;
             }
 
-            // Split into array
             let items = raw.split('\n');
 
             switch(action) {
@@ -113,7 +109,7 @@
                     }
                     break;
                 case 'dedup':
-                    // Use Set to remove duplicates, preserve order
+                    // A Set keeps the first occurrence, so the order stays as it was.
                     items = [...new Set(items)];
                     break;
                 case 'dedupInsensitive':
@@ -144,7 +140,6 @@
             const outLines = result === '' ? 0 : items.length;
             outputCount.textContent = `${outLines} line${outLines !== 1 ? 's' : ''}`;
             
-            // Highlight output
             listOutput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 

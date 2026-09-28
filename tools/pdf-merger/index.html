@@ -7,13 +7,11 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
-    <!-- External Libraries -->
     <script src="../../assets/vendor/pdf-lib.min.js"></script>
     <script src="../../assets/vendor/FileSaver.min.js"></script>
     <script src="../../assets/vendor/pdf.min.js"></script>
     
     <style>
-        /* Drag & Drop Reordering Styles */
         .file-item {
             cursor: grab;
             transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
@@ -40,42 +38,34 @@
         <div class="container">
             <div class="tool-header">
                 <h1>PDF Merger</h1>
-                <p>Combine multiple PDF documents into a single file. Drag items in the list to reorder.</p>
+                <p>Combines several PDFs into one, in the order of the list. Drag a file by its handle to move it.</p>
             </div>
 
             <div class="card">
                 
-                <!-- SECTION: FILE UPLOAD -->
                 <div class="drop-zone" id="dropZone">
-                    <span class="drop-icon">📄</span>
-                    <p>Drag & Drop PDF files here</p>
+                    <p>Drop PDFs here</p>
                     <span style="font-size: 0.85rem; color: var(--ink-secondary); margin-top: 0.5rem;">or click to browse</span>
                     <input type="file" id="fileInput" class="hidden" multiple accept=".pdf">
                 </div>
 
-                <!-- SECTION: FILE LIST -->
-                <ul class="file-list" id="fileList">
-                    <!-- Dynamic Content -->
-                </ul>
+                <ul class="file-list" id="fileList"></ul>
 
-                <!-- SECTION: PROGRESS BAR -->
                 <div class="progress-container" id="progressContainer">
                     <div class="progress-fill" id="progressBar"></div>
                 </div>
 
-                <!-- SECTION: CONTROLS -->
                 <div class="button-group">
                     <button class="button" id="mergeBtn" disabled>Merge PDFs</button>
                     <button class="button outline" id="clearBtn">Clear All</button>
                 </div>
 
-                <!-- SECTION: RESULTS -->
                 <div class="result-box hidden" id="resultBox">
-                    <h3>Success!</h3>
-                    <p>Your files have been merged successfully.</p>
+                    <h3>Done</h3>
+                    <p>The merged PDF is ready.</p>
                     <div class="button-group">
                         <a href="#" class="button" id="downloadBtn" download="merged.pdf">Download Merged PDF</a>
-                        <button class="button outline" id="resetBtn">Merge New Files</button>
+                        <button class="button outline" id="resetBtn">Start over</button>
                     </div>
                 </div>
 
@@ -83,16 +73,12 @@
         </div>
     </main>
     
-    <!-- CORE LAYOUT SCRIPT -->
     <script src="../../assets/js/layout.js"></script>
     
-    <!-- TOOL LOGIC -->
     <script>
-        // Configure PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
 
-        // State
-        let storedFiles = []; // Array to hold File objects
+        let storedFiles = [];
         const { PDFDocument } = PDFLib;
 
         function escapeHTML(str) {
@@ -107,7 +93,6 @@
             );
         }
 
-        // DOM Elements
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
@@ -119,17 +104,15 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const resetBtn = document.getElementById('resetBtn');
 
-        // 1. Initialize Upload Drag & Drop
         document.addEventListener('DOMContentLoaded', () => {
             setupDropZone(dropZone, fileInput, handleFiles);
         });
 
-        // 2. Handle New Files
         function handleFiles(files) {
             const newFiles = Array.from(files).filter(f => f.type === 'application/pdf');
             
             if (newFiles.length === 0 && files.length > 0) {
-                showToast('Please upload PDF files only.', 'error');
+                showToast('Only PDF files can be merged.', 'error');
                 return;
             }
 
@@ -137,16 +120,15 @@
             renderFileList();
             
             if (newFiles.length > 0) {
-                showToast(`${newFiles.length} file(s) added`, 'success');
+                showToast(newFiles.length === 1 ? '1 file added.' : `${newFiles.length} files added.`, 'success');
             }
         }
 
-        // 3. Render File List with Sortable Drag & Drop
         function renderFileList() {
             fileList.innerHTML = '';
             
             if (storedFiles.length === 0) {
-                fileList.innerHTML = '<li style="text-align:center; color:var(--ink-secondary); padding: 1rem; font-style:italic;">No files selected</li>';
+                fileList.innerHTML = '<li style="text-align:center; color:var(--ink-secondary); padding: 1rem; font-style:italic;">No files yet</li>';
                 mergeBtn.disabled = true;
                 return;
             }
@@ -156,7 +138,7 @@
             storedFiles.forEach((file, index) => {
                 const li = document.createElement('li');
                 li.className = 'file-item';
-                li.setAttribute('draggable', 'true'); // Enable drag
+                li.setAttribute('draggable', 'true');
                 li.setAttribute('data-index', index);
                 
                 li.innerHTML = `
@@ -170,19 +152,14 @@
                             <div class="file-size">${formatFileSize(file.size)}</div>
                         </div>
                     </div>
-                    <button class="remove-file" data-index="${index}" title="Remove" style="pointer-events: auto;">×</button>
+                    <button class="remove-file" data-index="${index}" title="Remove" aria-label="Remove file" style="pointer-events: auto;">×</button>
                 `;
-                
-                // Add Drag Listeners to list item
-                addDragListeners(li);
-                
-                fileList.appendChild(li);
 
-                // Render Thumbnail
+                addDragListeners(li);
+                fileList.appendChild(li);
                 renderThumbnail(file, index);
             });
 
-            // Add remove listeners
             document.querySelectorAll('.remove-file').forEach(btn => {
                 btn.addEventListener('click', (e) => removeFile(parseInt(e.target.dataset.index)));
             });
@@ -199,7 +176,6 @@
                 const page = await pdf.getPage(1);
 
                 const viewport = page.getViewport({ scale: 1 });
-                // Target width 40px
                 const scale = 40 / viewport.width;
                 const scaledViewport = page.getViewport({ scale });
 
@@ -208,7 +184,7 @@
                 canvas.height = scaledViewport.height;
                 const ctx = canvas.getContext('2d');
 
-                // White background to prevent transparent black issue
+                // An unpainted canvas is transparent and shows up black in the thumbnail
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -221,17 +197,16 @@
                 container.appendChild(canvas);
                 URL.revokeObjectURL(url);
             } catch (err) {
-                console.error("Thumbnail error:", err);
-                container.innerHTML = '<span title="Encrypted file or read error. Merging user-password files might fail." style="font-size: 1.2rem; cursor: help;">🔒</span>';
+                console.error(err);
+                container.innerHTML = '<span title="No preview. The file is encrypted or damaged. A file that needs a password to open will not merge." style="font-size: 1rem; color: #888; cursor: help;">?</span>';
 
-                // Show a gentle warning about encryption
                 if (err.name === 'PasswordException') {
-                    showToast(`"${file.name}" is encrypted. Merging may fail if it requires a user password.`, 'warning');
+                    showToast(`"${file.name}" is encrypted. If it needs a password to open, it will not merge.`, 'warning');
                 }
             }
         }
 
-        // --- Drag & Drop Sorting Logic ---
+        // Reordering uses pointer events rather than HTML5 drag and drop, which does not fire on touch screens
         let draggedItem = null;
         let startIndex = -1;
         let originalY = 0;
@@ -239,21 +214,20 @@
         let placeholder = null;
 
         function addDragListeners(item) {
-            item.removeAttribute('draggable'); // Remove default HTML5 drag
+            item.removeAttribute('draggable');
 
             const handle = item.querySelector('.handle');
             if (!handle) return;
 
             handle.addEventListener('pointerdown', (e) => {
-                e.preventDefault(); // Prevent text selection
+                e.preventDefault(); // otherwise the drag selects text
 
-                // Initialize drag state
                 draggedItem = item;
                 startIndex = +item.getAttribute('data-index');
                 originalY = item.offsetTop;
                 currentY = e.clientY;
 
-                // Create a placeholder to keep spacing
+                // Keeps the gap open while the item itself floats
                 placeholder = document.createElement('li');
                 placeholder.className = 'file-item placeholder';
                 placeholder.style.height = `${item.offsetHeight}px`;
@@ -263,7 +237,6 @@
 
                 item.parentNode.insertBefore(placeholder, item);
 
-                // Style the dragged item for absolute positioning
                 const rect = item.getBoundingClientRect();
                 item.style.position = 'absolute';
                 item.style.top = `${originalY}px`;
@@ -285,10 +258,9 @@
             const newTop = originalY + dy;
             draggedItem.style.top = `${newTop}px`;
 
-            // Find where to place the placeholder
             const listItems = Array.from(fileList.children).filter(child => child !== draggedItem && child !== placeholder && child.classList.contains('file-item'));
 
-            let targetIndex = listItems.length; // Default to end
+            let targetIndex = listItems.length;
             for (let i = 0; i < listItems.length; i++) {
                 const child = listItems[i];
                 const childRect = child.getBoundingClientRect();
@@ -313,10 +285,8 @@
             document.removeEventListener('pointermove', onPointerMove);
             document.removeEventListener('pointerup', onPointerUp);
 
-            // Insert draggedItem before placeholder
             fileList.insertBefore(draggedItem, placeholder);
-            
-            // Clean up styles
+
             draggedItem.style.position = '';
             draggedItem.style.top = '';
             draggedItem.style.left = '';
@@ -325,29 +295,24 @@
             draggedItem.style.boxShadow = '';
             draggedItem.classList.remove('dragging');
 
-            // Remove placeholder
             if (placeholder && placeholder.parentNode) {
                 placeholder.parentNode.removeChild(placeholder);
             }
 
-            // Figure out the new order
             const items = Array.from(fileList.querySelectorAll('.file-item:not(.placeholder)'));
             const newIndex = items.indexOf(draggedItem);
 
             if (startIndex !== newIndex && newIndex !== -1) {
-                // Update the storedFiles array
                 const movedFile = storedFiles.splice(startIndex, 1)[0];
                 storedFiles.splice(newIndex, 0, movedFile);
-                renderFileList(); // Re-render to fix indices
+                renderFileList(); // the data-index attributes are stale after a move
             }
 
-            // Reset state
             draggedItem = null;
             placeholder = null;
             startIndex = -1;
         }
 
-        // 4. File Manipulation
         function removeFile(index) {
             storedFiles.splice(index, 1);
             renderFileList();
@@ -355,19 +320,17 @@
 
         function clearAll() {
             storedFiles = [];
-            fileInput.value = ''; // Reset input
+            fileInput.value = '';
             renderFileList();
             resultBox.classList.add('hidden');
         }
 
-        // 5. Merge Logic
         mergeBtn.addEventListener('click', () => {
             if (storedFiles.length < 2) {
-                showToast('Please select at least 2 PDFs to merge.', 'error');
+                showToast('Add at least two PDFs.', 'error');
                 return;
             }
 
-            // UI Updates
             mergeBtn.disabled = true;
             progressContainer.style.display = 'block';
             progressBar.style.width = '5%';
@@ -381,7 +344,6 @@
                 if (type === 'progress') {
                     progressBar.style.width = `${percent}%`;
                 } else if (type === 'done') {
-                    // Create Blob and Link
                     const blob = new Blob([data], { type: 'application/pdf' });
                     const url = URL.createObjectURL(blob);
 
@@ -394,16 +356,15 @@
                         progressBar.style.width = '0%';
                         resultBox.classList.remove('hidden');
                         mergeBtn.disabled = false;
-                        showToast('PDFs merged successfully!', 'success');
+                        showToast('Merged.', 'success');
 
-                        // Scroll to result
                         resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     }, 500);
 
                     worker.terminate();
                 } else if (type === 'error') {
-                    console.error('Worker Error:', message);
-                    showToast('Error merging PDFs. Please check file integrity.', 'error');
+                    console.error(message);
+                    showToast('Could not merge: ' + message, 'error');
                     progressContainer.style.display = 'none';
                     mergeBtn.disabled = false;
                     worker.terminate();
@@ -411,18 +372,16 @@
             };
 
             worker.onerror = (err) => {
-                console.error('Worker failed:', err);
-                showToast('Error processing PDFs in background.', 'error');
+                console.error(err);
+                showToast('The merge stopped with an error.', 'error');
                 progressContainer.style.display = 'none';
                 mergeBtn.disabled = false;
                 worker.terminate();
             };
 
-            // Start the worker
             worker.postMessage({ files: storedFiles });
         });
 
-        // 6. Reset / Clear Listeners
         clearBtn.addEventListener('click', clearAll);
         
         resetBtn.addEventListener('click', () => {
@@ -430,7 +389,6 @@
             clearAll();
         });
 
-        // Initial render
         renderFileList();
     
     /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?

@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     <style>
-        /* Tool-specific layout adjustments */
         .preview-container {
             display: flex;
             justify-content: center;
@@ -34,14 +33,13 @@
         <div class="container">
             <div class="tool-header">
                 <h1>SVG to PNG Converter</h1>
-                <p>Transform vector graphics into high-resolution raster images. Control scaling and transparency.</p>
+                <p>Renders an SVG as a PNG with a transparent background, at 1x to 8x its size or at a width you set. The colours in the file can be changed first.</p>
             </div>
 
             <div class="card">
                 
                 <div class="drop-zone" id="dropZone">
-                    <span class="drop-icon">🖼️</span>
-                    <p>Drag & Drop SVG file here</p>
+                    <p>Drop an SVG file here</p>
                     <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0;">or click to browse</p>
                     <input type="file" id="fileInput" class="hidden" accept=".svg">
                 </div>
@@ -51,8 +49,8 @@
 
                 <div id="settingsArea" class="hidden" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
                     <div id="colorPaletteSection" class="hidden" style="margin-bottom: 1.5rem;">
-                        <h3 style="font-size: 1.1rem; margin-bottom: 0.8rem;">Batch Coloring</h3>
-                        <p style="font-size: 0.9rem; color: var(--ink-secondary); margin-bottom: 1rem;">Swap colors before converting. Changes apply instantly.</p>
+                        <h3 style="font-size: 1.1rem; margin-bottom: 0.8rem;">Colours</h3>
+                        <p style="font-size: 0.9rem; color: var(--ink-secondary); margin-bottom: 1rem;">Every colour used in the file. Change one and it changes everywhere it appears.</p>
                         <div id="colorPalette" class="color-palette-grid"></div>
                     </div>
 
@@ -61,9 +59,9 @@
                             <label for="scaleSelect">Output Scale <span id="liveDimsPreview" style="font-size:0.8em; font-weight:normal; color:var(--ink-secondary); float:right;"></span></label>
                             <select id="scaleSelect" data-save>
                                 <option value="1">1x (Original Size)</option>
-                                <option value="2" selected>2x (High Res)</option>
-                                <option value="4">4x (Ultra Res)</option>
-                                <option value="8">8x (Maximum)</option>
+                                <option value="2" selected>2x</option>
+                                <option value="4">4x</option>
+                                <option value="8">8x</option>
                                 <option value="custom">Custom Width...</option>
                             </select>
                         </div>
@@ -104,7 +102,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        // DOM Elements
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
@@ -120,7 +117,6 @@
         const finalDims = document.getElementById('finalDims');
         const finalSize = document.getElementById('finalSize');
 
-                // State
         let currentFile = null;
         let generatedBlob = null;
         let currentSvgDoc = null;
@@ -130,10 +126,12 @@
         let liveOriginalHeight = 150;
         let activeObjectURL = null;
 
-        // Color extraction helper
+        // The canvas parser turns names, rgb() and short hex into one form,
+        // so "red" and "#f00" end up as the same palette entry.
         const colorCtx = document.createElement('canvas').getContext('2d');
         function normalizeColor(colorStr) {
-            colorCtx.fillStyle = '#000000'; // reset
+            // An invalid string leaves fillStyle unchanged, so start from black.
+            colorCtx.fillStyle = '#000000';
             colorCtx.fillStyle = colorStr;
             return colorCtx.fillStyle; // returns #rrggbb or rgba(...)
         }
@@ -185,7 +183,7 @@
 
                 const input = document.createElement('input');
                 input.type = 'color';
-                // Only use hex for input type color
+                // <input type=color> only accepts #rrggbb.
                 input.value = currentColor.length === 7 ? currentColor : '#000000';
                 input.className = 'color-picker-input';
 
@@ -230,7 +228,6 @@
                 });
             });
 
-            // Automatically re-render if we already converted once
             if (generatedBlob) {
                 generatePNG();
             }
@@ -261,14 +258,12 @@
 
             document.getElementById('liveDimsPreview').textContent = `(Output: ~${Math.round(tw)}x${Math.round(th)} px)`;
 
-            // Auto re-render if it was already converted
             if (generatedBlob && resultBox && !resultBox.classList.contains('hidden')) {
-                 // small debounce to prevent lag on typing
+                 // Otherwise typing a width renders once per keystroke.
                  clearTimeout(window.previewDebounce);
                  window.previewDebounce = setTimeout(() => generatePNG(true), 300);
             }
         }
-// 1. Setup Drag & Drop
         setupDropZone(dropZone, fileInput, handleFileSelect);
 
         function handleFileSelect(files) {
@@ -276,7 +271,7 @@
             
             const file = files[0];
             if (file.type !== 'image/svg+xml' && !file.name.toLowerCase().endsWith('.svg')) {
-                showToast('Please select a valid SVG file.', 'error');
+                showToast('That is not an SVG file.', 'error');
                 return;
             }
 
@@ -287,7 +282,6 @@
             parseFileAndExtractColors();
         }
 
-        // 2. UI State Management
         function updateUIState() {
             fileList.innerHTML = '';
             
@@ -325,7 +319,6 @@
 
         clearBtn.addEventListener('click', clearFile);
 
-        // 3. Handle Scale Selection Logic
         scaleSelect.addEventListener('change', () => {
             if (scaleSelect.value === 'custom') {
                 customWidthContainer.classList.remove('hidden');
@@ -340,7 +333,6 @@
             updateLiveDimsPreview();
         });
 
-        // 4. Conversion Logic
         function parseFileAndExtractColors() {
             if (!currentFile) return;
             const reader = new FileReader();
@@ -355,11 +347,11 @@
                         throw new Error('Invalid SVG file');
                     }
 
-                    // Fallback to viewBox if width/height are missing
+                    // Without width and height the browser draws the SVG at
+                    // 300x150, so take them from the viewBox.
                     if (!svgEl.hasAttribute('width') || !svgEl.hasAttribute('height')) {
                         const viewBox = svgEl.getAttribute('viewBox');
                         if (viewBox) {
-                            // Using standard split string instead of regex to avoid python/js string escape complexity here
                             const parts = viewBox.trim().split(/\s+|,/);
                             if (parts.length === 4) {
                                 const w = parseFloat(parts[2]);
@@ -372,7 +364,6 @@
                         }
                     }
 
-                    // Parse actual dimensions for live preview
                     let w = parseFloat(svgEl.getAttribute('width'));
                     let h = parseFloat(svgEl.getAttribute('height'));
                     if (!isNaN(w) && !isNaN(h)) {
@@ -385,7 +376,7 @@
                     updateLiveDimsPreview();
 
                 } catch (err) {
-                    showToast('Error processing SVG: ' + err.message, 'error');
+                    showToast('Could not read this SVG: ' + err.message, 'error');
                 }
             };
             reader.readAsText(currentFile);
@@ -407,18 +398,16 @@
                     svgCode = serializer.serializeToString(currentSvgDoc);
                 }
 
-                // Remove unnecessary whitespace to slightly reduce size
+                // Strips scripts and event handlers, if DOMPurify is on the page.
                 if (typeof DOMPurify !== 'undefined') {
                     svgCode = DOMPurify.sanitize(svgCode, { USE_PROFILES: { svg: true } });
                 }
 
-                // Use DOMParser to ensure it's valid XML
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(svgCode, "image/svg+xml");
                 const serializer = new XMLSerializer();
                 let svgString = serializer.serializeToString(doc);
 
-                // Convert back to Data URL
                 const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
 
                 const img = new Image();
@@ -426,12 +415,12 @@
                     renderToCanvas(img, isSilentUpdate);
                 };
                 img.onerror = function() {
-                    if (!isSilentUpdate) showToast('Error parsing SVG data.', 'error');
+                    if (!isSilentUpdate) showToast('The browser could not draw this SVG.', 'error');
                     resetButton();
                 };
                 img.src = svgDataUrl;
             } catch (err) {
-                if (!isSilentUpdate) showToast('Error processing SVG: ' + err.message, 'error');
+                if (!isSilentUpdate) showToast('Could not read this SVG: ' + err.message, 'error');
                 resetButton();
             }
         }
@@ -440,7 +429,6 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
-            // Determine output dimensions
             const originalWidth = img.width || 300; // Fallback if SVG has no width
             const originalHeight = img.height || 150;
             const aspectRatio = originalWidth / originalHeight;
@@ -456,35 +444,31 @@
                 targetHeight = originalHeight * scale;
             }
 
-            // Prevent memory crashes from massive scale multipliers
+            // A 16384 px square canvas already takes about 1 GB. Larger ones
+            // fail in some browsers and the export comes back empty.
             const MAX_DIMENSION = 16384;
             if (targetWidth > MAX_DIMENSION || targetHeight > MAX_DIMENSION) {
                 const scaleDown = Math.min(MAX_DIMENSION / targetWidth, MAX_DIMENSION / targetHeight);
                 targetWidth *= scaleDown;
                 targetHeight *= scaleDown;
-                showToast(`Dimensions clamped to max supported size (${Math.round(targetWidth)}x${Math.round(targetHeight)}) to prevent memory issues.`, 'info');
+                showToast(`Too large, so scaled down to ${Math.round(targetWidth)}x${Math.round(targetHeight)} px, the most this tool renders.`, 'info');
             }
 
-            // Set canvas size (high res)
             canvas.width = targetWidth;
             canvas.height = targetHeight;
 
-            // Draw
             ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
-            // Export
             canvas.toBlob((blob) => {
                 generatedBlob = blob;
                 const url = URL.createObjectURL(blob);
                 
-                // Update Preview
                 previewImg.src = url;
                 previewImg.onload = () => {
                     resultBox.classList.remove('hidden');
                     finalDims.textContent = `${Math.round(targetWidth)} x ${Math.round(targetHeight)} px`;
                     finalSize.textContent = formatFileSize(blob.size);
                     
-                    // Scroll to result
                     if (!isSilentUpdate) {
                         resultBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
@@ -499,14 +483,13 @@
             convertBtn.textContent = 'Convert to PNG';
         }
 
-        // 5. Download Logic
         downloadBtn.addEventListener('click', () => {
             if (!generatedBlob) return;
             
             const link = document.createElement('a');
             link.href = URL.createObjectURL(generatedBlob);
             
-            // Construct filename: original-name.svg -> original-name.png
+            // logo.svg becomes logo_300x150.png
             let newName = currentFile.name.replace(/\.svg$/i, '');
             newName += `_${finalDims.textContent.replace(/ /g,'').replace('px','')}.png`;
             

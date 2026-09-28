@@ -59,6 +59,7 @@ jobs:
               tests/test-arbeit-haken.js|\
               tests/test-page-metadata.js|\
               tests/test-json-tools-browser.js|\
+              tests/test-pdf-compressor-browser.js|\
               tests/test-archiv-hinweis.js|\
               tests/test-buehnenbild-zoom.js|\
               tests/test-buehnenbild-drucken.js)
@@ -104,7 +105,11 @@ jobs:
         run: npm ci
 
       - name: Install ImageMagick
-        run: sudo apt-get install -y imagemagick
+        # update first: the runner image ships a package index from the day it
+        # was built, and once Ubuntu replaces a package (ghostscript, on 28
+        # September 2026) the old file name is a 404 and the job dies here,
+        # before a single test has run.
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
 
       - name: Patch puppeteer.launch for CI sandbox
         # GitHub Actions runners don't support Chrome's sandbox.
@@ -145,6 +150,7 @@ jobs:
           }
 
           run_test "tests/test-json-tools-browser.js"
+          run_test "tests/test-pdf-compressor-browser.js"
           run_test "tests/test-pdf-watermarker.js"
           run_test "tools/social-cropper/social-cropper.spec.js"
           run_test "tests/test-diff-checker-xss.js"

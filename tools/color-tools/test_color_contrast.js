@@ -9,7 +9,7 @@ const dom = new JSDOM(html, {
     runScripts: 'dangerously',
     beforeParse(window) {
         window.tinycolor = require('tinycolor2');
-        // iro mock
+        // Stand-in for iro.js, which needs a real canvas.
         window.iro = {
             ColorPicker: class {
                 constructor(el, opts) {
@@ -31,28 +31,22 @@ const window = dom.window;
 
 setTimeout(() => {
     try {
-        console.log("Running Color & Contrast Tests...");
+        console.log("Running color and contrast tests...");
 
-        // --- Test 1: Invalid Hex Input ---
-        // Invalid input should not be applied to colorPicker
+        // A half-typed hex value must not reach the picker.
         window.eval(`
             const valHex = document.getElementById('valHex');
 
-            // Set initial valid color
             colorPicker.color.set("#ff0000");
-
-            // Input invalid color
             valHex.value = "#12";
             valHex.dispatchEvent(new Event('input'));
 
-            // Should not change the color to #000000
             window.__test_1_result = colorPicker.color.current;
         `);
         assert.strictEqual(window.__test_1_result, "#ff0000", "Test 1 Failed: Invalid input altered the color state incorrectly.");
-        console.log("✅ Test 1 Passed: Invalid hex inputs are safely ignored.");
+        console.log("PASS: invalid hex input is ignored");
 
 
-        // --- Test 2: Transparency / Alpha Handling ---
         // rgba(0,0,0,0.5) over #ffffff should be ~3.95 (not 21)
         window.eval(`
             colors.fg = "rgba(0,0,0,0.5)";
@@ -61,21 +55,18 @@ setTimeout(() => {
             window.__test_2_ratio = document.getElementById('contrastRatio').textContent;
         `);
         assert.strictEqual(window.__test_2_ratio, "3.95", "Test 2 Failed: Alpha handling for transparency is incorrect.");
-        console.log("✅ Test 2 Passed: Alpha blending for contrast calculations is accurate.");
+        console.log("PASS: a transparent text color is blended before measuring");
 
 
-        // --- Test 3: Boundary Logic (4.5 and 7.0) ---
         // 4.496 shouldn't pass AA even if rounded to "4.50"
         window.eval(`
             const originalReadability = tinycolor.readability;
 
-            // Test AA Boundary
             tinycolor.readability = () => 4.496;
             updateContrast();
             window.__test_3a_display = document.getElementById('contrastRatio').textContent;
             window.__test_3a_badge = document.getElementById('badgeAA').textContent;
 
-            // Test AAA Boundary
             tinycolor.readability = () => 6.996;
             updateContrast();
             window.__test_3b_display = document.getElementById('contrastRatio').textContent;
@@ -88,9 +79,8 @@ setTimeout(() => {
 
         assert.strictEqual(window.__test_3b_display, "7.00", "Test 3b Failed: Displayed ratio not rounded correctly.");
         assert.strictEqual(window.__test_3b_badge, "Fail", "Test 3b Failed: 6.996 falsely passed AAA check.");
-        console.log("✅ Test 3 Passed: Exact boundary ratio logic works correctly without rounding inflation.");
+        console.log("PASS: the badges use the unrounded ratio");
 
-        // --- Test 4: APCA Calculation ---
         // Black on White should be ~106, White on White should be 0
         window.eval(`
             colors.fg = "#000000";
@@ -105,9 +95,8 @@ setTimeout(() => {
         `);
         assert.strictEqual(window.__test_4a_apca, "Lc 106", "Test 4a Failed: APCA calculation for Black/White incorrect.");
         assert.strictEqual(window.__test_4b_apca, "Lc 0", "Test 4b Failed: APCA calculation for White/White incorrect.");
-        console.log("✅ Test 4 Passed: APCA math returns expected boundaries.");
+        console.log("PASS: APCA gives Lc 106 for black on white and Lc 0 for white on white");
 
-        // --- Test 5: Auto-Suggest Accessible Colors ---
         // Red (#c44d3c) on Red (#c44d3c) should fail and provide suggestions
         window.eval(`
             colors.fg = "#c44d3c";
@@ -119,18 +108,17 @@ setTimeout(() => {
         assert.strictEqual(window.__test_5_display, "block", "Test 5 Failed: Suggest box should be visible when contrast fails.");
         assert.ok(window.__test_5_suggestions.length > 0, "Test 5 Failed: Suggestions were not generated.");
 
-        // Let's verify the first suggestion actually passes 4.5 ratio
+        // The first suggestion has to pass 4.5:1 itself.
         window.eval(`
             const sug = tinycolor(window.__test_5_suggestions[0]);
             const bg = tinycolor("#c44d3c");
             window.__test_5_sug_ratio = tinycolor.readability(sug, bg);
         `);
         assert.ok(window.__test_5_sug_ratio >= 4.5, "Test 5 Failed: Suggested color does not pass WCAG 2.1 AA.");
-        console.log("✅ Test 5 Passed: Auto-suggest mechanism provides passing accessible alternatives.");
+        console.log("PASS: failing pairs get suggestions that pass");
 
 
-        // --- Test 6: Direct calcAPCA Function Tests ---
-        // Verify pure math calculations of calcAPCA for specific known boundary values
+        // calcAPCA against reference values.
         window.eval(`
             window.__test_6_results = {
                 blackOnWhite: calcAPCA(tinycolor("#000000"), tinycolor("#ffffff")),
@@ -161,10 +149,10 @@ setTimeout(() => {
         assertCloseTo("Test 6 Failed: Green on White APCA incorrect.", apcaResults.greenOnWhite, 0.171301);
         assert.strictEqual(apcaResults.sameColor, 0, "Test 6 Failed: Same color APCA should be exactly 0.");
 
-        console.log("✅ Test 6 Passed: calcAPCA direct calculations are mathematically accurate.");
+        console.log("PASS: calcAPCA matches the reference values");
 
 
-        // --- Test 7: blendAlpha Unit Tests ---
+        // blendAlpha with every mix of solid and transparent.
         window.eval(`
             const fgSolid = tinycolor('rgb(255, 0, 0)');
             const bgSolid = tinycolor('rgb(0, 0, 255)');
@@ -193,7 +181,6 @@ setTimeout(() => {
             window.__test_7_res4_bg = res4.bg.toRgbString();
         `);
 
-        // Assertions for blendAlpha
         // 1. Solid over Solid -> no change to either
         assert.strictEqual(window.__test_7_res1_fg, "rgb(255, 0, 0)", "Test 7 Failed: Solid FG should remain unchanged.");
         assert.strictEqual(window.__test_7_res1_bg, "rgb(0, 0, 255)", "Test 7 Failed: Solid BG should remain unchanged.");
@@ -210,10 +197,10 @@ setTimeout(() => {
         assert.strictEqual(window.__test_7_res4_fg, "rgb(192, 64, 128)", "Test 7 Failed: Transparent FG should blend over solidified trans BG.");
         assert.strictEqual(window.__test_7_res4_bg, "rgb(128, 128, 255)", "Test 7 Failed: Transparent BG should blend with white under trans FG.");
 
-        console.log("✅ Test 7 Passed: blendAlpha handles all transparency combinations correctly.");
+        console.log("PASS: blendAlpha");
 
 
-        console.log("🎉 All Tests Passed!");
+        console.log("All color tools tests passed.");
 
     } catch(e) {
         console.error(e);

@@ -1,5 +1,3 @@
-// tools/image-compressor/worker.js
-
 const CDN_BASE = 'https://esm.sh/@jsquash';
 
 const modules = {};
@@ -32,21 +30,15 @@ self.onmessage = async (e) => {
             }
             case 'image/avif': {
                 const { encode } = await loadModule('avif');
-                
-                // AVIF Logic Update:
-                // 'options.quality' contains the Speed value (0-10) directly from the slider.
-                // We pass this directly to the 'speed' parameter.
-                
+
+                // For AVIF the page's slider sets encoder speed (0-10), not
+                // quality, so options.quality arrives here as a speed.
+                // Quality stays fixed at cqLevel 33.
                 resultBuffer = await encode(imageData, {
-                    // Standard visual quality baseline. 
-                    // 33 is a balanced mid-point.
-                    cqLevel: 33, 
-                    
-                    // Directly use the slider value (0-10)
+                    cqLevel: 33,
                     speed: options.quality,
-                    
-                    // Force 4:2:0 subsampling to prevent Black & White issues
-                    subsample: 1, 
+                    // 4:2:0. Without it some images came out black and white.
+                    subsample: 1,
                 });
                 break;
             }

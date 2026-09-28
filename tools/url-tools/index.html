@@ -12,18 +12,18 @@
         <div class="container">
             <div class="tool-header">
                 <h1>URL Encoder/Decoder</h1>
-                <p>Fix messy URLs, encode for code, or strip tracking parameters to get the shortest link.</p>
+                <p>Encode and decode URLs, or strip tracking parameters such as utm_source and fbclid. Amazon, eBay, YouTube and X links are cut down to the item itself.</p>
             </div>
 
             <div class="card">
                 
                 <label for="inputData">Input Text / URL</label>
-                <textarea id="inputData" class="code-editor" placeholder="Paste URL here (e.g., https://www.amazon.com/product-name/dp/B00...ref=xyz)..."></textarea>
+                <textarea id="inputData" class="code-editor" placeholder="One URL per line, e.g. https://www.amazon.com/some-product/dp/B000000000?ref=xyz"></textarea>
                 
                 <div class="button-group">
-                    <button class="button secondary" id="cleanBtn" title="Detects Amazon, eBay, YouTube, etc.">Clean & Minify</button>
-                    <button class="button outline" id="decodeBtn" title="Convert %20 to spaces, etc.">Decode</button>
-                    <button class="button outline" id="encodeBtn" title="Convert special chars to % codes">Encode</button>
+                    <button class="button secondary" id="cleanBtn" title="Removes tracking parameters and shortens Amazon, eBay, YouTube and X links">Clean</button>
+                    <button class="button outline" id="decodeBtn" title="Turns %20 back into a space, and so on">Decode</button>
+                    <button class="button outline" id="encodeBtn" title="Turns spaces and special characters into % codes">Encode</button>
                     <button class="button outline" id="clearBtn" style="margin-left: auto;">Clear</button>
                 </div>
 
@@ -44,7 +44,7 @@
                     
                     <div class="button-group" style="margin-top: 1rem;">
                         <button class="button sm secondary" id="copyBtn">Copy Result</button>
-                        <button class="button sm outline" id="shareBtn" title="Create a link with this result pre-filled">Share Link</button>
+                        <button class="button sm outline" id="shareBtn" title="Copies a link to this page with the result filled in">Share Link</button>
                     </div>
                 </div>
 
@@ -56,7 +56,6 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // DOM Elements
             const inputData = document.getElementById('inputData');
             const cleanBtn = document.getElementById('cleanBtn');
             const decodeBtn = document.getElementById('decodeBtn');
@@ -67,7 +66,6 @@
             const copyBtn = document.getElementById('copyBtn');
             const shareBtn = document.getElementById('shareBtn');
 
-            // Helper to display results
             function displayResult(text) {
                 if (!text) {
                     resultBox.classList.add('hidden');
@@ -77,26 +75,27 @@
                 resultBox.classList.remove('hidden');
             }
 
-            // === LOAD FROM HASH (Sharing Logic) ===
+            // A shared link carries the result after #data=. The fragment never
+            // reaches the server.
             if (window.location.hash && window.location.hash.startsWith('#data=')) {
                 try {
-                    const rawHash = window.location.hash.substring(6); // remove #data=
+                    const rawHash = window.location.hash.substring(6);
                     const decodedContent = decodeURIComponent(rawHash);
-                    
-                    // Populate input and show result immediately
+
                     inputData.value = decodedContent;
                     displayResult(decodedContent);
                     
                     showToast('Shared content loaded', 'info');
                     
-                    // Clean URL (remove hash) without page refresh so it looks clean
+                    // Drop the fragment so a reload or a bookmark does not bring it back
                     history.replaceState(null, null, ' ');
                 } catch (e) {
-                    console.error('Failed to parse share link', e);
+                    console.error('Could not read the shared link', e);
                 }
             }
 
-            // Aggressive parameter removal list (100+ params)
+            // Used on every link that is not rebuilt from an Amazon, eBay,
+            // YouTube or X item ID further down.
             const paramsToRemove = new Set([
                 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_cid', 'utm_reader', 'utm_referrer', 'utm_name', 'utm_social', 'utm_social-type', 'utm_id',
                 'fbclid', 'gclid', 'igshid', '_hsenc', '_hsmi', 'mc_cid', 'mc_eid', 'mkt_tok', 'yclid', '_openstat', 'wt_mc', 'twclid', 'msclkid', 'dclid', 'wbraid', 'gbraid',
@@ -105,7 +104,6 @@
                 'cj1', 'rv1', 'nb', 'p', 'b', 'z', 'm', 'n', 'k', 'c', 'clid', 'qid', 'sr', 'dchild', 'keywords'
             ]);
 
-            // Define UI rendering function for params editor
             function renderParamsEditor(urlStr) {
                 const container = document.getElementById('paramsContainer');
                 if (!container) return;
@@ -160,7 +158,6 @@
 
                     container.innerHTML = html;
 
-                    // Attach event listeners for inputs and deletes
                     const inputs = container.querySelectorAll('input');
                     inputs.forEach(input => {
                         input.addEventListener('input', () => updateUrlFromParams(urlStr));
@@ -190,7 +187,6 @@
                             `;
                             tbody.appendChild(tr);
 
-                            // Attach events to new elements
                             const newInputs = tr.querySelectorAll('input');
                             newInputs.forEach(input => {
                                 input.addEventListener('input', () => updateUrlFromParams(urlStr));
@@ -202,13 +198,12 @@
                                 updateUrlFromParams(urlStr);
                             });
 
-                            // focus first input
                             tr.querySelector('.param-key').focus();
                         });
                     }
 
                 } catch(e) {
-                    console.error("Error rendering params editor:", e);
+                    console.error('Could not show the parameter table:', e);
                     container.innerHTML = '';
                     container.classList.add('hidden');
                 }
@@ -217,7 +212,6 @@
             function updateUrlFromParams(originalUrlStr) {
                 try {
                     const url = new URL(originalUrlStr);
-                    // Clear existing params
                     url.search = '';
 
                     const container = document.getElementById('paramsContainer');
@@ -232,21 +226,21 @@
                         });
                     }
 
-                    // Update the display result without triggering a full re-render of the table
+                    // Only the text changes; rebuilding the table would take the
+                    // focus out of the field being typed in.
                     const finalStr = url.toString();
                     textOutput.textContent = finalStr;
                     resultBox.classList.remove('hidden');
 
                 } catch(e) {
-                    console.error("Error updating URL:", e);
+                    console.error('Could not rebuild the URL:', e);
                 }
             }
 
-            // === ADVANCED CLEANING LOGIC ===
             cleanBtn.addEventListener('click', () => {
                 let rawLines = inputData.value.trim().split('\n').filter(line => line.trim() !== '');
                 if (rawLines.length === 0) {
-                    showToast('Please enter a URL', 'info');
+                    showToast('Paste a URL first', 'info');
                     return;
                 }
 
@@ -257,7 +251,8 @@
                 rawLines.forEach(raw => {
                     raw = raw.trim();
 
-                    // If user pasted a massive encoded block, decode it recursively (up to 5 times for safety)
+                    // A link copied out of a redirect is often encoded two or three
+                    // times over. Five rounds at most, in case it never settles.
                     let prevRaw = '';
                     let decodeAttempts = 0;
                     while (raw !== prevRaw && decodeAttempts < 5) {
@@ -268,7 +263,7 @@
                         decodeAttempts++;
                     }
 
-                    // Prepend protocol if missing so new URL() doesn't throw
+                    // new URL() throws without a scheme
                     if (!/^https?:\/\//i.test(raw)) {
                         raw = 'https://' + raw;
                     }
@@ -279,7 +274,7 @@
                         let finalUrl = url.toString();
                         let platformDetected = null;
 
-                        // 1. AMAZON (dp/ASIN)
+                        // Amazon: /dp/ plus the 10-character ASIN is enough
                         if (hostname.includes('amazon') || hostname.includes('amzn')) {
                             const asinMatch = url.pathname.match(/\/(?:dp|gp\/product|exec\/obidos\/asin)\/([A-Z0-9]{10})/);
                             if (asinMatch) {
@@ -289,9 +284,9 @@
                             }
                         }
 
-                        // 2. EBAY (itm/ID)
+                        // eBay: /itm/ plus the item number
                         else if (hostname.includes('ebay')) {
-                            // eBay URLs are usually ebay.com/itm/TITLE-SLUG/12345678
+                            // usually ebay.com/itm/title-slug/12345678
                             const itemMatch = url.pathname.match(/\/itm\/(?:.*\/)?(\d+)/);
                             if (itemMatch) {
                                 finalUrl = `https://${hostname}/itm/${itemMatch[1]}`;
@@ -300,7 +295,7 @@
                             }
                         }
 
-                        // 3. YOUTUBE (ConvertTo youtu.be/ID)
+                        // YouTube: youtu.be/ID, keeping a start time
                         else if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
                             let videoId = null;
                             if (hostname.includes('youtu.be')) {
@@ -311,7 +306,6 @@
 
                             if (videoId) {
                                 finalUrl = `https://youtu.be/${videoId}`;
-                                // Preserve timestamp if present
                                 if (url.searchParams.has('t')) {
                                     finalUrl += `?t=${url.searchParams.get('t')}`;
                                 }
@@ -320,23 +314,20 @@
                             }
                         }
 
-                        // 4. TWITTER / X (Status ID only)
+                        // X / Twitter: user and status ID
                         else if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
                             const statusMatch = url.pathname.match(/\/status\/(\d+)/);
                             if (statusMatch) {
-                                // Normalize to x.com as it's shorter/current
                                 finalUrl = `https://x.com${url.pathname.split('/status/')[0]}/status/${statusMatch[1]}`;
                                 if (url.hash) finalUrl += url.hash;
                                 platformDetected = 'X / Twitter';
                             }
                         }
 
-                        // 5. GENERIC CLEANER (If no specific platform matched, or to clean remaining params)
+                        // Everything else: drop the known tracking parameters
                         if (!platformDetected) {
-                            // Create a temporary URL object to strip params
                             const tempUrl = new URL(finalUrl);
 
-                            // Delete known tracking parameters
                             const keysToDelete = [];
                             for (const key of tempUrl.searchParams.keys()) {
                                 if (paramsToRemove.has(key.toLowerCase())) {
@@ -356,20 +347,19 @@
 
                     } catch (e) {
                         hasErrors = true;
-                        finalUrls.push(raw + " (Invalid URL)");
+                        finalUrls.push(raw + " (not a valid URL)");
                     }
                 });
 
                 const finalStr = finalUrls.join('\n');
                 displayResult(finalStr);
 
-                // Hide params container by default on clean, we'll render it only for single URLs
+                // The parameter table only makes sense for a single URL
                 const paramsContainer = document.getElementById('paramsContainer');
                 if (paramsContainer) {
                     paramsContainer.innerHTML = '';
                     paramsContainer.classList.add('hidden');
-                    
-                    // Render editable params only if there's exactly 1 valid URL
+
                     if (finalUrls.length === 1 && !hasErrors) {
                         renderParamsEditor(finalUrls[0]);
                     }
@@ -378,11 +368,11 @@
                 if (hasErrors && finalUrls.length === 1) {
                     showToast('Input is not a valid URL', 'error');
                 } else if (hasErrors) {
-                    showToast('Processed with some errors', 'warning');
+                    showToast('Some lines are not valid URLs', 'warning');
                 } else if (finalUrls.length > 1) {
-                    showToast(`Cleaned ${finalUrls.length} URLs!`, 'success');
+                    showToast(`Cleaned ${finalUrls.length} URLs`, 'success');
                 } else if (overallPlatformDetected) {
-                    showToast(`${overallPlatformDetected} link minified!`, 'success');
+                    showToast(`${overallPlatformDetected} link shortened`, 'success');
                 } else {
                     showToast('Tracking parameters removed', 'success');
                 }
@@ -395,47 +385,40 @@
                 try {
                     displayResult(decodeURIComponent(raw));
                     showToast('Decoded', 'success');
-                } catch (e) { showToast('Invalid encoding', 'error'); }
+                } catch (e) { showToast('Not valid percent-encoding', 'error'); }
             });
 
-            // Encode Logic
             encodeBtn.addEventListener('click', () => {
                 const raw = inputData.value.trim();
                 if (!raw) return;
                 try {
                     displayResult(encodeURIComponent(raw));
                     showToast('Encoded', 'success');
-                } catch (e) { showToast('Error encoding', 'error'); }
+                } catch (e) { showToast('Could not encode this', 'error'); }
             });
 
-            // Clear Logic
             clearBtn.addEventListener('click', () => {
                 inputData.value = '';
                 resultBox.classList.add('hidden');
                 textOutput.textContent = '';
                 inputData.focus();
-                // Clear URL hash if present
                 history.replaceState(null, null, ' ');
             });
 
-            // Copy Logic
             copyBtn.addEventListener('click', () => {
                 const content = textOutput.textContent;
                 if (content) copyToClipboard(content);
             });
 
-            // Share Logic
             shareBtn.addEventListener('click', () => {
                 const content = textOutput.textContent;
                 if (!content) return;
-                
-                // Construct URL with hash
-                // We use encodeURIComponent to ensure special chars traverse the URL safely
+
                 const hash = 'data=' + encodeURIComponent(content);
                 const shareUrl = window.location.origin + window.location.pathname + '#' + hash;
                 
                 copyToClipboard(shareUrl);
-                showToast('Link copied to clipboard!', 'success');
+                showToast('Link copied to clipboard', 'success');
             });
         });
     

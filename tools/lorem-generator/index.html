@@ -12,7 +12,7 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Lorem Ipsum Generator</h1>
-                <p>Generate placeholder text for your designs. Choose between standard Latin, Tech Babble, or Corporate Speak.</p>
+                <p>Filler text in Latin, tech jargon or corporate speak, as plain text, JSON, CSV or SQL.</p>
             </div>
 
             <div class="card">
@@ -49,7 +49,6 @@
                         </select>
 
                         <label class="toggle-wrapper" for="startWithLorem" id="loremToggleWrapper">
-                            <!-- Added ID to span for dynamic text updates -->
                             <span id="startWithLabel" style="flex-grow:1; cursor:pointer;">Start with "Lorem ipsum..."</span>
                             <input type="checkbox" id="startWithLorem" class="toggle-checkbox" checked>
                             <div class="toggle-switch"></div>
@@ -91,7 +90,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        // === DOM ELEMENTS ===
         const generateBtn = document.getElementById('generateBtn');
         const clearBtn = document.getElementById('clearBtn');
         const copyBtn = document.getElementById('copyBtn');
@@ -110,7 +108,6 @@
         const startWithLabel = document.getElementById('startWithLabel');
         const htmlTagsCheck = document.getElementById('htmlTags');
 
-        // === VOCABULARIES ===
         const vocabs = {
             latin: [
                 "lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit", 
@@ -144,38 +141,32 @@
             ]
         };
 
-        // === STARTING PHRASES ===
         const startingPhrases = {
             latin: "Lorem ipsum dolor sit amet, consectetur adipiscing elit",
             tech: "Algorithm bandwidth cloud digital encryption, firewall gigabit heuristic",
             corporate: "Agile benchmark circle-back deliverables, empower feedback growth"
         };
 
-        // === LOGIC ===
-
-        // Handle Theme Change UI (Updates Toggle Label)
         themeSelect.addEventListener('change', () => {
             const theme = themeSelect.value;
             const phrase = startingPhrases[theme];
             
-            // Extract first two words for label brevity (e.g. "Start with 'Agile benchmark...'")
             const shortPhrase = phrase.split(' ').slice(0, 2).join(' ');
             
             startWithLabel.textContent = `Start with "${shortPhrase}..."`;
-            
-            // Ensure toggle is active and reset
+
             startWithLoremCheck.disabled = false;
             loremToggleWrapper.style.opacity = '1';
             startWithLoremCheck.checked = true;
         });
 
-        // Generator for true random distribution
+        // Deals words from a shuffled deck and reshuffles when it runs out, so
+        // no word repeats until every other one has come up.
         function* createRandomWordGenerator(theme) {
             const list = vocabs[theme];
             let remainingWords = [];
             while (true) {
                 if (remainingWords.length === 0) {
-                    // Refill and shuffle using Fisher-Yates
                     remainingWords = [...list];
                     for (let i = remainingWords.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
@@ -206,7 +197,6 @@
             for (let i = 0; i < length; i++) {
                 sentence.push(getRandomWord(theme));
             }
-            // Add random commas
             if (length > 10 && Math.random() > 0.5) {
                 const commaIndex = Math.floor(Math.random() * (length - 4)) + 2;
                 sentence[commaIndex] += ",";
@@ -245,7 +235,6 @@
                 return;
             }
 
-            // 1. Generate Raw Data
             if (type === 'words') {
                 for (let i = 0; i < quantity; i++) {
                     rawTextArray.push(getRandomWord(theme));
@@ -259,7 +248,6 @@
                 output = rawTextArray.join(" ");
             } 
             else {
-                // Paragraphs
                 for (let i = 0; i < quantity; i++) {
                     const sentenceCount = Math.floor(Math.random() * 4) + 3;
                     rawTextArray.push(generateParagraph(theme, sentenceCount));
@@ -267,7 +255,6 @@
                 output = rawTextArray.join("\n\n");
             }
 
-            // 2. Handle "Start with..." logic
             if (startEnabled) {
                 if (type === 'words') {
                     const standardWords = startPhrase.toLowerCase().replace(/[.,]/g, '').split(' ');
@@ -281,32 +268,26 @@
                     }
                 } 
                 else {
-                    // For Sentences and Paragraphs
                     let cleanStart = startPhrase; 
                     
-                    // If generated text is shorter than the start phrase, just return start phrase
                     if (output.length < cleanStart.length) {
                         output = cleanStart + ".";
                     } else {
-                        // Slice off the beginning of the generated text and replace with standard start
-                        // We remove roughly the same amount of characters to keep length consistent
+                        // Overwrite as many characters as the phrase is long, so the
+                        // length stays about what was asked for.
                         output = cleanStart + output.substring(cleanStart.length).replace(/^\s*[a-z]/, c => c); 
                         
-                        // Ensure it ends with punctuation if we cut it weirdly
                         if (!output.trim().endsWith(".")) output += ".";
                     }
                 }
             }
 
-            // 3. Handle HTML Tags
             if (useHtml) {
                 if (type === 'paragraphs') {
                     output = rawTextArray.map((p, index) => {
-                        // Force the first paragraph to look right if "Start..." is on
-                        // We have to reconstruct it because 'output' is currently a flat string
+                        // rawTextArray never got the start phrase (only the joined
+                        // output did), so it goes onto the first paragraph here.
                         if (index === 0 && startEnabled) {
-                           // Re-slice from the flattened output logic above is hard, 
-                           // simpler to just force the prefix on the first paragraph array item
                            let firstP = p;
                            if (p.length > startPhrase.length) {
                                firstP = startPhrase + p.substring(startPhrase.length);
@@ -318,24 +299,17 @@
                         return `<p>${p}</p>`;
                     }).join("\n");
                 } else if (type === 'sentences') {
-                     // Wrap sentences
-                     // If startEnabled, we must ensure the first sentence in HTML matches the startPhrase
                      let sentences = output.split('. ').filter(s => s.trim().length > 0);
                      output = sentences.map(s => {
-                         // Strip existing dot to avoid double dots
                          let clean = s.replace(/\.$/, '');
                          return `<span>${clean}.</span>`;
                      }).join(" ");
                 } else {
-                    // Words
                     output = `<p>${output}</p>`;
                 }
             } else {
-                 // Plain Text corrections
                  if (type === 'paragraphs' && startEnabled) {
-                     // Ensure the very first paragraph in the text block starts correctly
                      let paragraphs = output.split("\n\n");
-                     // Check first few words
                      const firstWords = startPhrase.split(' ')[0];
                      if (!paragraphs[0].startsWith(firstWords)) {
                          paragraphs[0] = startPhrase + paragraphs[0].substring(startPhrase.length);
@@ -344,7 +318,6 @@
                  }
             }
 
-            // 4. Handle Formatting
             if (format === 'json') {
                 if (type === 'paragraphs') {
                      output = JSON.stringify({ paragraphs: output.split('\n\n') }, null, 2);
@@ -381,8 +354,6 @@
             resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        // === EVENT LISTENERS ===
-
         function triggerQuickCopy(paragraphs) {
             quantityInput.value = paragraphs;
             typeSelect.value = 'paragraphs';
@@ -392,7 +363,7 @@
                 copyBtn.click();
             } catch (e) {
                 console.error(e);
-                showToast('Error generating text', 'error');
+                showToast('Could not generate text', 'error');
             }
         }
 
@@ -406,7 +377,7 @@
                 showToast('Text generated', 'success');
             } catch (e) {
                 console.error(e);
-                showToast('Error generating text', 'error');
+                showToast('Could not generate text', 'error');
             }
         });
 
@@ -416,7 +387,6 @@
             quantityInput.value = 3;
             typeSelect.value = 'paragraphs';
             
-            // Reset Theme to Latin
             themeSelect.value = 'latin';
             startWithLabel.textContent = 'Start with "Lorem ipsum..."';
             startWithLoremCheck.disabled = false;
@@ -432,7 +402,7 @@
 
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(text).then(() => {
-                    showToast('Copied to clipboard!', 'success');
+                    showToast('Copied to clipboard', 'success');
                 }).catch(err => {
                     fallbackCopyTextToClipboard(text);
                 });
@@ -445,7 +415,7 @@
             const textArea = document.createElement("textarea");
             textArea.value = text;
 
-            // Avoid scrolling to bottom
+            // Fixed at the top, or focusing it scrolls the page to the bottom
             textArea.style.top = "0";
             textArea.style.left = "0";
             textArea.style.position = "fixed";
@@ -457,18 +427,17 @@
             try {
                 const successful = document.execCommand('copy');
                 if (successful) {
-                    showToast('Copied to clipboard!', 'success');
+                    showToast('Copied to clipboard', 'success');
                 } else {
-                    showToast('Failed to copy', 'error');
+                    showToast('Could not copy', 'error');
                 }
             } catch (err) {
-                showToast('Failed to copy', 'error');
+                showToast('Could not copy', 'error');
             }
 
             document.body.removeChild(textArea);
         }
-        
-        // Initial run
+
         window.onload = generateText;
     </script>
 </body>

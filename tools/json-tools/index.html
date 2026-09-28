@@ -10,7 +10,8 @@
     <script src="../../assets/vendor/jsonpath.min.js"></script>
 
     <style>
-        /* Override to fix the "Infinity" scroll issue */
+        /* The result gets its own scroll box, so a long one scrolls inside
+           it instead of stretching the page. */
         .result-box-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -19,7 +20,7 @@
             border: 1px solid var(--border);
             position: relative;
             min-height: 400px;
-            max-height: 800px; /* prevent page growing too huge */
+            max-height: 800px;
             display: flex; 
             flex-direction: column;
         }
@@ -30,10 +31,9 @@
             flex-grow: 1;
             width: 100%;
             min-height: 400px;
-            overflow: auto; /* internal scroll */
+            overflow: auto;
         }
 
-        /* === TREE VIEW STYLES === */
         #treeBox {
             padding: 1rem;
             font-family: var(--font-mono);
@@ -53,7 +53,6 @@
 
         .json-tree li { margin: 2px 0; position: relative; line-height: 1.5; }
         
-        /* Collapsible Details */
         .json-tree details > summary {
             cursor: pointer;
             outline: none;
@@ -63,7 +62,6 @@
         }
         .json-tree details > summary::-webkit-details-marker { display: none; }
         
-        /* Arrow Icon */
         .json-tree details > summary::before {
             content: '▶';
             display: inline-block;
@@ -74,7 +72,6 @@
         }
         .json-tree details[open] > summary::before { transform: rotate(90deg); }
 
-        /* Syntax Highlighting */
         .jt-key { color: #9c27b0; font-weight: bold; }
         .jt-string { color: var(--accent-secondary); }
         .jt-num { color: #d35400; }
@@ -90,7 +87,6 @@
         }
         body.dark-mode .jt-meta { background: rgba(255,255,255,0.1); }
 
-        /* View Toggle Switch Style */
         .view-toggle-group {
             display: flex;
             background: var(--border);
@@ -121,14 +117,14 @@
         <div class="container">
             <div class="tool-header">
                 <h1>JSON Workbench</h1>
-                <p>Validate, repair, and explore massive JSON files with Tree View.</p>
+                <p>Check and format JSON, repair the usual mistakes, filter it with JSONPath, or browse it as a collapsible tree.</p>
             </div>
 
             <div class="card" style="margin-bottom: 1.5rem; padding: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     
                     <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                        <button class="button sm outline" id="uploadTrigger">📂 Upload File</button>
+                        <button class="button sm outline" id="uploadTrigger">Open file</button>
                         <input type="file" id="jsonFileInput" accept=".json,.txt,.csv" class="hidden">
                         
                         <select id="indentSelect" data-save style="margin: 0; width: auto; padding-right: 2rem;">
@@ -160,21 +156,18 @@
 
             <div class="split-view">
                 
-                <!-- INPUT -->
                 <div class="card" style="display: flex; flex-direction: column; padding: 1.5rem;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                         <label for="jsonInput">Input</label>
                     </div>
-                    <textarea id="jsonInput" class="code-editor" style="flex-grow: 1; min-height: 500px;" placeholder="// Paste broken JSON here...&#10;// We'll fix missing quotes & trailing commas!" spellcheck="false"></textarea>
+                    <textarea id="jsonInput" class="code-editor" style="flex-grow: 1; min-height: 500px;" placeholder="Paste JSON or drop a file here.&#10;Unquoted keys, single quotes and trailing commas get repaired." spellcheck="false"></textarea>
                 </div>
 
-                <!-- OUTPUT -->
                 <div class="card" style="display: flex; flex-direction: column; position: relative; padding: 1.5rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; min-height: 2rem;">
                         <label style="margin: 0; flex-shrink: 0;">Result</label>
                         
                         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                            <!-- View Toggle -->
                             <div class="view-toggle-group">
                                 <button class="view-toggle-btn active" id="viewCodeBtn">Code</button>
                                 <button class="view-toggle-btn" id="viewTreeBtn">Tree</button>
@@ -189,13 +182,11 @@
                     </div>
                     
                     <div style="background: var(--paper); padding: 0.5rem; font-size: 0.8rem; font-family: var(--font-mono); color: var(--ink-secondary); border-bottom: 1px solid var(--border); border-top: 1px solid var(--border);">
-                        <span id="statusText">Waiting for input...</span>
+                        <span id="statusText">No input yet</span>
                     </div>
 
                     <div class="result-box-wrapper">
-                        <!-- Code View -->
                         <div id="resultBox" class="code-editor" style="background: var(--code-bg); padding: 1rem; font-family: var(--font-mono); white-space: pre-wrap; word-break: break-word;"></div>
-                        <!-- Tree View (Hidden by default) -->
                         <div id="treeBox" class="json-tree hidden" style="background: var(--code-bg);"></div>
                     </div>
                 </div>
@@ -207,7 +198,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        // --- DOM Elements ---
         const jsonInput = document.getElementById('jsonInput');
         const resultBox = document.getElementById('resultBox');
         const treeBox = document.getElementById('treeBox');
@@ -226,24 +216,21 @@
         const unescapeToggle = document.getElementById('unescapeToggle');
         const jsonPathInput = document.getElementById('jsonPathInput');
 
-        // View Toggles
         const viewCodeBtn = document.getElementById('viewCodeBtn');
         const viewTreeBtn = document.getElementById('viewTreeBtn');
 
-        // State
-        let currentData = null; // Store parsed object
-        let originalData = null; // Store original unfiltered parsed object
+        let currentData = null; // what is shown, after any JSONPath filter
+        let originalData = null; // as parsed, before the filter
         let isWrapped = true; 
-        let currentView = 'code'; // 'code' or 'tree'
+        let currentView = 'code'; // or 'tree'
 
-        // Worker Setup
+        // Parsing and formatting run in a worker so a file of several
+        // megabytes does not freeze the page.
         let jsonWorker = null;
         if (window.Worker) {
             jsonWorker = new Worker('./worker.js');
             jsonWorker.onmessage = handleWorkerMessage;
         }
-
-        // --- Event Listeners ---
 
         processBtn.addEventListener('click', () => runProcessor('format'));
         csvBtn.addEventListener('click', () => runProcessor('csv'));
@@ -255,10 +242,9 @@
             treeBox.innerHTML = '';
             currentData = null;
             originalData = null;
-            statusText.textContent = 'Cleared.';
+            statusText.textContent = 'Cleared';
         });
 
-        // JSONPath logic
         let debounceTimer;
         jsonPathInput.addEventListener('input', () => {
             clearTimeout(debounceTimer);
@@ -268,22 +254,19 @@
                 const query = jsonPathInput.value.trim();
                 if (!query) {
                     currentData = originalData;
-                    // Trigger full worker re-process to avoid main thread lock on formatting
                     runProcessor('format');
-                    statusText.textContent = 'JSONPath cleared.';
+                    statusText.textContent = 'JSONPath cleared';
                     return;
                 }
 
                 try {
                     if (window.jsonpath) {
                         statusText.textContent = 'Applying JSONPath...';
-                        // Offloading just the stringify/highlight back to worker is best
-                        // But we still have to do jsonpath query here unless we put that in worker too.
-                        // Let's at least debounce it, and use worker for the format step.
+                        // The query runs here because the JSONPath library is loaded
+                        // on the page; the formatting of its result goes back to the worker.
                         const result = window.jsonpath.query(originalData, query);
                         currentData = result;
 
-                        // Send back to worker just for formatting to save main thread
                         if (jsonWorker) {
                             jsonWorker.postMessage({
                                 action: 'formatOnly',
@@ -296,28 +279,25 @@
                 } catch (err) {
                     statusText.textContent = `JSONPath syntax error`;
                 }
-            }, 300); // 300ms debounce
+            }, 300);
         });
 
         copyBtn.addEventListener('click', () => {
             if (currentView === 'code' && resultBox.innerText) {
                 copyToClipboard(resultBox.innerText);
             } else if (currentData) {
-                // If in tree view, copy the underlying data stringified
                 copyToClipboard(JSON.stringify(currentData, null, 2));
             }
         });
 
         downloadBtn.addEventListener('click', downloadResult);
 
-        // Handle Wrap Toggle
         toggleWrapBtn.addEventListener('click', () => {
             isWrapped = !isWrapped;
             resultBox.style.whiteSpace = isWrapped ? 'pre-wrap' : 'pre';
             toggleWrapBtn.textContent = isWrapped ? 'Unwrap' : 'Wrap';
         });
 
-        // View Switching
         viewCodeBtn.addEventListener('click', () => switchView('code'));
         viewTreeBtn.addEventListener('click', () => switchView('tree'));
 
@@ -336,15 +316,13 @@
                 treeBox.classList.remove('hidden');
                 toggleWrapBtn.disabled = true;
                 
-                // If we have data but tree is empty, render it
+                // The tree is built on first look, not on every format
                 if (currentData && treeBox.children.length === 0) {
                     renderTree(currentData);
                 }
             }
         }
 
-        // --- File Upload Logic ---
-        
         uploadTrigger.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', handleFileUpload);
 
@@ -372,8 +350,6 @@
             reader.readAsText(file);
         }
 
-        // --- Core Processing Logic ---
-
         let currentMode = 'format';
 
         function runProcessor(mode) {
@@ -395,14 +371,13 @@
                     mode: mode
                 });
             } else {
-                showError({message: "Web Workers are not supported in this browser."});
+                showError({message: "This browser has no Web Workers, which this tool needs."});
             }
         }
 
         function handleWorkerMessage(e) {
             const data = e.data;
             if (data.success) {
-                // If it was a full process or just format
                 if (data.action === 'process') {
                     originalData = data.parsed;
                     currentData = originalData;
@@ -411,18 +386,17 @@
                     if (query && window.jsonpath) {
                         try {
                             currentData = window.jsonpath.query(originalData, query);
-                            // We need to re-format this new data
+                            // A filter is still typed in, so the new data is
+                            // filtered and formatted again before anything is shown.
                             jsonWorker.postMessage({
                                 action: 'formatOnly',
                                 parsedData: currentData,
                                 indent: indentSelect.value,
                                 mode: currentMode
                             });
-                            return; // Wait for the formatOnly response
+                            return;
                         } catch (err) {}
                     }
-                } else if (data.action === 'formatOnly') {
-                    // Update only views
                 }
 
                 if (currentMode === 'csv') {
@@ -431,24 +405,18 @@
                     switchView('code');
                     showToast('Converted to CSV', 'success');
                 } else {
-                    // Code view
                     if (indentSelect.value === 'min') {
                         resultBox.innerHTML = escapeHtml(data.resultText);
                     } else {
-                        // We do the highlight here still? No, actually highlighting in main thread is slow.
-                        // Let's at least use the resultText to avoid stringify.
-                        // Regex highlight is still main thread, but stringify is saved.
-                        // Wait, we can't easily move syntaxHighlight into worker because it might return HTML?
-                        // Actually we CAN return HTML from worker.
-                        // Let's use worker's HTML if provided, otherwise fallback.
+                        // The worker highlights only results under 500 KB; the regex
+                        // locks up for a long time on anything much bigger.
                         if (data.highlightedHtml) {
                             resultBox.innerHTML = data.highlightedHtml;
                         } else {
-                            resultBox.innerHTML = escapeHtml(data.resultText); // Fallback to avoid locking on 50MB regex if not provided
+                            resultBox.innerHTML = escapeHtml(data.resultText);
                         }
                     }
 
-                    // Tree view
                     treeBox.innerHTML = '';
                     if (currentView === 'tree') {
                         renderTree(currentData);
@@ -458,7 +426,7 @@
                     const type = Array.isArray(currentData) ? `Array(${currentData.length})` : typeof currentData;
                     const modeText = jsonPathInput.value.trim() ? "Filtered JSON" : "Valid JSON";
                     statusText.textContent = `${modeText} | Type: ${type} | Size: ${size}`;
-                    showToast('Processed successfully', 'success');
+                    showToast('Formatted', 'success');
                 }
             } else {
                 showError({
@@ -469,22 +437,18 @@
             }
         }
 
-        // --- Tree View Implementation ---
-        
         function renderTree(obj) {
             treeBox.innerHTML = '';
-            const root = buildTreeElement('root', obj, true); // Root is always open
+            const root = buildTreeElement('root', obj, true);
             treeBox.appendChild(root);
         }
 
         function buildTreeElement(key, value, isOpen = false) {
-            // Primitive Types
             if (value === null) return createLeaf(key, 'null', 'jt-null');
             if (typeof value === 'boolean') return createLeaf(key, value.toString(), 'jt-bool');
             if (typeof value === 'number') return createLeaf(key, value.toString(), 'jt-num');
             if (typeof value === 'string') return createLeaf(key, `"${value}"`, 'jt-string');
 
-            // Objects & Arrays
             const isArray = Array.isArray(value);
             const details = document.createElement('details');
 
@@ -492,7 +456,6 @@
             const size = isArray ? value.length : Object.keys(value).length;
             const typeMeta = isArray ? `[ ${size} ]` : `{ ${size} }`;
             
-            // Summary Content
             const keySpan = document.createElement('span');
             if (key && key !== 'root') {
                 keySpan.className = 'jt-key';
@@ -506,10 +469,11 @@
             summary.appendChild(metaSpan);
             details.appendChild(summary);
 
-            // Children Container
             const ul = document.createElement('ul');
             details.appendChild(ul);
 
+            // Children are built when a node is first opened, and then 100 at
+            // a time, so a large array does not build its whole tree at once.
             let isLoaded = false;
             
             const loadChildren = () => {
@@ -525,7 +489,7 @@
                     for (let i = start; i < end; i++) {
                         const k = keys[i];
                         const li = document.createElement('li');
-                        const childKey = isArray ? null : k; // Arrays don't show index keys in standard trees usually, or index
+                        const childKey = isArray ? null : k; // array items get no index label
                         li.appendChild(buildTreeElement(childKey, value[k]));
                         fragment.appendChild(li);
                     }
@@ -564,7 +528,7 @@
 
         function createLeaf(key, displayValue, valueClass) {
             const div = document.createElement('div');
-            div.style.paddingLeft = '1.2em'; // Indent to match details arrow
+            div.style.paddingLeft = '1.2em'; // lines up with the arrow on a <details>
             
             if (key) {
                 const k = document.createElement('span');
@@ -581,9 +545,8 @@
             return div;
         }
 
-        // --- Helpers ---
         function showError(err) {
-            let errorHtml = `<div style="color: var(--accent); font-weight: bold;">❌ Parsing Error</div>`;
+            let errorHtml = `<div style="color: var(--accent); font-weight: bold;">Could not parse</div>`;
             errorHtml += `<div style="opacity: 0.8; margin-top: 10px;">${err.message}</div>`;
 
             if (err.lineNumber !== undefined && err.lineNumber !== null) {
@@ -595,8 +558,8 @@
             }
 
             resultBox.innerHTML = errorHtml;
-            statusText.textContent = 'Status: Invalid JSON';
-            showToast('Fix failed', 'error');
+            statusText.textContent = 'Invalid JSON';
+            showToast('Could not repair this JSON', 'error');
         }
 
         function syntaxHighlight(json) {
@@ -626,7 +589,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'result.json'; // Could sniff csv if csv mode
+            a.download = 'result.json';
             a.click();
             URL.revokeObjectURL(url);
         }

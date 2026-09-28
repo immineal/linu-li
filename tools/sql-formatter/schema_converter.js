@@ -30,13 +30,11 @@ function splitColumns(columnsStr) {
 }
 
 function parseSqlToSchema(sql, targetFormat) {
-    // Basic pre-processing to hide content within parens from table regex
-    // Actually, simpler to extract the whole CREATE TABLE block including balanced parens.
     let outputCode = "";
     let tablesFound = 0;
 
-    // We need to parse by tokens or carefully handle parens to get the table body properly
-    // Find "CREATE TABLE"
+    // The regex only finds the opening paren. The body is found by counting
+    // parens by hand, because column types like DECIMAL(10,2) nest inside it.
     const regex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s*\(/gi;
     let match;
     let lastIndex = 0;
@@ -140,13 +138,13 @@ function parseSqlToSchema(sql, targetFormat) {
 
         outputCode += `}\n\n`;
 
-        // ensure we search the next table
+        // Carry on after this table's closing paren.
         regex.lastIndex = bodyEnd + 1;
     }
 
     if (tablesFound === 0) {
         return "/* No CREATE TABLE statements found to convert. */\n" +
-               "/* Please provide DDL (CREATE TABLE ...) queries to use the schema converter. */";
+               "/* Paste CREATE TABLE statements to get interfaces or models out. */";
     }
 
     return outputCode.trim();

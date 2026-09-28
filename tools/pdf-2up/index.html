@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Page Duplicator | Linus Linhof</title>
+    <title>PDF 2-Up | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -57,15 +57,14 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>PDF Page Duplicator</h1>
-                <p>Create a new landscape PDF with two pages side-by-side. Supports duplicating pages or arranging them sequentially.</p>
+                <h1>PDF 2-Up</h1>
+                <p>Puts two pages side by side on one landscape sheet: the same page twice, pages in order, or in booklet order for folding.</p>
             </div>
 
             <div class="card">
                 
                 <div class="drop-zone" id="dropZone">
-                    <span class="drop-icon">📄</span>
-                    <p>Drag & Drop PDF file here</p>
+                    <p>Drop a PDF here</p>
                     <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0;">or click to browse</p>
                     <input type="file" id="fileInput" class="hidden" accept="application/pdf">
                 </div>
@@ -140,9 +139,9 @@
 
                 <div class="result-box hidden" id="resultBox">
                     <div style="text-align: center;">
-                        <h3 style="margin-bottom: 0.5rem;">Success!</h3>
-                        <p style="margin-bottom: 1.5rem;">Your PDF has been processed successfully.</p>
-                        <a id="downloadLink" class="button secondary">Download Result</a>
+                        <h3 style="margin-bottom: 0.5rem;">Done</h3>
+                        <p style="margin-bottom: 1.5rem;">The new PDF is ready.</p>
+                        <a id="downloadLink" class="button secondary">Download PDF</a>
                     </div>
                 </div>
 
@@ -153,7 +152,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        // DOM Elements
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
@@ -165,16 +163,13 @@
         const progressContainer = document.getElementById('progressContainer');
         const progressBar = document.getElementById('progressBar');
 
-        // Inputs
         const pageMarginInput = document.getElementById('pageMargin');
         const bleedAreaInput = document.getElementById('bleedArea');
         const cutLineInput = document.getElementById('cutLine');
 
-        // State
         let currentFile = null;
         let currentLayoutMode = 'duplicate';
 
-        // 1. Setup Logic
         document.addEventListener('DOMContentLoaded', () => {
             setupDropZone(dropZone, fileInput, handleFileSelection);
 
@@ -188,13 +183,12 @@
             });
         });
 
-        // 2. Handle File Selection
         function handleFileSelection(files) {
             if (files.length === 0) return;
             
             const file = files[0];
             if (file.type !== 'application/pdf') {
-                showToast('Please upload a valid PDF file.', 'error');
+                showToast('That is not a PDF.', 'error');
                 return;
             }
 
@@ -210,7 +204,6 @@
                 li.className = 'file-item';
                 li.innerHTML = `
                     <div class="file-info">
-                        <span style="font-size: 1.2rem;">📄</span>
                         <div>
                             <div class="file-name">${currentFile.name}</div>
                             <div class="file-size">${formatFileSize(currentFile.size)}</div>
@@ -243,50 +236,43 @@
 
         clearBtn.addEventListener('click', removeFile);
 
-        // 3. Process Logic
         processBtn.addEventListener('click', async () => {
             if (!currentFile) return;
 
             try {
-                // -- UI State: Processing --
                 processBtn.disabled = true;
                 processBtn.textContent = 'Processing...';
                 progressContainer.style.display = 'block';
                 progressBar.style.width = '10%';
 
-                // -- Read Options --
-        const layoutMode = currentLayoutMode; // 'duplicate', 'sequential', or 'booklet'
+                const layoutMode = currentLayoutMode;
                 const marginMm = parseFloat(pageMarginInput.value) || 0;
                 const bleedMm = parseFloat(bleedAreaInput.value) || 0;
                 const cutStyle = cutLineInput.value;
 
-                // Convert mm to points (1mm = 2.835pt)
+                // pdf-lib works in points, 72 to the inch
                 const marginPts = marginMm * 2.83465;
                 const bleedPts = bleedMm * 2.83465;
 
                 const arrayBuffer = await currentFile.arrayBuffer();
                 progressBar.style.width = '25%';
 
-                // -- Initialize PDF Docs --
                 const { PDFDocument, grayscale } = PDFLib;
                 const srcDoc = await PDFDocument.load(arrayBuffer);
                 const dstDoc = await PDFDocument.create();
 
-                // -- FIX: Explicitly get all page indices --
-                // This ensures embedPdf knows exactly which pages to grab (all of them)
+                // embedPdf without indices embeds only the first page
                 const pageIndices = srcDoc.getPageIndices(); 
                 const embeddedPages = await dstDoc.embedPdf(srcDoc, pageIndices);
                 const totalSrcPages = embeddedPages.length;
-                
-                console.log(`Detected ${totalSrcPages} pages in source file.`); // Debugging
-                
+
                 if (totalSrcPages === 0) {
-                    throw new Error('The uploaded PDF has no pages.');
+                    throw new Error('The PDF has no pages.');
                 }
 
                 progressBar.style.width = '40%';
 
-                // -- Analyze Max Dimensions for Uniform Canvas --
+                // Both halves of every sheet take the size of the largest page, so all sheets match
                 let maxW = 0;
                 let maxH = 0;
                 for (const p of embeddedPages) {
@@ -295,20 +281,19 @@
                 }
 
                 if (maxW === 0 || maxH === 0) {
-                    throw new Error('Could not determine valid page dimensions.');
+                    throw new Error('Could not read the page size.');
                 }
 
-                // -- Determine Loop Count & Setup Booklet Array --
                 let outputPageCount = 0;
                 let bookletPairs = [];
 
                 if (layoutMode === 'duplicate') {
                     outputPageCount = totalSrcPages; 
                 } else if (layoutMode === 'booklet') {
-                    // Saddle stitch requires a multiple of 4 pages
+                    // A folded booklet needs a multiple of 4 pages; the gaps stay blank
                     let paddedPages = [...embeddedPages];
                     while (paddedPages.length % 4 !== 0) {
-                        paddedPages.push(null); // Blank page placeholder
+                        paddedPages.push(null);
                     }
                     outputPageCount = paddedPages.length / 2;
 
@@ -329,55 +314,42 @@
                     outputPageCount = Math.ceil(totalSrcPages / 2);
                 }
 
-                // -- Loop through pages --
                 for (let i = 0; i < outputPageCount; i++) {
-                    
-                    // Determine which pages go on Left and Right
                     let leftPage, rightPage;
 
                     if (layoutMode === 'duplicate') {
-                        // Case: Duplicate (1,1), (2,2)
                         leftPage = embeddedPages[i];
                         rightPage = embeddedPages[i];
                     } else if (layoutMode === 'booklet') {
-                        // Case: Booklet (n, 1), (2, n-1)
                         leftPage = bookletPairs[i].left;
                         rightPage = bookletPairs[i].right;
                     } else {
-                        // Case: Sequential (1,2), (3,4)
                         leftPage = embeddedPages[i * 2];
                         const nextIndex = i * 2 + 1;
                         rightPage = (nextIndex < totalSrcPages) ? embeddedPages[nextIndex] : null;
                     }
 
-                    // Uniform dimensions base (before bleed)
                     const width = maxW;
                     const height = maxH;
                     
-                    // Create new Landscape Page (2x Width) + Bleed
                     const outWidth = width * 2 + bleedPts * 2;
                     const outHeight = height + bleedPts * 2;
                     const newPage = dstDoc.addPage([outWidth, outHeight]);
 
-                    // -- Helper: Draw Page with Scaling for Margins & Bleed --
                     const drawContent = (pageObj, xOffset) => {
                         if (!pageObj) return;
 
-                        // Dimensions of the content to draw
                         const contentW = pageObj.width;
                         const contentH = pageObj.height;
 
-                        // Calculate available space inside margins on half of the page
                         const availW = Math.max(0, width - (marginPts * 2));
                         const availH = Math.max(0, height - (marginPts * 2));
 
-                        // Calculate Scale to fit margins (while maintaining aspect ratio)
-                        // If availW or availH is 0, scale will be 0 to avoid negative scaling.
+                        // Margins wider than the page leave no room; scale 0 rather than negative
                         const scaleX = contentW > 0 ? availW / contentW : 0;
                         const scaleY = contentH > 0 ? availH / contentH : 0;
                         const scale = Math.min(scaleX, scaleY);
 
-                        // Calculate Centering Adjustments (if margins create extra space)
                         const drawnW = contentW * scale;
                         const drawnH = contentH * scale;
                         const centerOffsetX = (availW - drawnW) / 2;
@@ -391,29 +363,25 @@
                         });
                     };
 
-                    // Draw Left Side
                     drawContent(leftPage, 0);
 
-                    // Draw Right Side (if exists)
                     if (layoutMode === 'duplicate') {
-                        // In duplicate mode, we always draw the same page on the right
                         drawContent(rightPage, width);
                     } else {
-                        // In sequential/booklet mode, we only draw if there is a next page
+                        // An odd page count leaves the last right half empty
                         if (rightPage) {
                             drawContent(rightPage, width);
                         }
                     }
 
-                    // -- Draw Cut Line / Crop Marks --
                     if (cutStyle !== 'none') {
-                        const drawColor = grayscale(0.5); // Medium Grey
+                        const drawColor = grayscale(0.5);
 
                         if (cutStyle === 'cropmarks' && bleedPts > 0) {
-                            // Professional corner crop marks showing where to cut the bleed
+                            // Marks sit in the bleed, outside the trimmed sheet
                             const markLen = 15;
-                            const markOff = 5; // offset from corner to avoid printing inside bleed
-                            const t = 1; // thickness
+                            const markOff = 5; // gap between the trim corner and the mark
+                            const t = 1;
 
                             const drawMark = (sx, sy, ex, ey) => {
                                 newPage.drawLine({
@@ -440,12 +408,11 @@
                             drawMark(outWidth - bleedPts, bleedPts - markOff, outWidth - bleedPts, 0); // Down
                             drawMark(outWidth - bleedPts + markOff, bleedPts, outWidth, bleedPts); // Right
 
-                            // Center Top & Bottom (Fold Line marks)
+                            // Fold marks
                             drawMark(outWidth / 2, outHeight - bleedPts + markOff, outWidth / 2, outHeight); // Top
                             drawMark(outWidth / 2, bleedPts - markOff, outWidth / 2, 0); // Bottom
                         }
                         else if (cutStyle === 'dashed' || cutStyle === 'solid') {
-                            // Center spine line
                             const lineConfig = {
                                 start: { x: width + bleedPts, y: 0 },
                                 end: { x: width + bleedPts, y: outHeight },
@@ -462,17 +429,15 @@
                         }
                     }
 
-                    // Visual Progress Update
                     const percent = 40 + Math.round(((i + 1) / outputPageCount) * 50);
                     progressBar.style.width = `${percent}%`;
 
-                    // Yield to main thread to prevent UI freezing on massive documents
+                    // Let the progress bar repaint on long documents
                     if (i % 5 === 0) {
                         await new Promise(r => setTimeout(r, 0));
                     }
                 }
 
-                // -- Save & Download --
                 const pdfBytes = await dstDoc.save();
                 progressBar.style.width = '100%';
 
@@ -481,20 +446,19 @@
 
                 downloadLink.href = url;
                 downloadLink.download = `processed-${layoutMode}-${currentFile.name}`;
-                
-                // Reset UI
+
                 setTimeout(() => {
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';
                     processBtn.textContent = 'Process PDF';
                     processBtn.disabled = false;
                     resultBox.classList.remove('hidden');
-                    showToast(`Processed ${outputPageCount} pages successfully!`, 'success');
+                    showToast(`Made ${outputPageCount} sheets.`, 'success');
                 }, 500);
 
             } catch (error) {
-                console.error('Processing Error:', error);
-                showToast('Error processing PDF. See console for details.', 'error');
+                console.error(error);
+                showToast('Could not process this PDF: ' + error.message, 'error');
                 processBtn.textContent = 'Process PDF';
                 processBtn.disabled = false;
                 progressContainer.style.display = 'none';

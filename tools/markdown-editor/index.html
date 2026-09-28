@@ -7,15 +7,11 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
-    <!-- Marked Library -->
     <script src="../../assets/vendor/marked.min.js"></script>
-    <!-- DOMPurify Library for XSS protection -->
     <script src="../../assets/vendor/purify.min.js"></script>
-    <!-- Mermaid Library for flowcharts -->
     <script src="../../assets/vendor/mermaid.min.js"></script>
 
     <style>
-        /* Preview Styles (mimicking simple typography) */
         .markdown-body {
             background: var(--card-bg);
             padding: 2rem;
@@ -35,8 +31,7 @@
         .markdown-body ul, .markdown-body ol { padding-left: 2rem; margin-bottom: 1rem; }
         .markdown-body img { max-width: 100%; }
         .markdown-body hr { border: 0; border-top: 2px solid var(--border); margin: 2rem 0; }
-        
-        /* Split layout fix */
+
         .editor-pane { display: flex; flex-direction: column; }
     </style>
 </head>
@@ -50,16 +45,14 @@
 
             <div class="split-view" style="grid-template-columns: 1fr 1fr; align-items: stretch;">
                 
-                <!-- EDITOR -->
                 <div class="editor-pane">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                         <label for="mdInput">Markdown Input</label>
                         <button class="button sm outline" id="clearBtn">Clear</button>
                     </div>
-                    <textarea id="mdInput" class="code-editor" style="flex-grow: 1; min-height: 600px; font-size: 0.9rem;" placeholder="# Hello World&#10;&#10;Start typing **Markdown** here..."></textarea>
+                    <textarea id="mdInput" class="code-editor" style="flex-grow: 1; min-height: 600px; font-size: 0.9rem;" placeholder="# A heading&#10;&#10;Some **Markdown**"></textarea>
                 </div>
 
-                <!-- PREVIEW -->
                 <div class="editor-pane">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                         <label>Live Preview</label>
@@ -79,21 +72,19 @@
         const clearBtn = document.getElementById('clearBtn');
         const copyHtmlBtn = document.getElementById('copyHtmlBtn');
 
-        // Default text
-        const defaultText = `# Welcome to Markdown
+        const defaultText = `# Markdown
 
-Type on the left to see the preview here.
+Type on the left and the preview follows.
 
-## Features
-- Live rendering
-- **Bold** and *Italic* text
+## What renders
+- **Bold** and *italic* text
 - [Links](https://immineal.com)
 - Code blocks:
 \`\`\`javascript
 console.log('Hello World');
 \`\`\`
 
-- Mermaid Flowcharts:
+- Mermaid diagrams:
 \`\`\`mermaid
 graph TD;
     A[Markdown] --> B{Parse};
@@ -101,14 +92,12 @@ graph TD;
     B --> D[Mermaid Graph];
 \`\`\`
 
-> "Privacy is the power to selectively reveal oneself to the world."`;
+> Raw HTML works too, but scripts and event handlers are stripped before it is shown.`;
 
-        // Initialize Mermaid
         if (typeof mermaid !== 'undefined') {
             mermaid.initialize({ startOnLoad: false, theme: 'default' });
         }
 
-        // Render Logic
         let renderTimeout;
         function render(immediate = false) {
             clearTimeout(renderTimeout);
@@ -116,14 +105,14 @@ graph TD;
             const process = async () => {
                 const text = mdInput.value;
                 try {
-                    // Marked handles sanitization by default in newer versions,
-                    // but for a local tool, raw HTML is often desired.
-                    // Inspector note: We MUST sanitize to prevent XSS!
+                    // marked passes raw HTML straight through, so the result
+                    // goes through DOMPurify before it touches the page.
                     const rawHtml = marked.parse(text);
-                    const cleanHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['target'] }) : "Error: DOMPurify not loaded. Sanitization required to prevent XSS.";
+                    const cleanHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['target'] }) : "The preview is off because DOMPurify did not load.";
                     preview.innerHTML = cleanHtml;
 
-                    // Extensibility: Process Mermaid diagrams
+                    // marked turns ```mermaid into an ordinary code block;
+                    // Mermaid wants the source in a div.mermaid instead.
                     if (typeof mermaid !== 'undefined') {
                         const mermaidBlocks = preview.querySelectorAll('code.language-mermaid');
                         mermaidBlocks.forEach(block => {
@@ -139,15 +128,15 @@ graph TD;
                         try {
                             await mermaid.run({ querySelector: '.mermaid' });
                         } catch (mermaidErr) {
-                            console.error("Mermaid rendering error:", mermaidErr);
+                            console.error('Mermaid could not draw a diagram:', mermaidErr);
                         }
                     }
                 } catch (err) {
-                    console.error("Markdown parsing error:", err);
+                    console.error('Markdown could not be rendered:', err);
                     preview.innerHTML = "";
                     const errorP = document.createElement("p");
                     errorP.style.color = "red";
-                    errorP.textContent = "Error rendering Markdown.";
+                    errorP.textContent = "This Markdown could not be rendered.";
                     preview.appendChild(errorP);
                 }
             };
@@ -161,7 +150,8 @@ graph TD;
 
         mdInput.addEventListener('input', () => render(false));
 
-        // Synchronized Scrolling
+        // Each pane follows the other's scroll position. The flags stop the
+        // scroll event this sets off in the other pane from echoing back.
         let isSyncingLeftScroll = false;
         let isSyncingRightScroll = false;
 
@@ -183,11 +173,9 @@ graph TD;
             isSyncingRightScroll = false;
         });
 
-        // Init
         mdInput.value = defaultText;
         render(true);
 
-        // Actions
         clearBtn.addEventListener('click', () => {
             mdInput.value = '';
             render(true);

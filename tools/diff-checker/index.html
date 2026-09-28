@@ -32,7 +32,6 @@
     </script>
 
     <style>
-        /* --- View Toggles --- */
         .view-options {
             display: flex;
             gap: 10px;
@@ -54,7 +53,6 @@
             font-weight: bold;
         }
 
-        /* --- Diff Table Styles --- */
         .diff-wrapper {
             border: 1px solid var(--border);
             border-radius: 4px;
@@ -67,7 +65,7 @@
         .diff-viewport {
             overflow: auto;
             max-height: 70vh;
-            height: 70vh; /* Ensure container has height for virtual scrolling */
+            height: 70vh; /* virtual scrolling needs a fixed height to work out which rows are visible */
             position: relative;
             will-change: transform;
         }
@@ -90,10 +88,9 @@
         table.diff-table {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed; /* Forces equal width columns in side-by-side */
+            table-layout: fixed; /* equal columns in side-by-side */
         }
 
-        /* Loading Overlay */
         .loading-overlay {
             position: absolute;
             inset: 0;
@@ -121,7 +118,6 @@
             vertical-align: top;
         }
 
-        /* Line Numbers */
         .diff-num {
             width: 40px;
             min-width: 40px;
@@ -137,7 +133,6 @@
             line-height: 20px;
         }
 
-        /* Code Content */
         .diff-code {
             width: 100%;
             padding: 0 8px;
@@ -148,17 +143,14 @@
             overflow: hidden;
         }
         
-        /* Colors */
-        .diff-row-del { background-color: rgba(196, 77, 60, 0.15); } /* Redish */
-        .diff-row-add { background-color: rgba(107, 144, 128, 0.25); } /* Greenish */
+        .diff-row-del { background-color: rgba(196, 77, 60, 0.15); }
+        .diff-row-add { background-color: rgba(107, 144, 128, 0.25); }
         .diff-row-neutral { background-color: transparent; }
         .diff-empty { background-color: rgba(0,0,0,0.02); background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.03) 5px, rgba(0,0,0,0.03) 10px); }
 
-        /* Inline Specifics */
         .inline-del { background-color: rgba(196, 77, 60, 0.2); text-decoration: line-through; opacity: 0.8; }
         .inline-add { background-color: rgba(107, 144, 128, 0.3); }
 
-        /* Dark Mode Tweaks */
         body.dark-mode .diff-row-del { background-color: rgba(196, 77, 60, 0.25); }
         body.dark-mode .diff-row-add { background-color: rgba(107, 144, 128, 0.3); }
         body.dark-mode .diff-empty { background-color: rgba(255,255,255,0.03); }
@@ -170,7 +162,7 @@
         <div class="container">
             <div class="tool-header">
                 <h1>Diff Checker</h1>
-                <p>Compare two blocks of text or code. <br>Preserves indentation and supports Side-by-Side view.</p>
+                <p>Paste two versions of a text or a file and see what changed, inline or side by side. Indentation is kept.</p>
             </div>
 
             <div class="card">
@@ -178,11 +170,11 @@
                 <div class="split-view">
                     <div>
                         <label for="inputOriginal">Original Text</label>
-                        <textarea id="inputOriginal" class="code-editor" placeholder="Paste original text here..." spellcheck="false"></textarea>
+                        <textarea id="inputOriginal" class="code-editor" placeholder="The old version" spellcheck="false"></textarea>
                     </div>
                     <div>
                         <label for="inputChanged">Modified Text</label>
-                        <textarea id="inputChanged" class="code-editor" placeholder="Paste new text here..." spellcheck="false"></textarea>
+                        <textarea id="inputChanged" class="code-editor" placeholder="The new version" spellcheck="false"></textarea>
                     </div>
                 </div>
 
@@ -227,7 +219,6 @@
                             <div class="diff-table-container" id="diffTableContainer">
                                 <table id="diffTable" class="diff-table">
                                     <tbody id="diffTableBody">
-                                        <!-- Diff Generated Here -->
                                     </tbody>
                                 </table>
                             </div>
@@ -242,7 +233,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        // Elements
         const inputOriginal = document.getElementById('inputOriginal');
         const inputChanged = document.getElementById('inputChanged');
         const compareBtn = document.getElementById('compareBtn');
@@ -255,15 +245,12 @@
         const viewInlineBtn = document.getElementById('viewInline');
         const viewSideBtn = document.getElementById('viewSide');
 
-        // State
         let currentInlineRows = null;
         let currentSideRows = null;
-        let activeView = 'inline'; // 'inline' or 'side'
+        let activeView = 'inline'; // or 'side'
 
-        // Web Worker Setup
         let diffWorker = null;
 
-        // --- Switch View Logic ---
         window.switchView = function(view) {
             activeView = view;
             if (view === 'inline') {
@@ -277,7 +264,6 @@
             if (currentInlineRows && currentSideRows) renderDiff();
         };
 
-        // --- Compare Logic ---
         compareBtn.addEventListener('click', () => {
             const text1 = inputOriginal.value;
             const text2 = inputChanged.value;
@@ -285,21 +271,18 @@
             const ignoreSpace = ignoreWhitespace.checked;
 
             if (!text1 && !text2) {
-                showToast('Please enter text to compare.', 'error');
+                showToast('Both boxes are empty.', 'error');
                 return;
             }
 
-            // Set UI to loading state
             compareBtn.textContent = 'Comparing...';
             compareBtn.disabled = true;
             document.querySelector('.diff-wrapper').classList.add('is-loading');
 
-            // Initialize or reuse Worker
             if (!diffWorker) {
                 diffWorker = new Worker('worker.js');
 
                 diffWorker.onmessage = function(e) {
-                    // Reset UI
                     compareBtn.textContent = 'Compare';
                     compareBtn.disabled = false;
                     document.querySelector('.diff-wrapper').classList.remove('is-loading');
@@ -321,19 +304,19 @@
                     compareBtn.textContent = 'Compare';
                     compareBtn.disabled = false;
                     document.querySelector('.diff-wrapper').classList.remove('is-loading');
-                    showToast('Fatal error generating diff.', 'error');
+                    showToast('The comparison failed.', 'error');
                     console.error("Worker error:", e);
                 };
             }
 
-            // Pass work to Web Worker
             diffWorker.postMessage({
                 text1, text2, mode, ignoreSpace
             });
         });
 
-        // --- Rendering Logic (Virtual Scrolling) ---
-        const ROW_HEIGHT = 20; // Matches our CSS height
+        // Only the rows in view are in the DOM; a long file would otherwise
+        // build tens of thousands of table rows.
+        const ROW_HEIGHT = 20; // has to match .diff-num and .diff-code in the CSS
         const BUFFER_ROWS = 20;
         let lastScrollTop = 0;
 
@@ -347,11 +330,9 @@
 
             const rows = activeView === 'side' ? currentSideRows : currentInlineRows;
 
-            // Set Total Height
             const totalHeight = rows.length * ROW_HEIGHT;
             diffSpacer.style.height = `${totalHeight}px`;
 
-            // Draw Initial View
             renderVisibleRows(0);
         }
 
@@ -359,24 +340,20 @@
             const rows = activeView === 'side' ? currentSideRows : currentInlineRows;
             if (!rows || rows.length === 0) return;
 
-            const viewportHeight = diffViewport.clientHeight || 500; // fallback if hidden
+            const viewportHeight = diffViewport.clientHeight || 500; // clientHeight is 0 while the result box is hidden
             
-            // Calculate indices
             let startIndex = Math.floor(scrollTop / ROW_HEIGHT);
             let endIndex = Math.min(
                 rows.length - 1,
                 startIndex + Math.ceil(viewportHeight / ROW_HEIGHT)
             );
 
-            // Apply buffer
             startIndex = Math.max(0, startIndex - BUFFER_ROWS);
             endIndex = Math.min(rows.length - 1, endIndex + BUFFER_ROWS);
 
-            // Position the container
             const offsetY = startIndex * ROW_HEIGHT;
             diffTableContainer.style.transform = `translateY(${offsetY}px)`;
 
-            // Build DOM string
             let htmlStr = '';
 
             for (let i = startIndex; i <= endIndex; i++) {
@@ -418,7 +395,6 @@
             }
         });
 
-        // --- Actions ---
         clearBtn.addEventListener('click', () => {
             inputOriginal.value = '';
             inputChanged.value = '';

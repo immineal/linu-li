@@ -6,14 +6,13 @@
     <title>EXIF Data Remover | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
-    
-    <!-- Libraries -->
+
     <script src="../../assets/vendor/jszip.min.js"></script>
     <script src="../../assets/vendor/FileSaver.min.js"></script>
-    <!-- Piexifjs for Non-Destructive Editing -->
+    <!-- piexif only reads tags for the preview and writes the copyright
+         notice. The stripping itself walks the JPEG segments by hand. -->
     <script src="../../assets/vendor/piexif.js"></script>
-    
-    <!-- Leaflet for Maps -->
+
     <link rel="stylesheet" href="../../assets/vendor/leaflet.css"/>
     <script src="../../assets/vendor/leaflet.js"></script>
 
@@ -39,7 +38,6 @@
         }
         @media (max-width: 768px) { .meta-grid { grid-template-columns: 1fr; } }
 
-        /* Data Table */
         .meta-table {
             padding: 1.5rem;
             font-size: 0.9rem;
@@ -55,7 +53,6 @@
         .meta-label { color: var(--ink-secondary); font-weight: 500; }
         .meta-value { font-family: var(--font-mono); text-align: right; }
 
-        /* Map */
         #mapContainer {
             height: 300px;
             width: 100%;
@@ -103,35 +100,31 @@
         <div class="container">
             <div class="tool-header">
                 <h1>EXIF Data Remover</h1>
-                <p>Strip GPS coordinates, camera details, Content Credentials, and metadata non-destructively. <br>Review what is hidden inside your photos below.</p>
+                <p>Shows the location, camera and dates stored in a JPEG. The copy it saves has none of that, and no IPTC, XMP or Content Credentials either.<br>The picture itself is not re-compressed, so it loses no quality.</p>
             </div>
 
             <div class="card">
                 
                 <div class="drop-zone massive-drop-zone" id="dropZone">
-                    <span class="drop-icon" style="font-size: 3rem; display: block; margin-bottom: 1rem;">📷</span>
-                    <p>Drag & Drop images here (JPG only)</p>
-                    <p style="font-size: 0.9rem; color: var(--ink-secondary); margin-top: 0.5rem;">Massive files supported. Deep scan removes all metadata.</p>
+                    <p>Drop images here (JPG only)</p>
+                    <p style="font-size: 0.9rem; color: var(--ink-secondary); margin-top: 0.5rem;">Large files are fine. Nothing is uploaded.</p>
                     <input type="file" id="fileInput" class="hidden" multiple accept="image/jpeg, image/jpg">
                 </div>
 
                 <ul class="file-list" id="fileList"></ul>
 
-                <!-- PREVIEW SECTION (New) -->
                 <div id="metadataPreview" class="preview-section hidden">
                     <div class="preview-header">
                         Privacy Report <span style="font-weight: normal; color: var(--ink); font-size: 0.9rem;">(Previewing: <span id="previewFileName">filename.jpg</span>)</span>
                     </div>
                     <div class="meta-grid">
-                        <div class="meta-table" id="metaTable">
-                            <!-- JS Injected Rows -->
-                        </div>
+                        <div class="meta-table" id="metaTable"></div>
                         <div style="position: relative;">
                             <div id="mapContainer"></div>
-                            <div id="noGpsMsg" class="no-gps-overlay hidden">No GPS Data Found</div>
+                            <div id="noGpsMsg" class="no-gps-overlay hidden">No location in this photo</div>
                             <div id="mapOptInOverlay" class="no-gps-overlay hidden" style="flex-direction: column; background: rgba(0,0,0,0.05); z-index: 1005;">
-                                <p style="margin-bottom: 10px; color: var(--ink); font-weight: 500;">GPS Location Found</p>
-                                <button class="button sm outline" id="loadMapBtn">Load Map (Requires Internet)</button>
+                                <p style="margin-bottom: 10px; color: var(--ink); font-weight: 500;">This photo carries a location</p>
+                                <button class="button sm outline" id="loadMapBtn">Show on Map (loads tiles from OpenStreetMap)</button>
                             </div>
                         </div>
                     </div>
@@ -139,8 +132,8 @@
 
                 <div id="controlPanel" class="hidden">
                     <div class="copyright-panel">
-                        <label for="copyrightInput" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Copyright Injection (Optional)</label>
-                        <p style="font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 1rem;">Inject a clean copyright notice after scrubbing all other metadata.</p>
+                        <label for="copyrightInput" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Copyright Notice (optional)</label>
+                        <p style="font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 1rem;">Written into the cleaned copy as its only EXIF tag.</p>
                         <input type="text" id="copyrightInput" class="input" placeholder="e.g. © 2024 Jane Doe">
                     </div>
 
@@ -152,7 +145,7 @@
                     </div>
 
                     <div class="button-group" style="margin-top: 2rem;">
-                        <button class="button" id="processBtn">Scrub All & Download</button>
+                        <button class="button" id="processBtn">Remove Metadata</button>
                         <button class="button outline" id="clearBtn">Clear</button>
                     </div>
                 </div>
@@ -162,8 +155,8 @@
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
-                    <h3>Processing Complete</h3>
-                    <p id="resultMessage">Your images have been scrubbed.</p>
+                    <h3>Done</h3>
+                    <p id="resultMessage">The cleaned copies are ready.</p>
                     
                     <div class="button-group">
                         <button class="button secondary" id="downloadBtn">Download Cleaned Files</button>
@@ -177,7 +170,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        // --- Elements ---
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
@@ -189,8 +181,7 @@
         const resultBox = document.getElementById('resultBox');
         const resultMessage = document.getElementById('resultMessage');
         const downloadBtn = document.getElementById('downloadBtn');
-        
-        // Preview Elements
+
         const metadataPreview = document.getElementById('metadataPreview');
         const metaTable = document.getElementById('metaTable');
         const previewFileName = document.getElementById('previewFileName');
@@ -199,20 +190,15 @@
         const mapOptInOverlay = document.getElementById('mapOptInOverlay');
         const loadMapBtn = document.getElementById('loadMapBtn');
 
-        // --- State ---
         let queue = []; 
         let processedBlobs = []; 
         let mapInstance = null;
         let mapMarker = null;
 
-        // --- Initialization ---
         setupDropZone(dropZone, fileInput, handleFiles);
 
-        // --- Event Listeners ---
         clearBtn.addEventListener('click', resetTool);
         processBtn.addEventListener('click', processImages);
-
-        // --- Functions ---
 
         function escapeHTML(str) {
             if (!str) return str;
@@ -240,7 +226,7 @@
                         if (!firstValidFile) firstValidFile = file;
                     }
                 } else {
-                    showToast(`Skipped ${file.name}: Only JPG supported`, 'error');
+                    showToast(`Skipped ${file.name}: only JPG is supported`, 'error');
                 }
             });
 
@@ -248,9 +234,8 @@
                 renderFileList();
                 controlPanel.classList.remove('hidden');
                 resultBox.classList.add('hidden');
-                dropZone.classList.add('hidden'); // Hide drop zone to focus on preview
+                dropZone.classList.add('hidden');
 
-                // Analyze the first new file for preview
                 if (firstValidFile) {
                     analyzeMetadata(firstValidFile);
                 }
@@ -279,7 +264,7 @@
             }
         }
 
-        // Allow clicking a file in list to switch preview
+        // Called from the inline onclick on each list entry.
         window.previewFileIndex = function(index) {
             if (queue[index]) analyzeMetadata(queue[index]);
         }
@@ -307,12 +292,10 @@
             dropZone.classList.remove('hidden');
         }
 
-        // --- METADATA ANALYSIS & MAP ---
-
         async function analyzeMetadata(file) {
             previewFileName.textContent = file.name;
             metadataPreview.classList.remove('hidden');
-            metaTable.innerHTML = '<p style="color:var(--ink-secondary);">Scanning...</p>';
+            metaTable.innerHTML = '<p style="color:var(--ink-secondary);">Reading...</p>';
             
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -321,7 +304,7 @@
                     renderMetadataUI(exifObj);
                 } catch (err) {
                     console.error(err);
-                    metaTable.innerHTML = '<p>Could not read EXIF data (File might be clean).</p>';
+                    metaTable.innerHTML = '<p>No EXIF block could be read. The file may not have one.</p>';
                     hideMap();
                 }
             };
@@ -332,10 +315,9 @@
             const rows = [];
             let hasGPS = false;
 
-            // Helper to extract string from char codes
+            // piexif leaves the NUL terminator on ASCII tags.
             const cleanStr = (str) => str && str.replace ? str.replace(/\0/g, '').trim() : str;
 
-            // 1. Standard Tags (0th IFD)
             const ifd0 = exifData["0th"];
             if (ifd0) {
                 if (ifd0[piexif.ImageIFD.Make]) rows.push({ label: 'Camera Make', val: cleanStr(ifd0[piexif.ImageIFD.Make]) });
@@ -344,14 +326,12 @@
                 if (ifd0[piexif.ImageIFD.DateTime]) rows.push({ label: 'Date Modified', val: cleanStr(ifd0[piexif.ImageIFD.DateTime]) });
             }
 
-            // 2. Exif Tags
             const exif = exifData["Exif"];
             if (exif) {
                 if (exif[piexif.ExifIFD.DateTimeOriginal]) rows.push({ label: 'Date Original', val: cleanStr(exif[piexif.ExifIFD.DateTimeOriginal]) });
                 if (exif[piexif.ExifIFD.LensModel]) rows.push({ label: 'Lens', val: cleanStr(exif[piexif.ExifIFD.LensModel]) });
             }
 
-            // 3. GPS Tags
             const gps = exifData["GPS"];
             if (gps && gps[piexif.GPSIFD.GPSLatitude] && gps[piexif.GPSIFD.GPSLongitude]) {
                 hasGPS = true;
@@ -370,9 +350,8 @@
                 hideMap();
             }
 
-            // Render Table
             if (rows.length === 0) {
-                metaTable.innerHTML = '<p style="text-align:center; color:var(--accent-secondary);"><strong>Safe:</strong> No significant metadata found.</p>';
+                metaTable.innerHTML = '<p style="text-align:center; color:var(--accent-secondary);">No camera, date or location tags found.</p>';
             } else {
                 metaTable.innerHTML = '';
                 rows.forEach(r => {
@@ -401,7 +380,7 @@
         }
 
         function convertDMSToDD(dms, ref) {
-            // Piexif returns rationals as [numerator, denominator]
+            // piexif returns rationals as [numerator, denominator]
             const d = dms[0][0] / dms[0][1];
             const m = dms[1][0] / dms[1][1];
             const s = dms[2][0] / dms[2][1];
@@ -414,9 +393,9 @@
         function showMap(lat, lng) {
             noGpsMsg.classList.add('hidden');
             
-            // Initialize map if not exists
             if (!mapInstance) {
-                // Fix Leaflet default marker icons (vendored locally)
+                // Leaflet derives the marker image path from its CSS URL, which
+                // points nowhere useful for the vendored copy.
                 delete L.Icon.Default.prototype._getIconUrl;
                 L.Icon.Default.mergeOptions({
                     iconUrl:       '../../assets/vendor/images/marker-icon.png',
@@ -424,19 +403,19 @@
                     shadowUrl:     '../../assets/vendor/images/marker-shadow.png',
                 });
                 mapInstance = L.map('mapContainer').setView([lat, lng], 13);
-                // Note: tile images are fetched from OpenStreetMap servers on demand
+                // Tiles come from OpenStreetMap, which is why the map waits for the button.
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }).addTo(mapInstance);
             } else {
                 mapInstance.setView([lat, lng], 13);
-                mapInstance.invalidateSize(); // Fix rendering if hidden previously
+                // Leaflet measured the container while it was hidden.
+                mapInstance.invalidateSize();
             }
 
-            // Update Marker
             if (mapMarker) mapInstance.removeLayer(mapMarker);
             mapMarker = L.marker([lat, lng]).addTo(mapInstance)
-                .bindPopup("Hidden Location Data found inside image.")
+                .bindPopup("The photo says it was taken here.")
                 .openPopup();
         }
 
@@ -444,13 +423,10 @@
             noGpsMsg.classList.remove('hidden');
             mapOptInOverlay.classList.add('hidden');
             if (mapInstance) {
-                // Reset view or hide marker
                 if (mapMarker) mapInstance.removeLayer(mapMarker);
                 mapInstance.setView([0,0], 1);
             }
         }
-
-        // --- REMOVAL LOGIC ---
 
         window.stripAllMetadataAndInject = function(file, copyrightText, removeICC = true) {
             return new Promise((resolve, reject) => {
@@ -502,7 +478,7 @@
                                     keep = false;
                                 } else if (marker === 0xFE) { // COM (Comment)
                                     keep = false;
-                                } else if (marker === 0xE2) { // APP2 (ICC Profile, etc - usually safe to remove for pure scrub, but we keep it or strip it. Let's strip to be paranoid about hidden data)
+                                } else if (marker === 0xE2) { // APP2 (ICC profile). Can name the device or software, so it goes by default.
                                     if (removeICC) {
                                         keep = false;
                                     }
@@ -530,7 +506,6 @@
                         let finalBlob = new Blob([cleanBytes], { type: 'image/jpeg' });
 
                         if (copyrightText && copyrightText.trim() !== '') {
-                            // Inject via piexif
                             const reader2 = new FileReader();
                             reader2.onload = function(e2) {
                                 try {
@@ -541,7 +516,6 @@
 
                                     const newBase64 = piexif.insert(exifbytes, e2.target.result);
 
-                                    // Convert back to blob
                                     const byteString = atob(newBase64.split(',')[1]);
                                     const ab = new ArrayBuffer(byteString.length);
                                     const ia = new Uint8Array(ab);
@@ -592,26 +566,26 @@
                         processedBlobs.push({ name: `clean_${file.name}`, blob: blob });
                     } catch (err) {
                         console.error(`Failed to scrub ${file.name}:`, err);
-                        // Omitting the file entirely for privacy
+                        // Left out rather than handed back with its metadata still in it.
                         errorCount++;
                     }
 
                     const percent = Math.round(((i + 1) / total) * 100);
                     progressBar.style.width = `${percent}%`;
 
-                    // Yield to prevent UI blocking on massive batches
+                    // Let the progress bar paint during long batches.
                     if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
                 }
 
                 setTimeout(() => {
                     if (errorCount > 0) {
-                        showToast(`${errorCount} file(s) failed and were omitted for privacy.`, 'error');
+                        showToast(`${errorCount} file(s) could not be read and were left out of the download.`, 'error');
                     }
                     if (processedBlobs.length > 0) {
                         showResult();
                     } else {
                         resultBox.classList.remove('hidden');
-                        resultMessage.textContent = 'Failed to scrub any files.';
+                        resultMessage.textContent = 'None of the files could be cleaned.';
                         downloadBtn.style.display = 'none';
                     }
                     processBtn.disabled = false;
@@ -619,20 +593,19 @@
 
             } catch (error) {
                 console.error(error);
-                showToast('Critical error processing images.', 'error');
+                showToast('Cleaning stopped with an error. The browser console has details.', 'error');
                 processBtn.disabled = false;
             }
         }
 
         function showResult() {
             resultBox.classList.remove('hidden');
-            // Hide preview after processing to emphasize completion
             metadataPreview.classList.add('hidden');
             
             const count = processedBlobs.length;
-            resultMessage.textContent = `Successfully scrubbed metadata from ${count} image${count !== 1 ? 's' : ''}.`;
+            resultMessage.textContent = `Removed the metadata from ${count} image${count !== 1 ? 's' : ''}.`;
             
-            // Clone button to clear old listeners
+            // Cloning drops the listener left from the previous run.
             const newBtn = downloadBtn.cloneNode(true);
             downloadBtn.parentNode.replaceChild(newBtn, downloadBtn);
             
