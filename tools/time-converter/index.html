@@ -148,9 +148,21 @@
                         </div>
 
                         <label>Timestamp (Milliseconds)</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 1rem;">
                             <input type="text" readonly id="resTsMillis" style="font-family: var(--font-mono); margin-bottom: 0; flex: 1;">
                             <button class="button sm secondary" onclick="copyInput('resTsMillis')">Copy</button>
+                        </div>
+
+                        <label>Timestamp (Microseconds)</label>
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 1rem;">
+                            <input type="text" readonly id="resTsMicro" style="font-family: var(--font-mono); margin-bottom: 0; flex: 1;">
+                            <button class="button sm secondary" onclick="copyInput('resTsMicro')">Copy</button>
+                        </div>
+
+                        <label>Timestamp (Nanoseconds)</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" readonly id="resTsNano" style="font-family: var(--font-mono); margin-bottom: 0; flex: 1;">
+                            <button class="button sm secondary" onclick="copyInput('resTsNano')">Copy</button>
                         </div>
                     </div>
 
@@ -201,6 +213,8 @@
         const dateResultBox = document.getElementById('dateResultBox');
         const resTsSeconds = document.getElementById('resTsSeconds');
         const resTsMillis = document.getElementById('resTsMillis');
+        const resTsMicro = document.getElementById('resTsMicro');
+        const resTsNano = document.getElementById('resTsNano');
 
         let isPaused = false;
         let timerInterval;
@@ -389,11 +403,10 @@
             resTsSeconds.value = dayObj.unix();
             resTsMillis.value = dayObj.valueOf();
             
+            // BigInt: nanoseconds since 1970 are past 2^53, where a Number
+            // starts rounding the last digits
             resTsMicro.value = BigInt(dayObj.valueOf()) * 1000n;
             resTsNano.value = BigInt(dayObj.valueOf()) * 1000000n;
-
-            resTsMicroContainer.classList.remove('hidden');
-            resTsNanoContainer.classList.remove('hidden');
 
             dateResultBox.classList.remove('hidden');
         });
