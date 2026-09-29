@@ -14,6 +14,34 @@
         .category-intro { margin-bottom: 1.5rem; color: var(--ink-secondary); font-size: 0.95rem; }
         .grid-wrapper { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
 
+        /* Combined cards: several closely related little tools that would
+           each need only one line of description, presented as one card with
+           inline sub-links. Not pinnable individually; the whole card counts
+           as one search hit. */
+        .card.multi { display: flex; flex-direction: column; height: 100%; }
+        .card.multi h3 { margin-bottom: 0.5rem; }
+        .card.multi > p { margin-bottom: 1rem; }
+        .card.multi .sub-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 0.75rem;
+            margin-top: auto;
+        }
+        .card.multi .sub-links a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.4rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-family: var(--font-heading);
+            font-size: 0.85rem;
+            color: var(--ink);
+            text-decoration: none;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .card.multi .sub-links a:hover { border-color: var(--accent); color: var(--accent); opacity: 1; text-decoration: none; }
+
         /* Hidden until something is pinned, or the page opens on an empty
            heading and a dashed line. */
         .favorites-section {
@@ -84,6 +112,8 @@
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5;"><circle cx="6.5" cy="6.5" r="4.75"/><path d="M10 10l4.25 4.25"/></svg>
             </div>
 
+            <div id="pin-suggest-slot"></div>
+
             <div id="favorites-container" class="favorites-section">
                 <h2>Pinned</h2>
                 <div class="grid-wrapper" id="favorites-grid"></div>
@@ -92,9 +122,15 @@
             <h2>PDF</h2>
             <p class="category-intro">Combine, cut up and convert PDFs without sending them anywhere.</p>
             <div class="grid-wrapper">
+                <a href="./tools/pdf-compressor/" class="card interactive" data-id="pdf-compressor">
+                    <h3>PDF Compressor</h3>
+                    <p class="small-text">Get a PDF under a size limit like 10 MB for e-mail. Shows a page of the result before you download.</p>
+                    <span class="keywords">compress compressor shrink reduce smaller size limit mb email upload attachment optimize downsample grayscale black white scan clean pdf</span>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
                 <a href="./tools/pdf-merger/" class="card interactive" data-id="pdf-merger">
                     <h3>PDF Merger</h3>
-                    <p class="small-text">Combine multiple PDF files into one. Drag to reorder pages before merging.</p>
+                    <p class="small-text">Combine several PDFs into one. Drag to reorder the pages first.</p>
                     <span class="keywords">merge join combine append concatenate documents pages files split unite pdf</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
@@ -104,22 +140,22 @@
                     <span class="keywords">split separate extract cut pages range divide chunk break apart pdf</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
-                <a href="./tools/pdf-extractor/" class="card interactive" data-id="pdf-extractor">
-                    <h3>PDF Image Extractor</h3>
-                    <p class="small-text">Pull out all images embedded inside a PDF and download them.</p>
-                    <span class="keywords">extract images photos pictures assets embedded download save jpg png pdf scrape</span>
-                    <span class="button outline sm">Open &rarr;</span>
-                </a>
-                <a href="./tools/pdf-compressor/" class="card interactive" data-id="pdf-compressor">
-                    <h3>PDF Compressor</h3>
-                    <p class="small-text">Get a PDF under a size limit such as 10 MB. Shows a page of the result before you download it.</p>
-                    <span class="keywords">compress compressor shrink reduce smaller size limit mb email upload attachment optimize downsample grayscale black white scan clean pdf</span>
-                    <span class="button outline sm">Open &rarr;</span>
-                </a>
                 <a href="./tools/pdf-2up/" class="card interactive" data-id="pdf-2up">
                     <h3>PDF 2-Up (Booklet Layout)</h3>
                     <p class="small-text">Put two PDF pages side by side on one sheet, for booklets or double-sided printing.</p>
                     <span class="keywords">2up two booklet duplex double sided pages side by side print layout nup pdf</span>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/pdf-extractor/" class="card interactive" data-id="pdf-extractor">
+                    <h3>PDF Image Extractor</h3>
+                    <p class="small-text">Pull every image out of a PDF and save them.</p>
+                    <span class="keywords">extract images photos pictures assets embedded download save jpg png pdf scrape</span>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/pdf-watermarker/" class="card interactive" data-id="pdf-watermarker">
+                    <h3>PDF Watermarker</h3>
+                    <p class="small-text">Stamp a watermark across every page of a PDF. Text or an image, diagonal or centred.</p>
+                    <span class="keywords">watermark stamp overlay pdf confidential draft copyright text image diagonal center</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
             </div>
@@ -141,7 +177,7 @@
                 </a>
                 <a href="./tools/social-cropper/" class="card interactive" data-id="social-cropper">
                     <h3>Social Media Cropper</h3>
-                    <p class="small-text">Crop images to exact ratios for Instagram, Twitter, LinkedIn, profile pictures.</p>
+                    <p class="small-text">Crop to Instagram, Twitter or LinkedIn ratios, or a round profile picture.</p>
                     <span class="keywords">crop instagram twitter linkedin facebook profile picture avatar thumbnail ratio 16:9 4:5 1:1 circle square social media</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
@@ -153,17 +189,23 @@
                 </a>
                 <a href="./tools/favicon-maker/" class="card interactive" data-id="favicon-maker">
                     <h3>Favicon Generator</h3>
-                    <p class="small-text">Create .ico and .png browser tab icons from text, emoji, or an image.</p>
+                    <p class="small-text">Make .ico and .png browser tab icons from text, an emoji or an image.</p>
                     <span class="keywords">favicon icon ico png browser tab website logo generate create emoji text shortcut</span>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/svg-to-png/" class="card interactive" data-id="svg-to-png">
+                    <h3>SVG to PNG Converter</h3>
+                    <p class="small-text">Rasterise an SVG at any size. Pick a resolution and download the PNG.</p>
+                    <span class="keywords">svg png raster convert vector image export size resolution download</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
             </div>
 
             <h2>Text</h2>
-            <p class="category-intro">Compare two versions, write Markdown, make filler text.</p>
+            <p class="category-intro">Write, compare, count and clean up.</p>
             <div class="grid-wrapper">
                 <a href="./tools/markdown-editor/" class="card interactive" data-id="markdown-editor">
-                    <h3>Markdown Editor & Preview</h3>
+                    <h3>Markdown Editor &amp; Preview</h3>
                     <p class="small-text">Write Markdown and see the rendered output side by side. Export to HTML.</p>
                     <span class="keywords">markdown editor preview render html export write md github readme documentation</span>
                     <span class="button outline sm">Open &rarr;</span>
@@ -174,20 +216,25 @@
                     <span class="keywords">diff compare difference text code changes added removed highlight inline side by side version</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
-                <a href="./tools/lorem-generator/" class="card interactive" data-id="lorem-generator">
-                    <h3>Lorem Ipsum Generator</h3>
-                    <p class="small-text">Generate filler text for mockups. Latin, tech jargon, or corporate speak.</p>
-                    <span class="keywords">lorem ipsum placeholder dummy filler text mockup design prototype paragraph sentence latin</span>
-                    <span class="button outline sm">Open &rarr;</span>
-                </a>
+                <div class="card multi" data-id="text-utilities">
+                    <h3>Small text utilities</h3>
+                    <p class="small-text">One-line jobs on a paragraph or a list: count, recase, tidy up or fill in.</p>
+                    <span class="keywords">word count character count case upper lower title snake kebab list clean sort dedupe unique lorem ipsum placeholder</span>
+                    <div class="sub-links">
+                        <a href="./tools/word-counter/">Word &amp; character counter &rarr;</a>
+                        <a href="./tools/case-converter/">Case converter &rarr;</a>
+                        <a href="./tools/list-cleaner/">List cleaner &amp; sorter &rarr;</a>
+                        <a href="./tools/lorem-generator/">Lorem Ipsum &rarr;</a>
+                    </div>
+                </div>
             </div>
 
             <h2>Developer</h2>
             <p class="category-intro">For data you would rather not paste into a stranger's website.</p>
             <div class="grid-wrapper">
                 <a href="./tools/json-tools/" class="card interactive" data-id="json-tools">
-                    <h3>JSON Formatter & Validator</h3>
-                    <p class="small-text">Validate, fix, minify, prettify, and explore JSON as a collapsible tree.</p>
+                    <h3>JSON Formatter &amp; Validator</h3>
+                    <p class="small-text">Validate, prettify or minify JSON. Browse it as a collapsible tree.</p>
                     <span class="keywords">json format validate repair fix minify prettify beautify tree view explore api response parse</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
@@ -197,49 +244,41 @@
                     <span class="keywords">url encode decode clean strip tracking utm fbclid gclid parameters link query string percent encoding</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
-                <a href="./tools/base64-converter/" class="card interactive" data-id="base64-converter">
-                    <h3>Base64 Encoder / Decoder</h3>
-                    <p class="small-text">Encode text or files to Base64, or decode Base64 strings back. Handles data URIs too.</p>
-                    <span class="keywords">base64 encode decode text file data uri string binary convert atob btoa</span>
+                <a href="./tools/sql-formatter/" class="card interactive" data-id="sql-formatter">
+                    <h3>SQL Formatter</h3>
+                    <p class="small-text">Format and lint SQL. Pick a dialect and see a tidy version, uppercased keywords and all.</p>
+                    <span class="keywords">sql format prettify lint mysql postgres sqlite tsql plsql beautify indent uppercase keywords</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
+                <div class="card multi" data-id="encode-hash">
+                    <h3>Encode &amp; hash</h3>
+                    <p class="small-text">The little string utilities: Base64 both ways, a hash, or reading a JWT.</p>
+                    <span class="keywords">base64 encode decode atob btoa data uri hash sha256 sha512 md5 checksum fingerprint jwt json web token debugger decode inspect</span>
+                    <div class="sub-links">
+                        <a href="./tools/base64-converter/">Base64 &rarr;</a>
+                        <a href="./tools/hash-generator/">Hash (SHA/MD5) &rarr;</a>
+                        <a href="./tools/jwt-debugger/">JWT decoder &rarr;</a>
+                    </div>
+                </div>
                 <a href="./tools/time-converter/" class="card interactive" data-id="time-converter">
                     <h3>Unix Timestamp Converter</h3>
                     <p class="small-text">Convert Unix/epoch timestamps to readable dates and back, across time zones.</p>
                     <span class="keywords">unix timestamp epoch convert date time seconds milliseconds timezone utc posix</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
+                <a href="./tools/aspect-ratio/" class="card interactive" data-id="aspect-ratio">
+                    <h3>Aspect Ratio Calculator</h3>
+                    <p class="small-text">Work out the missing side when scaling to a target ratio, or read the ratio of the size you have.</p>
+                    <span class="keywords">aspect ratio calculator width height resize scale 16:9 4:3 21:9 video image responsive</span>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
             </div>
 
-            <h2>Everything else</h2>
-            <p class="category-intro">A map, a stage planner, and the small jobs: passwords, QR codes, colours, units.</p>
+            <h2>Everyday</h2>
+            <p class="category-intro">Colours, units, and the two local Bonn tools.</p>
             <div class="grid-wrapper">
-                <a href="./tools/sperrmuell/" class="card interactive" data-id="sperrmuell">
-                    <h3>Bonn Sperrmüll Map</h3>
-                    <p class="small-text">Which streets in Bonn get a bulky-waste (Sperrmüll) pickup on which day. Search by address or look on the map.</p>
-                    <span class="keywords">sperrmüll bonn bulky waste pickup collection map abfuhrtermine straße adresse abholtermin</span>
-                    <span class="button outline sm">Open &rarr;</span>
-                </a>
-                <a href="./tools/buehnenbild/" class="card interactive" data-id="buehnenbild">
-                    <h3>B&uuml;hnenbild-Planer &middot; Scene &amp; Prop Planner</h3>
-                    <p class="small-text">German-language planner for stage crews. Lay out props scene by scene, then print A4 ground plans and a separate Umbauplan listing every strike, set-up and move.</p>
-                    <span class="keywords">theatre stage plan prop scene planner ground plan set design blocking act curtain rostrum print a4 rehearsal production crew bühnenplan requisiten umbauplan szenenplaner abbau aufbau umstellen requisite bühnenbild theater deutsch german</span>
-                    <span class="button outline sm">Open &rarr;</span>
-                </a>
-                <a href="./tools/pw-generator/" class="card interactive" data-id="pw-generator">
-                    <h3>Password Generator</h3>
-                    <p class="small-text">Random passwords from the browser's own cryptographic generator. Set the length, symbols and numbers.</p>
-                    <span class="keywords">password generate random strong secure cryptographic symbols numbers letters length passphrase</span>
-                    <span class="button outline sm">Open &rarr;</span>
-                </a>
-                <a href="./tools/qr-creator/" class="card interactive" data-id="qr-creator">
-                    <h3>QR Code Generator</h3>
-                    <p class="small-text">Create QR codes for links, WiFi passwords, or contact cards (vCard). Download as PNG.</p>
-                    <span class="keywords">qr code generate wifi password vcard contact url link download png scan barcode</span>
-                    <span class="button outline sm">Open &rarr;</span>
-                </a>
                 <a href="./tools/color-tools/" class="card interactive" data-id="color-tools">
-                    <h3>Color Picker & Contrast Checker</h3>
+                    <h3>Color Picker &amp; Contrast Checker</h3>
                     <p class="small-text">Pick colors, convert HEX/RGB/HSL, and check WCAG accessibility contrast ratios.</p>
                     <span class="keywords">color picker hex rgb hsl hsv convert contrast wcag accessibility a11y palette css</span>
                     <span class="button outline sm">Open &rarr;</span>
@@ -250,10 +289,16 @@
                     <span class="keywords">unit convert length weight temperature speed storage km miles celsius fahrenheit gb mb metric imperial</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
-                <a href="./tools/hash-generator/" class="card interactive" data-id="hash-generator">
-                    <h3>Hash Generator</h3>
-                    <p class="small-text">Get the SHA-256, MD5, or SHA-512 hash of any text or file.</p>
-                    <span class="keywords">hash sha256 md5 sha512 checksum file text integrity verify fingerprint crypto</span>
+                <a href="./tools/sperrmuell/" class="card interactive" data-id="sperrmuell">
+                    <h3>Bonn Sperrmüll Map</h3>
+                    <p class="small-text">Which streets in Bonn get a bulky-waste (Sperrmüll) pickup on which day. Search by address or look on the map.</p>
+                    <span class="keywords">sperrmüll bonn bulky waste pickup collection map abfuhrtermine straße adresse abholtermin</span>
+                    <span class="button outline sm">Open &rarr;</span>
+                </a>
+                <a href="./tools/buehnenbild/" class="card interactive" data-id="buehnenbild">
+                    <h3>B&uuml;hnenbild-Planer &middot; Scene &amp; Prop Planner</h3>
+                    <p class="small-text">German-language planner for stage crews. Lay out props scene by scene, then print A4 ground plans and a separate Umbauplan listing every strike, set-up and move.</p>
+                    <span class="keywords">theatre stage plan prop scene planner ground plan set design blocking act curtain rostrum print a4 rehearsal production crew bühnenplan requisiten umbauplan szenenplaner abbau aufbau umstellen requisite bühnenbild theater deutsch german</span>
                     <span class="button outline sm">Open &rarr;</span>
                 </a>
             </div>
@@ -279,11 +324,30 @@
         document.addEventListener('DOMContentLoaded', () => {
             const MAX_FAVES = 6;
             const STORAGE_KEY = 'll_toolbox_favorites';
+            const PIN_PROMPT_KEY = 'll_pin_prompt_v1';
             const favContainer = document.getElementById('favorites-container');
             const favGrid = document.getElementById('favorites-grid');
 
+            // The set the site would suggest as pins if it had to guess: the six
+            // things a stranger walking in would most often want in one tap.
+            // Also what a first-time visitor gets seeded with, and what a
+            // returning visitor is asked to top up their pins with, minus
+            // whatever they already have.
+            const DEFAULT_PINS = ['pdf-compressor', 'pdf-merger', 'image-compressor',
+                                  'social-cropper', 'qr-creator', 'pw-generator'];
+
             // Tools that were renamed, so a pin made under the old name survives
             const RENAMED = { 'pdf-grayscale': 'pdf-compressor' };
+
+            // First visit: nothing has ever been stored under the pin key. Seed
+            // with the default six so the page opens with something on it, and
+            // note that the ask-once dialog is not needed for this visitor.
+            try {
+                if (localStorage.getItem(STORAGE_KEY) === null) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_PINS));
+                    localStorage.setItem(PIN_PROMPT_KEY, 'seeded');
+                }
+            } catch (err) { /* storage blocked: the site runs without pins */ }
 
             function getFavorites() {
                 const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -395,6 +459,93 @@
 
             renderFavorites();
 
+            maybeOfferPins();
+
+            /**
+             * For someone who arrived here before the pin system existed and
+             * already curated their own set — or someone who used the search
+             * and never bothered pinning — ask, once, whether they want to
+             * top their pins up with the ones most visitors reach for.
+             *
+             * Adaptive: only the defaults they haven't already pinned, capped
+             * at three, and never more than the room they still have.
+             * Silent: if there is nothing to suggest or nowhere to put it,
+             * the visitor sees nothing and the flag records the reason. The
+             * dialog is deliberately built as an inline card near the top of
+             * the page, not as a modal — the update-note popup already owns
+             * that shape, and this ask should not read as another one.
+             */
+            function maybeOfferPins() {
+                let seen = null;
+                try { seen = localStorage.getItem(PIN_PROMPT_KEY); }
+                catch (err) { return; }
+                if (seen) return;
+
+                const current = getFavorites();
+                const missing = DEFAULT_PINS.filter((id) => !current.includes(id));
+                const room = MAX_FAVES - current.length;
+                if (missing.length < 2 || room <= 0) {
+                    try { localStorage.setItem(PIN_PROMPT_KEY, 'skipped'); }
+                    catch (err) { /* fine */ }
+                    return;
+                }
+                const suggest = missing.slice(0, Math.min(3, room));
+                const named = suggest.map((id) => {
+                    const heading = document.querySelector(`.card.interactive[data-id="${id}"] h3`);
+                    return heading ? { id, name: heading.textContent.trim() } : null;
+                }).filter(Boolean);
+                if (named.length < 2) {
+                    try { localStorage.setItem(PIN_PROMPT_KEY, 'skipped'); }
+                    catch (err) { /* fine */ }
+                    return;
+                }
+                renderPinBanner(named);
+            }
+
+            function renderPinBanner(items) {
+                const banner = document.createElement('div');
+                banner.className = 'll-pin-suggest';
+                const heading = items.length === 3
+                    ? 'A few more pins?'
+                    : (items.length === 2 ? 'Two more pins?' : 'One more pin?');
+                const chips = items.map((it) =>
+                    `<span class="ll-pin-suggest-chip">${it.name}</span>`
+                ).join('');
+                banner.innerHTML =
+                    '<div class="ll-pin-suggest-text">' +
+                        '<strong>' + heading + '</strong>' +
+                        '<span>Sit them at the top of the page so they are one tap away. Click a heart later to unpin any of them.</span>' +
+                    '</div>' +
+                    '<div class="ll-pin-suggest-chips">' + chips + '</div>' +
+                    '<div class="ll-pin-suggest-buttons">' +
+                        '<button type="button" data-act="no">Not now</button>' +
+                        '<button type="button" data-act="yes" class="ll-pin-yes">Pin ' +
+                            (items.length === 1 ? 'it' : 'them') +
+                        '</button>' +
+                    '</div>';
+
+                banner.addEventListener('click', (e) => {
+                    const act = e.target.getAttribute && e.target.getAttribute('data-act');
+                    if (!act) return;
+                    if (act === 'yes') {
+                        const current = getFavorites();
+                        const merged = current.concat(
+                            items.map((it) => it.id).filter((id) => !current.includes(id)),
+                        ).slice(0, MAX_FAVES);
+                        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); }
+                        catch (err) { /* pinning fails silently */ }
+                        renderFavorites();
+                    }
+                    try {
+                        localStorage.setItem(PIN_PROMPT_KEY, act === 'yes' ? 'accepted' : 'declined');
+                    } catch (err) { /* fine */ }
+                    banner.remove();
+                });
+
+                const slot = document.getElementById('pin-suggest-slot');
+                if (slot) slot.appendChild(banner);
+            }
+
             /* No service worker registration here. layout.js registers it for
                every page, this one included, and a second registration here
                only raced with that one. */
@@ -410,8 +561,8 @@
             searchResultsGrid.style.marginBottom = '3rem';
             document.getElementById('toolSearch').closest('div').insertAdjacentElement('afterend', searchResultsGrid);
 
-            // Collect all real tool cards once (not clones, not favorites)
-            const allToolCards = Array.from(document.querySelectorAll('.card.interactive[data-id]:not(#favorites-grid .card)'));
+            // Collect all real tool cards once (not clones, not favorites).
+            const allToolCards = Array.from(document.querySelectorAll('.card[data-id]:not(#favorites-grid .card)'));
 
             // All category sections (h2 + p + grid) that should hide during search
             const categorySections = Array.from(searchGridWrappers).map(grid => {
