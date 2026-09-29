@@ -27,14 +27,29 @@ export function storeTheme(storage: Pick<Storage, "setItem"> | null, theme: Them
 
 /**
  * How the OpenStreetMap tiles are drawn under each theme. The standard tiles
- * are light only; in the dark they are dimmed and partly desaturated rather
- * than inverted, so parks stay green and water blue, only quieter, and the
- * streets of a collection day stand out against them either way.
+ * are light only; the dark theme flips them via MapLibre's own raster paint:
+ * brightness-min above brightness-max reverses the ramp (black pixels come
+ * out light-grey, white pixels come out near-black), and a 180° hue rotate
+ * puts colours back the right way round after the inversion — so water
+ * reads as blue again and parks as green, on a dark ground. The collection
+ * streets stay in their accent colours and keep contrast against both.
  */
 export function basemapPaint(theme: Theme): Record<string, number> {
   return theme === "dark"
-    ? { "raster-brightness-min": 0, "raster-brightness-max": 0.55, "raster-saturation": -0.45, "raster-contrast": 0.05 }
-    : { "raster-brightness-min": 0, "raster-brightness-max": 1, "raster-saturation": -0.25, "raster-contrast": 0 };
+    ? {
+        "raster-brightness-min": 0.32,
+        "raster-brightness-max": 0.04,
+        "raster-hue-rotate": 180,
+        "raster-saturation": -0.2,
+        "raster-contrast": 0.15,
+      }
+    : {
+        "raster-brightness-min": 0,
+        "raster-brightness-max": 1,
+        "raster-hue-rotate": 0,
+        "raster-saturation": -0.25,
+        "raster-contrast": 0,
+      };
 }
 
 /** The site's ink, for the district outlines drawn on top of the tiles. */
