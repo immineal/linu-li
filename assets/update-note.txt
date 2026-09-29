@@ -40,4 +40,5 @@ The PDF extractor hands out the fonts now as well; it had been finding none.
 The PDF merger took encrypted PDFs, even ones that open without a password, and put their pages into the result unreadable. It stops and names the file now, and the watermarker, the splitter and the 2-up tool say plainly what is wrong with it too.
 Messages that explain something stay on screen long enough to read them.
 The Bonn Sperrmüll map looks like the rest of the site now, dark unless you have picked light, and picking light or dark there or elsewhere on the site counts for both. It has this year's data fetched again, and ten squares that were missing from it are on the map now.
+The Bonn Sperrmüll map's dark mode now has a proper dark map underneath instead of the light one dimmed grey, and the theme switch and header no longer sit on mismatched boxes at three different heights.
 The front page now opens with six pinned tools by default on a first visit, and asks people who already have their own pins whether to add a few more. The rest of the tools are grouped into PDF, Images, Text, Developer and Everyday sections.
