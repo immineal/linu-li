@@ -1,17 +1,19 @@
 import * as turf from "@turf/turf";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { writeCache } from "./cache.js";
 import { parseCsv } from "./csv.js";
 import { parseGermanDate } from "./dates.js";
-import { CSV_URL, loadCsv } from "./fetchCsv.js";
 import { fetchAddresses, fetchOrtsteile, fetchStreets } from "./fetchOsm.js";
 import { buildClusters, validateClusters } from "./clusters.js";
 import { matchSegments } from "./match.js";
 import { parseSperrmuellSegments } from "./parseSegments.js";
 import { DATA_DIR } from "./paths.js";
 import { buildRoutePolygons } from "./routePolygons.js";
-import type { BuildStats } from "./types.js";
+import { LICENSE, loadSchedules, windowYears, type Schedule } from "./schedules.js";
+import type { BuildStats, SperrmuellSegment } from "./types.js";
+import { mergeYears } from "./years.js";
 
 /** Minimum fraction of segments that must be matched (exact or approximate), or the build fails. */
 const MIN_MATCH_RATE = 0.95;
@@ -40,16 +42,35 @@ function parseArgs(argv: string[]): { inputPath?: string } {
 async function main(): Promise<void> {
   const { inputPath } = parseArgs(process.argv.slice(2));
 
-  console.log("[build] loading CSV...");
-  const csvText = await loadCsv(inputPath);
-  const { rows } = parseCsv(csvText);
-  const segments = parseSperrmuellSegments(rows);
-  console.log(`[build] parsed ${segments.length} Sperrmüll segments from ${rows.length} CSV rows`);
+  const schedules: Schedule[] = inputPath
+    ? [{ year: 0, url: inputPath, text: readFileSync(inputPath, "utf-8") }]
+    : loadSchedules(windowYears(new Date()));
+  if (schedules.length === 0) {
+    throw new Error("No schedule in etl/termine/. Run `npm run schedules` first.");
+  }
 
-  const planRow = rows.find((r) => r.PLAN_BEZ === "Sperrmüll" && r.PLAN_AB && r.PLAN_BIS);
-  const dataDate = planRow
-    ? `${parseGermanDate(planRow.PLAN_AB)} – ${parseGermanDate(planRow.PLAN_BIS)}`
-    : "unknown";
+  // Each year is parsed and checked on its own: the "three dates per
+  // segment" rule holds within one schedule, not across two.
+  const years = schedules.map((schedule) => {
+    const { rows } = parseCsv(schedule.text);
+    const segments = parseSperrmuellSegments(rows);
+    const validation = validateClusters(segments, buildClusters(segments));
+    const plan = rows.find((r) => r.PLAN_BEZ === "Sperrmüll" && r.PLAN_AB && r.PLAN_BIS);
+    console.log(`[build] ${schedule.year || schedule.url}: ${segments.length} Sperrmüll segments from ${rows.length} rows`);
+    return {
+      ...schedule,
+      segments,
+      validation,
+      from: plan ? parseGermanDate(plan.PLAN_AB) : undefined,
+      to: plan ? parseGermanDate(plan.PLAN_BIS) : undefined,
+    };
+  });
+  const segments: SperrmuellSegment[] = mergeYears(years);
+  console.log(`[build] ${segments.length} segments over ${years.map((y) => y.year).join(", ")}`);
+
+  const froms = years.map((y) => y.from).filter(Boolean).sort();
+  const tos = years.map((y) => y.to).filter(Boolean).sort();
+  const dataDate = froms.length && tos.length ? `${froms[0]} – ${tos[tos.length - 1]}` : "unknown";
 
   console.log("[build] fetching OpenStreetMap data for Bonn (this can take a while)...");
   const [streets, addresses, ortsteile] = await Promise.all([
@@ -68,7 +89,13 @@ async function main(): Promise<void> {
 
   console.log("[build] building route clusters...");
   const clusters = buildClusters(segments);
-  const clusterValidation = validateClusters(segments, clusters);
+  const clusterValidation: BuildStats["clusterValidation"] = {
+    pass: years.every((y) => y.validation.pass),
+    uniqueDates: clusters.length,
+    totalDateAssignments: years.reduce((n, y) => n + y.validation.totalDateAssignments, 0),
+    expectedDateAssignments: years.reduce((n, y) => n + y.validation.expectedDateAssignments, 0),
+    details: years.map((y) => (years.length > 1 ? `${y.year}: ` : "") + y.validation.details).join(" "),
+  };
   console.log(`[build] ${clusterValidation.details}`);
 
   console.log("[build] building route-cluster polygons...");
@@ -97,8 +124,8 @@ async function main(): Promise<void> {
   const buildStats: BuildStats = {
     generatedAt: new Date().toISOString(),
     sourceCsv: {
-      url: CSV_URL,
-      license: "Creative Commons Attribution 4.0 (CC BY 4.0) — bonnorange AöR / opendata.bonn.de",
+      url: years[years.length - 1].url,
+      license: LICENSE,
       dataDate,
     },
     totals: {

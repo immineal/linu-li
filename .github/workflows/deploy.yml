@@ -47,10 +47,16 @@ jobs:
     #
     # A hand-started run carries no test result, and starting one already
     # requires write access to this repository.
+    #
+    # A test run that was itself started by hand counts like a push: that is
+    # how sperrmuell-termine.yml gets new collection dates out, since its
+    # own push starts no workflow. Starting one takes write access too, and a
+    # fork cannot, so the two conditions above still hold.
     if: >-
       ${{ github.event_name == 'workflow_dispatch' ||
           (github.event.workflow_run.conclusion == 'success' &&
-           github.event.workflow_run.event == 'push' &&
+           (github.event.workflow_run.event == 'push' ||
+            github.event.workflow_run.event == 'workflow_dispatch') &&
            github.event.workflow_run.head_repository.full_name == github.repository) }}
     steps:
       # `ref` is not optional here. A workflow_run job checks out the head of

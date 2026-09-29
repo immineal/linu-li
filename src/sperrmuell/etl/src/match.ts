@@ -306,7 +306,7 @@ export function matchSegments(
       plz: segment.plz,
       rangeLabel: segment.rangeLabel,
       predicate: segment.predicate,
-      dates: segment.dates as [IsoDate, IsoDate, IsoDate],
+      dates: segment.dates,
       routeCluster,
     };
 

@@ -65,8 +65,11 @@ export interface SperrmuellSegment {
   predicate: AddressPredicate;
   /** Human-readable summary of `predicate`, e.g. "gerade 2–Ende, ungerade 1–Ende". */
   rangeLabel: string;
-  /** Exactly three collection dates for the year, ascending. */
-  dates: [IsoDate, IsoDate, IsoDate];
+  /**
+   * Collection dates, ascending: three per year's schedule, so three or,
+   * once next year's is out, six.
+   */
+  dates: IsoDate[];
   route: RouteInfo;
 }
 
@@ -80,7 +83,7 @@ export interface SegmentGeometryProperties {
   rangeLabel: string;
   /** Needed by the frontend to match a searched house number to this segment. */
   predicate: AddressPredicate;
-  dates: [IsoDate, IsoDate, IsoDate];
+  dates: IsoDate[];
   routeCluster: RouteInfo;
   geometryConfidence: GeometryConfidence;
   /** Human-readable reason when confidence is not "exact". */

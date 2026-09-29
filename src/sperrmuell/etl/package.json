@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "tsx src/index.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "schedules": "tsx src/refresh.ts"
   },
   "dependencies": {
     "@turf/turf": "^7.2.0",

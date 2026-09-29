@@ -48,7 +48,8 @@ export interface SegmentGeometryProperties {
   plz: string;
   rangeLabel: string;
   predicate: AddressPredicate;
-  dates: [IsoDate, IsoDate, IsoDate];
+  /** Three per year's schedule, ascending. */
+  dates: IsoDate[];
   routeCluster: RouteInfo;
   geometryConfidence: GeometryConfidence;
   confidenceNote?: string;

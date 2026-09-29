@@ -6,7 +6,8 @@
  * Deploy hochladen würde:
  *
  *  - die Seite lädt ohne Fehler, und der Datumsregler zeigt ein Datum;
- *  - die Adresssuche findet „Moltkeplatz 3“ und nennt seine drei Termine;
+ *  - die Adresssuche findet „Moltkeplatz 3“ und nennt seine Termine, drei
+ *    je Jahr (sechs, sobald der Plan fürs nächste Jahr da ist);
  *  - dunkel ist der Anfang, wie überall auf linu.li, und der Schalter macht
  *    hell, merkt es sich unter demselben Schlüssel wie die Seite ('theme')
  *    und hält beim Neuladen;
@@ -79,8 +80,8 @@ function ok(msg) {
             .catch(() => {});
         const termine = await page.$$eval('#search-result .search-date-button',
             (b) => b.map((x) => x.textContent.trim()));
-        if (termine.length === 3) ok('Suche nach Moltkeplatz 3: ' + termine.join(', '));
-        else fail('Suche nach Moltkeplatz 3 fand ' + termine.length + ' Termine statt 3');
+        if (termine.length > 0 && termine.length % 3 === 0) ok('Suche nach Moltkeplatz 3: ' + termine.join(', '));
+        else fail('Suche nach Moltkeplatz 3 fand ' + termine.length + ' Termine, erwartet drei je Jahr');
 
         // ---- Schalter ----
         await page.click('#theme-toggle');

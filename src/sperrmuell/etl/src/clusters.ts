@@ -2,8 +2,9 @@ import type { BuildStats, IsoDate, SperrmuellSegment } from "./types.js";
 
 /**
  * A "route cluster" is the set of segments that are collected on the same
- * date. Every segment contributes to exactly three clusters (one per
- * TERMIN date).
+ * date. Within one year's schedule every segment contributes to exactly
+ * three clusters (one per TERMIN date); the build checks that per year,
+ * before the years are merged.
  */
 export interface RouteCluster {
   date: IsoDate;

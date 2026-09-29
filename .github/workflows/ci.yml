@@ -5,6 +5,9 @@ on:
     branches: ["**"]
   pull_request:
     branches: ["**"]
+  # Started by sperrmuell-termine.yml after it put new collection dates on
+  # main: its push, made with GITHUB_TOKEN, starts nothing by itself.
+  workflow_dispatch:
 
 jobs:
   # ─── Node.js / jsdom tests (no browser needed) ───────────────────────────

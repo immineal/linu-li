@@ -13,7 +13,8 @@ npm run data    # ETL: builds ../../tools/sperrmuell/data/
 npm run dev     # starts the app (prints a Network URL — open that on your phone)
 ```
 
-On first run, `npm run data` downloads the official CSV and Bonn's street/
+`npm run data` builds from the schedules in `etl/termine/` (see below) and
+downloads Bonn's street/
 address/Ortsteil geometry from OpenStreetMap (via Overpass) and caches
 everything under `.cache/`. Subsequent runs reuse the cache and finish in a
 few seconds.
@@ -95,8 +96,8 @@ The ETL pipeline (`npm run data`). It asks Overpass with a User-Agent naming
 the map; without one Overpass answers 406. Paths below called `data/` mean
 `tools/sperrmuell/data/` at the root of linu-li.
 
-1. Parses bonnorange's "Abfuhrtermine 2026" CSV, filters to `PLAN_BEZ ===
-   "Sperrmüll"`, and builds one segment per CSV row: street, Ortsteil, PLZ,
+1. Reads this year's and, once it is out, next year's schedule from
+   `etl/termine/`, and builds one segment per row: street, Ortsteil, PLZ,
    a house-number predicate (even/odd ranges + `HNR_NEG` toggles), and its
    three collection dates.
 2. Fetches Bonn's administrative boundary, `highway=*` ways, address
@@ -129,18 +130,39 @@ fails (every segment must contribute to exactly 3 date clusters). The
 current build matches ~99% of segments (~95% exact, ~4% approximate, <1%
 unmatched) — see `data/index.json` for the latest numbers.
 
-## Offline / restricted-network fallback
+## Schedules, and the yearly update
 
-If `opendata.bonn.de` or `overpass-api.de` aren't reachable from your
-environment:
+bonnorange publishes the collection schedule once a year as a new 25 MB CSV
+(`ABFUHRTERMINE2027OpenData.csv` and so on), usually in December. Only its
+Sperrmüll rows matter here, and `npm run schedules` keeps those, trimmed to
+the columns the build reads, as `etl/termine/sperrmuell-<year>.csv`, with the
+source addresses in `etl/termine/quellen.json`. Those files are committed:
+they are what the data is built from, and they stay if the city takes a file
+down.
 
-- Download the CSV manually and run:
-  ```sh
-  npm run data:from-file -- /path/to/ABFUHRTERMINE2026OpenData.csv
-  ```
-- Once Overpass has succeeded once, its responses are cached under
-  `.cache/osm/`, so later `npm run data` runs don't need network access to
-  Overpass again.
+`npm run schedules` fetches this year and next. If a file is not under its
+usual name, it looks at the links on the year's dataset page. Every request
+gives up after a minute and is tried four times, so a stalled download fails
+instead of hanging.
+
+`npm run data` reads the same two years. A stretch of street that is in both
+gets both years' dates, so the map simply continues into January; one whose
+house numbers changed between the years stays two segments. The "three dates
+per segment" check runs per year.
+
+`.github/workflows/sperrmuell-termine.yml` does all of this every Monday. If
+a schedule is new or revised, it rebuilds the data, commits it to `main` with
+a `-` in the site's update note (so visitors get no prompt), and starts the
+tests; the deploy follows them. Nothing needs doing by hand.
+
+To build from a file you have lying around instead:
+
+```sh
+npm run data:from-file -- /path/to/ABFUHRTERMINE2027OpenData.csv
+```
+
+Overpass responses are cached under `.cache/osm/`, so later `npm run data`
+runs don't need to ask Overpass again.
 
 ## Testing
 
