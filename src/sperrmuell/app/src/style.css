@@ -1,0 +1,527 @@
+/* The site's own fonts, served next to the map on linu.li. In `npm run dev`
+   they are not there and the fallbacks stand in. */
+@font-face { font-family: "Libre Baskerville"; font-style: normal; font-weight: 400; font-display: swap; src: url("/assets/fonts/libre-baskerville-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Libre Baskerville"; font-style: normal; font-weight: 700; font-display: swap; src: url("/assets/fonts/libre-baskerville-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 400 700; font-display: swap; src: url("/assets/fonts/space-grotesk-latin-400-500-700-normal.woff2") format("woff2"); }
+
+/* The colours of linu.li (assets/css/style.css). Dark is the default there,
+   and here too; the class "light" comes from the script in index.html. */
+:root {
+  --paper: #1a1918;
+  --ink: #e8e6e3;
+  --ink-secondary: rgba(232, 230, 227, 0.7);
+  --accent: #b56d5a;
+  --accent-secondary: #88a899;
+  --border: rgba(232, 230, 227, 0.15);
+  --card: rgba(37, 36, 34, 0.96);
+  --well: #333230;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  --banner-bg: #3a2420;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --font-heading: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Libre Baskerville", Georgia, serif;
+  font-family: var(--font-heading);
+  color-scheme: dark;
+}
+
+:root.light {
+  --paper: #faf6f2;
+  --ink: #2a2621;
+  --ink-secondary: rgba(42, 38, 33, 0.7);
+  --accent: #c44d3c;
+  --accent-secondary: #6b9080;
+  --border: rgba(42, 38, 33, 0.15);
+  --card: rgba(255, 255, 255, 0.96);
+  --well: #f4f1ed;
+  --shadow: 0 2px 12px rgba(42, 38, 33, 0.15);
+  --banner-bg: #fbe9e5;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  color: var(--ink);
+  background: var(--paper);
+}
+
+a {
+  color: var(--accent);
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+}
+
+/* MapLibre canvas should not capture focus outline weirdly, but keep visible focus on controls */
+.maplibregl-canvas:focus {
+  outline: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Header ---------- */
+
+#app-header {
+  position: absolute;
+  top: var(--safe-top);
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  pointer-events: none;
+}
+
+#app-title,
+#app-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: auto;
+}
+
+#app-title {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  padding: 0.4rem 0.75rem;
+}
+
+.home-link {
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.home-link::after {
+  content: "/";
+  margin-left: 0.5rem;
+  color: var(--ink-secondary);
+  font-weight: 400;
+}
+
+#app-header h1 {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+/* The switch from the site's header, on a card of its own over the map */
+#theme-toggle {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 0 0.6rem;
+}
+
+.switch-track {
+  display: block;
+  width: 44px;
+  height: 24px;
+  background-color: rgba(42, 38, 33, 0.2);
+  border-radius: 24px;
+  position: relative;
+  transition: background-color 0.3s ease;
+}
+
+.switch-thumb {
+  display: block;
+  width: 18px;
+  height: 18px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transform: translateX(20px);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+:root:not(.light) .switch-track {
+  background-color: var(--accent-secondary);
+}
+
+:root.light .switch-thumb {
+  transform: none;
+}
+
+/* ---------- Buttons & inputs ---------- */
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--font-heading);
+  font-weight: 500;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Layers panel ---------- */
+
+#layers-panel {
+  position: absolute;
+  top: calc(var(--safe-top) + 7.2rem);
+  right: 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  padding: 0.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 5;
+}
+
+#layers-panel[hidden] {
+  display: none;
+}
+
+#layers-panel label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+}
+
+#layers-panel input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent-secondary);
+}
+
+/* ---------- Search bar ---------- */
+
+#search-bar {
+  position: absolute;
+  top: calc(var(--safe-top) + 3.6rem);
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 4;
+}
+
+#search-form {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  padding: 0.35rem;
+}
+
+#search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0 0.75rem;
+  min-height: 44px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+#search-input::placeholder {
+  color: var(--ink-secondary);
+}
+
+/* The one button that acts, in the site's accent like its .button */
+#search-form button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+#search-form button:hover {
+  color: #ffffff;
+}
+
+#search-form button {
+  flex-shrink: 0;
+}
+
+#search-result {
+  margin-top: 0.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  box-shadow: var(--shadow);
+  padding: 0.5rem 0.75rem;
+}
+
+#search-result:empty {
+  display: none;
+}
+
+.search-match + .search-match {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.search-match-heading {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  margin: 0 0 0.35rem;
+}
+
+.search-dates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.search-date-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: flex-start;
+  background: var(--well);
+  box-shadow: none;
+}
+
+.search-confidence-note {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--ink-secondary);
+}
+
+/* ---------- Date scrubber ---------- */
+
+#date-scrubber {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(var(--safe-bottom) + 1rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  padding: 0.4rem;
+  z-index: 4;
+  transition: bottom 0.2s ease;
+}
+
+#date-display {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+#date-label {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+#date-relative {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+#date-scrubber button {
+  box-shadow: none;
+  font-size: 1.2rem;
+}
+
+/* ---------- Bottom sheet ---------- */
+
+#bottom-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Keep clear of the date scrubber (its height plus bottom gap) so the
+     expanded sheet never overlaps it. The bottom edge stays fixed here;
+     only the (clipped) height grows upward when expanded. */
+  bottom: calc(var(--safe-bottom) + 4.8rem);
+  max-height: calc(44px + 0.5rem);
+  background: var(--paper);
+  border-top: 1px solid var(--border);
+  border-radius: 4px 4px 0 0;
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.18);
+  padding: 0.5rem 1rem calc(var(--safe-bottom) + 1rem);
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+  z-index: 3;
+}
+
+#bottom-sheet.expanded {
+  max-height: 45vh;
+  overflow-y: auto;
+}
+
+#bottom-sheet-handle {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+#bottom-sheet-handle::before {
+  content: "";
+  display: block;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+#bottom-sheet-content h2 {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 0.75rem 0 0.25rem;
+}
+
+#bottom-sheet-content p,
+#bottom-sheet-content li {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+#bottom-sheet-content ul {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+}
+
+.search-hide-button {
+  margin-top: 0.75rem;
+  width: 100%;
+  background: var(--well);
+  box-shadow: none;
+}
+
+.confidence-dot {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  margin-right: 0.35em;
+}
+
+/* ---------- Status banner ---------- */
+
+#status-banner {
+  position: absolute;
+  top: var(--safe-top);
+  left: 0.75rem;
+  right: 0.75rem;
+  background: var(--banner-bg);
+  color: var(--ink);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.6rem 0.9rem;
+  box-shadow: var(--shadow);
+  z-index: 10;
+  font-size: 0.9rem;
+}
+
+#status-banner[hidden] {
+  display: none;
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  #bottom-sheet,
+  #date-scrubber {
+    transition: none;
+  }
+}
+
+/* ---------- Larger screens ---------- */
+
+@media (min-width: 720px) {
+  #search-bar {
+    left: 0.75rem;
+    right: auto;
+    width: 22rem;
+  }
+
+  #bottom-sheet,
+  #bottom-sheet.expanded {
+    left: auto;
+    right: 0.75rem;
+    bottom: 1rem;
+    width: 22rem;
+    max-height: 70vh;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  #bottom-sheet-handle {
+    display: none;
+  }
+
+  #date-scrubber {
+    left: 0.75rem;
+    right: auto;
+    width: 22rem;
+  }
+}

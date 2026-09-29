@@ -35,3 +35,8 @@ Plans set to landscape used to come out on a portrait page on some Macs, squeeze
 -
 The PDF grayscale tool is now the PDF compressor at linu.li/pdf-compressor/: pick a size such as 10 MB and it gets the file under it, keeping the text selectable. The grey and scan clean-up options are still there, and the old address leads to it.
 The timestamp converter's "Get Timestamp" button did nothing. It works again and shows the time in microseconds and nanoseconds too.
+The PDF compressor's preview drew some colour gradients wrong, in every browser: a dark band on a poster could come out pink, on both sides of the comparison, while the file itself was fine. The PDF tools now draw pages with a newer pdf.js, which gets them right, and in Safari the preview no longer leaves out a page's photo. Grey or colour-profiled images also keep their exact tones in the compressed file, and paging through the preview shows at once which page is being drawn.
+The PDF extractor hands out the fonts now as well; it had been finding none.
+The PDF merger took encrypted PDFs, even ones that open without a password, and put their pages into the result unreadable. It stops and names the file now, and the watermarker, the splitter and the 2-up tool say plainly what is wrong with it too.
+Messages that explain something stay on screen long enough to read them.
+The Bonn Sperrmüll map looks like the rest of the site now, dark unless you have picked light, and picking light or dark there or elsewhere on the site counts for both. It has this year's data fetched again, and ten squares that were missing from it are on the map now.

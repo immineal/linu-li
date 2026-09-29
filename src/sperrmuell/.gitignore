@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.cache/
+*.log
+.DS_Store
+app/dist/
+# Ein alter Bau von Juni 2026, den nichts benutzte und der noch ohne base
+# gebaut war. Genau die Art Kopie, die man versehentlich hochlaedt.
+app/dist-test/
+etl/dist/
+/data/
+.claude/settings.local.json

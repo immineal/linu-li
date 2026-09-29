@@ -1,0 +1,14 @@
+# Collection dates for a calendar year, generated from the Bonn open-data CSV
+# (see index.json: generatedAt, dataDate). The site-wide default would hold
+# them for a month, and the month that matters is January: a visitor who
+# cached the file in December would be shown last year's dates for weeks
+# after the new ones went up.
+#
+# Revalidating costs one conditional request per load and answers 304 while
+# nothing changes, which is all year except once.
+<IfModule mod_expires.c>
+    ExpiresActive Off
+</IfModule>
+<IfModule mod_headers.c>
+    Header set Cache-Control "no-cache"
+</IfModule>

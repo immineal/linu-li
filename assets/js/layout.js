@@ -485,10 +485,11 @@ function showToast(message, type = 'info') {
     toast.className = `toast ${type}`;
     toast.textContent = message;
     container.appendChild(toast);
+    // Three seconds for a word or two, longer for a sentence that explains something
     setTimeout(() => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    }, Math.max(3000, message.length * 60));
 }
 
 function copyToClipboard(text) {

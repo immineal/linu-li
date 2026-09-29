@@ -1,0 +1,86 @@
+name: Sperrmüll-Termine
+
+# Bonn publishes the bulky-waste schedule once a year, as a new file, usually
+# in December for the year after. This looks every Monday whether this year's
+# or next year's schedule is new or was revised, and if so rebuilds the map's
+# data and puts it on main. The map then shows both years, so it keeps going
+# past December without anyone having to remember.
+#
+# Visitors are not asked about it: the update note gets a "-", which tells
+# the site's worker that this change is not worth a prompt.
+#
+# A push made with GITHUB_TOKEN starts no other workflow, so this starts the
+# tests itself, and the deploy follows them as it does after any push.
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: sperrmuell-termine
+  cancel-in-progress: false
+
+jobs:
+  termine:
+    name: Abfuhrtermine holen
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: src/sperrmuell/package-lock.json
+
+      - name: Pläne von opendata.bonn.de holen
+        id: holen
+        working-directory: src/sperrmuell
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run schedules
+          if git status --porcelain -- etl/termine | grep -q .; then
+            git status --short -- etl/termine
+            echo "neu=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nichts Neues."
+          fi
+
+      # Street geometry comes fresh from OpenStreetMap. The build fails on its
+      # own if too few streets match, and then nothing is committed.
+      - name: Daten bauen
+        if: steps.holen.outputs.neu == '1'
+        working-directory: src/sperrmuell
+        timeout-minutes: 40
+        run: |
+          set -euo pipefail
+          npm run data
+          npm test
+
+      - name: Auf main legen und die Tests anstoßen
+        if: steps.holen.outputs.neu == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "-" >> assets/update-note.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/sperrmuell/etl/termine tools/sperrmuell/data assets/update-note.txt
+          git commit -m "chore(sperrmuell): neue Abfuhrtermine von bonnorange"
+          for versuch in 1 2 3; do
+            git push origin HEAD:main && break
+            [ "$versuch" = 3 ] && exit 1
+            git pull --rebase origin main
+          done
+          gh workflow run ci.yml --ref main

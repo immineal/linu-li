@@ -11,3 +11,9 @@ test_spec_image.png
 test-results/
 # Vom Case-Converter-Test bei jedem Lauf erzeugt und danach geloescht
 tests/temp_worker_test.js
+# Die Sperrmuell-Karte wird aus src/sperrmuell gebaut, in CI vor den Tests
+# und im Deploy vor dem Hochladen. Nur ihre Daten liegen im Repository: sie
+# kommen aus dem Netz und sollen im Diff zu sehen sein, bevor sie live gehen.
+/tools/sperrmuell/*
+!/tools/sperrmuell/data/
+/tools/sperrmuell/data/.htaccess

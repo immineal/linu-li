@@ -15,6 +15,7 @@ const ROOT = path.join(__dirname, '..');
 const L = require(path.join(ROOT, 'assets/vendor/pdf-lib.min.js'));
 const E = require(path.join(ROOT, 'tools/pdf-compressor/engine.js'));
 const W = require(path.join(ROOT, 'tools/pdf-compressor/worker.js'));
+const R = require(path.join(ROOT, 'tools/pdf-compressor/report.js'));
 
 let passed = 0;
 const pending = [];
@@ -132,7 +133,7 @@ test('each kind of image that cannot be rewritten safely is left alone, with its
         x.key = image(ctx, { Width: 300, Height: 300, ColorSpace: 'DeviceGray', BitsPerComponent: 8, Mask: [0, 10] }, noisy(90000));
         x.lab = image(ctx, { Width: 300, Height: 300, ColorSpace: ['Lab', { WhitePoint: [1, 1, 1] }], BitsPerComponent: 8 }, noisy(270000));
         x.jpx = ctx.register(L.PDFRawStream.of(ctx.obj({ Type: 'XObject', Subtype: 'Image', Width: 300, Height: 300, ColorSpace: 'DeviceRGB', BitsPerComponent: 8, Filter: 'JPXDecode' }), noisy(9000)));
-        x.cmykjpeg = ctx.register(L.PDFRawStream.of(ctx.obj({ Type: 'XObject', Subtype: 'Image', Width: 300, Height: 300, ColorSpace: 'DeviceCMYK', BitsPerComponent: 8, Filter: 'DCTDecode' }), noisy(9000)));
+        x.cmykJpeg = ctx.register(L.PDFRawStream.of(ctx.obj({ Type: 'XObject', Subtype: 'Image', Width: 300, Height: 300, ColorSpace: 'DeviceCMYK', BitsPerComponent: 8, Filter: 'DCTDecode' }), noisy(9000)));
         x.stencil = image(ctx, { Width: 800, Height: 800, ImageMask: true, BitsPerComponent: 1 }, noisy(100 * 800));
         let ops = '';
         let i = 0;
@@ -142,7 +143,7 @@ test('each kind of image that cannot be rewritten safely is left alone, with its
     const a = E.describeImages(doc, L, E.measurePlacements(doc, L));
     assert.strictEqual(a.candidates.length, 0, 'none of these should be rewritten');
     const reasons = a.skipped.map((s) => s.reason).sort();
-    assert.deepStrictEqual(reasons, ['bilevel', 'cmykjpeg', 'colourkey', 'colourspace', 'decode', 'jpx', 'stencil']);
+    assert.deepStrictEqual(reasons, ['bilevel', 'cmyk', 'colourkey', 'colourspace', 'decode', 'jpx', 'stencil']);
     for (const r of reasons) assert.ok(E.REASONS[r], 'no wording for ' + r);
 });
 
@@ -162,7 +163,7 @@ test('a soft mask travels with its image, unless another image shares it', async
     assert.ok(withMask[0].bytes > withMask[0].stream.contents.length, 'its bytes count towards the image');
 });
 
-test('palette, 16-bit and CMYK images are read, with the palette handed over', async () => {
+test('palette, 16-bit and raw CMYK images are read, with the palette handed over', async () => {
     const doc = await docWith(async (d, ctx) => {
         const pal = L.PDFHexString.of('ff0000' + '00ff00');
         const idx = image(ctx, { Width: 400, Height: 400, ColorSpace: ['Indexed', 'DeviceRGB', 1, pal], BitsPerComponent: 1 }, noisy(50 * 400));
@@ -171,7 +172,8 @@ test('palette, 16-bit and CMYK images are read, with the palette handed over', a
         draw(d, d.addPage(), 'q 100 0 0 100 0 0 cm /I Do Q q 100 0 0 100 0 0 cm /G Do Q q 100 0 0 100 0 0 cm /C Do Q', { I: idx, G: g16, C: cmyk });
     });
     const an = E.describeImages(doc, L, E.measurePlacements(doc, L));
-    assert.strictEqual(an.candidates.length, 3);
+    assert.strictEqual(an.candidates.length, 3, 'raw CMYK is resampled as CMYK, so it is a candidate');
+    assert.strictEqual(an.cmyk, 1, 'the CMYK image is counted, so turning pages into pictures can say how CMYK comes out');
     const byKind = Object.fromEntries(an.candidates.map((c) => [c.info.cs.kind, c]));
     const job = E.jobFor(byKind.indexed);
     assert.deepStrictEqual([...job.cs.table], [255, 0, 0, 0, 255, 0]);
@@ -287,7 +289,7 @@ test('a rewritten image keeps optional content and structure, and drops the old 
         draw(d, d.addPage(), 'q 100 0 0 100 0 0 cm /I Do Q', { I: img });
     });
     const [c] = E.describeImages(doc, L, E.measurePlacements(doc, L)).candidates;
-    const s = E.imageStream(L, doc.context, c.stream, { width: 50, height: 40, filter: 'DCTDecode', channels: 3, bytes: new Uint8Array(10) }, null);
+    const s = E.imageStream(L, doc.context, c, { width: 50, height: 40, filter: 'DCTDecode', channels: 3, bytes: new Uint8Array(10) });
     const h = E.makeHelpers(L, doc.context);
     assert.strictEqual(h.num(h.get(s.dict, 'Width')), 50);
     assert.strictEqual(h.num(h.get(s.dict, 'Height')), 40);
@@ -296,6 +298,76 @@ test('a rewritten image keeps optional content and structure, and drops the old 
     assert.strictEqual(h.get(s.dict, 'DecodeParms'), undefined);
     assert.ok(h.get(s.dict, 'OC') instanceof L.PDFRef);
     assert.strictEqual(h.num(h.get(s.dict, 'StructParent')), 7);
+});
+
+test('the colour space stays when the channels do, and turns plain when they change', async () => {
+    const doc = await docWith(async (d, ctx) => {
+        const icc = ctx.register(L.PDFRawStream.of(ctx.obj({ N: 3 }), new Uint8Array(4)));
+        const img = image(ctx, { Width: 300, Height: 300, ColorSpace: ['ICCBased', icc], BitsPerComponent: 8 }, noisy(270000));
+        draw(d, d.addPage(), 'q 100 0 0 100 0 0 cm /I Do Q', { I: img });
+    });
+    const [c] = E.describeImages(doc, L, E.measurePlacements(doc, L)).candidates;
+    const h = E.makeHelpers(L, doc.context);
+    const base = { width: 10, height: 10, bytes: new Uint8Array(1) };
+    const kept = E.imageStream(L, doc.context, c, Object.assign({ filter: 'DCTDecode', channels: 3 }, base));
+    assert.ok(h.lookup(h.get(kept.dict, 'ColorSpace')) instanceof L.PDFArray, 'the ICC profile went missing');
+    const grey = E.imageStream(L, doc.context, c, Object.assign({ filter: 'FlateDecode', channels: 1 }, base));
+    assert.strictEqual(h.name(h.get(grey.dict, 'ColorSpace')), 'DeviceGray');
+    const converted = E.imageStream(L, doc.context, c, Object.assign({ filter: 'DCTDecode', channels: 3, converted: true }, base));
+    assert.strictEqual(h.name(h.get(converted.dict, 'ColorSpace')), 'DeviceRGB');
+});
+
+test('a grey profile stays with grey pixels, a palette hands over its base space', async () => {
+    const doc = await docWith(async (d, ctx) => {
+        const grayIcc = ctx.register(L.PDFRawStream.of(ctx.obj({ N: 1 }), new Uint8Array(4)));
+        const rgbIcc = ctx.register(L.PDFRawStream.of(ctx.obj({ N: 3 }), new Uint8Array(4)));
+        const g = image(ctx, { Width: 300, Height: 300, ColorSpace: ['ICCBased', grayIcc], BitsPerComponent: 8 }, noisy(90000, 3));
+        const pal = image(ctx, { Width: 300, Height: 300, ColorSpace: ['Indexed', ['ICCBased', rgbIcc], 1, L.PDFHexString.of('ff000000ff00')], BitsPerComponent: 8 }, noisy(90000, 4));
+        const plain = image(ctx, { Width: 300, Height: 300, ColorSpace: 'DeviceRGB', BitsPerComponent: 8 }, noisy(270000, 5));
+        draw(d, d.addPage(), 'q 100 0 0 100 0 0 cm /G Do Q q 100 0 0 100 0 0 cm /P Do Q q 100 0 0 100 0 0 cm /R Do Q', { G: g, P: pal, R: plain });
+    });
+    const an = E.describeImages(doc, L, E.measurePlacements(doc, L));
+    const by = Object.fromEntries(an.candidates.map((c) => [c.info.cs.kind === 'indexed' ? 'pal' : c.info.cs.kind, c]));
+    const h = E.makeHelpers(L, doc.context);
+    const base = { width: 10, height: 10, bytes: new Uint8Array(1), filter: 'DCTDecode' };
+    const grey = E.imageStream(L, doc.context, by.gray, Object.assign({ channels: 1 }, base));
+    assert.strictEqual(h.name(h.lookup(h.get(grey.dict, 'ColorSpace')).get(0)), 'ICCBased', 'the grey profile went missing');
+    const pal = E.imageStream(L, doc.context, by.pal, Object.assign({ channels: 3 }, base));
+    assert.strictEqual(h.name(h.lookup(h.get(pal.dict, 'ColorSpace')).get(0)), 'ICCBased', 'the palette base went missing');
+    const reduced = E.imageStream(L, doc.context, by.rgb, Object.assign({ channels: 1 }, base));
+    assert.strictEqual(h.name(h.get(reduced.dict, 'ColorSpace')), 'DeviceGray', 'plain RGB that turned out grey is stored as grey');
+    assert.strictEqual(E.jobFor(by.gray).cs.managed, true);
+    assert.strictEqual(E.jobFor(by.pal).cs.base.managed, true);
+    assert.strictEqual(E.jobFor(by.rgb).cs.managed, false);
+});
+
+test('the grey JPEG encoder writes a valid one-channel baseline file for any size', () => {
+    for (const [w, h] of [[1, 1], [9, 17], [640, 480]]) {
+        const px = new Uint8Array(w * h).map((_, i) => (i * 37) & 255);
+        const j = W.encodeGrayJpeg(px, w, h, 0.72);
+        assert.deepStrictEqual([j[0], j[1], j[j.length - 2], j[j.length - 1]], [0xff, 0xd8, 0xff, 0xd9]);
+        const sof = j.indexOf(0xc0, 2);
+        assert.strictEqual(j[sof - 1], 0xff);
+        assert.strictEqual((j[sof + 4] << 8) | j[sof + 5], h);
+        assert.strictEqual((j[sof + 6] << 8) | j[sof + 7], w);
+        assert.strictEqual(j[sof + 8], 1, 'one component');
+        // no unstuffed FF inside the scan data
+        let sos = sof;
+        while (!(j[sos] === 0xff && j[sos + 1] === 0xda)) sos++;
+        sos += 2 + ((j[sos + 2] << 8) | j[sos + 3]);
+        for (let k = sos; k < j.length - 2; k++) if (j[k] === 0xff) assert.ok(j[k + 1] === 0x00, 'FF not stuffed at ' + k);
+    }
+});
+
+test('JPEG extras a browser could act on are removed before decoding', () => {
+    const seg = (m, text) => { const b = Buffer.from(text); return Buffer.concat([Buffer.from([0xff, m, (b.length + 2) >> 8, (b.length + 2) & 255]), b]); };
+    const jpg = Buffer.concat([Buffer.from([0xff, 0xd8]), seg(0xe0, 'JFIF\0'), seg(0xe1, 'Exif\0\0'), seg(0xe2, 'ICC_PROFILE\0'), seg(0xee, 'Adobe'), Buffer.from([0xff, 0xda, 0, 2, 7, 0xff, 0xd9])]);
+    const out = Buffer.from(W.plainJpeg(new Uint8Array(jpg)));
+    assert.ok(!out.includes('Exif') && !out.includes('ICC_PROFILE'));
+    assert.ok(out.includes('JFIF') && out.includes('Adobe'));
+    assert.deepStrictEqual([...out.subarray(-7)], [0xff, 0xda, 0, 2, 7, 0xff, 0xd9]);
+    const plain = new Uint8Array([0xff, 0xd8, 0xff, 0xdb, 0, 2, 0xff, 0xd9]);
+    assert.strictEqual(W.plainJpeg(plain), plain, 'nothing to drop, nothing copied');
 });
 
 test('a signed form is recognised', async () => {
@@ -314,6 +386,93 @@ test('sizes are shown in decimal megabytes', () => {
     assert.strictEqual(E.formatMB(9597192), '9.6 MB');
     assert.strictEqual(E.formatMB(1234567), '1.23 MB');
     assert.strictEqual(E.formatMB(993000), '993 KB');
+});
+
+/* ------------------------------------------------ what the page says */
+
+function session(over) {
+    const cand = (key, extra) => Object.assign({ key, info: { cs: { kind: 'rgb', n: 3 } } }, extra);
+    return Object.assign({
+        bytes: new Uint8Array(8e6), signed: false, encrypted: false, baseBytes: 1.2e6,
+        failures: new Map(),
+        tidyInfo: { removed: 0, removedBytes: 0, deflated: 0, thumbs: 0 },
+        analysis: {
+            candidates: [cand('a'), cand('b'), cand('c', { info: { cs: { kind: 'cmyk', n: 4 } } })],
+            skipped: [{ key: 'j', reason: 'jpx' }, { key: 't', reason: 'tiny' }],
+            byPage: [new Map([['a', 100]]), new Map([['b', 5000], ['c', 10]])],
+        },
+    }, over);
+}
+const opts = { method: 'images', gray: false, clean: false, angle: 0, white: 200, black: 50 };
+
+test('the report counts what happened to each image, in the right number', () => {
+    const r = {
+        kind: 'images', fits: true, target: 5e6, bytes: new Uint8Array(4.8e6), opts,
+        level: { ppi: 150, quality: 0.72 },
+        outcomes: new Map([
+            ['a', { accept: true, scale: 0.5, res: { filter: 'DCTDecode' } }],
+            ['b', { accept: true, scale: 1, res: { filter: 'FlateDecode' } }],
+            ['c', { accept: true, scale: 0.4, res: { filter: 'DCTDecode' } }],
+        ]),
+    };
+    const lines = R.describe(r, session());
+    assert.ok(lines.includes('3 of 4 images rewritten.'), lines.join('\n'));
+    assert.ok(lines.some((l) => l.startsWith('2 images had more pixels than 150 ppi at the size they are printed and were scaled down')));
+    assert.ok(lines.includes('2 images are JPEG at quality 72 now.'));
+    assert.ok(lines.includes('1 image was stored losslessly, which came out smaller for it than JPEG.'));
+    assert.ok(lines.some((l) => l.startsWith('1 image left alone: JPEG 2000')));
+    assert.ok(!lines.some((l) => l.includes('tiny')), 'tiny images are not worth a line');
+    assert.strictEqual(R.advice(r, session()), null);
+});
+
+test('a tidy that is enough says so, and names what it removed', () => {
+    const s = session({ tidyInfo: { removed: 3, removedBytes: 2e6, deflated: 0, thumbs: 1 } });
+    const r = { kind: 'images', fits: true, target: 8e6, bytes: new Uint8Array(6e6), opts, level: null, outcomes: new Map() };
+    const lines = R.describe(r, s);
+    assert.strictEqual(lines[0], 'No image had to be touched. Writing the file out again more compactly was enough.');
+    assert.ok(lines.some((l) => l.startsWith('Removed 3 objects')));
+    assert.ok(lines.some((l) => l.startsWith('Dropped 1 embedded page thumbnail;')));
+    assert.ok(!lines.some((l) => l.includes('left as they were')), 'nothing was tried, so nothing was kept back');
+});
+
+test('the original comes back with a reason, and the signature and encryption are mentioned', () => {
+    const s = session({ signed: true });
+    assert.match(R.describe({ kind: 'original', target: 10e6, fits: true }, s)[0], /already 8 MB, under the 10 MB/);
+    assert.match(R.describe({ kind: 'original', notSmaller: true, tried: 'pages', target: 1e6 }, s)[0], /pages came out larger/);
+    const pages = { kind: 'pages', fits: true, target: 5e6, bytes: new Uint8Array(1), level: { dpi: 150, quality: 0.72 }, capped: 2,
+        opts: Object.assign({}, opts, { method: 'pages', clean: true, angle: 0.4 }) };
+    const lines = R.describe(pages, session({ signed: true, encrypted: true }));
+    assert.ok(lines[0].startsWith('Every page is now a JPEG picture at 150 dpi, quality 72.'));
+    assert.ok(lines.includes('2 pages were too large to render at 150 dpi in a browser and came out at less.'));
+    assert.ok(lines.includes('Every page turned by 0.4°.'));
+    assert.ok(lines.includes('The original was encrypted. The result is not.'));
+    assert.ok(lines.some((l) => l.includes('digitally signed')));
+});
+
+test('advice when the target was missed offers the other method only where it can help', () => {
+    const over = { kind: 'images', fits: false, target: 1e6, bytes: new Uint8Array(1.7e6), opts, level: { ppi: 150, quality: 0.72 }, stoppedEarly: true, outcomes: new Map() };
+    let a = R.advice(over, session());
+    assert.ok(a.offerPages);
+    assert.match(a.text, /About 1.2 MB of the file is text, fonts and drawings/);
+    assert.match(a.text, /stopped at 150 ppi/);
+    a = R.advice(over, session({ analysis: { candidates: [], skipped: [], byPage: [] } }));
+    assert.match(a.text, /no images in this file that could be shrunk/);
+    a = R.advice({ kind: 'pages', fits: false, target: 1e5, bytes: new Uint8Array(3e5), level: { dpi: 30 }, opts }, session());
+    assert.strictEqual(a.offerPages, false);
+    assert.match(a.text, /Even at 30 dpi, the lowest setting/);
+    a = R.advice({ kind: 'original', notSmaller: true, tried: 'pages', fits: false, target: 1e5 }, session());
+    assert.strictEqual(a.offerPages, false);
+});
+
+test('the preview opens where the images lost the most', () => {
+    const r = { kind: 'images', outcomes: new Map([
+        ['a', { accept: true, scale: 0.2 }],
+        ['b', { accept: true, scale: 0.5 }],
+        ['c', { accept: false }],
+    ]) };
+    // page 1: 100 * 0.85 = 85; page 2: 5000 * 0.55 = 2750
+    assert.deepStrictEqual(R.previewPage(r, session()), { page: 2, chosen: true });
+    assert.deepStrictEqual(R.previewPage({ kind: 'pages' }, session()), { page: 1, chosen: false });
 });
 
 /* ------------------------------------------------ the worker's pixel code */
@@ -379,6 +538,15 @@ test('samples of every supported depth and colour space come out as RGBA', () =>
     out = W.samplesToRGBA(new Uint8Array([7]), 1, 1, 8, cs);
     assert.deepStrictEqual(px(out, 0), [0, 0, 255, 255]);
     assert.throws(() => W.samplesToRGBA(new Uint8Array(3), 2, 2, 8, { kind: 'rgb', n: 3 }), /shorter/);
+});
+
+test('CMYK is split for scaling without converting a single value', () => {
+    const src = new Uint8Array([10, 20, 30, 40, 250, 0, 128, 255]);
+    const { cmy, k } = W.cmykPlanes(src, 2, 1, 8);
+    assert.deepStrictEqual([...cmy], [10, 20, 30, 255, 250, 0, 128, 255]);
+    assert.deepStrictEqual([k[0], k[4]], [40, 255]);
+    const wide = W.cmykPlanes(new Uint8Array([0x80, 0, 0x40, 0, 0x20, 0, 0x10, 0]), 1, 1, 16);
+    assert.deepStrictEqual([wide.cmy[0], wide.cmy[1], wide.cmy[2], wide.k[0]], [128, 64, 32, 16]);
 });
 
 test('grey detection, grey conversion and channel packing', () => {

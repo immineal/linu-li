@@ -97,7 +97,7 @@ function fail(msg) {
 
         /* What the result is, read back with pdf.js the way any viewer would */
         const inspect = () => page.evaluate(async () => {
-            const doc = await pdfjsLib.getDocument({ data: result.bytes.slice() }).promise;
+            const doc = await (await pdfOeffnen({ data: result.bytes.slice() })).promise;
             const texts = [];
             for (let i = 1; i <= doc.numPages; i++) {
                 const t = await (await doc.getPage(i)).getTextContent();
@@ -131,6 +131,32 @@ function fail(msg) {
         }
         if (r.ink < 1000) fail('the preview of the result is blank');
         if (!r.badge.startsWith('Under')) fail(`the badge reads "${r.badge}"`);
+
+        /* Paging through the preview. Drawing a page takes a moment, and for
+           that moment the old page must not pass for the new one: the label
+           changes at once and the old picture is marked as loading. A page
+           seen before comes back without drawing again. */
+        const snapshot = () => page.evaluate(() => {
+            const c = document.getElementById('canvasAfter');
+            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+            let h = 0;
+            for (let i = 0; i < d.length; i += 97) h = (h * 31 + d[i]) >>> 0;
+            return { label: document.getElementById('pageLabel').textContent, loading: document.getElementById('compareWrapper').classList.contains('loading'), hash: h };
+        });
+        const first = await snapshot();
+        const onFirst = first.label.startsWith('Page 1 ');
+        const [away, home] = onFirst ? ['nextPage', 'prevPage'] : ['prevPage', 'nextPage'];
+        await page.evaluate((id) => { document.getElementById(id).click(); }, away);
+        const during = await snapshot();
+        if (during.label === first.label) fail('the page label did not change when turning the page');
+        if (!during.loading && during.hash === first.hash) fail('the old page stayed on screen unmarked while the next one was drawn');
+        await page.waitForFunction(() => !document.getElementById('compareWrapper').classList.contains('loading'), { timeout: 30000 });
+        const turned = await snapshot();
+        if (turned.hash === first.hash) fail('turning the page left the same picture on screen');
+        await page.evaluate((id) => { document.getElementById(id).click(); }, home);
+        await new Promise((r) => setTimeout(r, 120));
+        const back = await snapshot();
+        if (back.loading || back.hash !== first.hash) fail('going back to a page already seen drew it again instead of showing it at once');
 
         // 2. A size it already fits: the original, untouched
         await pick(50);

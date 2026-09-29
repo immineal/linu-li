@@ -469,7 +469,16 @@
             });
         }
 
-        return { candidates, skipped, imageBytes, fontBytes, otherBytes };
+        // CMYK images. Turning pages into pictures goes through pdf.js, which
+        // converts CMYK with a generic print profile, not the one the file was
+        // made for, so the result says so when there are any.
+        let cmyk = 0;
+        for (const { stream } of all) {
+            const cs = colourSpaceOf(h.get(stream.dict, 'ColorSpace'), h, L, context, 0);
+            if (cs.ok && (cs.kind === 'cmyk' || (cs.base && cs.base.kind === 'cmyk'))) cmyk++;
+        }
+
+        return { candidates, skipped, imageBytes, fontBytes, otherBytes, cmyk };
     }
 
     function colourSpaceOf(cs, h, L, context, depth) {
@@ -487,13 +496,15 @@
             if (family === 'ICCBased') {
                 const profile = h.lookup(cs.get(1));
                 const n = profile && profile.dict ? h.num(h.get(profile.dict, 'N')) : null;
-                if (n === 1) return { ok: true, kind: 'gray', n: 1, icc: true };
-                if (n === 3) return { ok: true, kind: 'rgb', n: 3, icc: true };
-                if (n === 4) return { ok: true, kind: 'cmyk', n: 4, icc: true };
+                // managed: the numbers mean something only through a profile
+                // or a calibration, which a rewrite has to carry over intact
+                if (n === 1) return { ok: true, kind: 'gray', n: 1, managed: true };
+                if (n === 3) return { ok: true, kind: 'rgb', n: 3, managed: true };
+                if (n === 4) return { ok: true, kind: 'cmyk', n: 4, managed: true };
                 return { ok: false, reason: 'colourspace' };
             }
-            if (family === 'CalRGB') return { ok: true, kind: 'rgb', n: 3 };
-            if (family === 'CalGray') return { ok: true, kind: 'gray', n: 1 };
+            if (family === 'CalRGB') return { ok: true, kind: 'rgb', n: 3, managed: true };
+            if (family === 'CalGray') return { ok: true, kind: 'gray', n: 1, managed: true };
             if (family === 'Indexed' || family === 'I') {
                 const base = colourSpaceOf(cs.get(1), h, L, context, depth + 1);
                 if (!base.ok || base.kind === 'indexed') return { ok: false, reason: 'colourspace' };
@@ -568,10 +579,15 @@
         if (!cs.ok) return { ok: false, reason: cs.reason };
         const bpc = h.num(h.get(d, 'BitsPerComponent')) || 8;
 
+        // CMYK only comes out right through the printer's profile, which a
+        // browser does not have, so it is never converted. Stored raw it can
+        // still be resampled channel by channel and kept as CMYK (worker.js);
+        // a CMYK JPEG or palette cannot.
+        if (cs.kind === 'indexed' && cs.base.kind === 'cmyk') return { ok: false, reason: 'cmyk' };
+
         if (dct) {
-            // Browsers decode CMYK JPEGs, but Adobe's inverted ones and the
-            // PDF's own inversion rules disagree often enough to be wrong.
-            if (cs.kind === 'cmyk' || cs.kind === 'indexed') return { ok: false, reason: 'cmykjpeg' };
+            if (cs.kind === 'cmyk') return { ok: false, reason: 'cmyk' };
+            if (cs.kind === 'indexed') return { ok: false, reason: 'broken' };
             const dctParms = parms[parms.length - 1];
             if (dctParms instanceof L.PDFDict && h.has(dctParms, 'ColorTransform')) return { ok: false, reason: 'filter' };
         } else {
@@ -622,8 +638,8 @@
             width: info.width, height: info.height, bpc: info.bpc,
             dct: info.dct, filters: info.filters, predictor: info.predictor,
             cs: {
-                kind: cs.kind, n: cs.n,
-                base: cs.base ? { kind: cs.base.kind, n: cs.base.n } : null,
+                kind: cs.kind, n: cs.n, managed: !!cs.managed,
+                base: cs.base ? { kind: cs.base.kind, n: cs.base.n, managed: !!cs.base.managed } : null,
                 // A slice, like the image bytes in index.html: a view into the
                 // file would carry the whole file across postMessage.
                 hival: cs.hival, table: cs.table ? cs.table.slice() : null,
@@ -805,17 +821,41 @@
 
     /* The replacement stream for an image, keeping everything in the old
        dictionary that still applies: optional content, structure links,
-       rendering intent, an explicit stencil mask. */
-    function imageStream(L, context, original, result, keepColourSpace) {
-        const dict = original.dict.clone(context);
-        for (const k of ['Filter', 'DecodeParms', 'Decode', 'Length', 'SMaskInData', 'DL']) dict.delete(L.PDFName.of(k));
+       rendering intent, an explicit stencil mask.
+
+       The colour space stays when the channel count did not change, so an
+       ICC profile goes on describing the same numbers. After a conversion
+       (grey, CMYK, a palette) the new pixels are plain device colours. */
+    function imageStream(L, context, candidate, result) {
+        const dict = candidate.stream.dict.clone(context);
+        const cs = candidate.info.cs;
+        const h = makeHelpers(L, context);
+        const device = L.PDFName.of(result.channels === 1 ? 'DeviceGray' : 'DeviceRGB');
+        let space = device;
+        if (!result.converted) {
+            const own = dict.get(L.PDFName.of('ColorSpace'));
+            // A palette's entries are in its base space, so the expanded
+            // pixels are too
+            if (cs.kind === 'indexed') { if (result.channels === cs.base.n) space = h.lookup(own).get(1); }
+            else if (result.channels === cs.n) space = own;
+        }
+        // ColorTransform belongs in DecodeParms, but Skia writes it into the
+        // image dictionary; either way it described the old JPEG, not ours
+        for (const k of ['Filter', 'DecodeParms', 'Decode', 'Length', 'SMaskInData', 'DL', 'ColorTransform']) dict.delete(L.PDFName.of(k));
         dict.set(L.PDFName.of('Width'), L.PDFNumber.of(result.width));
         dict.set(L.PDFName.of('Height'), L.PDFNumber.of(result.height));
         dict.set(L.PDFName.of('BitsPerComponent'), L.PDFNumber.of(8));
         dict.set(L.PDFName.of('Filter'), L.PDFName.of(result.filter));
-        const cs = keepColourSpace || L.PDFName.of(result.channels === 1 ? 'DeviceGray' : 'DeviceRGB');
-        dict.set(L.PDFName.of('ColorSpace'), cs);
+        dict.set(L.PDFName.of('ColorSpace'), space);
         return L.PDFRawStream.of(dict, result.bytes);
+    }
+
+    /* A one-pixel stand-in, to weigh a file without its images */
+    function placeholderImage(L, context) {
+        return L.PDFRawStream.of(context.obj({
+            Type: 'XObject', Subtype: 'Image', Width: 1, Height: 1,
+            ColorSpace: 'DeviceGray', BitsPerComponent: 8, Filter: 'FlateDecode',
+        }), new Uint8Array(1));
     }
 
     function maskStream(L, context, original, mask) {
@@ -827,16 +867,6 @@
         dict.set(L.PDFName.of('ColorSpace'), L.PDFName.of('DeviceGray'));
         dict.set(L.PDFName.of('Filter'), L.PDFName.of('FlateDecode'));
         return L.PDFRawStream.of(dict, mask.bytes);
-    }
-
-    /* The original colour space can stay when the channel count did not
-       change: an ICC profile then keeps describing the same numbers. */
-    function colourSpaceToKeep(candidate, result, L, h) {
-        const cs = candidate.info.cs;
-        if (result.converted) return null;
-        if (cs.kind === 'rgb' && result.channels === 3) return h.get(candidate.stream.dict, 'ColorSpace');
-        if (cs.kind === 'gray' && result.channels === 1) return h.get(candidate.stream.dict, 'ColorSpace');
-        return null;
     }
 
     function isSigned(pdfDoc, L) {
@@ -863,7 +893,7 @@
         jpx: 'JPEG 2000, which browsers cannot decode',
         bilevel: 'black-and-white, already stored compactly',
         stencil: 'a stencil mask, already one bit per pixel',
-        cmykjpeg: 'CMYK JPEG, whose colours a browser does not decode reliably',
+        cmyk: 'CMYK, whose colours only come out right with the printer\'s profile, which a browser does not have',
         colourspace: 'in a colour space this tool does not convert (spot colours or Lab)',
         colourkey: 'transparent by exact colour, which recompression would break',
         decode: 'stored with remapped values',
@@ -878,6 +908,6 @@
         MB, TARGETS_MB, HEADROOM, IMAGE_LEVELS, PAGE_LEVELS, MAX_CANVAS_PIXELS, MAX_SOURCE_PIXELS, REASONS,
         formatMB, verdict, multiply, walkContent, measurePlacements, describeImages, jobFor,
         scaleFor, targetDims, levelAt, searchLevel, sampleForEstimate, removeUnreachable, deflateLoose,
-        dropThumbnails, imageStream, maskStream, colourSpaceToKeep, isSigned, makeHelpers, refKey,
+        dropThumbnails, imageStream, placeholderImage, maskStream, isSigned, makeHelpers, refKey,
     };
 });

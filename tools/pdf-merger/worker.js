@@ -16,8 +16,15 @@ self.onmessage = async (e) => {
             const file = files[i];
             const fileArrayBuffer = await file.arrayBuffer();
 
-            // ignoreEncryption lets through files that only carry an owner password (no printing, no copying)
-            const pdf = await PDFDocument.load(fileArrayBuffer, { ignoreEncryption: true });
+            // An encrypted file stays encrypted inside: copied over, its pages
+            // come out unreadable, even when it opens without a password
+            let pdf;
+            try {
+                pdf = await PDFDocument.load(fileArrayBuffer);
+            } catch (err) {
+                if (/encrypted/i.test(err.message)) throw new Error(`"${file.name}" is encrypted. Even when it opens without a password, its contents stay locked, and this tool cannot unlock them. It leaves the file alone rather than make pages nobody can read.`);
+                throw err;
+            }
             const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
 
             copiedPages.forEach((page) => mergedPdf.addPage(page));

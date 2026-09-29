@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
     <script src="../../assets/vendor/pdf-lib.min.js"></script>
-    <script src="../../assets/vendor/pdf.min.js"></script>
+    <script src="../../assets/js/pdfjs.js"></script>
     <script src="../../assets/vendor/jszip.min.js"></script>
 
     <style>
@@ -140,7 +140,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
 
         const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
 
@@ -226,7 +225,7 @@
 
         async function renderPreview(file) {
             const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            const pdf = await (await pdfOeffnen({ data: new Uint8Array(arrayBuffer) })).promise;
             const page = await pdf.getPage(1);
 
             const unscaledViewport = page.getViewport({ scale: 1 });
@@ -304,7 +303,13 @@
 
         async function processPdf(file, text, fontSize, opacity, angle, color) {
             const arrayBuffer = await file.arrayBuffer();
-            const pdfDoc = await PDFDocument.load(arrayBuffer);
+            let pdfDoc;
+            try {
+                pdfDoc = await PDFDocument.load(arrayBuffer);
+            } catch (err) {
+                if (/encrypted/i.test(err.message)) throw new Error(`"${file.name}" is encrypted. Even when it opens without a password, its contents stay locked, and this tool cannot unlock them. It leaves the file alone rather than make pages nobody can read.`);
+                throw err;
+            }
             const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
             const pages = pdfDoc.getPages();

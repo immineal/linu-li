@@ -5,6 +5,9 @@ on:
     branches: ["**"]
   pull_request:
     branches: ["**"]
+  # Started by sperrmuell-termine.yml after it put new collection dates on
+  # main: its push, made with GITHUB_TOKEN, starts nothing by itself.
+  workflow_dispatch:
 
 jobs:
   # ─── Node.js / jsdom tests (no browser needed) ───────────────────────────
@@ -19,9 +22,23 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            src/sperrmuell/package-lock.json
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Build the Sperrmüll map
+        # tools/sperrmuell/ holds only the map's data in git; the page, its
+        # bundle, its worker and .htaccess rules are built from src/sperrmuell,
+        # and several tests read them.
+        run: |
+          cd src/sperrmuell
+          npm ci
+          npm test
+          npm run build
+          npm run publish:site
 
       - name: Run jsdom-based tests
         run: |
@@ -63,7 +80,8 @@ jobs:
               tests/test-zeitstempel-knopf.js|\
               tests/test-archiv-hinweis.js|\
               tests/test-buehnenbild-zoom.js|\
-              tests/test-buehnenbild-drucken.js)
+              tests/test-buehnenbild-drucken.js|\
+              tests/test-sperrmuell-karte.js)
                 echo "[SKIP] $f (Puppeteer — runs in puppeteer job)"; continue ;;
             esac
             run_test "$f"
@@ -101,6 +119,9 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            src/sperrmuell/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -111,6 +132,16 @@ jobs:
         # September 2026) the old file name is a 404 and the job dies here,
         # before a single test has run.
         run: sudo apt-get update && sudo apt-get install -y imagemagick
+
+      - name: Build the Sperrmüll map
+        # tools/sperrmuell/ holds only the map's data in git; the page, its
+        # bundle, its worker and .htaccess rules are built from src/sperrmuell,
+        # and several tests read them.
+        run: |
+          cd src/sperrmuell
+          npm ci
+          npm run build
+          npm run publish:site
 
       - name: Patch puppeteer.launch for CI sandbox
         # GitHub Actions runners don't support Chrome's sandbox.
@@ -169,6 +200,7 @@ jobs:
           run_test "tests/test-archiv-hinweis.js"
           run_test "tests/test-buehnenbild-zoom.js"
           run_test "tests/test-buehnenbild-drucken.js"
+          run_test "tests/test-sperrmuell-karte.js"
 
           echo ""
           echo "Results: $PASS passed, $FAIL failed"

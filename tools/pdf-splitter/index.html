@@ -196,7 +196,9 @@
 
             } catch (err) {
                 console.error(err);
-                showToast('Could not read this PDF. It may be password protected.', 'error');
+                showToast(/encrypted/i.test(err.message)
+                    ? `"${file.name}" is encrypted. Even when it opens without a password, its contents stay locked, and this tool cannot unlock them. It leaves the file alone rather than make pages nobody can read.`
+                    : 'Could not read this PDF. It may be damaged.', 'error');
                 pageCountBadge.classList.add('hidden');
                 resetTool();
             }

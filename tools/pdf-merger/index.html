@@ -9,7 +9,7 @@
     
     <script src="../../assets/vendor/pdf-lib.min.js"></script>
     <script src="../../assets/vendor/FileSaver.min.js"></script>
-    <script src="../../assets/vendor/pdf.min.js"></script>
+    <script src="../../assets/js/pdfjs.js"></script>
     
     <style>
         .file-item {
@@ -76,7 +76,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
 
         let storedFiles = [];
         const { PDFDocument } = PDFLib;
@@ -171,7 +170,7 @@
 
             try {
                 const url = URL.createObjectURL(file);
-                const loadingTask = pdfjsLib.getDocument(url);
+                const loadingTask = await pdfOeffnen({ url });
                 const pdf = await loadingTask.promise;
                 const page = await pdf.getPage(1);
 

@@ -47,10 +47,16 @@ jobs:
     #
     # A hand-started run carries no test result, and starting one already
     # requires write access to this repository.
+    #
+    # A test run that was itself started by hand counts like a push: that is
+    # how sperrmuell-termine.yml gets new collection dates out, since its
+    # own push starts no workflow. Starting one takes write access too, and a
+    # fork cannot, so the two conditions above still hold.
     if: >-
       ${{ github.event_name == 'workflow_dispatch' ||
           (github.event.workflow_run.conclusion == 'success' &&
-           github.event.workflow_run.event == 'push' &&
+           (github.event.workflow_run.event == 'push' ||
+            github.event.workflow_run.event == 'workflow_dispatch') &&
            github.event.workflow_run.head_repository.full_name == github.repository) }}
     steps:
       # `ref` is not optional here. A workflow_run job checks out the head of
@@ -215,6 +221,19 @@ jobs:
           node --check sw.js || { echo "::error::sw.js no longer parses after the notes were written in"; exit 1; }
           grep -c 'DEPLOY_NOTES' sw.js
 
+      # The map at /tools/sperrmuell/ is built here, from the commit that
+      # passed. Only its data is in git; the rest used to be copied in by hand
+      # and drifted from its source. CI built and tested the same thing.
+      - name: 🗺️ Build the Sperrmüll map
+        run: |
+          set -euo pipefail
+          cd src/sperrmuell
+          npm ci
+          npm run build
+          npm run publish:site
+          test -f ../../tools/sperrmuell/index.html \
+            || { echo "::error::the map build left no tools/sperrmuell/index.html"; exit 1; }
+
       # The mirror below copies whatever is left in the working directory, so
       # anything the site does not need is deleted here first. Done in plain
       # shell rather than as lftp exclude patterns: what this removes can be
@@ -222,7 +241,7 @@ jobs:
       # web server.
       - name: 🧹 Drop everything the website does not serve
         run: |
-          rm -rf tests
+          rm -rf tests src
           rm -f test.js test_*.js test-*.js test*.py test*.html test*.png
           rm -f package.json package-lock.json README.md .gitignore start_server.js
           rm -f assets/update-note.txt
