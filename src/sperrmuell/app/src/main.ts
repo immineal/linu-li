@@ -34,14 +34,18 @@ function storage(): Storage | null {
 }
 
 async function main(): Promise<void> {
-  const sperrmuellMap = new SperrmuellMap(requireElement("map"));
+  // The initial theme has to be known before the map is created, because
+  // the two themes have different basemaps (OSM raster vs OpenFreeMap
+  // vector) — flipping later would repaint the whole style, which is what
+  // sperrmuellMap.setTheme() handles from the second call onwards.
+  let theme: Theme = readTheme(storage());
+  const sperrmuellMap = new SperrmuellMap(requireElement("map"), theme);
 
   // The switch works from the start, before the data has arrived
-  let theme: Theme = readTheme(storage());
   function applyTheme(): void {
     document.documentElement.classList.toggle("light", theme === "light");
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLOR[theme]);
-    if (sperrmuellMap.map.isStyleLoaded()) sperrmuellMap.setTheme(theme);
+    sperrmuellMap.setTheme(theme);
   }
   applyTheme();
   requireElement<HTMLButtonElement>("theme-toggle").addEventListener("click", () => {

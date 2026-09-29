@@ -71,6 +71,14 @@ a {
   outline: none;
 }
 
+/* OpenFreeMap Dark on its own reads a touch flat under an overlay — a small
+   brightness lift on the canvas nudges labels and streets forward without
+   crushing the mid-tones (which is what a contrast bump did the last time
+   round). Light OSM stays as-is. */
+:root:not(.light) .maplibregl-canvas {
+  filter: brightness(1.15);
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -274,6 +282,7 @@ button:disabled {
 
 #search-input {
   flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   padding: 0 0.75rem;

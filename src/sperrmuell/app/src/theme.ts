@@ -1,3 +1,5 @@
+import type { StyleSpecification } from "maplibre-gl";
+
 /**
  * Light or dark, the way the rest of linu.li decides it: dark, unless light
  * was picked with the switch in the site's header, which stores "light"
@@ -26,30 +28,58 @@ export function storeTheme(storage: Pick<Storage, "setItem"> | null, theme: Them
 }
 
 /**
- * How the OpenStreetMap tiles are drawn under each theme. The standard tiles
- * are light only; the dark theme flips them via MapLibre's own raster paint:
- * brightness-min above brightness-max reverses the ramp (black pixels come
- * out light-grey, white pixels come out near-black), and a 180° hue rotate
- * puts colours back the right way round after the inversion — so water
- * reads as blue again and parks as green, on a dark ground. The collection
- * streets stay in their accent colours and keep contrast against both.
+ * The MapLibre style for each theme.
+ *
+ * Light stays on OpenStreetMap's standard raster tiles (no key, low volume
+ * under OSMF's tile-usage policy). A slight desaturation, applied through
+ * basemapPaint(), keeps the collection-day polygons on top from having to
+ * shout over the paper.
+ *
+ * Dark uses OpenFreeMap's public "dark" vector-tile style, which was
+ * designed for dark UI — labels are legible, motorways don't dominate,
+ * water and parks recede. This was the shortest route to a dark map that
+ * looks like a dark map rather than a light one dimmed grey. Free, no key,
+ * community-funded (openfreemap.org). Filters over the light tiles cannot
+ * touch how the light theme was designed; the choice of tone happens in
+ * whoever draws the tiles, and here that is a different cartographer.
+ *
+ * If OpenFreeMap ever goes down, dark falls back to the light style so the
+ * page still shows the map. This is handled inside SperrmuellMap.
+ */
+const OSM_LIGHT_STYLE: StyleSpecification = {
+  version: 8,
+  sources: {
+    osm: {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+  },
+  layers: [{ id: "osm", type: "raster", source: "osm" }],
+};
+
+const OPENFREEMAP_DARK_STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
+
+export function styleFor(theme: Theme): StyleSpecification | string {
+  return theme === "dark" ? OPENFREEMAP_DARK_STYLE_URL : OSM_LIGHT_STYLE;
+}
+
+/**
+ * Paint touch-ups on the OSM raster: only applies to the light theme, where
+ * the raster layer called "osm" is present. The dark theme's vector style
+ * carries its own paint.
  */
 export function basemapPaint(theme: Theme): Record<string, number> {
-  return theme === "dark"
-    ? {
-        "raster-brightness-min": 0.32,
-        "raster-brightness-max": 0.04,
-        "raster-hue-rotate": 180,
-        "raster-saturation": -0.2,
-        "raster-contrast": 0.15,
-      }
-    : {
-        "raster-brightness-min": 0,
-        "raster-brightness-max": 1,
-        "raster-hue-rotate": 0,
-        "raster-saturation": -0.25,
-        "raster-contrast": 0,
-      };
+  if (theme === "dark") return {};
+  return {
+    "raster-brightness-min": 0,
+    "raster-brightness-max": 1,
+    "raster-hue-rotate": 0,
+    "raster-saturation": -0.25,
+    "raster-contrast": 0,
+  };
 }
 
 /** The site's ink, for the district outlines drawn on top of the tiles. */

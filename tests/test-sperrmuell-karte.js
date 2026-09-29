@@ -13,8 +13,12 @@
  *    und hält beim Neuladen;
  *  - die Schriften sind die der Seite und kommen auch an.
  *
- * Kacheln kommen von openstreetmap.org und sind hier gesperrt, damit der Test
- * nichts über das Netz sagt.
+ * Kacheln kommen im Hellmodus von openstreetmap.org und im Dunkelmodus von
+ * openfreemap.org. Beides ist hier gesperrt, damit der Test nichts uebers
+ * Netz sagt. OpenFreeMap braucht dabei zwei feine Unterschiede: die Style-
+ * JSON, das Glyphen-Verzeichnis und der Sprite (kleine Dateien, damit der
+ * Kartenload überhaupt anläuft) dürfen durch — nur die eigentlichen
+ * Vector-Tiles (`/planet/...` und `/natural_earth/...`) werden abgeblockt.
  */
 const puppeteer = require('puppeteer');
 
@@ -49,20 +53,25 @@ function ok(msg) {
         });
         await page.setRequestInterception(true);
         page.on('request', (req) => {
-            if (/tile\.openstreetmap\.org/.test(req.url())) req.abort();
+            const url = req.url();
+            if (/tile\.openstreetmap\.org/.test(url)) req.abort();
+            else if (/tiles\.openfreemap\.org\/(planet|natural_earth)\//.test(url)) req.abort();
             else req.continue();
         });
 
         await page.goto(URL_KARTE, { waitUntil: 'networkidle0' });
 
         // ---- Datum ----
+        // Warten, bis ein echtes Datum steht (der Anfangstext „Lade…" reicht
+        // nicht — mit dem lief der Test frueher grün, obwohl showDate() nie
+        // dran kam).
         await page.waitForFunction(
-            () => document.getElementById('date-label')?.textContent.trim().length > 0,
+            () => /\d{4}/.test(document.getElementById('date-label')?.textContent ?? ''),
             { timeout: 15000 },
         ).catch(() => {});
         const datum = await page.$eval('#date-label', (e) => e.textContent.trim());
-        if (datum) ok('Datumsregler zeigt „' + datum + '“');
-        else fail('der Datumsregler zeigt kein Datum, die Daten kamen nicht an');
+        if (/\d{4}/.test(datum)) ok('Datumsregler zeigt „' + datum + '“');
+        else fail('der Datumsregler zeigt kein Datum, sondern „' + datum + '“');
 
         // ---- dunkel zuerst ----
         const anfang = await page.evaluate(() => ({
