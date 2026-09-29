@@ -125,7 +125,7 @@ async function main(): Promise<void> {
 
   writeCache(join(DATA_DIR, "index.json"), JSON.stringify(index, null, 2));
 
-  console.log("[build] wrote data/segments.geojson, data/routes.geojson, data/ortsteile.geojson, data/index.json");
+  console.log(`[build] wrote segments.geojson, routes.geojson, ortsteile.geojson and index.json to ${DATA_DIR}`);
   console.log(
     `[build] match rate: ${(matchRate * 100).toFixed(1)}% (exact: ${(exactRate * 100).toFixed(1)}%, ` +
       `approximate: ${((stats.matchedApproximate / stats.totalSegments) * 100).toFixed(1)}%, ` +

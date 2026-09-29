@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-14T17:55:44.973Z",
+  "generatedAt": "2026-09-28T15:36:20.189Z",
   "sourceCsv": {
     "url": "https://opendata.bonn.de/sites/default/files/ABFUHRTERMINE2026OpenData.csv",
     "license": "Creative Commons Attribution 4.0 (CC BY 4.0) — bonnorange AöR / opendata.bonn.de",
@@ -7,9 +7,9 @@
   },
   "totals": {
     "sperrmuellSegmentsParsed": 2911,
-    "matchedExact": 2756,
-    "matchedApproximate": 131,
-    "unmatched": 24
+    "matchedExact": 2757,
+    "matchedApproximate": 139,
+    "unmatched": 15
   },
   "clusterValidation": {
     "pass": true,
@@ -20,13 +20,6 @@
   },
   "unmatchedSegments": [
     {
-      "id": "25996",
-      "street": "Franziskanerinnenplatz",
-      "ortsteil": "Beuel Zentrum",
-      "plz": "53225",
-      "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
-    },
-    {
       "id": "28040",
       "street": "Kennedybrücke",
       "ortsteil": "Beuel Zentrum",
@@ -34,45 +27,10 @@
       "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
     },
     {
-      "id": "28799",
-      "street": "Nepomuk-Platz",
-      "ortsteil": "Beuel Zentrum",
-      "plz": "53225",
-      "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
-    },
-    {
-      "id": "38964",
-      "street": "Fritz-Eggeling-Platz",
-      "ortsteil": "Brüser Berg",
-      "plz": "53125",
-      "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
-    },
-    {
       "id": "44362",
       "street": "Vili-Viorel-Paun-Platz",
       "ortsteil": "Dransdorf",
       "plz": "53121",
-      "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
-    },
-    {
-      "id": "18245",
-      "street": "Klufterplatz",
-      "ortsteil": "Friesdorf",
-      "plz": "53175",
-      "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
-    },
-    {
-      "id": "10076",
-      "street": "Platz der Deutschen Post",
-      "ortsteil": "Gronau",
-      "plz": "53113",
-      "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
-    },
-    {
-      "id": "19326",
-      "street": "Marktplatz",
-      "ortsteil": "Heiderhof",
-      "plz": "53173",
       "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
     },
     {
@@ -90,13 +48,6 @@
       "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
     },
     {
-      "id": "24676",
-      "street": "Antoniusplatz",
-      "ortsteil": "Holtorf",
-      "plz": "53227",
-      "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
-    },
-    {
       "id": "40019",
       "street": "Bernhard-Berzheim-Platz",
       "ortsteil": "Ippendorf (HA)",
@@ -108,20 +59,6 @@
       "street": "Markusplatz",
       "ortsteil": "Kessenich",
       "plz": "53129",
-      "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
-    },
-    {
-      "id": "23496",
-      "street": "Brunnenplatz",
-      "ortsteil": "Lannesdorf",
-      "plz": "53179",
-      "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
-    },
-    {
-      "id": "2826",
-      "street": "August-Macke-Platz",
-      "ortsteil": "Nordstadt",
-      "plz": "53119",
       "rangeLabel": "gerade 2–Ende; ungerade 1–Ende"
     },
     {

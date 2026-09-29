@@ -7,15 +7,15 @@
  * included, and it is still installed in the browser of everyone who has
  * ever opened the map.
  *
- * The app now sits at /tools/sperrmuell/ and the old address answers 301 —
- * except this one file, which .htaccess rewrites internally so the address
- * keeps answering 200 with a real script. That exception is the whole point.
- * A service worker script is never fetched through a redirect: the browser
- * treats a redirected update as a failed one, keeps the worker it has and
- * tries again another day. The old worker would have gone on serving the old
- * app from cache forever, and the redirect underneath it would never have
- * been reached. Worse, its background revalidation would have followed the
- * 301 and cached a redirected response, which a browser refuses to hand to a
+ * The app now sits at /tools/sperrmuell/ and the old address answers 301,
+ * except for this one file: .htaccess rewrites it internally, so the address
+ * keeps answering 200 with a real script. It has to, because a service
+ * worker script is never fetched through a redirect. The browser treats a
+ * redirected update as a failed one, keeps the worker it has and tries again
+ * another day. The old worker would have gone on serving the old app from
+ * cache forever, and the redirect underneath it would never have been
+ * reached. Its background revalidation would also have followed the 301 and
+ * cached a redirected response, which a browser refuses to hand to a
  * navigation at all.
  *
  * So the old address goes on answering with a script, and the script takes
@@ -29,10 +29,10 @@
  * it was requested from, not from where the file sits, so the rewrite keeps
  * the scope at /sperrmuell/ without a second sperrmuell/ beside tools/.
  *
- * Nothing has to be remembered about it. Once the visitors from before the
- * move have been back once, nothing registers it any more and it is dead
- * weight of about a kilobyte, inside the tool it belongs to. Deleting it
- * early is the only way to get this wrong, so it stays.
+ * Once the visitors from before the move have been back once, nothing
+ * registers it any more, and it is about a kilobyte of dead weight inside
+ * the tool it belongs to. Deleting it early is the only way to get this
+ * wrong, so it stays.
  */
 
 self.addEventListener("install", () => {

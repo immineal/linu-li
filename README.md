@@ -68,7 +68,7 @@ These still work and still answer at their old addresses, and they say so at the
 
 The [Bühnenbild-Planer](tools/buehnenbild/) is a German planner for stage crews and the largest thing here. You build a running order of scenes, name the places a piece keeps returning to, and lay props out on a stage with wings and curtains. Out of that it prints two documents: A4 ground plans carrying nothing but the drawing, and an *Umbauplan*, a table of what gets struck, set up and moved between every pair of scenes. Props come with oblique illustrations as well as plan-view symbols. There is a guided setup on the first visit and an explanation behind every setting, because the people using it are not the people who built it.
 
-The [Bonn Sperrmüll map](tools/sperrmuell/) shows which streets get a bulky-waste collection on which day, from the city's open data. Its source, including the ETL pipeline that builds the geometry, is at [immineal/sperrmuell](https://github.com/immineal/sperrmuell). It covers 185 dates in 2026. It sits with the other tools but stays its own app, with its own build and its own service worker, so it comes up on a phone while you are standing in front of the pile with no signal.
+The [Bonn Sperrmüll map](tools/sperrmuell/) shows which streets get a bulky-waste collection on which day, from the city's open data. Its source, including the ETL pipeline that builds the geometry, is in [`src/sperrmuell/`](src/sperrmuell/). It covers the 2026 collection dates, up to 23 December; the city publishes each year's schedule separately, so the data has to be fetched again once a year. It sits with the other tools but stays its own app, with its own build and its own service worker, so it comes up on a phone while you are standing in front of the pile with no signal.
 
 ## Addresses
 
@@ -78,9 +78,9 @@ The Bonn map used to live at `linu.li/sperrmuell/` and now answers under `tools/
 
 ## How it is built
 
-Plain HTML, CSS and JavaScript. No bundler, no framework, no build step: what is in the repository is what the server sends, and each tool is one self-contained `index.html`. The Bonn map is the exception, a Vite build whose output is committed.
+Plain HTML, CSS and JavaScript. No bundler, no framework, no build step: what is in the repository is what the server sends, and each tool is one self-contained `index.html`. The Bonn map is the exception, a Vite app.
 
-Everything under `tools/sperrmuell/` is that output and nothing in it should be edited here. It is written by `npm run publish:site` in [the map's own project](https://github.com/immineal/sperrmuell), which mirrors its `dist/` into this directory, the two `.htaccess` rules and `abgemeldet-sw.js` included, so the mirror is complete and needs no exceptions. Editing this copy is how the two last came apart: a fix to the map's service worker was made here and never upstream, so the source kept the bug and the next build would have shipped it back out. Tests on both sides watch for that now.
+Its source is in `src/sperrmuell/`, and only its data is committed, under `tools/sperrmuell/data/`. The rest of `tools/sperrmuell/` is build output and ignored by git. The deploy workflow builds it with `npm run build` and `npm run publish:site` before uploading, and CI does the same before the tests, so both always see the map as the source describes it. The `src/` folder itself never goes to the server. To see the map locally, run those two commands in `src/sperrmuell/` once after `npm ci`.
 
 Libraries sit in `assets/vendor/` and are served from here rather than a CDN, so a tool keeps working on a day when someone else's CDN does not. pdf-lib, pdf.js and jsPDF do the PDF work. Cropper.js and piexif handle images, marked and DOMPurify render Markdown safely, jsdiff finds the differences between two texts, sql-formatter reprints queries, and JSONPath runs the queries in the JSON tool. Leaflet draws the map in the EXIF tool. Day.js does dates, JSZip packs up downloads of more than one file, and hashing goes through the Web Crypto API, with crypto-js and sha3 filling in algorithms the browser does not offer. Both fonts, Libre Baskerville and Space Grotesk, are self-hosted as well.
 
@@ -114,7 +114,9 @@ assets/
   vendor/       third-party libraries
   manifest.json PWA manifest
 tools/          one folder per tool, each a standalone page
-  sperrmuell/   the Bonn map, its own app with its own build and worker
+  sperrmuell/   the Bonn map: data committed, the rest built on deploy
+src/
+  sperrmuell/   the map's source: the ETL for the data, the Vite app
 tests/          the suites, see CONTRIBUTING.md
 index.html      the front page
 sw.js           service worker, has to sit at the root to cover the whole site

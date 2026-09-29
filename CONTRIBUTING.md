@@ -16,6 +16,12 @@ Opening `index.html` from the file system does not work. The service worker need
 
 Three suites, and CI runs all of them before anything is deployed. A red run means nothing ships.
 
+Several tests look at the Bonn map, whose built files are not in the repository. Build it once first:
+
+```
+cd src/sperrmuell && npm ci && npm run build && npm run publish:site
+```
+
 ```
 # Node only, no browser
 node tests/test-buehnenbild.js

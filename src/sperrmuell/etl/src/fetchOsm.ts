@@ -49,18 +49,35 @@ export async function fetchStreets(): Promise<StreetFeature[]> {
     cachePath: join(OSM_CACHE_DIR, "streets.json"),
     label: "streets",
   });
+  return streetsFromOverpass(raw);
+}
+
+/**
+ * Named highways as lines. A square mapped as a pedestrian area (a closed way
+ * with area=yes, such as Moltkeplatz in Bad Godesberg since summer 2026)
+ * comes out of osmtogeojson as a polygon; its outline is where the houses
+ * stand, so it counts as the street. Dropping it had taken the square off
+ * the map.
+ */
+export function streetsFromOverpass(raw: string): StreetFeature[] {
   const fc = toFeatureCollection(raw);
-  return fc.features
-    .filter((f) => f.geometry.type === "LineString")
-    .map((f) => ({
+  const streets: StreetFeature[] = [];
+  for (const f of fc.features) {
+    let geometry: LineString;
+    if (f.geometry?.type === "LineString") geometry = f.geometry as LineString;
+    else if (f.geometry?.type === "Polygon") geometry = { type: "LineString", coordinates: (f.geometry as Polygon).coordinates[0] };
+    else continue;
+    streets.push({
       type: "Feature",
-      geometry: f.geometry as LineString,
+      geometry,
       properties: {
         id: String(f.id ?? f.properties.id),
         name: f.properties.name,
         highway: f.properties.highway,
       },
-    }));
+    });
+  }
+  return streets;
 }
 
 /**

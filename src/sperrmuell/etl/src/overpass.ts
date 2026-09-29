@@ -2,6 +2,12 @@ import { readCache, writeCache } from "./cache.js";
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 const OVERPASS_HOST = "overpass-api.de";
+/**
+ * Overpass answers 406 to a request that does not say who is asking, and
+ * Node's fetch sends no User-Agent of its own. Without this every query
+ * failed six times over and the ETL could only run from an old cache.
+ */
+export const USER_AGENT = "sperrmuell-bonn/1.0 (+https://linu.li/tools/sperrmuell/)";
 
 export class NetworkBlockedError extends Error {
   constructor(host: string, cause: unknown) {
@@ -28,7 +34,7 @@ const MAX_ATTEMPTS = 6;
  * Run an Overpass QL query, with on-disk caching and retries.
  *
  * The Overpass API (overpass-api.de) is a shared public service that
- * frequently returns transient 406/429/5xx errors under load; we retry with
+ * frequently returns transient 429/5xx errors under load; we retry with
  * exponential backoff before giving up. A genuine network failure (DNS/
  * connection refused, e.g. due to an egress firewall) is reported as a
  * {@link NetworkBlockedError} naming the host to allowlist.
@@ -49,7 +55,7 @@ export async function fetchOverpass(query: string, options: FetchOverpassOptions
       response = await fetch(OVERPASS_URL, {
         method: "POST",
         body: query,
-        headers: { "Content-Type": "text/plain" },
+        headers: { "Content-Type": "text/plain", "User-Agent": USER_AGENT },
       });
     } catch (err) {
       throw new NetworkBlockedError(OVERPASS_HOST, err);

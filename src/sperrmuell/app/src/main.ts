@@ -5,6 +5,7 @@ import { compareIsoDates, formatDateLabel, pickDefaultDate, relativeDayLabel, to
 import { colorForDate } from "./colors.js";
 import { renderInfoPanel } from "./infoPanel.js";
 import { findSegments, parseAddressQuery, renderSearchResult } from "./search.js";
+import { THEME_COLOR, readTheme, storeTheme, type Theme } from "./theme.js";
 import type { IsoDate } from "./types.js";
 
 function requireElement<T extends HTMLElement>(id: string): T {
@@ -24,8 +25,30 @@ function setStatus(message: string | null): void {
   }
 }
 
+function storage(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 async function main(): Promise<void> {
   const sperrmuellMap = new SperrmuellMap(requireElement("map"));
+
+  // The switch works from the start, before the data has arrived
+  let theme: Theme = readTheme(storage());
+  function applyTheme(): void {
+    document.documentElement.classList.toggle("light", theme === "light");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLOR[theme]);
+    if (sperrmuellMap.map.isStyleLoaded()) sperrmuellMap.setTheme(theme);
+  }
+  applyTheme();
+  requireElement<HTMLButtonElement>("theme-toggle").addEventListener("click", () => {
+    theme = theme === "dark" ? "light" : "dark";
+    storeTheme(storage(), theme);
+    applyTheme();
+  });
 
   const data = await loadAppData();
 
@@ -62,6 +85,7 @@ async function main(): Promise<void> {
 
   sperrmuellMap.onLoad(() => {
     sperrmuellMap.setupLayers(data.ortsteile);
+    sperrmuellMap.setTheme(theme);
     if (availableDates.length > 0) showDate(dateIndex);
   });
 

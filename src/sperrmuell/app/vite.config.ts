@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
 const APP_DIR = fileURLToPath(new URL(".", import.meta.url));
-const DATA_DIR = resolve(APP_DIR, "../data");
+// The ETL writes into the served directory itself (see etl/src/paths.ts)
+const DATA_DIR = resolve(APP_DIR, "../../../tools/sperrmuell/data");
 
 const CONTENT_TYPES: Record<string, string> = {
   ".geojson": "application/geo+json",
@@ -12,7 +13,7 @@ const CONTENT_TYPES: Record<string, string> = {
 };
 
 /**
- * Serve the ETL output in `data/` (at the repo root) as `/data/*`, both for
+ * Serve the ETL output in tools/sperrmuell/data/ as `/data/*`, both for
  * the dev server and the production build. Keeps the build artifacts as the
  * single source of truth instead of duplicating them into `app/public/`.
  */
@@ -91,8 +92,8 @@ export default defineConfig({
    * Before September 2026 this was "/sperrmuell/". That address still
    * answers, but only as a redirect, plus one worker that retires the old
    * registration. Building with the old value puts the app back behind that
-   * redirect: tests/test-kurz-adressen.js in the linu-li repository fails on
-   * it, but only once the output has been committed there.
+   * redirect: tests/test-kurz-adressen.js at the root of the repository fails on
+   * it once the output has been published into tools/sperrmuell/.
    */
   base: "/tools/sperrmuell/",
   plugins: [dataPlugin(), servePlugin()],

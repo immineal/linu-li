@@ -1,5 +1,10 @@
 /**
- * Copy the build into the website's repository.
+ * Copy the build into tools/sperrmuell/, the directory the website serves.
+ *
+ * The deploy workflow and CI run this after `npm run build`; locally it is
+ * how the map gets into the site to be looked at. Only data/ is committed
+ * over there, and the build carries a copy of it, so the mirror leaves it
+ * as it is.
  *
  * This used to be done by hand, and that is how the two drifted: a fix to the
  * service worker was made in the copy over there and never here, so the
@@ -29,7 +34,7 @@ const DIST = join(APP, "dist");
 const args = process.argv.slice(2);
 const dry = args.includes("--dry");
 const ziel = resolve(args.find((a) => !a.startsWith("--")) ??
-  join(APP, "../../Websites/linu-li/tools/sperrmuell"));
+  join(APP, "../../../tools/sperrmuell"));
 
 function stop(...zeilen) {
   for (const z of zeilen) console.error(z);
@@ -93,6 +98,6 @@ console.log(`${dry ? "Would mirror" : "Mirrored"} ${verlangt.length - 1}+ files 
 console.log(aus ? aus.split("\n").map((z) => "  " + z).join("\n") : "  (already identical)");
 if (!dry && aus) {
   console.log("");
-  console.log("Now commit it over there. If a bundle name changed, the old one is gone");
-  console.log("from the mirror and the new one is untracked — `git add -A tools/sperrmuell`.");
+  console.log("Nothing to commit except data/: the rest of tools/sperrmuell/ is ignored");
+  console.log("by git and built again on every deploy.");
 }

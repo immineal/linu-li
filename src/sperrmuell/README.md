@@ -9,7 +9,7 @@ geometry.
 
 ```sh
 npm install
-npm run data    # ETL: builds data/*.geojson + data/index.json
+npm run data    # ETL: builds ../../tools/sperrmuell/data/
 npm run dev     # starts the app (prints a Network URL — open that on your phone)
 ```
 
@@ -27,18 +27,22 @@ npm run preview
 
 ## Publishing
 
-The app is served from `linu.li/tools/sperrmuell/`, out of the
-[linu-li](https://github.com/immineal/linu-li) repository, which commits the
-built output rather than building on deploy. Publishing is therefore a copy:
+This folder is part of the [linu-li](https://github.com/immineal/linu-li)
+repository, and the app is served from `linu.li/tools/sperrmuell/`. Nobody
+publishes by hand: the deploy workflow runs `npm ci`, `npm run build` and
+`npm run publish:site` before it uploads the site, and CI does the same
+before the tests. Only the data in `tools/sperrmuell/data/` is committed; the
+rest of `tools/sperrmuell/` is ignored by git. To try it locally:
 
 ```sh
 npm run build
 npm run publish:site -- --dry   # what would change
-npm run publish:site            # do it, then commit over there
+npm run publish:site            # mirror dist/ into tools/sperrmuell/
 ```
 
 `dist/` is a complete picture of the directory it feeds, so the copy is a
-plain mirror with `--delete` and nothing to exclude. Two consequences worth
+plain mirror with `--delete`; the build carries a copy of `data/`, so that
+comes through unchanged. Two consequences worth
 knowing:
 
 - `base` lives in `app/vite.config.ts`, not on the command line. Build with
@@ -56,11 +60,10 @@ the browser reads that as a failed update and keeps what it has — so the old
 address cannot simply 301 to the new one. It serves `abgemeldet-sw.js`
 instead, whose only job is to take that registration apart.
 
-Do not hand-edit anything under `tools/sperrmuell/` in the website's
-repository. That is how the two last drifted: the service worker's cache
-restriction was fixed there and never here, so the source kept the bug and the
-next build would have shipped it straight back out. `test/serve.test.ts`
-guards that one from this side now.
+Change the app here, never its built copy. Before the build moved into the
+deploy, a fix to the service worker was made in the built copy and never in
+the source, so the next build would have shipped the bug straight back out.
+`test/serve.test.ts` still guards that one.
 
 ## What you'll see
 
@@ -85,10 +88,12 @@ etl/          Node/TypeScript pipeline -> data/
 app/          Vite + MapLibre GL frontend, reads data/
 app/serve/    files that shape how the build is served, emitted into dist/
 app/scripts/  publish.mjs — mirrors dist/ into the website's repository
-data/         generated build artifacts (gitignored, recreate with `npm run data`)
+../../tools/sperrmuell/data/   the ETL's output, committed (the app reads it from there)
 ```
 
-The ETL pipeline (`npm run data`):
+The ETL pipeline (`npm run data`). It asks Overpass with a User-Agent naming
+the map; without one Overpass answers 406. Paths below called `data/` mean
+`tools/sperrmuell/data/` at the root of linu-li.
 
 1. Parses bonnorange's "Abfuhrtermine 2026" CSV, filters to `PLAN_BEZ ===
    "Sperrmüll"`, and builds one segment per CSV row: street, Ortsteil, PLZ,

@@ -3,6 +3,7 @@ import type { StyleSpecification } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import { geometryBounds } from "./geom.js";
 import type { OrtsteilFeature, RouteFeature, SegmentFeature } from "./dataLoader.js";
+import { basemapPaint, inkFor, type Theme } from "./theme.js";
 
 export const BONN_CENTER: [number, number] = [7.0982, 50.7374];
 
@@ -68,6 +69,17 @@ export class SperrmuellMap {
     });
   }
 
+  /** Tiles and district outlines in the colours of the given theme. */
+  setTheme(theme: Theme): void {
+    for (const [name, value] of Object.entries(basemapPaint(theme))) {
+      this.map.setPaintProperty("osm", name as "raster-saturation", value);
+    }
+    if (this.map.getLayer("ortsteile-line")) {
+      this.map.setPaintProperty("ortsteile-fill", "fill-color", inkFor(theme));
+      this.map.setPaintProperty("ortsteile-line", "line-color", inkFor(theme));
+    }
+  }
+
   /** Add all sources/layers. Call once after the style has loaded. */
   setupLayers(ortsteile: OrtsteilFeature[]): void {
     const map = this.map;
@@ -80,14 +92,14 @@ export class SperrmuellMap {
       id: "ortsteile-fill",
       type: "fill",
       source: "ortsteile",
-      paint: { "fill-color": "#1d3557", "fill-opacity": 0.04 },
+      paint: { "fill-color": inkFor("dark"), "fill-opacity": 0.04 },
       layout: { visibility: "none" },
     });
     map.addLayer({
       id: "ortsteile-line",
       type: "line",
       source: "ortsteile",
-      paint: { "line-color": "#1d3557", "line-width": 1, "line-opacity": 0.4 },
+      paint: { "line-color": inkFor("dark"), "line-width": 1, "line-opacity": 0.4 },
       layout: { visibility: "none" },
     });
 
@@ -96,14 +108,14 @@ export class SperrmuellMap {
       id: "route-fill",
       type: "fill",
       source: "route",
-      paint: { "fill-color": "#e63946", "fill-opacity": 0.12 },
+      paint: { "fill-color": "#c44d3c", "fill-opacity": 0.12 },
       layout: { visibility: "none" },
     });
     map.addLayer({
       id: "route-line",
       type: "line",
       source: "route",
-      paint: { "line-color": "#e63946", "line-width": 1, "line-opacity": 0.5 },
+      paint: { "line-color": "#c44d3c", "line-width": 1, "line-opacity": 0.5 },
       layout: { visibility: "none" },
     });
 
@@ -114,7 +126,7 @@ export class SperrmuellMap {
       source: "segments",
       filter: ["==", ["get", "geometryConfidence"], "approximate"],
       paint: {
-        "line-color": "#e63946",
+        "line-color": "#c44d3c",
         "line-width": 4,
         "line-dasharray": [2, 1.6],
         "line-opacity": 0.85,
@@ -126,7 +138,7 @@ export class SperrmuellMap {
       source: "segments",
       filter: ["==", ["get", "geometryConfidence"], "exact"],
       paint: {
-        "line-color": "#e63946",
+        "line-color": "#c44d3c",
         "line-width": 4,
         "line-opacity": 0.9,
       },

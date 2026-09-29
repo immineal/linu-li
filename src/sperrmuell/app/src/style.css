@@ -1,13 +1,41 @@
+/* The site's own fonts, served next to the map on linu.li. In `npm run dev`
+   they are not there and the fallbacks stand in. */
+@font-face { font-family: "Libre Baskerville"; font-style: normal; font-weight: 400; font-display: swap; src: url("/assets/fonts/libre-baskerville-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Libre Baskerville"; font-style: normal; font-weight: 700; font-display: swap; src: url("/assets/fonts/libre-baskerville-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 400 700; font-display: swap; src: url("/assets/fonts/space-grotesk-latin-400-500-700-normal.woff2") format("woff2"); }
+
+/* The colours of linu.li (assets/css/style.css). Dark is the default there,
+   and here too; the class "light" comes from the script in index.html. */
 :root {
-  --color-bg: #ffffff;
-  --color-text: #1d1d1f;
-  --color-primary: #1d3557;
-  --color-accent: #e63946;
-  --color-border: #d8dde3;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  --paper: #1a1918;
+  --ink: #e8e6e3;
+  --ink-secondary: rgba(232, 230, 227, 0.7);
+  --accent: #b56d5a;
+  --accent-secondary: #88a899;
+  --border: rgba(232, 230, 227, 0.15);
+  --card: rgba(37, 36, 34, 0.96);
+  --well: #333230;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  --banner-bg: #3a2420;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-heading: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Libre Baskerville", Georgia, serif;
+  font-family: var(--font-heading);
+  color-scheme: dark;
+}
+
+:root.light {
+  --paper: #faf6f2;
+  --ink: #2a2621;
+  --ink-secondary: rgba(42, 38, 33, 0.7);
+  --accent: #c44d3c;
+  --accent-secondary: #6b9080;
+  --border: rgba(42, 38, 33, 0.15);
+  --card: rgba(255, 255, 255, 0.96);
+  --well: #f4f1ed;
+  --shadow: 0 2px 12px rgba(42, 38, 33, 0.15);
+  --banner-bg: #fbe9e5;
   color-scheme: light;
 }
 
@@ -24,8 +52,12 @@ body,
 }
 
 body {
-  color: var(--color-text);
-  background: var(--color-bg);
+  color: var(--ink);
+  background: var(--paper);
+}
+
+a {
+  color: var(--accent);
 }
 
 #map {
@@ -62,19 +94,79 @@ body {
   pointer-events: none;
 }
 
-#app-header h1 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 0.4rem 0.75rem;
-  border-radius: 999px;
-  box-shadow: var(--shadow);
+#app-title,
+#app-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   pointer-events: auto;
 }
 
-#layers-toggle {
-  pointer-events: auto;
+#app-title {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  padding: 0.4rem 0.75rem;
+}
+
+.home-link {
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.home-link::after {
+  content: "/";
+  margin-left: 0.5rem;
+  color: var(--ink-secondary);
+  font-weight: 400;
+}
+
+#app-header h1 {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+/* The switch from the site's header, on a card of its own over the map */
+#theme-toggle {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 0 0.6rem;
+}
+
+.switch-track {
+  display: block;
+  width: 44px;
+  height: 24px;
+  background-color: rgba(42, 38, 33, 0.2);
+  border-radius: 24px;
+  position: relative;
+  transition: background-color 0.3s ease;
+}
+
+.switch-thumb {
+  display: block;
+  width: 18px;
+  height: 18px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transform: translateX(20px);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+:root:not(.light) .switch-track {
+  background-color: var(--accent-secondary);
+}
+
+:root.light .switch-thumb {
+  transform: none;
 }
 
 /* ---------- Buttons & inputs ---------- */
@@ -88,21 +180,29 @@ button {
   min-height: 44px;
   min-width: 44px;
   padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--color-primary);
-  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--font-heading);
+  font-weight: 500;
   box-shadow: var(--shadow);
   cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 
-button:active {
-  background: #eef1f5;
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-accent);
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -112,8 +212,9 @@ button:active {
   position: absolute;
   top: calc(var(--safe-top) + 7.2rem);
   right: 0.75rem;
-  background: rgba(255, 255, 255, 0.97);
-  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   box-shadow: var(--shadow);
   padding: 0.5rem 1rem;
   display: flex;
@@ -136,6 +237,7 @@ button:active {
 #layers-panel input[type="checkbox"] {
   width: 22px;
   height: 22px;
+  accent-color: var(--accent-secondary);
 }
 
 /* ---------- Search bar ---------- */
@@ -151,8 +253,9 @@ button:active {
 #search-form {
   display: flex;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.97);
-  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   box-shadow: var(--shadow);
   padding: 0.35rem;
 }
@@ -163,7 +266,25 @@ button:active {
   background: transparent;
   padding: 0 0.75rem;
   min-height: 44px;
-  font-size: 1rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+#search-input::placeholder {
+  color: var(--ink-secondary);
+}
+
+/* The one button that acts, in the site's accent like its .button */
+#search-form button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+#search-form button:hover {
+  color: #ffffff;
 }
 
 #search-form button {
@@ -172,8 +293,11 @@ button:active {
 
 #search-result {
   margin-top: 0.5rem;
-  background: rgba(255, 255, 255, 0.97);
-  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
   box-shadow: var(--shadow);
   padding: 0.5rem 0.75rem;
 }
@@ -185,11 +309,12 @@ button:active {
 .search-match + .search-match {
   margin-top: 0.75rem;
   padding-top: 0.5rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 
 .search-match-heading {
-  font-weight: 600;
+  font-family: var(--font-heading);
+  font-weight: 500;
   margin: 0 0 0.35rem;
 }
 
@@ -207,15 +332,14 @@ button:active {
   align-items: center;
   width: 100%;
   justify-content: flex-start;
-  background: #f4f6f8;
+  background: var(--well);
   box-shadow: none;
-  font-weight: 500;
 }
 
 .search-confidence-note {
   margin-top: 0.4rem;
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--ink-secondary);
 }
 
 /* ---------- Date scrubber ---------- */
@@ -229,8 +353,9 @@ button:active {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.97);
-  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   box-shadow: var(--shadow);
   padding: 0.4rem;
   z-index: 4;
@@ -246,14 +371,19 @@ button:active {
 }
 
 #date-label {
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.95rem;
 }
 
 #date-relative {
   font-size: 0.8rem;
-  color: var(--color-accent);
-  font-weight: 600;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+#date-scrubber button {
+  box-shadow: none;
+  font-size: 1.2rem;
 }
 
 /* ---------- Bottom sheet ---------- */
@@ -267,8 +397,9 @@ button:active {
      only the (clipped) height grows upward when expanded. */
   bottom: calc(var(--safe-bottom) + 4.8rem);
   max-height: calc(44px + 0.5rem);
-  background: var(--color-bg);
-  border-radius: 16px 16px 0 0;
+  background: var(--paper);
+  border-top: 1px solid var(--border);
+  border-radius: 4px 4px 0 0;
   box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.18);
   padding: 0.5rem 1rem calc(var(--safe-bottom) + 1rem);
   overflow: hidden;
@@ -296,18 +427,21 @@ button:active {
   width: 36px;
   height: 4px;
   border-radius: 2px;
-  background: var(--color-border);
+  background: var(--border);
 }
 
 #bottom-sheet-content h2 {
   font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
   margin: 0.75rem 0 0.25rem;
 }
 
 #bottom-sheet-content p,
 #bottom-sheet-content li {
-  font-size: 0.9rem;
-  line-height: 1.4;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  line-height: 1.6;
 }
 
 #bottom-sheet-content ul {
@@ -318,9 +452,8 @@ button:active {
 .search-hide-button {
   margin-top: 0.75rem;
   width: 100%;
-  background: #f4f6f8;
+  background: var(--well);
   box-shadow: none;
-  font-weight: 500;
 }
 
 .confidence-dot {
@@ -338,9 +471,10 @@ button:active {
   top: var(--safe-top);
   left: 0.75rem;
   right: 0.75rem;
-  background: #fbe7e9;
-  color: #b3261e;
-  border-radius: 12px;
+  background: var(--banner-bg);
+  color: var(--ink);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
   padding: 0.6rem 0.9rem;
   box-shadow: var(--shadow);
   z-index: 10;
@@ -377,7 +511,8 @@ button:active {
     width: 22rem;
     max-height: 70vh;
     overflow-y: auto;
-    border-radius: 16px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
   }
 
   #bottom-sheet-handle {
@@ -388,49 +523,5 @@ button:active {
     left: 0.75rem;
     right: auto;
     width: 22rem;
-  }
-}
-
-/* ---------- Dark theme ---------- */
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #1c1f24;
-    --color-text: #e8e8e8;
-    --color-border: #3a3f47;
-    --shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
-    color-scheme: dark;
-  }
-
-  #app-header h1,
-  button,
-  #search-form,
-  #search-result,
-  #layers-panel,
-  #date-scrubber {
-    background: rgba(36, 40, 46, 0.92);
-    color: var(--color-text);
-  }
-
-  #layers-panel {
-    background: rgba(36, 40, 46, 0.97);
-  }
-
-  button:active {
-    background: #2c3138;
-  }
-
-  .search-date-button,
-  .search-hide-button {
-    background: #2c3138;
-  }
-
-  .search-confidence-note {
-    color: #9aa1a8;
-  }
-
-  #status-banner {
-    background: #3a1f22;
-    color: #ff8a80;
   }
 }
