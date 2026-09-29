@@ -71,6 +71,14 @@ a {
   outline: none;
 }
 
+/* OpenFreeMap Dark on its own reads a touch flat under an overlay — a small
+   brightness lift on the canvas nudges labels and streets forward without
+   crushing the mid-tones (which is what a contrast bump did the last time
+   round). Light OSM stays as-is. */
+:root:not(.light) .maplibregl-canvas {
+  filter: brightness(1.15);
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -107,7 +115,8 @@ a {
   border: 1px solid var(--border);
   border-radius: 4px;
   box-shadow: var(--shadow);
-  padding: 0.4rem 0.75rem;
+  min-height: 44px;
+  padding: 0 0.75rem;
 }
 
 .home-link {
@@ -130,11 +139,22 @@ a {
   margin: 0;
 }
 
-/* The switch from the site's header, on a card of its own over the map */
+/* The switch from the site's header, over the map. On the main site the
+   button around the track is transparent because the header itself is the
+   card; here there is no header bar, so the button gets a card of its own
+   that hugs the round track instead of a square button box. */
 #theme-toggle {
   background: var(--card);
   border: 1px solid var(--border);
-  padding: 0 0.6rem;
+  border-radius: 999px;
+  padding: 0.5rem 0.6rem;
+  min-height: 44px;
+  min-width: 0;
+  line-height: 0;
+}
+
+#theme-toggle:hover:not(:disabled) {
+  border-color: var(--accent);
 }
 
 .switch-track {
@@ -262,6 +282,7 @@ button:disabled {
 
 #search-input {
   flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   padding: 0 0.75rem;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { basemapPaint, inkFor, readTheme, storeTheme } from "../src/theme.js";
+import { basemapPaint, inkFor, readTheme, storeTheme, styleFor } from "../src/theme.js";
 
 const store = (value: string | null) => ({ getItem: () => value });
 
@@ -23,10 +23,21 @@ describe("theme", () => {
     expect(() => storeTheme({ setItem: () => { throw new Error("QuotaExceeded"); } }, "dark")).not.toThrow();
   });
 
-  it("dims the tiles in the dark and leaves them at full brightness in the light", () => {
-    expect(basemapPaint("dark")["raster-brightness-max"]).toBeLessThan(1);
+  it("gives the light theme a paint touch-up and leaves the dark one to its own style", () => {
+    // Light: still on OSM raster, with a slight desaturation.
     expect(basemapPaint("light")["raster-brightness-max"]).toBe(1);
-    expect(Object.keys(basemapPaint("dark")).sort()).toEqual(Object.keys(basemapPaint("light")).sort());
+    expect(basemapPaint("light")["raster-saturation"]).toBeLessThan(0);
+    // Dark: OpenFreeMap draws its own dark map, so no paint override.
+    expect(basemapPaint("dark")).toEqual({});
+  });
+
+  it("picks a different basemap for each theme", () => {
+    const light = styleFor("light");
+    const dark = styleFor("dark");
+    // Light is the OSM raster style object; dark is the OpenFreeMap style URL.
+    expect(typeof light).toBe("object");
+    expect(typeof dark).toBe("string");
+    expect(dark).toMatch(/openfreemap/);
   });
 
   it("draws district outlines in the site's ink", () => {
