@@ -173,7 +173,7 @@ test('palette, 16-bit and raw CMYK images are read, with the palette handed over
     });
     const an = E.describeImages(doc, L, E.measurePlacements(doc, L));
     assert.strictEqual(an.candidates.length, 3, 'raw CMYK is resampled as CMYK, so it is a candidate');
-    assert.strictEqual(an.profiled, 1, 'the CMYK image counts as one whose colours need a profile');
+    assert.strictEqual(an.cmyk, 1, 'the CMYK image is counted, so turning pages into pictures can say how CMYK comes out');
     const byKind = Object.fromEntries(an.candidates.map((c) => [c.info.cs.kind, c]));
     const job = E.jobFor(byKind.indexed);
     assert.deepStrictEqual([...job.cs.table], [255, 0, 0, 0, 255, 0]);

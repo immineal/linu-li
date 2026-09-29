@@ -97,7 +97,7 @@ function fail(msg) {
 
         /* What the result is, read back with pdf.js the way any viewer would */
         const inspect = () => page.evaluate(async () => {
-            const doc = await pdfjsLib.getDocument({ data: result.bytes.slice() }).promise;
+            const doc = await (await pdfOeffnen({ data: result.bytes.slice() })).promise;
             const texts = [];
             for (let i = 1; i <= doc.numPages; i++) {
                 const t = await (await doc.getPage(i)).getTextContent();

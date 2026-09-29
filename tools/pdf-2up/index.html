@@ -258,7 +258,13 @@
                 progressBar.style.width = '25%';
 
                 const { PDFDocument, grayscale } = PDFLib;
-                const srcDoc = await PDFDocument.load(arrayBuffer);
+                let srcDoc;
+                try {
+                    srcDoc = await PDFDocument.load(arrayBuffer);
+                } catch (err) {
+                    if (/encrypted/i.test(err.message)) throw new Error(`"${currentFile.name}" is encrypted. Even when it opens without a password, its contents stay locked, and this tool cannot unlock them. It leaves the file alone rather than make pages nobody can read.`);
+                    throw err;
+                }
                 const dstDoc = await PDFDocument.create();
 
                 // embedPdf without indices embeds only the first page

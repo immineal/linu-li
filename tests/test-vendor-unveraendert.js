@@ -34,13 +34,17 @@ const ROOT = path.join(__dirname, '..');
 const VENDOR = path.join(ROOT, 'assets/vendor');
 const LISTE = path.join(__dirname, 'vendor-hashes.json');
 
-function hashesLesen() {
-    const gefunden = {};
-    for (const name of fs.readdirSync(VENDOR).sort()) {
+/* Unterordner zählen mit: pdf.js kommt als Ordner mit seiner Version im
+   Namen (pdfjs-6.3.289/), und für jede Datei darin gilt dasselbe Versprechen. */
+function hashesLesen(ordner = VENDOR, gefunden = {}) {
+    for (const name of fs.readdirSync(ordner).sort()) {
         if (name.startsWith('.')) continue;
-        const pfad = path.join(VENDOR, name);
-        if (!fs.statSync(pfad).isFile()) continue;
-        gefunden[name] = crypto.createHash('sha256')
+        const pfad = path.join(ordner, name);
+        if (fs.statSync(pfad).isDirectory()) {
+            hashesLesen(pfad, gefunden);
+            continue;
+        }
+        gefunden[path.relative(VENDOR, pfad).split(path.sep).join('/')] = crypto.createHash('sha256')
             .update(fs.readFileSync(pfad)).digest('hex').slice(0, 16);
     }
     return gefunden;

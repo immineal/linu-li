@@ -97,15 +97,11 @@
         return new TextDecoder('latin1').decode(bytes.subarray(0, 1024)).includes('%PDF-');
     }
 
-    /* How every PDF is opened for drawing. pdf.js turns images into
-       bitmaps on an OffscreenCanvas when the browser has one, and Safari's
-       gives up on large ones without a word: the photo on some pages is
-       simply not drawn. That broke the preview on iPhones, and would have
-       put pages without their pictures into files made the second way.
-       Measured in WebKit: with this off, every page of the file that showed
-       it draws; with it on, one or two of eight do not. */
+    /* How every PDF is opened for drawing: a copy of the bytes, because pdf.js
+       takes ownership of what it is given. The rest (no OffscreenCanvas, the
+       decoders' paths) is set for every PDF tool in assets/js/pdfjs.js. */
     function pdfjsOptions(bytes, password) {
-        return { data: bytes.slice(), password: password || undefined, isOffscreenCanvasSupported: false };
+        return { data: bytes.slice(), password: password || undefined };
     }
 
     let opened = 0;
@@ -114,7 +110,7 @@
         if (!isPdfHeader(bytes)) throw new NotPdf('not a pdf');
         let original;
         try {
-            original = await pdfjsLib.getDocument(pdfjsOptions(bytes, password)).promise;
+            original = await (await pdfOeffnen(pdfjsOptions(bytes, password))).promise;
         } catch (err) {
             if (err && err.name === 'PasswordException') throw new PasswordNeeded(!!password);
             throw err;
@@ -124,14 +120,14 @@
                 // Workers cache decoded images by name, and object numbers
                 // repeat from one PDF to the next; this keeps them apart
                 id: ++opened,
-                bytes, original, lib: null, libProblem: null, encrypted: false, signed: false, undrawable: 0,
+                bytes, original, lib: null, libProblem: null, encrypted: false, signed: false,
                 analysis: null, tidyInfo: null, tidySize: 0, baseBytes: 0,
                 encoded: new Map(), failures: new Map(),
             };
             await analyse(s, ctl);
             return s;
         } catch (err) {
-            original.destroy();
+            original.loadingTask.destroy();
             throw err;
         }
     }
@@ -162,7 +158,6 @@
         await pause();
         s.lib = lib;
         s.signed = E.isSigned(lib, L);
-        s.undrawable = E.undrawableShadings(lib, L);
         const thumbs = E.dropThumbnails(lib, L);
         const gc = E.removeUnreachable(lib, L);
         const loose = E.deflateLoose(lib, L);
@@ -185,7 +180,7 @@
 
     function close(s) {
         if (!s) return;
-        s.original.destroy();
+        s.original.loadingTask.destroy();
         pool.forget();
     }
 

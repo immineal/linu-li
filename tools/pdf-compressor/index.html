@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
 
-    <script src="../../assets/vendor/pdf.min.js"></script>
+    <script src="../../assets/js/pdfjs.js"></script>
     <script src="../../assets/vendor/pdf-lib.min.js"></script>
     <script src="../../assets/vendor/FileSaver.min.js"></script>
     <script src="engine.js"></script>
@@ -257,7 +257,6 @@
     <script src="../../assets/js/layout.js"></script>
 
     <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
         const E = window.Verkleinerer;
         const K = window.Kompressor;
         const B = window.Bericht;
@@ -591,8 +590,8 @@
             renderAdvice(B.advice(r, session));
             resultBox.classList.remove('hidden');
 
-            if (after) after.destroy();
-            after = await pdfjsLib.getDocument(K.pdfjsOptions(r.bytes)).promise;
+            if (after) after.loadingTask.destroy();
+            after = await (await pdfOeffnen(K.pdfjsOptions(r.bytes))).promise;
             if (token !== runToken) return;
             const pick = B.previewPage(r, session);
             previewPage = pick.page;
@@ -756,7 +755,7 @@
 
         function dropSession() {
             K.close(session);
-            if (after) after.destroy();
+            if (after) after.loadingTask.destroy();
             session = null; after = null; result = null; file = null;
             resultBox.classList.add('hidden');
             $('detail').classList.add('hidden');

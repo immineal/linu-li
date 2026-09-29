@@ -15,9 +15,6 @@
 
     const MB = E.formatMB;
     const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
-    const gradients = (n) => n === 1
-        ? 'The file has a colour gradient of a kind (function-based shading) that'
-        : `The file has ${n} colour gradients of a kind (function-based shading) that`;
 
     function describe(r, s) {
         if (r.kind === 'original') {
@@ -52,7 +49,6 @@
             if (o.scale < 1) scaled++;
             if (o.res.filter === 'FlateDecode') lossless++;
             if (o.res.converted) greyed++;
-    
         }
         const reasons = new Map();
         for (const sk of a.skipped) {
@@ -76,9 +72,11 @@
         for (const [reason, count] of reasons) {
             lines.push(`${plural(count, 'image', 'images')} left alone: ${E.REASONS[reason] || reason}.`);
         }
-        if (greyed) lines.push(`${plural(greyed, 'image is', 'images are')} grey now. Text and drawings keep their colour${greyed < changed ? ', and so do CMYK images, which are never converted' : ''}.`);
+        if (greyed) {
+            const cmyk = a.cmyk ? ` ${plural(a.cmyk, 'CMYK image keeps its', 'CMYK images keep their')} colour too; CMYK is never converted.` : '';
+            lines.push(`${plural(greyed, 'image is', 'images are')} grey now. Text and drawings keep their colour.${cmyk}`);
+        }
         lines.push('Text, fonts, drawings, links, bookmarks and form fields are as they were.');
-        if (s.undrawable) lines.push(`${gradients(s.undrawable)} this browser's PDF renderer cannot draw, so the preview shows ${s.undrawable === 1 ? 'it' : 'them'} differently from other viewers. The file keeps ${s.undrawable === 1 ? 'it' : 'them'} exactly as ${s.undrawable === 1 ? 'it was' : 'they were'}.`);
         return lines;
     }
 
@@ -89,10 +87,10 @@
         if (r.opts.gray && !r.opts.clean) lines.push('Pages are grey.');
         if (r.opts.clean) lines.push(`Scan clean-up: grey, white from ${r.opts.white} up, black from ${r.opts.black} down.`);
         if (r.opts.angle) lines.push(`Every page turned by ${r.opts.angle.toFixed(1)}°.`);
-        if (s.analysis && s.analysis.profiled) {
-            lines.push(`${plural(s.analysis.profiled, 'image has', 'images have')} colours tied to a colour profile or to CMYK print. Drawn into the pages, ${s.analysis.profiled === 1 ? 'it looks' : 'they look'} the way this browser shows ${s.analysis.profiled === 1 ? 'it' : 'them'}, which in a colour-managed viewer such as Acrobat can differ slightly from the original.`);
+        if (s.analysis && s.analysis.cmyk && !r.opts.gray && !r.opts.clean) {
+            const one = s.analysis.cmyk === 1;
+            lines.push(`${plural(s.analysis.cmyk, 'image is', 'images are')} CMYK, made for print. Drawn into the pages, ${one ? 'it goes' : 'they go'} through a generic print profile, so ${one ? 'its' : 'their'} colours can differ slightly from what the original shows in Acrobat.`);
         }
-        if (s.undrawable) lines.push(`${gradients(s.undrawable)} this browser's PDF renderer cannot draw, and the pictures show ${s.undrawable === 1 ? 'it' : 'them'} the way it does, not the way other viewers draw the original. Shrinking the images instead keeps ${s.undrawable === 1 ? 'it' : 'them'} as ${s.undrawable === 1 ? 'it was' : 'they were'}.`);
         if (s.encrypted) lines.push('The original was encrypted. The result is not.');
         return lines;
     }

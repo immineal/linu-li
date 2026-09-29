@@ -469,16 +469,16 @@
             });
         }
 
-        // Images whose colours depend on a profile or on CMYK. Turning pages
-        // into pictures goes through pdf.js, which draws those with plain
-        // device colours, so the result says so when there are any.
-        let profiled = 0;
+        // CMYK images. Turning pages into pictures goes through pdf.js, which
+        // converts CMYK with a generic print profile, not the one the file was
+        // made for, so the result says so when there are any.
+        let cmyk = 0;
         for (const { stream } of all) {
             const cs = colourSpaceOf(h.get(stream.dict, 'ColorSpace'), h, L, context, 0);
-            if (cs.ok && (cs.managed || cs.kind === 'cmyk' || (cs.base && (cs.base.managed || cs.base.kind === 'cmyk')))) profiled++;
+            if (cs.ok && (cs.kind === 'cmyk' || (cs.base && cs.base.kind === 'cmyk'))) cmyk++;
         }
 
-        return { candidates, skipped, imageBytes, fontBytes, otherBytes, profiled };
+        return { candidates, skipped, imageBytes, fontBytes, otherBytes, cmyk };
     }
 
     function colourSpaceOf(cs, h, L, context, depth) {
@@ -869,27 +869,6 @@
         return L.PDFRawStream.of(dict, mask.bytes);
     }
 
-    /* Colour gradients of the function-based kind (ShadingType 1), which the
-       pdf.js this site uses cannot draw. They matter twice: the preview,
-       drawn by pdf.js, shows them wrongly, and turning pages into pictures
-       would bake that into the file. */
-    function undrawableShadings(pdfDoc, L) {
-        const h = makeHelpers(L, pdfDoc.context);
-        let n = 0;
-        const isType1 = (d) => d instanceof L.PDFDict && h.num(h.get(d, 'ShadingType')) === 1;
-        for (const [, obj] of pdfDoc.context.enumerateIndirectObjects()) {
-            const d = obj instanceof L.PDFStream ? obj.dict : obj;
-            if (!(d instanceof L.PDFDict)) continue;
-            if (isType1(d)) { n++; continue; }
-            const direct = d.get(L.PDFName.of('Shading'));
-            if (isType1(direct)) n++;
-            else if (direct instanceof L.PDFDict) {
-                for (const [, v] of direct.entries()) if (isType1(v)) n++;
-            }
-        }
-        return n;
-    }
-
     function isSigned(pdfDoc, L) {
         const h = makeHelpers(L, pdfDoc.context);
         const acro = h.lookup(pdfDoc.catalog.get(L.PDFName.of('AcroForm')));
@@ -929,6 +908,6 @@
         MB, TARGETS_MB, HEADROOM, IMAGE_LEVELS, PAGE_LEVELS, MAX_CANVAS_PIXELS, MAX_SOURCE_PIXELS, REASONS,
         formatMB, verdict, multiply, walkContent, measurePlacements, describeImages, jobFor,
         scaleFor, targetDims, levelAt, searchLevel, sampleForEstimate, removeUnreachable, deflateLoose,
-        dropThumbnails, imageStream, placeholderImage, maskStream, isSigned, undrawableShadings, makeHelpers, refKey,
+        dropThumbnails, imageStream, placeholderImage, maskStream, isSigned, makeHelpers, refKey,
     };
 });

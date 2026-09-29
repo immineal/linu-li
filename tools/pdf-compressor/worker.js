@@ -381,22 +381,27 @@ function drawScaled(source, w, h) {
 }
 
 /* Decoded images, newest last. The budget is in pixels: an ImageBitmap
-   costs four bytes each. */
+   costs four bytes each, and a CMYK image holds two of them (the black
+   plane in its own). */
 const cache = new Map();
 let cachedPixels = 0;
 const CACHE_PIXELS = 40 * 1000 * 1000;
 
+const pixelsOf = (entry) => entry.bitmap.width * entry.bitmap.height +
+    (entry.kBitmap ? entry.kBitmap.width * entry.kBitmap.height : 0);
+
 function remember(key, bitmap, extra) {
-    const px = bitmap.width * bitmap.height;
+    const entry = Object.assign({ bitmap }, extra);
+    const px = pixelsOf(entry);
     if (px > CACHE_PIXELS) return;
     while (cachedPixels + px > CACHE_PIXELS && cache.size) {
         const [oldKey, old] = cache.entries().next().value;
         cache.delete(oldKey);
-        cachedPixels -= old.bitmap.width * old.bitmap.height;
+        cachedPixels -= pixelsOf(old);
         if (old.bitmap.close) old.bitmap.close();
         if (old.kBitmap && old.kBitmap.close) old.kBitmap.close();
     }
-    cache.set(key, Object.assign({ bitmap }, extra));
+    cache.set(key, entry);
     cachedPixels += px;
 }
 function recall(key) {
@@ -591,7 +596,10 @@ if (typeof self !== 'undefined' && typeof importScripts === 'function') {
                 if (out.mask) transfer.push(out.mask.bytes.buffer);
                 self.postMessage(Object.assign({ id: msg.id }, out), transfer);
             } else if (msg.type === 'forget') {
-                for (const entry of cache.values()) if (entry.bitmap.close) entry.bitmap.close();
+                for (const entry of cache.values()) {
+                    if (entry.bitmap.close) entry.bitmap.close();
+                    if (entry.kBitmap && entry.kBitmap.close) entry.kBitmap.close();
+                }
                 cache.clear();
                 cachedPixels = 0;
                 self.postMessage({ id: msg.id });

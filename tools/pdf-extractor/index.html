@@ -9,7 +9,7 @@
     
     <script src="../../assets/vendor/jszip.min.js"></script>
     <script src="../../assets/vendor/FileSaver.min.js"></script>
-    <script src="../../assets/vendor/pdf.min.js"></script>
+    <script src="../../assets/js/pdfjs.js"></script>
     
     <style>
         .image-grid {
@@ -109,7 +109,6 @@
     <script src="../../assets/js/layout.js"></script>
     
     <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '../../assets/vendor/pdf.worker.min.js';
 
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
@@ -188,7 +187,8 @@
 
             try {
                 const arrayBuffer = await currentFile.arrayBuffer();
-                const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+                // Without fontExtraProperties pdf.js drops a font's bytes once the browser has loaded it
+                const loadingTask = await pdfOeffnen({ data: new Uint8Array(arrayBuffer), fontExtraProperties: true });
                 const pdf = await loadingTask.promise;
 
                 const numPages = pdf.numPages;
@@ -251,7 +251,8 @@
                                 if (doImages && validImgOperators.includes(op)) {
                                     const imgName = operatorList.argsArray[j][0];
                                     try {
-                                        const imageObj = await page.objs.get(imgName);
+                                        // An inline image comes along in the list itself
+                                        const imageObj = typeof imgName === 'string' ? await bekommen(page.objs, imgName) : imgName;
                                         if (imageObj) {
                                             const processedImg = await processPdfImage(imageObj, i, imagesFoundTotal + 1);
                                             if (processedImg) {
@@ -270,7 +271,7 @@
                                     if (!processedFonts.has(fontName)) {
                                         processedFonts.add(fontName);
                                         try {
-                                            const fontObj = await page.commonObjs.has(fontName) ? await page.commonObjs.get(fontName) : await page.objs.get(fontName);
+                                            const fontObj = await bekommen(fontName.startsWith('g_') ? page.commonObjs : page.objs, fontName);
                                             if (fontObj && fontObj.data && fontObj.data.length > 0) {
                                                 const blob = new Blob([fontObj.data], { type: 'application/octet-stream' });
                                                 // Guess the extension from the first four bytes
@@ -312,7 +313,7 @@
                 }
 
                 try {
-                    pdf.destroy();
+                    pdf.loadingTask.destroy();
                 } catch (e) {}
 
                 // One append for all cards, not one reflow per card
@@ -345,6 +346,16 @@
                 processBtn.disabled = false;
             }
         });
+
+        /* pdf.js hands images and fonts over after the operator list, the
+           large ones once they are decoded. Asking before that throws, so
+           this waits for them; ten seconds, in case one never comes. */
+        function bekommen(objs, id) {
+            return new Promise((resolve) => {
+                const aufgeben = setTimeout(() => resolve(null), 10000);
+                objs.get(id, (obj) => { clearTimeout(aufgeben); resolve(obj); });
+            });
+        }
 
         async function processPdfImage(img, pageNum, index) {
             if (!img || !img.width || !img.height) return null;
