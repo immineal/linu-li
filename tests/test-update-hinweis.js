@@ -11,10 +11,13 @@
  * is two string replacements, and the browser cannot tell the difference: it
  * sees a file whose bytes changed and fetches a new worker.
  *
- * It drives the click-a-link trigger rather than the idle timer, because the
- * idle path deliberately waits 30 seconds on the page plus 90 without input,
- * and a test that takes two minutes gets skipped. Both paths end in the same
- * `fragen()`, so what runs here is the whole of it apart from the clock.
+ * The prompt now appears the moment the new worker enters the waiting state:
+ * no idle timer, no click-a-link trigger. That is what visitors expect from a
+ * button called Reload, and the earlier design — 30 seconds on the page plus
+ * 90 without input — meant that anyone who reloaded a handful of times to see
+ * a fresh deploy got the new files without ever seeing the note that said
+ * what changed. The test drives that direct path and reads the whole of
+ * `fragen()` on the way through.
  */
 const fs = require('fs');
 const path = require('path');
@@ -109,86 +112,13 @@ function ausliefern(vorlage, sha, saetze) {
             return;
         }
 
-        /* Vor dem Klick darf nichts im Weg stehen. */
-        if (await page.$('.ll-update')) {
-            fail('the prompt appeared without being asked for — it must wait for an ' +
-                'internal link or for the visitor to go idle');
-            return;
-        }
-
-        spur('in Ruhe lassen');
-        /* ---- was der Hinweis in Ruhe lassen muss ---- */
-        //
-        // Der Abfangjäger ruft preventDefault auf seiteneigenen Links. Alles,
-        // was der Browser anders behandelt als eine gewöhnliche Navigation,
-        // muss daran vorbeigehen. Bei Strg-Klick hieß das einmal: kein neuer
-        // Reiter, dafür navigierte der alte weg — mitsamt der Arbeit darin,
-        // ohne Rückfrage, weil der Arbeits-Haken nur am Knopf hängt.
-        //
-        // Gemessen wird am Ereignis, nicht an der Navigation: ein echter Klick
-        // auf mailto: oder auf einen Download lässt den Browser auf einen
-        // Protokoll-Handler bzw. einen Speichern-Dialog warten, und der Test
-        // hängt (einmal ausprobiert, 400 s lang nichts). Ein zweiter Zuhörer,
-        // nach dem von layout.js registriert, liest ab, ob dort schon
-        // abgefangen wurde, und unterbindet dann die Navigation.
-        await page.evaluate(() => {
-            document.body.insertAdjacentHTML('beforeend', `
-                <a id="ll-t-normal" href="/tools/case-converter/">normal</a>
-                <a id="ll-t-anker" href="#irgendwo">Anker</a>
-                <a id="ll-t-mail" href="mailto:x@example.com">Mail</a>
-                <a id="ll-t-ziel" href="/tools/case-converter/" target="_new">Ziel</a>
-                <a id="ll-t-laden" href="/tests/dummy.pdf" download>Laden</a>`);
-            document.addEventListener('click', (e) => {
-                window.__llAbgefangen = e.defaultPrevented;
-                e.preventDefault();
-            }, false);
-        });
-
-        const klick = (id, opt) => page.evaluate((eid, o) => {
-            window.__llAbgefangen = null;
-            document.getElementById(eid).dispatchEvent(new MouseEvent('click',
-                Object.assign({ bubbles: true, cancelable: true, button: 0 }, o)));
-            return window.__llAbgefangen;
-        }, id, opt);
-
-        const inRuhe = [
-            ['ll-t-normal', { ctrlKey: true }, 'a ctrl-click'],
-            ['ll-t-normal', { shiftKey: true }, 'a shift-click'],
-            ['ll-t-normal', { metaKey: true }, 'a cmd-click'],
-            ['ll-t-normal', { button: 1 }, 'a middle-click'],
-            ['ll-t-anker', {}, 'a link to an anchor on the same page'],
-            ['ll-t-mail', {}, 'a mailto: link'],
-            ['ll-t-ziel', {}, 'a link with target="_new"'],
-            ['ll-t-laden', {}, 'a download link'],
-        ];
-        for (const [id, wie, was] of inRuhe) {
-            const abgefangen = await klick(id, wie);
-            if (abgefangen !== false) {
-                fail(`${was} was intercepted (defaultPrevented=${abgefangen}). Everything ` +
-                    'the browser handles differently from an ordinary navigation has to ' +
-                    'pass through untouched — otherwise the tab that holds the work ' +
-                    'navigates away without anyone being asked.');
-                return;
-            }
-        }
-
-        spur('gewoehnlicher Klick');
-        /* ---- derselbe Klick, gewöhnlich: der muss den Hinweis holen ----
-           Nicht wegnavigieren zwischen den beiden Teilen: sobald kein Reiter
-           der Seite mehr offen ist, übernimmt der wartende Worker von selbst,
-           und danach gibt es nichts mehr anzubieten. (Einmal so gebaut, und
-           der Test meldete, der Hinweis erscheine nicht mehr.) */
-        if ((await klick('ll-t-normal', {})) !== true) {
-            fail('an ordinary click on an internal link was not intercepted — the checks ' +
-                'above would then prove nothing, and a tab left open would never be ' +
-                'offered the new version');
-            return;
-        }
-        await settle(1500);
-
-        const dialog = await page.$('.ll-update');
-        if (!dialog) {
-            fail('the click was intercepted but no prompt came up');
+        spur('Hinweis sofort da?');
+        /* ---- der Hinweis meldet sich, sobald der neue Worker wartet ---- */
+        await page.waitForSelector('.ll-update', { timeout: 4000 }).catch(() => {});
+        if (!(await page.$('.ll-update'))) {
+            fail('the prompt did not appear after the new worker started waiting — the ' +
+                'point of this design is that a Reload button is the first thing a ' +
+                'returning visitor sees when there is a new version to offer');
             return;
         }
 
@@ -200,41 +130,28 @@ function ausliefern(vorlage, sha, saetze) {
             fail('the prompt repeats a sentence from the version already running — only ' +
                 'what is new since the visitor\'s own version belongs in there');
         }
-        if (await page.evaluate(() => window.location.pathname.includes('case-converter'))) {
-            fail('the link went through while the prompt was up');
-        }
 
         spur('Spaeter');
-        /* ---- „Später": der Klick geht durch, und diese Seite fragt nicht nochmal ---- */
-        spur('7a Escape gleich');
-        const weg = angekommen(page);
+        /* ---- „Später"/Escape schließt den Hinweis; die Seite fragt nicht noch mal ---- */
         await page.keyboard.press('Escape');
-        await weg;
-        spur('7b navigiert');
-        await settle(800);
+        await settle(600);
         if (await page.$('.ll-update')) {
             fail('Escape did not close the prompt — it is modal, so there has to be a ' +
                 'way out that is not a button');
             return;
         }
-        spur('7c Dialog weg');
-        if (!(await page.evaluate(() => window.location.pathname.includes('case-converter')))) {
-            fail('dismissing the prompt swallowed the link that triggered it — the ' +
-                'visitor clicked to go somewhere and ended up nowhere');
+
+        /* Weder Klick noch Navigation hat den Hinweis ausgelöst — er lag am
+           Standby-Worker allein. Nach dem Schließen bleibt die Seite auf ihrer
+           URL, weil kein `danach` mitzuschleppen war. */
+        if (await page.evaluate(() => window.location.pathname.includes('case-converter'))) {
+            fail('Escape navigated the visitor somewhere they did not click for');
             return;
         }
 
-        /* Zurück auf eine Seite mit wartendem Worker, und noch einmal klicken:
-           dieselbe Seite darf nicht ein zweites Mal fragen. */
-        /* ---- ein weiterer Deploy, und dann „Neu laden" ----
-           Nach dem Wegklicken ist kein Worker mehr am Warten: die Seite hat
-           navigiert, und ein wartender Worker übernimmt, sobald er darf. Das
-           ist richtig so — es heißt nur, dass „Später" in der Praxis fast
-           immer schon beim nächsten Seitenwechsel eingelöst wird. Dass es
-           *diese* Seite betrifft und nicht den Browser, steht als Variable im
-           Code (`schonGefragt`), nicht im Speicher; hier ist es nicht
-           beobachtbar, weil der Fall nicht eintritt.
-           Für den letzten Teil also ein dritter Stand. */
+        /* ---- ein weiterer Deploy, neuer Reiter, und dann „Neu laden" ----
+           Nach einem zweiten Deploy erwartet der neue Reiter den Hinweis
+           genauso sofort wie beim ersten. */
         ausliefern(vorlage, 'ccccccc',
             ['Der erste Satz.', 'Die Gasse fällt als Bühnenform weg.', 'Und noch etwas.']);
 
@@ -245,18 +162,7 @@ function ausliefern(vorlage, sha, saetze) {
             fail('a further deploy produced no waiting worker');
             return;
         }
-
-        await page.evaluate(() => {
-            const a = document.createElement('a');
-            a.href = '/tools/case-converter/';
-            a.id = 'll-test-link';
-            a.textContent = 'weiter';
-            document.body.appendChild(a);
-            document.addEventListener('click', (e) => e.preventDefault(), false);
-        });
-        await page.evaluate(() => document.getElementById('ll-test-link').dispatchEvent(
-            new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 })));
-        await settle(1500);
+        await page.waitForSelector('.ll-update', { timeout: 4000 }).catch(() => {});
         if (!(await page.$('.ll-update'))) {
             fail('the prompt did not come up after a further deploy');
             return;
@@ -286,8 +192,8 @@ function ausliefern(vorlage, sha, saetze) {
         }
 
         if (!process.exitCode) {
-            console.log('PASS: the prompt keeps out of the way, says what changed, hands ' +
-                'over on "reload", and leaves the other tab alone');
+            console.log('PASS: the prompt appears the moment a new worker waits, says ' +
+                'what changed, hands over on "reload", and leaves the other tab alone');
         }
     } finally {
         fs.writeFileSync(SW, vorlage);

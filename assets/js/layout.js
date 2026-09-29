@@ -40,12 +40,6 @@ if ('serviceWorker' in navigator) {
  * away.
  * ============================================================ */
 
-/* Untätig heißt: lange genug hier, lange genug nichts getan, und der Reiter
-   ist überhaupt sichtbar. Ohne die Mindestverweildauer erwischt es den, der
-   nur kurz etwas nachschlägt; ohne das Sichtbarkeitsfenster stapeln sich
-   Dialoge in Hintergrundreitern. */
-const WARTEZEIT_SEITE = 30_000;
-const WARTEZEIT_RUHE = 90_000;
 const NOTIZEN_SICHTBAR = 5;
 
 function neueVersionAnbieten(registration) {
@@ -62,7 +56,6 @@ function neueVersionAnbieten(registration) {
        wurde nie registriert, und der Hinweis erschien nie wieder. Sichtbar
        war davon eine einzige Zeile in der Konsole. */
     let geplant = false;
-    let ruheUhr = null;
 
     /* Ein Wechsel des Workers betrifft jeden Reiter. Ohne diese Sperre würde
        der Nachbarreiter mitladen und die Datei wegwerfen, die dort gerade
@@ -90,66 +83,31 @@ function neueVersionAnbieten(registration) {
     });
     pruefen();
 
+    /**
+     * Ohne Warten: sobald ein neuer Worker installiert und wartend ist,
+     * fragen. Das trifft auch den Fall, der die Ruhelogik davor umging —
+     * jemand, der beim Neuladen zusehen will, ist nie 90 Sekunden lang
+     * untätig, aber gerade er sollte den Hinweis lesen und drücken können.
+     * Für Reiter im Hintergrund macht das Popup keinen Schaden: er sieht
+     * es, sobald er zurückwechselt.
+     *
+     * Ein einziger Wachhund gegen den Fall, dass registration.waiting im
+     * Moment des updatefound-Statechange noch nicht besetzt ist — das
+     * geschieht kurz nach dem installed-Übergang, deshalb der Aufschub in
+     * die nächste Task-Runde.
+     */
     function planen() {
         if (schonGefragt || geplant) return;
         geplant = true;
-
-        let letzteEingabe = performance.now();
-        const angefasst = () => { letzteEingabe = performance.now(); };
-        ['pointerdown', 'keydown', 'input', 'wheel', 'touchstart'].forEach(art =>
-            window.addEventListener(art, angefasst, { passive: true }));
-
-        /* Kommt ein Reiter aus dem Hintergrund zurück, fängt die Ruhe von
-           vorne an. Ohne das stand das modale Fenster innerhalb von fünf
-           Sekunden da — in genau dem Moment, in dem jemand wieder etwas tun
-           wollte, weil er ja gerade zurückgewechselt ist. */
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') angefasst();
-        });
-
-        ruheUhr = setInterval(() => {
-            if (document.visibilityState !== 'visible') return;
-            if (performance.now() < WARTEZEIT_SEITE) return;
-            if (performance.now() - letzteEingabe < WARTEZEIT_RUHE) return;
-            clearInterval(ruheUhr);
-            fragen();
-        }, 5000);
+        const anlauf = () => {
+            if (schonGefragt) return;
+            if (!wartender()) return;
+            if (document.body) fragen();
+            else document.addEventListener('DOMContentLoaded', () => fragen(), { once: true });
+        };
+        if (wartender()) setTimeout(anlauf, 0);
+        else setTimeout(anlauf, 100);
     }
-
-    /* Der zweite Weg: wer ohnehin gerade weggeht, verliert nichts.
-       Steht außerhalb von planen(), damit er genau einmal registriert wird —
-       planen() läuft bei jedem gefundenen Worker erneut, und die Zuhörer
-       häuften sich mit jedem Deploy in einem lange offenen Reiter. */
-    document.addEventListener('click', (e) => {
-        if (schonGefragt || !wartender()) return;
-
-        /* Alles, was der Browser anders behandeln würde als eine gewöhnliche
-           Navigation, bleibt unangetastet. Ohne diese Zeile fing der Hinweis
-           auch Strg- und Umschalt-Klicks ab: es öffnete sich kein neuer
-           Reiter, und danach navigierte ausgerechnet der Reiter weg, in dem
-           die Arbeit steckte — ohne Rückfrage, weil der Arbeits-Haken nur am
-           Knopf „Neu laden" hängt. */
-        if (e.defaultPrevented || e.button !== 0) return;
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-
-        const link = e.target.closest && e.target.closest('a[href]');
-        if (!link) return;
-        if (link.hasAttribute('download')) return;
-        if (link.target && link.target !== '_self') return;
-
-        let ziel;
-        try { ziel = new URL(link.getAttribute('href'), window.location.href); }
-        catch (err) { return; }
-        if (ziel.origin !== window.location.origin) return;
-
-        /* Ein Sprung innerhalb derselben Seite ist kein Weggehen. */
-        const hier = window.location.href.split('#')[0];
-        if (ziel.href.split('#')[0] === hier) return;
-
-        e.preventDefault();
-        if (ruheUhr) clearInterval(ruheUhr);
-        fragen(ziel.href);
-    }, false);
 
     /* Was der wartende Worker ist und was er zu erzählen hat. */
     function fragenAn(worker) {
