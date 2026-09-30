@@ -72,7 +72,13 @@
            pill radius, a bit of padding. */
         .tool-header p.privacy-note {
             display: inline-block;
-            margin-top: 0.5rem;
+            /* The header-to-intro gap sits at 8px (h1's margin-bottom).
+               The pill's own padding-top (0.35rem) and its 1px top border
+               are the standoff between its outer edge and its text, so
+               match the 8px header→intro visually by adding that standoff
+               to the intro→pill margin — the intro's text-to-pill's-text
+               distance then equals the header-to-intro distance. */
+            margin-top: calc(0.5rem + 0.35rem + 1px);
             margin-bottom: 0;
             padding: 0.35rem 0.9rem;
             font-size: 0.85rem;
