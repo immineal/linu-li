@@ -134,13 +134,36 @@
         }
 
         .diff-code {
+            /* The wrapping happens in an inner div so the cell keeps its 20px
+               row height (the virtual scroller depends on that) while a very
+               long line can still scroll sideways. */
             width: 100%;
+            padding: 0;
+            height: 20px;
+            line-height: 20px;
+            overflow: hidden;
+        }
+        .diff-code-inner {
+            display: block;
             padding: 0 8px;
             white-space: pre;
             tab-size: 4;
             height: 20px;
             line-height: 20px;
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none; /* the row is only 20px tall — a scrollbar would double it */
+        }
+        .diff-code-inner::-webkit-scrollbar { display: none; }
+        .diff-code-inner.wrap {
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: hidden;
+            height: auto;
+        }
+        .ws-marker {
+            color: var(--ink-secondary);
+            opacity: 0.6;
         }
         
         .diff-row-del { background-color: rgba(196, 77, 60, 0.15); }
@@ -198,7 +221,7 @@
                     </div>
                     
                     <div class="button-group" style="margin-top: 0;">
-                        <button class="button" id="compareBtn">Compare</button>
+                        <button class="button" id="compareBtn" data-de="Vergleichen">Compare</button>
                         <button class="button outline" id="clearBtn" data-de="Alles löschen">Clear All</button>
                     </div>
                 </div>
@@ -213,7 +236,17 @@
                         </div>
                     </div>
 
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                        <label class="toggle-wrapper" style="margin: 0;">
+                            <input type="checkbox" id="wrapLines" class="toggle-checkbox">
+                            <div class="toggle-switch" style="transform: scale(0.8);"></div>
+                            <span style="font-size: 0.85rem;" data-de="Lange Zeilen umbrechen">Wrap long lines</span>
+                        </label>
+                        <span id="staleIndicator" class="hidden" data-de="Ergebnis nicht aktuell — bitte erneut vergleichen" style="font-size: 0.85rem; color: var(--accent); opacity: 0.8;">Result is out of date — compare again</span>
+                    </div>
+
                     <div class="diff-wrapper">
+                        <div class="loading-overlay" id="loadingOverlay" data-de="Vergleiche...">Comparing...</div>
                         <div class="diff-viewport" id="diffViewport">
                             <div class="diff-spacer" id="diffSpacer"></div>
                             <div class="diff-table-container" id="diffTableContainer">
@@ -242,15 +275,57 @@
         const diffTable = document.getElementById('diffTable');
         const diffModeSelect = document.getElementById('diffMode');
         const ignoreWhitespace = document.getElementById('ignoreWhitespace');
-        
+        const wrapLinesToggle = document.getElementById('wrapLines');
+        const staleIndicator = document.getElementById('staleIndicator');
+
         const viewInlineBtn = document.getElementById('viewInline');
         const viewSideBtn = document.getElementById('viewSide');
+
+        // Small shim for when i18n.js has not loaded (test rigs).
+        const t = (en, de) => (window.LL_I18N && window.LL_I18N.t)
+            ? window.LL_I18N.t(en, de) : en;
+
+        const COMPARE_LABEL_EN = 'Compare';
+        const COMPARE_LABEL_DE = 'Vergleichen';
+        const COMPARING_LABEL_EN = 'Comparing...';
+        const COMPARING_LABEL_DE = 'Vergleiche...';
+        function compareLabel() { return t(COMPARE_LABEL_EN, COMPARE_LABEL_DE); }
+        function comparingLabel() { return t(COMPARING_LABEL_EN, COMPARING_LABEL_DE); }
 
         let currentInlineRows = null;
         let currentSideRows = null;
         let activeView = 'inline'; // or 'side'
 
         let diffWorker = null;
+        let workerTimeoutHandle = null;
+        const WORKER_TIMEOUT_MS = 5000;
+
+        function resetCompareUI() {
+            compareBtn.textContent = compareLabel();
+            compareBtn.disabled = false;
+            document.querySelector('.diff-wrapper').classList.remove('is-loading');
+        }
+        function killWorker() {
+            if (diffWorker) { diffWorker.terminate(); diffWorker = null; }
+            if (workerTimeoutHandle) { clearTimeout(workerTimeoutHandle); workerTimeoutHandle = null; }
+        }
+
+        function markResultStale(stale) {
+            if (stale) staleIndicator.classList.remove('hidden');
+            else staleIndicator.classList.add('hidden');
+        }
+
+        function clearResultsShowError(msg) {
+            // A stale diff sitting next to an error toast looked like the new
+            // comparison worked. Wipe it and hide the result box.
+            currentInlineRows = null;
+            currentSideRows = null;
+            const body = document.getElementById('diffTableBody');
+            if (body) body.innerHTML = '';
+            resultBox.classList.add('hidden');
+            markResultStale(false);
+            showToast(msg, 'error');
+        }
 
         window.switchView = function(view) {
             activeView = view;
@@ -272,24 +347,38 @@
             const ignoreSpace = ignoreWhitespace.checked;
 
             if (!text1 && !text2) {
-                showToast('Both boxes are empty.', 'error');
+                showToast(t('Both boxes are empty.', 'Beide Felder sind leer.'), 'error');
                 return;
             }
 
-            compareBtn.textContent = 'Comparing...';
+            // A JSON-mode compare with broken input used to leave the last good
+            // diff visible. Try the parse first; on a fail, clear and stop.
+            if (mode === 'json') {
+                try {
+                    if (text1) JSON.parse(text1);
+                    if (text2) JSON.parse(text2);
+                } catch (err) {
+                    clearResultsShowError(t('Invalid JSON: ' + err.message,
+                                            'Ungültiges JSON: ' + err.message));
+                    return;
+                }
+            }
+
+            compareBtn.textContent = comparingLabel();
             compareBtn.disabled = true;
             document.querySelector('.diff-wrapper').classList.add('is-loading');
+            markResultStale(false);
 
             if (!diffWorker) {
                 diffWorker = new Worker('worker.js');
 
                 diffWorker.onmessage = function(e) {
-                    compareBtn.textContent = 'Compare';
-                    compareBtn.disabled = false;
-                    document.querySelector('.diff-wrapper').classList.remove('is-loading');
+                    if (workerTimeoutHandle) { clearTimeout(workerTimeoutHandle); workerTimeoutHandle = null; }
+                    resetCompareUI();
 
                     if (e.data.error) {
-                        showToast('Error: ' + e.data.error, 'error');
+                        clearResultsShowError(t('Error: ' + e.data.error,
+                                                'Fehler: ' + e.data.error));
                         return;
                     }
 
@@ -302,13 +391,22 @@
                 };
 
                 diffWorker.onerror = function(e) {
-                    compareBtn.textContent = 'Compare';
-                    compareBtn.disabled = false;
-                    document.querySelector('.diff-wrapper').classList.remove('is-loading');
-                    showToast('The comparison failed.', 'error');
+                    if (workerTimeoutHandle) { clearTimeout(workerTimeoutHandle); workerTimeoutHandle = null; }
+                    resetCompareUI();
+                    showToast(t('The comparison failed.', 'Der Vergleich ist fehlgeschlagen.'), 'error');
                     console.error("Worker error:", e);
                 };
             }
+
+            // A worst-case pair (thousands of very different lines in word or
+            // character mode) can hang the diff library. Terminate the worker
+            // after a fixed budget and let the user try again.
+            workerTimeoutHandle = setTimeout(() => {
+                killWorker();
+                resetCompareUI();
+                showToast(t('The comparison took too long and was cancelled. Try Line-by-Line mode for big or very different inputs.',
+                            'Der Vergleich hat zu lange gedauert und wurde abgebrochen. Für große oder sehr unterschiedliche Eingaben ist Zeile-für-Zeile schneller.'), 'error');
+            }, WORKER_TIMEOUT_MS);
 
             diffWorker.postMessage({
                 text1, text2, mode, ignoreSpace
@@ -356,6 +454,7 @@
             diffTableContainer.style.transform = `translateY(${offsetY}px)`;
 
             let htmlStr = '';
+            const innerCls = wrapLinesToggle.checked ? 'diff-code-inner wrap' : 'diff-code-inner';
 
             for (let i = startIndex; i <= endIndex; i++) {
                 const row = rows[i];
@@ -364,15 +463,15 @@
                         <tr>
                             <td class="diff-num">${row.numL}</td>
                             <td class="diff-num">${row.numR}</td>
-                            <td class="diff-code ${row.typeClass}">${row.codeHtml}</td>
+                            <td class="diff-code ${row.typeClass}"><div class="${innerCls}">${row.codeHtml}</div></td>
                         </tr>
                     `;
                 } else {
                     const lClass = row.type === 'change' || row.type === 'del' ? 'diff-row-del' : '';
                     const rClass = row.type === 'change' || row.type === 'add' ? 'diff-row-add' : '';
 
-                    const lCode = row.left !== null ? `<td class="diff-code ${lClass}">${row.left}</td>` : `<td class="diff-code diff-empty"></td>`;
-                    const rCode = row.right !== null ? `<td class="diff-code ${rClass}">${row.right}</td>` : `<td class="diff-code diff-empty"></td>`;
+                    const lCode = row.left !== null ? `<td class="diff-code ${lClass}"><div class="${innerCls}">${row.left}</div></td>` : `<td class="diff-code diff-empty"></td>`;
+                    const rCode = row.right !== null ? `<td class="diff-code ${rClass}"><div class="${innerCls}">${row.right}</div></td>` : `<td class="diff-code diff-empty"></td>`;
 
                     htmlStr += `
                         <tr>
@@ -387,6 +486,19 @@
 
             diffTableBody.innerHTML = htmlStr;
         }
+
+        // Redraw when the wrap toggle flips — no recompute, just rerender.
+        wrapLinesToggle.addEventListener('change', () => {
+            if (currentInlineRows && currentSideRows) renderDiff();
+        });
+
+        // A change on either side puts the diff out of date. A small nudge is
+        // less jarring than a wiped result, and it makes phantom results honest.
+        function markStaleOnEdit() {
+            if (currentInlineRows || currentSideRows) markResultStale(true);
+        }
+        inputOriginal.addEventListener('input', markStaleOnEdit);
+        inputChanged.addEventListener('input', markStaleOnEdit);
 
         diffViewport.addEventListener('scroll', () => {
             const currentScrollTop = diffViewport.scrollTop;
@@ -403,6 +515,11 @@
             diffTableBody.innerHTML = '';
             currentInlineRows = null;
             currentSideRows = null;
+            markResultStale(false);
+            // A worker stuck on a giant compare will not free itself — a fresh
+            // Compare click would spawn a second one. Kill it here.
+            killWorker();
+            resetCompareUI();
         });
     
     /* Is this tool holding something right now that a reload would throw

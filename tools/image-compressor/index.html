@@ -64,7 +64,7 @@
         <div class="container">
             <div class="tool-header">
                 <h1 data-de="Bilder verkleinern">Image Compressor</h1>
-                <p><span data-de="Kodiert Bilder als WebP, AVIF, MozJPEG oder OxiPNG neu, wahlweise mit Verkleinerung.">Re-encodes images as WebP, AVIF, MozJPEG or OxiPNG, with an optional resize.</span><br><span style="font-size: 0.85rem; color: var(--ink-secondary);" data-de="Die Encoder werden beim ersten Mal von esm.sh geladen. Deine Bilder bleiben auf diesem Gerät.">The encoders are downloaded from esm.sh the first time you use one. Your images stay on this device.</span></p>
+                <p><span data-de="Kodiert Bilder als WebP, JPEG oder PNG neu, wahlweise mit Verkleinerung.">Re-encodes images as WebP, JPEG or PNG, with an optional resize.</span><br><span style="font-size: 0.85rem; color: var(--ink-secondary);" data-de="Die Encoder werden beim ersten Mal von esm.sh geladen. Deine Bilder bleiben auf diesem Gerät.">The encoders are downloaded from esm.sh the first time you use one. Your images stay on this device.</span></p>
             </div>
 
             <div class="card">
@@ -103,13 +103,12 @@
                             <label data-de="Ausgabeformat">Output Format</label>
                             <select id="singleFormat" data-save>
                                 <option value="image/webp" data-de="WebP (ausgewogen)">WebP (Balanced)</option>
-                                <option value="image/avif" data-de="AVIF (am besten, am langsamsten)">AVIF (Best & Slowest)</option>
-                                <option value="image/jpeg" data-de="MozJPEG (kompatibel)">MozJPEG (Compatible)</option>
-                                <option value="image/png" data-de="OxiPNG (verlustfrei)">OxiPNG (Lossless)</option>
+                                <option value="image/jpeg" data-de="JPEG (kompatibel)">JPEG (Compatible)</option>
+                                <option value="image/png" data-de="PNG (verlustfrei)">PNG (Lossless)</option>
                             </select>
                         </div>
                         <div id="singleQualityWrapper">
-                            <label>Quality: <span id="singleQualityVal">75</span></label>
+                            <label><span data-de="Qualität">Quality</span>: <span id="singleQualityVal">75</span></label>
                             <input type="range" id="singleQuality" min="0" max="100" value="75">
                         </div>
                         <div>
@@ -135,12 +134,12 @@
                             <label data-de="Zielformat">Target Format</label>
                             <select id="bulkFormat" data-save>
                                 <option value="image/webp" data-de="Alles zu WebP">Everything to WebP</option>
-                                <option value="image/avif" data-de="Alles zu AVIF">Everything to AVIF</option>
                                 <option value="image/jpeg" data-de="Alles zu JPEG">Everything to JPEG</option>
+                                <option value="image/png" data-de="Alles zu PNG">Everything to PNG</option>
                             </select>
                         </div>
                         <div id="bulkQualityWrapper">
-                            <label>Quality: <span id="bulkQualityVal">75</span></label>
+                            <label><span data-de="Qualität">Quality</span>: <span id="bulkQualityVal">75</span></label>
                             <input type="range" id="bulkQuality" min="0" max="100" value="75">
                         </div>
                         <div>
@@ -383,33 +382,14 @@
         }
 
         function updateQualityVisibility(mode) {
+            /* PNG is lossless, so the quality slider does nothing for it and
+               would only confuse anyone who reached for it. WebP and JPEG
+               both use the 0-100 range, so nothing else changes when the
+               format flips between them. */
             const formatEl = mode === 'single' ? singleFormat : bulkFormat;
             const wrapperEl = mode === 'single' ? singleQualityWrapper : bulkQualityWrapper;
-            const sliderEl = mode === 'single' ? singleQuality : bulkQuality;
-            const valEl = mode === 'single' ? singleQualityVal : bulkQualityVal;
-            
-            const format = formatEl.value;
-            const isPng = format === 'image/png';
-            const isAvif = format === 'image/avif';
 
-            wrapperEl.style.display = isPng ? 'none' : 'block';
-
-            const labelNode = wrapperEl.querySelector('label').childNodes[0];
-            
-            if (isAvif) {
-                // For AVIF the slider sets encoder speed; worker.js expects it.
-                labelNode.nodeValue = "Encoding Speed (0=Slow, 10=Fast): ";
-                sliderEl.min = 0;
-                sliderEl.max = 10;
-                sliderEl.value = 6;
-            } else {
-                labelNode.nodeValue = "Quality (0-100): ";
-                sliderEl.min = 0;
-                sliderEl.max = 100;
-                sliderEl.value = 75;
-            }
-
-            valEl.textContent = sliderEl.value;
+            wrapperEl.style.display = formatEl.value === 'image/png' ? 'none' : 'block';
         }
 
         singleFormat.addEventListener('change', () => {
@@ -440,6 +420,13 @@
 
         document.getElementById('singleResetBtn').addEventListener('click', () => {
             singleFile = null;
+            /* Bump the process id so any in-flight processSingleImage sees
+               itself as stale on the next `if (currentProcessId !== …)`
+               check and returns quietly. Without this, a Reset one second
+               into an encode let the run finish and post
+               "Compression failed: Cannot read properties of null …" to
+               a page that had already been cleared. */
+            singleProcessId++;
             /* removeAttribute rather than src="" — an empty string makes
                Chrome load the page URL and hits imgOrg.onerror. */
             document.getElementById('imgOrg').removeAttribute('src');

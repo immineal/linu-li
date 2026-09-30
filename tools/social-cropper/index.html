@@ -192,19 +192,37 @@
         function handleFiles(files) {
             if (!files.length) return;
             const file = files[0];
+            const t = (window.LL_I18N && window.LL_I18N.t)
+                ? window.LL_I18N.t : ((en) => en);
             if (!file.type.startsWith('image/')) {
-                showToast('That file is not an image.', 'error');
+                showToast(t('That file is not an image.',
+                            'Diese Datei ist kein Bild.'), 'error');
                 return;
             }
 
             const reader = new FileReader();
             reader.onload = (e) => {
-                resultBox.classList.add('hidden');
-                dropZone.classList.add('hidden');
-                editorSection.classList.remove('hidden');
-                cropperWrapper.style.display = 'block';
-                imageElement.src = e.target.result;
-                initCropper();
+                /* Validate that the browser can actually decode it before
+                   opening the editor. A text file renamed to `.png` used
+                   to slip past the MIME check and land in an editor with
+                   a zero-size crop and no error, and users would sit and
+                   wonder. */
+                const probe = new Image();
+                probe.onload = () => {
+                    resultBox.classList.add('hidden');
+                    dropZone.classList.add('hidden');
+                    editorSection.classList.remove('hidden');
+                    cropperWrapper.style.display = 'block';
+                    imageElement.src = e.target.result;
+                    initCropper();
+                };
+                probe.onerror = () => {
+                    showToast(t(
+                        'Could not open this image. It may be damaged or in a format the browser cannot read.',
+                        'Konnte dieses Bild nicht öffnen. Es ist entweder beschädigt oder das Format wird nicht unterstützt.'
+                    ), 'error');
+                };
+                probe.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }

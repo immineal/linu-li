@@ -318,11 +318,24 @@
             renderFileList();
         }
 
+        /* Track the current worker so Clear can terminate it. Without this
+           a user who hit Clear while a merge was running would still see the
+           "Done" panel and a "Merged." toast appear on an empty list, from
+           the previous merge finishing in the background. */
+        let activeMergeWorker = null;
+
         function clearAll() {
             storedFiles = [];
             fileInput.value = '';
             renderFileList();
             resultBox.classList.add('hidden');
+            if (activeMergeWorker) {
+                activeMergeWorker.terminate();
+                activeMergeWorker = null;
+            }
+            mergeBtn.disabled = storedFiles.length < 2;
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
         }
 
         mergeBtn.addEventListener('click', () => {
@@ -337,10 +350,13 @@
             resultBox.classList.add('hidden');
 
             const worker = new Worker('worker.js');
+            activeMergeWorker = worker;
 
             worker.onmessage = (e) => {
                 const { type, percent, data, message } = e.data;
-                
+                /* Ignore messages from a worker Clear already terminated. */
+                if (activeMergeWorker !== worker) return;
+
                 if (type === 'progress') {
                     progressBar.style.width = `${percent}%`;
                 } else if (type === 'done') {
@@ -352,31 +368,35 @@
 
                     progressBar.style.width = '100%';
                     setTimeout(() => {
+                        if (activeMergeWorker !== worker) return;
                         progressContainer.style.display = 'none';
                         progressBar.style.width = '0%';
                         resultBox.classList.remove('hidden');
                         mergeBtn.disabled = false;
                         showToast('Merged.', 'success');
-
                         resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     }, 500);
 
                     worker.terminate();
+                    activeMergeWorker = null;
                 } else if (type === 'error') {
                     console.error(message);
                     showToast('Could not merge: ' + message, 'error');
                     progressContainer.style.display = 'none';
                     mergeBtn.disabled = false;
                     worker.terminate();
+                    activeMergeWorker = null;
                 }
             };
 
             worker.onerror = (err) => {
+                if (activeMergeWorker !== worker) return;
                 console.error(err);
                 showToast('The merge stopped with an error.', 'error');
                 progressContainer.style.display = 'none';
                 mergeBtn.disabled = false;
                 worker.terminate();
+                activeMergeWorker = null;
             };
 
             worker.postMessage({ files: storedFiles });

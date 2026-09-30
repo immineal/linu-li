@@ -55,7 +55,7 @@
                 <div class="strength-bar" style="margin-bottom: 0.5rem;">
                     <div class="strength-fill" id="strengthMeter"></div>
                 </div>
-                <div id="entropyDisplay" style="text-align: center; font-size: 0.85rem; font-family: var(--font-mono); color: var(--ink-secondary); margin-bottom: 2rem;">
+                <div id="entropyDisplay" style="text-align: center; font-size: 0.85rem; font-family: var(--font-mono); color: var(--ink-secondary); margin-bottom: 2rem;" data-de="Entropie: ~0 Bit (Schwach)">
                     Entropy: ~0 bits (Weak)
                 </div>
 
@@ -234,8 +234,18 @@
                 }
 
                 if (charset === "") {
-                    output.textContent = "Please select at least one option.";
+                    const t = (window.LL_I18N && window.LL_I18N.t) ? window.LL_I18N.t : ((en) => en);
+                    output.textContent = t(
+                        "Please select at least one option.",
+                        "Bitte mindestens eine Option wählen."
+                    );
                     strengthMeter.className = "strength-fill";
+                    /* Reset the entropy readout too, otherwise it says
+                       "Strong" next to the error message. */
+                    entropyDisplay.textContent = t(
+                        "Entropy: ~0 bits (Weak)",
+                        "Entropie: ~0 Bit (Schwach)"
+                    );
                     return;
                 }
 
@@ -296,20 +306,25 @@
             }
 
             strengthMeter.className = "strength-fill";
-            
-            let label = "Weak";
+
+            const t = (window.LL_I18N && window.LL_I18N.t) ? window.LL_I18N.t : ((en) => en);
+            let label;
             if (score < 3) {
                 strengthMeter.classList.add("weak");
-                label = "Weak";
+                label = t("Weak", "Schwach");
             } else if (score < 5) {
                 strengthMeter.classList.add("medium");
-                label = "Medium";
+                label = t("Medium", "Mittel");
             } else {
                 strengthMeter.classList.add("strong");
-                label = "Strong";
+                label = t("Strong", "Stark");
             }
 
-            entropyDisplay.textContent = `Entropy: ~${Math.round(entropy)} bits (${label})`;
+            const bitsWord = t("bits", "Bit");
+            entropyDisplay.textContent = t(
+                `Entropy: ~${Math.round(entropy)} ${bitsWord} (${label})`,
+                `Entropie: ~${Math.round(entropy)} ${bitsWord} (${label})`
+            );
         }
 
         [modeChars, modePassphrase].forEach(el => {

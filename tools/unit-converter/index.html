@@ -100,14 +100,17 @@
                 <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem;">
                     <label data-de="Kategorie">Category</label>
                     <div class="button-group">
-                        <button class="button active-cat" onclick="setCategory('length')" data-de="Länge">Length</button>
-                        <button class="button outline" onclick="setCategory('weight')" data-de="Gewicht">Weight</button>
-                        <button class="button outline" onclick="setCategory('temp')" data-de="Temperatur">Temperature</button>
-                        <button class="button outline" onclick="setCategory('speed')" data-de="Geschwindigkeit">Speed</button>
-                        <button class="button outline" onclick="setCategory('data')" data-de="Datenspeicher">Data Storage</button>
-                        <button class="button outline" onclick="setCategory('currency')" data-de="Währung">Currency</button>
+                        <button class="button active-cat" onclick="setCategory('length')" data-category="length" data-de="Länge">Length</button>
+                        <button class="button outline" onclick="setCategory('weight')" data-category="weight" data-de="Gewicht">Weight</button>
+                        <button class="button outline" onclick="setCategory('temp')" data-category="temp" data-de="Temperatur">Temperature</button>
+                        <button class="button outline" onclick="setCategory('speed')" data-category="speed" data-de="Geschwindigkeit">Speed</button>
+                        <button class="button outline" onclick="setCategory('data')" data-category="data" data-de="Datenspeicher">Data Storage</button>
+                        <button class="button outline" onclick="setCategory('currency')" data-category="currency" data-de="Währung">Currency</button>
                     </div>
                 </div>
+
+                <div id="nlpNotUnderstood" role="status" aria-live="polite" style="display:none; margin-bottom: 1rem; font-size: 0.85rem; color: var(--ink-secondary);"
+                     data-de="Konnte die Anfrage nicht deuten.">Could not read that as a conversion.</div>
 
                 <div class="converter-layout">
                     
@@ -170,28 +173,31 @@
                     mg: 0.001,
                     g: 1,
                     kg: 1000,
-                    oz: 28.3495,
-                    lb: 453.592
+                    oz: 28.349523125,   // avoirdupois ounce
+                    lb: 453.59237       // international avoirdupois pound
                 }
             },
             speed: {
                 base: 'm/s', // meters per second
                 units: {
                     'm/s': 1,
-                    'km/h': 0.27777778, // 1 km/h = 0.277 m/s
-                    'mph': 0.44704,     // 1 mph = 0.447 m/s
-                    'knots': 0.51444444,// 1 knot = 0.514 m/s
+                    'km/h': 1 / 3.6,    // exact; the old 0.27777778 rounded off
+                    'mph': 0.44704,     // 1 mph = 0.44704 m/s (exact)
+                    'knots': 1852 / 3600, // exact: 1 knot = 1 nautical mile / hour
                     'ft/s': 0.3048      // 1 ft/s = 0.3048 m/s
                 }
             },
             data: {
-                base: 'MB', // megabytes
+                // Binary units: 1 KiB = 1024 B, 1 MiB = 1024 KiB, and so on.
+                // The old table called these "KB, MB, …" and used rounded
+                // factors — 1024 B round-tripped to 1.00000000377 KB.
+                base: 'B',
                 units: {
-                    B: 0.00000095367432,
-                    KB: 0.0009765625,
-                    MB: 1,
-                    GB: 1024,
-                    TB: 1048576
+                    B:   1,
+                    KiB: 1024,
+                    MiB: 1024 * 1024,
+                    GiB: 1024 * 1024 * 1024,
+                    TiB: 1024 * 1024 * 1024 * 1024
                 }
             },
             currency: {
@@ -218,6 +224,10 @@
             const ONE_HOUR = 60 * 60 * 1000;
             const now = Date.now();
 
+            // Whatever the visitor picked before the fetch stays picked after.
+            const prevFrom = unitFrom.value;
+            const prevTo = unitTo.value;
+
             try {
                 // Rates younger than an hour are reused rather than fetched again.
                 const cachedTime = localStorage.getItem(CACHE_TIME);
@@ -226,24 +236,35 @@
                     if (cachedRates) {
                         const parsed = JSON.parse(cachedRates);
                         factors.currency.units = parsed;
-                        if (currentCategory === 'currency') populateSelects();
+                        if (currentCategory === 'currency') {
+                            populateSelects();
+                            restoreCurrencySelection(prevFrom, prevTo);
+                        }
                         return;
                     }
                 }
+            } catch (err) { /* storage blocked */ }
 
+            const newRates = { ...factors.currency.units }; // built-in rates stay for anything the servers leave out
+
+            // Fiat and crypto are two separate services. A failure on one used
+            // to throw the other away as well.
+            try {
                 const fiatRes = await fetch('https://open.er-api.com/v6/latest/USD');
                 const fiatData = await fiatRes.json();
-
-                const cryptoRes = await fetch('https://api.coincap.io/v2/assets?limit=20');
-                const cryptoData = await cryptoRes.json();
-
-                if (fiatData && fiatData.rates && cryptoData && cryptoData.data) {
-                    const newRates = { ...factors.currency.units }; // built-in rates stay for anything the servers leave out
-
+                if (fiatData && fiatData.rates) {
                     Object.keys(fiatData.rates).forEach(currency => {
                         newRates[currency] = fiatData.rates[currency];
                     });
+                }
+            } catch (error) {
+                console.error("Could not fetch fiat rates, keeping the built-in ones.", error);
+            }
 
+            try {
+                const cryptoRes = await fetch('https://api.coincap.io/v2/assets?limit=20');
+                const cryptoData = await cryptoRes.json();
+                if (cryptoData && cryptoData.data) {
                     cryptoData.data.forEach(coin => {
                         // CoinCap gives USD per coin; the table holds coins per USD.
                         const priceUsd = parseFloat(coin.priceUsd);
@@ -251,36 +272,38 @@
                             newRates[coin.symbol] = 1 / priceUsd;
                         }
                     });
-
-                    factors.currency.units = newRates;
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(newRates));
-                    localStorage.setItem(CACHE_TIME, now.toString());
-
-                    if (currentCategory === 'currency') {
-                        populateSelects();
-                        convert('from');
-                    }
                 }
             } catch (error) {
-                console.error("Could not fetch exchange rates, keeping the built-in ones.", error);
+                console.error("Could not fetch crypto rates, keeping the built-in ones.", error);
             }
+
+            factors.currency.units = newRates;
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify(newRates));
+                localStorage.setItem(CACHE_TIME, now.toString());
+            } catch (err) { /* storage blocked */ }
+
+            if (currentCategory === 'currency') {
+                populateSelects();
+                restoreCurrencySelection(prevFrom, prevTo);
+                convert('from');
+            }
+        }
+
+        function restoreCurrencySelection(prevFrom, prevTo) {
+            if (prevFrom && factors.currency.units[prevFrom]) unitFrom.value = prevFrom;
+            if (prevTo && factors.currency.units[prevTo]) unitTo.value = prevTo;
         }
 
         function setCategory(cat) {
             currentCategory = cat;
-            
+
             document.getElementById('currencyOptIn').style.display = (cat === 'currency') ? 'block' : 'none';
-            
+
+            // Match by data-category, not label — the German labels used to fall
+            // through the substring check and leave every button outlined.
             catButtons.forEach(btn => {
-                // The buttons carry no data attribute, so match on their label.
-                const btnText = btn.textContent.toLowerCase();
-                const isMatch = (cat === 'data' && btnText.includes('data')) || 
-                                (cat === 'speed' && btnText.includes('speed')) ||
-                                (cat === 'temp' && btnText.includes('temp')) ||
-                                (cat === 'currency' && btnText.includes('currency')) ||
-                                (btnText.startsWith(cat.substring(0,3)));
-                                
-                if(isMatch) {
+                if (btn.getAttribute('data-category') === cat) {
                     btn.classList.remove('outline');
                 } else {
                     btn.classList.add('outline');
@@ -312,25 +335,29 @@
                 if(currentCategory === 'length') { unitFrom.value = 'm'; unitTo.value = 'ft'; }
                 if(currentCategory === 'weight') { unitFrom.value = 'kg'; unitTo.value = 'lb'; }
                 if(currentCategory === 'speed')  { unitFrom.value = 'km/h'; unitTo.value = 'mph'; }
-                if(currentCategory === 'data')   { unitFrom.value = 'MB'; unitTo.value = 'GB'; }
+                if(currentCategory === 'data')   { unitFrom.value = 'MiB'; unitTo.value = 'GiB'; }
                 if(currentCategory === 'currency') { unitFrom.value = 'USD'; unitTo.value = 'EUR'; }
             }
         }
 
         /**
          * @param {string} direction - 'from' fills the right box, 'to' the left one
+         * @param {boolean} [clampInput] - whether to rewrite the source input on
+         *   an out-of-range value. False while typing, true on blur/change.
          */
-        function convert(direction) {
-            let val, outputEl, u1, u2;
+        function convert(direction, clampInput) {
+            let val, outputEl, sourceEl, u1, u2;
 
             if (direction === 'to') {
                 val = parseFloat(inputTo.value);
                 outputEl = inputFrom;
+                sourceEl = inputTo;
                 u1 = unitTo.value;
                 u2 = unitFrom.value;
             } else {
                 val = parseFloat(inputFrom.value);
                 outputEl = inputTo;
+                sourceEl = inputFrom;
                 u1 = unitFrom.value;
                 u2 = unitTo.value;
             }
@@ -341,25 +368,24 @@
             }
 
             if (currentCategory === 'temp') {
-                const result = convertTemp(val, u1, u2);
-                outputEl.value = result;
+                let result = convertTemp(val, u1, u2);
+                outputEl.value = formatNumber(result);
 
-                // Below absolute zero the result was clamped. Converting it back
-                // gives the clamped input, which then replaces what was typed.
-                const originalClamped = convertTemp(result, u2, u1);
-                if (Math.abs(val - originalClamped) > 0.01 && val < originalClamped) {
-                     if (direction === 'to') {
-                         inputTo.value = originalClamped;
-                     } else {
-                         inputFrom.value = originalClamped;
-                     }
+                // Below absolute zero the source is clamped only when the user
+                // has stopped typing. Otherwise "-3" on the way to "-300" jumps
+                // to -273.15 mid-keystroke.
+                if (clampInput) {
+                    const originalClamped = convertTemp(result, u2, u1);
+                    if (Math.abs(val - originalClamped) > 0.01 && val < originalClamped) {
+                        sourceEl.value = formatNumber(originalClamped);
+                    }
                 }
             } else {
-                // Nothing but temperature can go below zero.
+                // Nothing but temperature can go below zero. Clamp the input
+                // only on blur/change; while typing, keep what the user has.
                 if (val < 0) {
+                    if (clampInput) sourceEl.value = 0;
                     val = 0;
-                    if (direction === 'to') inputTo.value = 0;
-                    else inputFrom.value = 0;
                 }
 
                 const catData = factors[currentCategory];
@@ -372,15 +398,24 @@
                     const baseValue = val * catData.units[u1];
                     result = baseValue / catData.units[u2];
                 }
-                
+
                 outputEl.value = formatNumber(result);
             }
         }
 
         function formatNumber(num) {
-            // 12 significant digits hides float noise like 0.30000000000000004.
-            if (Math.abs(num) < 1e-12) return "0";
+            if (num === 0) return "0";
+            if (!isFinite(num)) return String(num);
 
+            // Very small numbers: scientific notation rather than rounding to 0.
+            const abs = Math.abs(num);
+            if (abs < 1e-6) {
+                // toExponential gives 9.09e-13; toPrecision would round tiny
+                // values to 0 further down the pipe.
+                return num.toExponential(6).replace(/\.?0+e/, 'e');
+            }
+
+            // 12 significant digits hides float noise like 0.30000000000000004.
             let str = num.toPrecision(12);
             return parseFloat(str).toString();
         }
@@ -394,18 +429,25 @@
                 c = -273.15;
             }
 
-            if (to.includes('Celsius')) return formatNumber(c);
-            if (to.includes('Fahrenheit')) return formatNumber(c * 9/5 + 32);
-            if (to.includes('Kelvin')) return formatNumber(c + 273.15);
+            if (to.includes('Celsius')) return c;
+            if (to.includes('Fahrenheit')) return c * 9/5 + 32;
+            if (to.includes('Kelvin')) return c + 273.15;
+            return c;
         }
 
-        inputFrom.addEventListener('input', () => convert('from'));
+        // While typing, do not rewrite the source field. Clamp on blur only, so
+        // "-300" on its way to being typed does not snap to -273.15 mid-keystroke.
+        inputFrom.addEventListener('input', () => convert('from', false));
+        inputFrom.addEventListener('change', () => convert('from', true));
+        inputFrom.addEventListener('blur', () => convert('from', true));
 
-        inputTo.addEventListener('input', () => convert('to'));
+        inputTo.addEventListener('input', () => convert('to', false));
+        inputTo.addEventListener('change', () => convert('to', true));
+        inputTo.addEventListener('blur', () => convert('to', true));
 
         // Changing either unit recalculates the right box from the left one.
-        unitFrom.addEventListener('change', () => convert('from'));
-        unitTo.addEventListener('change', () => convert('from'));
+        unitFrom.addEventListener('change', () => convert('from', true));
+        unitTo.addEventListener('change', () => convert('from', true));
 
         // Words the quick-convert field accepts for each unit. Currency codes
         // are looked up in the rate table instead.
@@ -429,87 +471,94 @@
             'Fahrenheit (°F)': ['f', 'fahrenheit', '°f'],
             'Kelvin (K)': ['k', 'kelvin'],
 
-            'm/s': ['m/s', 'mps', 'meters per second'],
-            'km/h': ['km/h', 'kph', 'kilometers per hour'],
+            'm/s': ['m/s', 'mps', 'meters per second', 'metres per second'],
+            'km/h': ['km/h', 'kmh', 'kph', 'kilometers per hour', 'kilometres per hour'],
             'mph': ['mph', 'miles per hour'],
-            'knots': ['knots', 'knot'],
+            'knots': ['knots', 'knot', 'kn'],
             'ft/s': ['ft/s', 'fps', 'feet per second'],
 
-            'B': ['b', 'byte', 'bytes'],
-            'KB': ['kb', 'kilobyte', 'kilobytes'],
-            'MB': ['mb', 'megabyte', 'megabytes'],
-            'GB': ['gb', 'gigabyte', 'gigabytes'],
-            'TB': ['tb', 'terabyte', 'terabytes']
+            'B':   ['b', 'byte', 'bytes'],
+            'KiB': ['kib', 'kb', 'kibibyte', 'kibibytes', 'kilobyte', 'kilobytes'],
+            'MiB': ['mib', 'mb', 'mebibyte', 'mebibytes', 'megabyte', 'megabytes'],
+            'GiB': ['gib', 'gb', 'gibibyte', 'gibibytes', 'gigabyte', 'gigabytes'],
+            'TiB': ['tib', 'tb', 'tebibyte', 'tebibytes', 'terabyte', 'terabytes']
         };
 
+        const nlpNotUnderstood = document.getElementById('nlpNotUnderstood');
+
+        function isTempUnit(u) {
+            return typeof u === 'string' && (u.includes('Celsius') || u.includes('Fahrenheit') || u.includes('Kelvin'));
+        }
+
         function parseNLP(inputStr) {
-            if (!inputStr) return;
-            // "5 km to miles", "100.5 USD in EUR"
-            const match = inputStr.trim().match(/^([\d\.]+)\s+(.+?)\s+(?:in|to)\s+(.+)$/i);
-            if (!match) return;
+            const raw = (inputStr || '').trim();
+            if (!raw) { nlpNotUnderstood.style.display = 'none'; return true; }
 
-            const val = parseFloat(match[1]);
-            if (isNaN(val)) return;
+            // "convert 5 km to miles please" → strip framing words on both ends.
+            let s = raw.replace(/^(convert|umrechnen|umwandeln)\s+/i, '')
+                       .replace(/[.,!?\s]*(please|bitte)[.,!?\s]*$/i, '')
+                       .trim();
 
-            let sourceStr = match[2].toLowerCase();
-            let targetStr = match[3].toLowerCase();
+            // Accept "1,5 km to miles" (German decimal) and "100km" (no space).
+            // The unit half can be anything up to the "in"/"to" separator.
+            const match = s.match(/^(-?\d+(?:[.,]\d+)?)\s*(.+?)\s+(?:in|to|nach)\s+(.+)$/i);
+            if (!match) return false;
 
-            let foundCat = null;
-            let foundU1 = null;
-            let foundU2 = null;
+            const val = parseFloat(match[1].replace(',', '.'));
+            if (isNaN(val)) return false;
+
+            const sourceStr = match[2].toLowerCase().trim();
+            const targetStr = match[3].toLowerCase().trim();
 
             const findUnitKey = (query) => {
                 for (const [key, synonyms] of Object.entries(synonymDict)) {
                     if (synonyms.includes(query)) return key;
                 }
-
                 const upperQuery = query.toUpperCase();
-                if (factors.currency.units[upperQuery]) {
-                    return upperQuery;
-                }
-
+                if (factors.currency.units[upperQuery]) return upperQuery;
                 return null;
             };
 
-            foundU1 = findUnitKey(sourceStr);
-            foundU2 = findUnitKey(targetStr);
+            const foundU1 = findUnitKey(sourceStr);
+            const foundU2 = findUnitKey(targetStr);
+            if (!foundU1 || !foundU2) return false;
 
-            if (foundU1 && foundU2) {
+            let foundCat = null;
+            if (isTempUnit(foundU1) && isTempUnit(foundU2)) {
+                foundCat = 'temp';
+            } else {
                 for (const cat of Object.keys(factors)) {
-                    if (cat === 'temp') {
-                         if (foundU1.includes('Celsius') || foundU1.includes('Fahrenheit') || foundU1.includes('Kelvin')) {
-                             foundCat = 'temp'; break;
-                         }
-                    } else if (factors[cat].units[foundU1]) {
+                    if (factors[cat].units[foundU1] && factors[cat].units[foundU2]) {
                         foundCat = cat;
                         break;
                     }
                 }
-
-                // Only act when both units belong to the same category.
-                if (foundCat && factors[foundCat]) {
-                    let u2IsValid = false;
-                    if (foundCat === 'temp') {
-                        u2IsValid = foundU2.includes('Celsius') || foundU2.includes('Fahrenheit') || foundU2.includes('Kelvin');
-                    } else {
-                        u2IsValid = !!factors[foundCat].units[foundU2];
-                    }
-
-                    if (u2IsValid) {
-                        if (currentCategory !== foundCat) {
-                            setCategory(foundCat);
-                        }
-                        inputFrom.value = val;
-                        unitFrom.value = foundU1;
-                        unitTo.value = foundU2;
-                        convert('from');
-                    }
-                }
             }
+            if (!foundCat) return false;
+
+            if (currentCategory !== foundCat) setCategory(foundCat);
+            inputFrom.value = val;
+            unitFrom.value = foundU1;
+            unitTo.value = foundU2;
+            convert('from', true);
+            return true;
         }
 
         nlpInput.addEventListener('input', (e) => {
-            parseNLP(e.target.value);
+            const raw = e.target.value.trim();
+            if (!raw) {
+                nlpNotUnderstood.style.display = 'none';
+                return;
+            }
+            const ok = parseNLP(raw);
+            if (ok) {
+                nlpNotUnderstood.style.display = 'none';
+            } else {
+                // Drop the stale conversion so a half-typed query does not read
+                // as a good answer to the last complete one.
+                inputTo.value = '';
+                nlpNotUnderstood.style.display = 'block';
+            }
         });
 
         setCategory('length');

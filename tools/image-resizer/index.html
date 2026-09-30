@@ -229,6 +229,13 @@
             let processedCount = 0;
             let totalSizeOriginal = 0;
             let totalSizeNew = 0;
+            /* Watch for name collisions inside the ZIP. Two files that
+               resolve to the same output name — dropping a.jpg twice, or
+               a.jpg alongside a.png with the default pattern — would
+               silently overwrite each other and JSZip would report only
+               the last one. Append -1, -2, … so every input becomes a
+               distinct file in the archive. */
+            const usedNames = new Map();
 
             // One file at a time, so a large batch never holds every decoded
             // image in memory at once.
@@ -241,7 +248,7 @@
 
                     const extension = format === 'image/jpeg' ? 'jpg' : format.split('/')[1];
                     const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                    
+
                     let newName = namingPattern
                         .replace(/{original}/g, originalName)
                         .replace(/{width}/g, result.width)
@@ -249,8 +256,21 @@
                         .replace(/{ext}/g, extension);
 
                     // A pattern without {ext} would otherwise give files with no extension.
-                    if (!newName.endsWith('.' + extension)) {
+                    // Extension check is case-insensitive so `.JPG` and `.jpg` don't stack.
+                    if (!newName.toLowerCase().endsWith('.' + extension.toLowerCase())) {
                         newName += '.' + extension;
+                    }
+
+                    /* De-duplicate. Keep the extension at the end. */
+                    if (usedNames.has(newName)) {
+                        const seen = usedNames.get(newName);
+                        usedNames.set(newName, seen + 1);
+                        const dot = newName.lastIndexOf('.');
+                        const stem = dot >= 0 ? newName.slice(0, dot) : newName;
+                        const ext = dot >= 0 ? newName.slice(dot) : '';
+                        newName = `${stem}-${seen}${ext}`;
+                    } else {
+                        usedNames.set(newName, 1);
                     }
 
                     zip.file(newName, result.blob);

@@ -174,7 +174,7 @@
                             </div>
 
                             <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                                <button class="button sm outline" id="toggleWrapBtn">Unwrap</button>
+                                <button class="button sm outline" id="toggleWrapBtn" data-de="Umbruch aus">Unwrap</button>
                                 <button class="button sm outline" id="downloadBtn" data-de="Herunterladen">Download</button>
                                 <button class="button sm" id="copyBtn" data-de="Kopieren">Copy</button>
                             </div>
@@ -182,8 +182,9 @@
                     </div>
                     
                     <div style="background: var(--paper); padding: 0.5rem; font-size: 0.8rem; font-family: var(--font-mono); color: var(--ink-secondary); border-bottom: 1px solid var(--border); border-top: 1px solid var(--border);">
-                        <span id="statusText">No input yet</span>
+                        <span id="statusText" data-de="Noch keine Eingabe">No input yet</span>
                     </div>
+                    <div id="warningBox" class="hidden" style="background: rgba(255, 200, 80, 0.15); border-bottom: 1px solid var(--border); padding: 0.5rem 0.75rem; font-size: 0.8rem; color: var(--ink); line-height: 1.4;"></div>
 
                     <div class="result-box-wrapper">
                         <div id="resultBox" class="code-editor" style="background: var(--code-bg); padding: 1rem; font-family: var(--font-mono); white-space: pre-wrap; word-break: break-word;"></div>
@@ -203,7 +204,8 @@
         const resultBox = document.getElementById('resultBox');
         const treeBox = document.getElementById('treeBox');
         const statusText = document.getElementById('statusText');
-        
+        const warningBox = document.getElementById('warningBox');
+
         const processBtn = document.getElementById('processBtn');
         const csvBtn = document.getElementById('csvBtn');
         const clearBtn = document.getElementById('clearBtn');
@@ -212,7 +214,7 @@
         const toggleWrapBtn = document.getElementById('toggleWrapBtn');
         const uploadTrigger = document.getElementById('uploadTrigger');
         const fileInput = document.getElementById('jsonFileInput');
-        
+
         const indentSelect = document.getElementById('indentSelect');
         const unescapeToggle = document.getElementById('unescapeToggle');
         const jsonPathInput = document.getElementById('jsonPathInput');
@@ -220,10 +222,22 @@
         const viewCodeBtn = document.getElementById('viewCodeBtn');
         const viewTreeBtn = document.getElementById('viewTreeBtn');
 
+        // Small shim so the tool works when i18n.js is not loaded (test rigs).
+        const t = (en, de) => (window.LL_I18N && window.LL_I18N.t)
+            ? window.LL_I18N.t(en, de) : en;
+
         let currentData = null; // what is shown, after any JSONPath filter
         let originalData = null; // as parsed, before the filter
-        let isWrapped = true; 
+        let isWrapped = true;
         let currentView = 'code'; // or 'tree'
+        let lastGoodInput = null; // raw text of the last successful parse — a reformat rebuilds from this when the indent dropdown changes
+
+        // Common English → German for well-known type names.
+        const TYPE_TRANSLATIONS = { object: 'Objekt', string: 'Zeichenkette', number: 'Zahl', boolean: 'Boolescher Wert', undefined: 'undefined' };
+        function typeLabel(type) {
+            if (window.LL_I18N && window.LL_I18N.lang === 'de') return TYPE_TRANSLATIONS[type] || type;
+            return type;
+        }
 
         // Parsing and formatting run in a worker so a file of several
         // megabytes does not freeze the page.
@@ -241,9 +255,29 @@
             jsonPathInput.value = '';
             resultBox.innerHTML = '';
             treeBox.innerHTML = '';
+            hideWarnings();
             currentData = null;
             originalData = null;
-            statusText.textContent = 'Cleared';
+            lastGoodInput = null;
+            setViewsEnabled(false);
+            statusText.textContent = t('Cleared', 'Geleert');
+        });
+
+        // The indent picker used to sit and wait for a Format click — a change
+        // felt inert. Rerun the last format when it moves.
+        indentSelect.addEventListener('change', () => {
+            if (originalData === null) return;
+            if (jsonPathInput.value.trim() && window.jsonpath) {
+                // Reformat the current (possibly filtered) data
+                jsonWorker.postMessage({
+                    action: 'formatOnly',
+                    parsedData: currentData,
+                    indent: indentSelect.value,
+                    mode: currentMode === 'csv' ? 'format' : currentMode
+                });
+            } else if (lastGoodInput !== null) {
+                runProcessor(currentMode === 'csv' ? 'format' : currentMode);
+            }
         });
 
         let debounceTimer;
@@ -256,13 +290,13 @@
                 if (!query) {
                     currentData = originalData;
                     runProcessor('format');
-                    statusText.textContent = 'JSONPath cleared';
+                    statusText.textContent = t('JSONPath cleared', 'JSONPath geleert');
                     return;
                 }
 
                 try {
                     if (window.jsonpath) {
-                        statusText.textContent = 'Applying JSONPath...';
+                        statusText.textContent = t('Applying JSONPath...', 'JSONPath wird angewendet...');
                         // The query runs here because the JSONPath library is loaded
                         // on the page; the formatting of its result goes back to the worker.
                         const result = window.jsonpath.query(originalData, query);
@@ -278,7 +312,11 @@
                         }
                     }
                 } catch (err) {
-                    statusText.textContent = `JSONPath syntax error`;
+                    // A stale result sitting there next to a new syntax-error status
+                    // read as if the filter had matched something. Blank it.
+                    statusText.textContent = t('JSONPath syntax error', 'JSONPath-Syntaxfehler');
+                    resultBox.innerHTML = '';
+                    treeBox.innerHTML = '';
                 }
             }, 300);
         });
@@ -296,7 +334,7 @@
         toggleWrapBtn.addEventListener('click', () => {
             isWrapped = !isWrapped;
             resultBox.style.whiteSpace = isWrapped ? 'pre-wrap' : 'pre';
-            toggleWrapBtn.textContent = isWrapped ? 'Unwrap' : 'Wrap';
+            toggleWrapBtn.textContent = isWrapped ? t('Unwrap', 'Umbruch aus') : t('Wrap', 'Umbruch an');
         });
 
         viewCodeBtn.addEventListener('click', () => switchView('code'));
@@ -324,7 +362,12 @@
             }
         }
 
-        uploadTrigger.addEventListener('click', () => fileInput.click());
+        uploadTrigger.addEventListener('click', () => {
+            // Reset so the same file can be reopened; without this the browser
+            // fires no 'change' event when it is the same file as last time.
+            fileInput.value = '';
+            fileInput.click();
+        });
         fileInput.addEventListener('change', handleFileUpload);
 
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -340,15 +383,28 @@
         });
 
         function handleFileUpload(e) { if(e.target.files.length) readFile(e.target.files[0]); }
-        
+
         function readFile(file) {
+            // Read as bytes first so a Latin-1 file does not come back full of
+            // replacement characters. Try strict UTF-8, fall back to windows-1252.
             const reader = new FileReader();
             reader.onload = (e) => {
-                jsonInput.value = e.target.result;
-                showToast('File loaded', 'success');
-                runProcessor('format'); 
+                let text = '';
+                try {
+                    text = new TextDecoder('utf-8', { fatal: true }).decode(e.target.result);
+                } catch (err) {
+                    try {
+                        text = new TextDecoder('windows-1252').decode(e.target.result);
+                        showToast(t('File decoded as Windows-1252', 'Datei als Windows-1252 gelesen'), 'info');
+                    } catch (err2) {
+                        text = new TextDecoder('utf-8').decode(e.target.result);
+                    }
+                }
+                jsonInput.value = text;
+                showToast(t('File loaded', 'Datei geladen'), 'success');
+                runProcessor('format');
             };
-            reader.readAsText(file);
+            reader.readAsArrayBuffer(file);
         }
 
         let currentMode = 'format';
@@ -356,12 +412,12 @@
         function runProcessor(mode) {
             let raw = jsonInput.value.trim();
             if (!raw) {
-                showToast('Input is empty', 'info');
+                showToast(t('Input is empty', 'Eingabe ist leer'), 'info');
                 return;
             }
 
             currentMode = mode;
-            statusText.textContent = 'Processing...';
+            statusText.textContent = t('Processing...', 'Wird verarbeitet...');
 
             if (jsonWorker) {
                 jsonWorker.postMessage({
@@ -372,8 +428,56 @@
                     mode: mode
                 });
             } else {
-                showError({message: "This browser has no Web Workers, which this tool needs."});
+                showError({message: t("This browser has no Web Workers, which this tool needs.",
+                    'Dieser Browser hat keine Web-Worker; ohne die läuft das Werkzeug nicht.')});
             }
+        }
+
+        function setViewsEnabled(enabled) {
+            [jsonPathInput, viewTreeBtn, copyBtn, downloadBtn, csvBtn].forEach(el => {
+                if (el) el.disabled = !enabled;
+            });
+        }
+
+        function showWarnings(list) {
+            if (!list || !list.length) { hideWarnings(); return; }
+            warningBox.innerHTML = '';
+            const header = document.createElement('strong');
+            header.textContent = t('Heads up:', 'Beachte:');
+            warningBox.appendChild(header);
+            const ul = document.createElement('ul');
+            ul.style.margin = '4px 0 0 1.2em';
+            ul.style.padding = '0';
+            list.forEach(msg => {
+                const li = document.createElement('li');
+                li.textContent = translateWarning(msg);
+                ul.appendChild(li);
+            });
+            warningBox.appendChild(ul);
+            warningBox.classList.remove('hidden');
+        }
+        function hideWarnings() { warningBox.classList.add('hidden'); warningBox.innerHTML = ''; }
+
+        // Map of English warning strings to their German counterparts. The worker
+        // is language-blind on purpose, so translation stays in the page.
+        function translateWarning(msg) {
+            const de = {
+                'Some integers were rounded off (JavaScript numbers lose precision past 2^53).':
+                    'Manche Ganzzahlen wurden gerundet (JavaScript-Zahlen verlieren Präzision jenseits von 2^53).',
+                'Numbers out of range became null.': 'Zahlen außerhalb des Wertebereichs wurden zu null.',
+                'NaN and Infinity are not valid JSON and became null.': 'NaN und Infinity sind kein gültiges JSON und wurden zu null.',
+                '-0 became 0.': '-0 wurde zu 0.',
+                'Input was not strict JSON. It was repaired.': 'Die Eingabe war kein striktes JSON. Sie wurde repariert.',
+                'A missing closing quote was patched — check the result.': 'Ein fehlendes Anführungszeichen wurde ergänzt — bitte prüfen.',
+                'Unescape Strings was on: the input was unwrapped from a JSON string literal first.':
+                    '"Strings entescapen" war an: die Eingabe wurde zuerst aus einem JSON-Stringliteral ausgepackt.'
+            };
+            // Duplicate-keys warning starts with a fixed prefix and lists keys.
+            if (/^Duplicate keys were dropped:/.test(msg)) {
+                return msg.replace('Duplicate keys were dropped:', t('Duplicate keys were dropped:', 'Doppelte Schlüssel wurden verworfen:'))
+                          .replace('Only the last value was kept.', t('Only the last value was kept.', 'Nur der letzte Wert wurde behalten.'));
+            }
+            return de[msg] && (window.LL_I18N && window.LL_I18N.lang === 'de') ? de[msg] : msg;
         }
 
         function handleWorkerMessage(e) {
@@ -382,6 +486,9 @@
                 if (data.action === 'process') {
                     originalData = data.parsed;
                     currentData = originalData;
+                    lastGoodInput = jsonInput.value;
+                    setViewsEnabled(true);
+                    showWarnings(data.warnings);
 
                     const query = jsonPathInput.value.trim();
                     if (query && window.jsonpath) {
@@ -402,9 +509,10 @@
 
                 if (currentMode === 'csv') {
                     resultBox.textContent = data.resultText;
-                    statusText.textContent = `CSV Generated | ${currentData.length} rows`;
+                    statusText.textContent = t(`CSV Generated | ${currentData.length} rows`,
+                                              `CSV erzeugt | ${currentData.length} Zeilen`);
                     switchView('code');
-                    showToast('Converted to CSV', 'success');
+                    showToast(t('Converted to CSV', 'Als CSV umgewandelt'), 'success');
                 } else {
                     if (indentSelect.value === 'min') {
                         resultBox.innerHTML = escapeHtml(data.resultText);
@@ -422,33 +530,51 @@
                     if (currentView === 'tree') {
                         renderTree(currentData);
                     }
-                    
+
                     const size = formatFileSize(new Blob([data.resultText]).size);
-                    const type = Array.isArray(currentData) ? `Array(${currentData.length})` : typeof currentData;
-                    const modeText = jsonPathInput.value.trim() ? "Filtered JSON" : "Valid JSON";
-                    statusText.textContent = `${modeText} | Type: ${type} | Size: ${size}`;
-                    showToast('Formatted', 'success');
+                    const rawType = Array.isArray(currentData) ? `Array(${currentData.length})` : typeof currentData;
+                    const type = rawType.startsWith('Array') ? rawType : typeLabel(rawType);
+                    let modeText;
+                    if (jsonPathInput.value.trim()) modeText = t('Filtered JSON', 'Gefiltertes JSON');
+                    else if (data.warnings && data.warnings.length) modeText = t('JSON with warnings', 'JSON mit Warnhinweisen');
+                    else modeText = t('Valid JSON', 'Gültiges JSON');
+                    const typeLbl = t('Type', 'Typ');
+                    const sizeLbl = t('Size', 'Größe');
+                    let status = `${modeText} | ${typeLbl}: ${type} | ${sizeLbl}: ${size}`;
+                    if (indentSelect.value === 'min' && data.resultText && data.resultText.length > 100) {
+                        status += ' · ' + t('syntax highlighting off in Minify mode', 'Syntax-Hervorhebung im Minify-Modus aus');
+                    } else if (!data.highlightedHtml && data.resultText && data.resultText.length >= 500000) {
+                        status += ' · ' + t('syntax highlighting off for large output', 'Syntax-Hervorhebung bei großer Ausgabe aus');
+                    }
+                    statusText.textContent = status;
+                    showToast(t('Formatted', 'Formatiert'), 'success');
                 }
             } else {
                 showError({
                     message: data.error,
                     lineNumber: data.lineNumber,
-                    columnNumber: data.columnNumber
+                    columnNumber: data.columnNumber,
+                    snippet: data.snippet
                 });
             }
         }
 
         function renderTree(obj) {
             treeBox.innerHTML = '';
-            const root = buildTreeElement('root', obj, true);
+            // The 4th argument is the isRoot flag — a real key literally called
+            // "root" used to be silently hidden by the old string check.
+            const root = buildTreeElement('root', obj, true, true);
             treeBox.appendChild(root);
         }
 
-        function buildTreeElement(key, value, isOpen = false) {
-            if (value === null) return createLeaf(key, 'null', 'jt-null');
-            if (typeof value === 'boolean') return createLeaf(key, value.toString(), 'jt-bool');
-            if (typeof value === 'number') return createLeaf(key, value.toString(), 'jt-num');
-            if (typeof value === 'string') return createLeaf(key, `"${value}"`, 'jt-string');
+        function buildTreeElement(key, value, isOpen = false, isRoot = false) {
+            if (value === null) return createLeaf(key, 'null', 'jt-null', isRoot);
+            if (typeof value === 'boolean') return createLeaf(key, value.toString(), 'jt-bool', isRoot);
+            if (typeof value === 'number') return createLeaf(key, value.toString(), 'jt-num', isRoot);
+            // Strings go through JSON.stringify so quotes, backslashes and
+            // control characters (\n, \t, …) are visibly escaped instead of
+            // silently collapsing.
+            if (typeof value === 'string') return createLeaf(key, JSON.stringify(value), 'jt-string', isRoot);
 
             const isArray = Array.isArray(value);
             const details = document.createElement('details');
@@ -456,9 +582,11 @@
             const summary = document.createElement('summary');
             const size = isArray ? value.length : Object.keys(value).length;
             const typeMeta = isArray ? `[ ${size} ]` : `{ ${size} }`;
-            
+
             const keySpan = document.createElement('span');
-            if (key && key !== 'root') {
+            // Skip the label only for the outermost node. An empty string ""
+            // or a key literally called "root" is a real key and must show up.
+            if (!isRoot && key !== null && key !== undefined) {
                 keySpan.className = 'jt-key';
                 keySpan.textContent = `"${key}": `;
             }
@@ -476,7 +604,7 @@
             // Children are built when a node is first opened, and then 100 at
             // a time, so a large array does not build its whole tree at once.
             let isLoaded = false;
-            
+
             const loadChildren = () => {
                 if (isLoaded) return;
                 isLoaded = true;
@@ -491,7 +619,7 @@
                         const k = keys[i];
                         const li = document.createElement('li');
                         const childKey = isArray ? null : k; // array items get no index label
-                        li.appendChild(buildTreeElement(childKey, value[k]));
+                        li.appendChild(buildTreeElement(childKey, value[k], false, false));
                         fragment.appendChild(li);
                     }
                     ul.appendChild(fragment);
@@ -499,7 +627,9 @@
                         const moreLi = document.createElement('li');
                         const moreBtn = document.createElement('button');
                         moreBtn.className = 'button sm outline';
-                        moreBtn.textContent = `Load more (${keys.length - end} left)...`;
+                        const leftCount = keys.length - end;
+                        moreBtn.textContent = t(`Load more (${leftCount} left)...`,
+                                                `Weitere laden (${leftCount} übrig)...`);
                         moreBtn.style.margin = '4px 0 4px 1.2em';
                         moreBtn.style.padding = '2px 8px';
                         moreBtn.style.fontSize = '0.8em';
@@ -523,15 +653,17 @@
                     if (details.open) loadChildren();
                 });
             }
-            
+
             return details;
         }
 
-        function createLeaf(key, displayValue, valueClass) {
+        function createLeaf(key, displayValue, valueClass, isRoot) {
             const div = document.createElement('div');
             div.style.paddingLeft = '1.2em'; // lines up with the arrow on a <details>
-            
-            if (key) {
+
+            // Same rule as the object/array branch: only the outermost key is
+            // hidden; empty strings and literal "root" values still print.
+            if (!isRoot && key !== null && key !== undefined) {
                 const k = document.createElement('span');
                 k.className = 'jt-key';
                 k.textContent = `"${key}": `;
@@ -547,20 +679,40 @@
         }
 
         function showError(err) {
-            let errorHtml = `<div style="color: var(--accent); font-weight: bold;">Could not parse</div>`;
-            errorHtml += `<div style="opacity: 0.8; margin-top: 10px;">${err.message}</div>`;
+            // A parse error means the data on hand no longer matches the
+            // input, so tree/copy/download would show something stale. Blank
+            // it and lock the buttons that would use it.
+            originalData = null;
+            currentData = null;
+            lastGoodInput = null;
+            treeBox.innerHTML = '';
+            setViewsEnabled(false);
+            hideWarnings();
+
+            const heading = t('Could not parse', 'Konnte nicht geparst werden');
+            let errorHtml = `<div style="color: var(--accent); font-weight: bold;">${escapeHtml(heading)}</div>`;
+            errorHtml += `<div style="opacity: 0.8; margin-top: 10px;">${escapeHtml(err.message || '')}</div>`;
 
             if (err.lineNumber !== undefined && err.lineNumber !== null) {
-                errorHtml += `<div style="margin-top: 10px; font-size: 0.9em;">Error at line <strong>${err.lineNumber}</strong>`;
+                const at = t('Error at line', 'Fehler in Zeile');
+                const col = t('column', 'Spalte');
+                errorHtml += `<div style="margin-top: 10px; font-size: 0.9em;">${escapeHtml(at)} <strong>${err.lineNumber}</strong>`;
                 if (err.columnNumber !== undefined && err.columnNumber !== null) {
-                    errorHtml += `, column <strong>${err.columnNumber}</strong>`;
+                    errorHtml += `, ${escapeHtml(col)} <strong>${err.columnNumber}</strong>`;
                 }
                 errorHtml += `</div>`;
             }
 
+            if (err.snippet) {
+                // Show the offending line with a caret so the mistake has a
+                // visible spot, not just a coordinate pair.
+                errorHtml += `<pre style="margin-top: 10px; padding: 8px; background: var(--paper); border-radius: 3px; font-size: 0.85em; white-space: pre; overflow-x: auto;">${escapeHtml(err.snippet)}</pre>`;
+            }
+
             resultBox.innerHTML = errorHtml;
-            statusText.textContent = 'Invalid JSON';
-            showToast('Could not repair this JSON', 'error');
+            statusText.textContent = t('Invalid JSON — the tree/copy/download are locked until the next successful parse.',
+                                       'Ungültiges JSON — Baum/Kopieren/Download sind bis zum nächsten erfolgreichen Parsen gesperrt.');
+            showToast(t('Could not repair this JSON', 'Konnte dieses JSON nicht reparieren'), 'error');
         }
 
         function syntaxHighlight(json) {

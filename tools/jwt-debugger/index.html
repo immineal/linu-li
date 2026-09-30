@@ -115,7 +115,7 @@
                         </div>
                         <div class="signature-controls">
                             <input type="text" id="signatureSecret" placeholder="Secret (HMAC) or Public Key (RSA/PEM)" autocomplete="off" spellcheck="false" data-de-attr="placeholder:Secret (HMAC) oder öffentlicher Schlüssel (RSA/PEM)">
-                            <div id="signatureStatus" class="signature-status status-waiting">Waiting</div>
+                            <div id="signatureStatus" class="signature-status status-waiting" data-de="Wartet">Waiting</div>
                         </div>
                     </div>
 
@@ -194,8 +194,14 @@
         }
 
         async function decode() {
-            const token = input.value.trim();
-            
+            const t = (window.LL_I18N && window.LL_I18N.t)
+                ? window.LL_I18N.t : ((en) => en);
+
+            /* Strip a leading "Bearer " so pasting a value from an
+               Authorization header just works. That is by far the most
+               common way people come to a token they want to inspect. */
+            let token = input.value.trim().replace(/^Bearer\s+/i, '');
+
             if (!token) {
                 resetOutputs();
                 return;
@@ -203,10 +209,13 @@
 
             const parts = token.split('.');
             if (parts.length < 2 || parts.length > 3) {
-                outHeader.textContent = "Not a JWT: it needs two or three parts separated by dots.";
+                outHeader.textContent = t(
+                    "Not a JWT: it needs two or three parts separated by dots.",
+                    "Kein JWT: es braucht zwei oder drei Teile, getrennt durch Punkte."
+                );
                 outPayload.textContent = "";
                 outSignature.textContent = "";
-                updateSignatureStatus('invalid', 'Not a token');
+                updateSignatureStatus('invalid', t('Not a token', 'Kein Token'));
                 return;
             }
 
@@ -222,14 +231,37 @@
                 if (parts.length === 3 && parts[2]) {
                     await verifySignature(token, parts, headerObj);
                 } else {
-                    updateSignatureStatus('invalid', 'No Signature');
+                    updateSignatureStatus('invalid', t('No Signature', 'Keine Signatur'));
+                }
+
+                /* Time claims. A signature that matches is not the same as
+                   a token that is currently valid: `exp` in the past means
+                   an expired token, `nbf` in the future means it isn't
+                   usable yet. Both used to show only a grey "(3 days ago)"
+                   hint while the status pill stayed on "Signature valid",
+                   which reads as "everything is fine" to anyone quickly
+                   scanning the page. Now the pill downgrades. */
+                if (signatureStatus.classList.contains('status-valid')) {
+                    const nowSec = Math.floor(Date.now() / 1000);
+                    if (typeof payloadObj.exp === 'number' && payloadObj.exp < nowSec) {
+                        updateSignatureStatus('invalid',
+                            t('Signature valid but token expired',
+                              'Signatur gültig, aber Token abgelaufen'));
+                    } else if (typeof payloadObj.nbf === 'number' && payloadObj.nbf > nowSec) {
+                        updateSignatureStatus('invalid',
+                            t('Signature valid but token not yet valid',
+                              'Signatur gültig, aber Token noch nicht gültig'));
+                    }
                 }
 
             } catch (e) {
-                outHeader.textContent = "Could not decode the token. " + e.message;
+                outHeader.textContent = t(
+                    "This does not look like a JWT. ",
+                    "Das sieht nicht wie ein JWT aus. "
+                ) + e.message;
                 outPayload.textContent = "";
                 outSignature.textContent = "";
-                updateSignatureStatus('invalid', 'Error');
+                updateSignatureStatus('invalid', t('Error', 'Fehler'));
             }
         }
 
@@ -275,9 +307,12 @@
         }
 
         async function verifySignature(token, parts, header) {
+            const t = (window.LL_I18N && window.LL_I18N.t)
+                ? window.LL_I18N.t : ((en) => en);
             const secretOrKey = signatureSecret.value;
             if (!secretOrKey) {
-                updateSignatureStatus('waiting', 'Needs secret or key');
+                updateSignatureStatus('waiting',
+                    t('Needs secret or key', 'Braucht Secret oder Key'));
                 return;
             }
 
@@ -335,18 +370,22 @@
                         data
                     );
                 } else {
-                    updateSignatureStatus('invalid', `Cannot check ${alg}`);
+                    updateSignatureStatus('invalid',
+                        t(`Cannot check ${alg}`, `Kann ${alg} nicht prüfen`));
                     return;
                 }
 
                 if (isValid) {
-                    updateSignatureStatus('valid', 'Signature valid');
+                    updateSignatureStatus('valid',
+                        t('Signature valid', 'Signatur gültig'));
                 } else {
-                    updateSignatureStatus('invalid', 'Signature does not match');
+                    updateSignatureStatus('invalid',
+                        t('Signature does not match', 'Signatur passt nicht'));
                 }
             } catch (e) {
                 console.error(e);
-                updateSignatureStatus('invalid', 'Could not check');
+                updateSignatureStatus('invalid',
+                    t('Could not check', 'Konnte nicht prüfen'));
             }
         }
 
@@ -362,10 +401,12 @@
         }
 
         function resetOutputs() {
+            const t = (window.LL_I18N && window.LL_I18N.t)
+                ? window.LL_I18N.t : ((en) => en);
             outHeader.textContent = "";
             outPayload.textContent = "";
-            outSignature.textContent = "no token yet";
-            updateSignatureStatus('waiting', 'Waiting');
+            outSignature.textContent = t("no token yet", "noch kein Token");
+            updateSignatureStatus('waiting', t('Waiting', 'Wartet'));
         }
 
         input.addEventListener('input', decode);

@@ -269,15 +269,25 @@
                     }
                 } 
                 else {
-                    let cleanStart = startPhrase; 
-                    
-                    if (output.length < cleanStart.length) {
-                        output = cleanStart + ".";
+                    /* Replace at word boundaries so the phrase never lands
+                       glued onto half of another word. The old substring
+                       swap kept the character count neat but cut into
+                       whatever word was straddling the cut point:
+                       "…adipiscing elitnim eu…" for one; "…empower feedback
+                       growthmpower win-win" for another. */
+                    const startWords = startPhrase.split(/\s+/);
+                    const outputWords = output.split(/(\s+)/);
+                    const wordSlots = [];
+                    for (let i = 0; i < outputWords.length; i++) {
+                        if (i % 2 === 0) wordSlots.push(i);
+                    }
+                    if (wordSlots.length < startWords.length) {
+                        output = startPhrase + ".";
                     } else {
-                        // Overwrite as many characters as the phrase is long, so the
-                        // length stays about what was asked for.
-                        output = cleanStart + output.substring(cleanStart.length).replace(/^\s*[a-z]/, c => c); 
-                        
+                        for (let i = 0; i < startWords.length; i++) {
+                            outputWords[wordSlots[i]] = startWords[i];
+                        }
+                        output = outputWords.join('');
                         if (!output.trim().endsWith(".")) output += ".";
                     }
                 }

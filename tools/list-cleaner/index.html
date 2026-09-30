@@ -50,8 +50,9 @@
                     <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                             <label style="margin: 0;" data-de="Ergebnis">Result</label>
-                            <div style="display: flex; gap: 1rem; align-items: center;">
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                                 <span id="outputCount" style="font-size: 0.8rem; color: var(--ink-secondary);">0 lines</span>
+                                <button class="button sm outline" onclick="useAsInput()" data-de="↑ Als Eingabe">↑ Use as input</button>
                                 <button class="button sm secondary" onclick="copyResult()" data-de="Kopieren">Copy</button>
                             </div>
                         </div>
@@ -146,6 +147,19 @@
 
         function copyResult() {
             copyToClipboard(listOutput.value);
+        }
+
+        /* Chain operations: pipe the current result back into the input box
+           so the next click (sort, dedup, prefix, …) works on top of the
+           previous one. Without this, every button read from the untouched
+           original and combining operations meant copy-paste by hand. */
+        function useAsInput() {
+            if (!listOutput.value) return;
+            listInput.value = listOutput.value;
+            const lines = listOutput.value.split('\n').filter((l) => l.trim() !== '').length;
+            inputCount.textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
+            listInput.dispatchEvent(new Event('input', { bubbles: true }));
+            listInput.focus();
         }
     
     /* Is this tool holding something right now that a reload would throw

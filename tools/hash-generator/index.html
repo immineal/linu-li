@@ -190,6 +190,12 @@
             modeFile.classList.add('outline');
             textSection.classList.remove('hidden');
             fileSection.classList.add('hidden');
+            /* Cancel any file hashing still running. Without this, switching
+               to Text mode mid-hash left the file worker running, and its
+               final message overwrote the text mode's hash boxes with the
+               file's hash — so a text field reading "hello" would sit next
+               to the hash of a 30 MB PDF. */
+            if (hashWorker) { hashWorker.terminate(); hashWorker = null; }
         });
 
         modeFile.addEventListener('click', () => {

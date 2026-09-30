@@ -67,25 +67,17 @@ async function runTests() {
     assert.strictEqual(lastMessage.id, 1);
     assert.strictEqual(lastMessage.buffer, 'encoded_testdata_webp');
 
-    // Test 2: Successful encode (AVIF)
-    sandbox = createSandbox(async (url) => {
-        assert(url.includes('avif'), "Expected avif module load");
-        return {
-            encode: async (data, opts) => {
-                assert.strictEqual(opts.speed, 7);
-                assert.strictEqual(opts.cqLevel, 33);
-                assert.strictEqual(opts.subsample, 1);
-                return `encoded_${data}_avif`;
-            }
-        };
-    });
+    // Test 2: AVIF is no longer offered as an output format.
+    // The encoder was slow, the quality slider barely did anything, and the
+    // format is not what casual users reach for. If AVIF comes back the test
+    // above (Test 1) is the template.
+    sandbox = createSandbox(async () => ({}));
     await sandbox.self.onmessage({
-        data: { id: 2, imageData: 'testdata2', format: 'image/avif', options: { quality: 7 } }
+        data: { id: 2, imageData: 'data', format: 'image/avif', options: { quality: 7 } }
     });
     lastMessage = sandbox.getLastMessage();
-    assert.strictEqual(lastMessage.success, true);
-    assert.strictEqual(lastMessage.id, 2);
-    assert.strictEqual(lastMessage.buffer, 'encoded_testdata2_avif');
+    assert.strictEqual(lastMessage.success, false);
+    assert.strictEqual(lastMessage.error, "Unsupported format: image/avif");
 
     // Test 3: Successful encode (JPEG)
     sandbox = createSandbox(async (url) => {

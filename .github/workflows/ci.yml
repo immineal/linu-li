@@ -66,8 +66,10 @@ jobs:
               tests/test-pdf-watermarker.js|\
               tests/test-diff-checker-xss.js|\
               tests/test-exif-map-marker.js|\
+              tests/test-exif-scrubber-regressions.js|\
               tests/test-number-spinners.js|\
               tests/test-unit-converter-layout.js|\
+              tests/test-unit-converter-regressions.js|\
               tests/test-service-worker.js|\
               tests/test-freshness-passthrough.js|\
               tests/test-two-workers.js|\
@@ -76,6 +78,8 @@ jobs:
               tests/test-holds-work.js|\
               tests/test-page-metadata.js|\
               tests/test-json-tools-browser.js|\
+              tests/test-json-tools-stale-tree.js|\
+              tests/test-diff-checker-invalid-json.js|\
               tests/test-pdf-compressor-browser.js|\
               tests/test-timestamp-button.js|\
               tests/test-archive-notice.js|\
@@ -183,14 +187,18 @@ jobs:
           }
 
           run_test "tests/test-json-tools-browser.js"
+          run_test "tests/test-json-tools-stale-tree.js"
+          run_test "tests/test-diff-checker-invalid-json.js"
           run_test "tests/test-pdf-compressor-browser.js"
           run_test "tests/test-timestamp-button.js"
           run_test "tests/test-pdf-watermarker.js"
           run_test "tools/social-cropper/social-cropper.spec.js"
           run_test "tests/test-diff-checker-xss.js"
           run_test "tests/test-exif-map-marker.js"
+          run_test "tests/test-exif-scrubber-regressions.js"
           run_test "tests/test-number-spinners.js"
           run_test "tests/test-unit-converter-layout.js"
+          run_test "tests/test-unit-converter-regressions.js"
           run_test "tests/test-service-worker.js"
           run_test "tests/test-freshness-passthrough.js"
           run_test "tests/test-two-workers.js"
