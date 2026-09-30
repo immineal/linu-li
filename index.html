@@ -66,13 +66,24 @@
            (0,2,1) selector reopens breathing room above the privacy line.
            The .tool-header margin-bottom override just below trims the space
            to the search bar so it sits at the same distance below this line
-           as this line sits below the intro. */
+           as this line sits below the intro. The green pill treatment is
+           the one this line used to wear, put back the way it was: sage
+           tint from --accent-secondary, thin border of the same, a small
+           pill radius, a bit of padding. */
         .tool-header p.privacy-note {
             display: inline-block;
             margin-top: 2rem;
             margin-bottom: 0;
-            font-size: 0.9rem;
-            color: var(--ink-secondary);
+            padding: 0.35rem 0.9rem;
+            font-size: 0.85rem;
+            color: #4a6b5d;
+            background: rgba(107, 144, 128, 0.15);
+            border: 1px solid rgba(107, 144, 128, 0.3);
+            border-radius: 20px;
+        }
+        body.dark-mode .tool-header p.privacy-note {
+            color: #a8c5b6;
+            background: rgba(107, 144, 128, 0.2);
         }
         .tool-header { margin-bottom: 2rem; }
         .privacy-note a {
