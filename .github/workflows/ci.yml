@@ -95,6 +95,7 @@ jobs:
           # Per-tool jsdom tests, which sit next to the tool they cover
           for f in \
             tools/aspect-ratio/aspect-ratio.test.js \
+            tools/favicon-maker/test.js \
             tools/image-resizer/test.js \
             tools/list-cleaner/test.js \
             tools/markdown-editor/test.js \
