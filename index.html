@@ -91,7 +91,11 @@
             color: #a8c5b6;
             background: rgba(107, 144, 128, 0.2);
         }
-        .tool-header { margin-bottom: 2rem; }
+        /* Splits the space between the pill and the Pinned h2 evenly so the
+           search bar sits at the visual centre. Was 32px above / 48px below;
+           now 40px above (this bump) and 40px below (the search wrapper's
+           inline margin-bottom, which collapses with the h2's margin-top). */
+        .tool-header { margin-bottom: 2.5rem; }
         .privacy-note a {
             color: inherit;
             text-decoration: underline;
@@ -127,7 +131,7 @@
                 </p>
             </div>
 
-            <div style="max-width: 500px; margin: 0 auto 3rem; position: relative;">
+            <div style="max-width: 500px; margin: 0 auto 2.5rem; position: relative;">
                 <input type="text" id="toolSearch" placeholder="Search: pdf, crop, hash" aria-label="Search tools"
                     data-de-attr="placeholder:Suche: pdf, zuschneiden, hash|aria-label:Werkzeuge suchen"
                     style="padding-left: 2.5rem; border-radius: 50px; margin-bottom: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
