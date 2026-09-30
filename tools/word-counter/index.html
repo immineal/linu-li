@@ -231,8 +231,10 @@
                            out every German word with an umlaut, every French
                            word with an accent, and every CJK word. Use
                            Unicode letter-only instead, so the density stat
-                           actually reflects the text the person pasted. */
-                        if (!stopWords.has(wordLower) && wordLower.length > 1 && /^\p{L}+$/u.test(wordLower)) {
+                           actually reflects the text the person pasted.
+                           Double backslash because the worker code lives in
+                           a template literal, same as the \\s escapes above. */
+                        if (!stopWords.has(wordLower) && wordLower.length > 1 && /^\\p{L}+$/u.test(wordLower)) {
                             wordFreq[wordLower] = (wordFreq[wordLower] || 0) + 1;
                         }
                     }
