@@ -61,7 +61,7 @@
                     <label style="color: var(--ink-secondary); font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; margin-top: -10px; display: block; margin-bottom: 1.5rem;" data-de="Sekunden seit Epoch">Seconds since Epoch</label>
 
                     <div class="button-group" style="justify-content: center;">
-                        <button class="button sm" id="pauseBtn">Pause</button>
+                        <button class="button sm" id="pauseBtn" data-de="Pause">Pause</button>
                         <button class="button sm outline" id="copyCurrentBtn" data-de="Zeitstempel kopieren">Copy Timestamp</button>
                     </div>
                 </div>
@@ -81,7 +81,7 @@
                         <label for="nlInput"><span data-de="Datum in Umgangssprache">Natural Language Date</span> <span style="font-size: 0.8em; color: var(--ink-secondary); font-weight: normal;" data-de="(lädt beim ersten Nutzen einen Parser von jsDelivr)">(fetches a parser from jsDelivr on first use)</span></label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" id="nlInput" placeholder="e.g. Next Friday at 5pm" style="margin-bottom: 0; flex: 1;" data-de-attr="placeholder:z. B. nächsten Freitag um 17 Uhr">
-                            <button class="button sm outline" id="parseNlBtn" style="flex-shrink: 0; align-self: stretch;">Parse</button>
+                            <button class="button sm outline" id="parseNlBtn" style="flex-shrink: 0; align-self: stretch;" data-de="Auslesen">Parse</button>
                         </div>
                         <div id="nlFeedback" style="font-size: 0.8rem; color: var(--accent); margin-top: 0.4rem; min-height: 1.1em;"></div>
                     </div>
@@ -186,6 +186,43 @@
         dayjs.extend(window.dayjs_plugin_localizedFormat);
         dayjs.extend(window.dayjs_plugin_timezone);
 
+        /* Convenience: pick the string for the current locale. LL_I18N.t
+           returns the English string when the site is in English mode
+           and the German one when in German mode, without touching state. */
+        const T = (en, de) => (window.LL_I18N ? window.LL_I18N.t(en, de) : en);
+        /* Native Intl formatters follow LL_I18N. Rebuilt when the locale
+           changes so a mid-session switch does not leave stale strings on
+           the live clock. */
+        function currentIntlLocale() {
+            const lang = window.LL_I18N && window.LL_I18N.lang;
+            return lang === 'de' ? 'de-DE' : 'en-US';
+        }
+        /* No hour12 override: German is 24-hour, US English 12-hour with an
+           AM/PM. Letting Intl pick per locale gives both the right shape. */
+        const clockFormatter = new Intl.DateTimeFormat(currentIntlLocale(), {
+            weekday: 'long', year: 'numeric', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit', second: '2-digit'
+        });
+        const relativeFormatter = new Intl.RelativeTimeFormat(currentIntlLocale(), { numeric: 'auto' });
+        /* Turn "seconds since or until date X" into a locale-aware phrase.
+           Picks the coarsest unit that still reads sensibly ("2 hours ago"
+           rather than "7200 seconds ago"). */
+        function relativeFromMs(msFromNow) {
+            const secs = Math.round(msFromNow / 1000);
+            const abs = Math.abs(secs);
+            if (abs < 60) return relativeFormatter.format(secs, 'second');
+            const mins = Math.round(secs / 60);
+            if (Math.abs(mins) < 60) return relativeFormatter.format(mins, 'minute');
+            const hrs = Math.round(secs / 3600);
+            if (Math.abs(hrs) < 24) return relativeFormatter.format(hrs, 'hour');
+            const days = Math.round(secs / 86400);
+            if (Math.abs(days) < 30) return relativeFormatter.format(days, 'day');
+            const months = Math.round(secs / (86400 * 30.44));
+            if (Math.abs(months) < 12) return relativeFormatter.format(months, 'month');
+            const years = Math.round(secs / (86400 * 365.25));
+            return relativeFormatter.format(years, 'year');
+        }
+
         const currentTimestampDisplay = document.getElementById('currentTimestamp');
         const currentHumanTimeDisplay = document.getElementById('currentHumanTime');
         const pauseBtn = document.getElementById('pauseBtn');
@@ -283,13 +320,13 @@
             if (!isPaused) {
                 const now = dayjs();
                 currentTimestampDisplay.textContent = now.unix();
-                currentHumanTimeDisplay.textContent = now.format('dddd, MMM D, YYYY h:mm:ss A');
+                currentHumanTimeDisplay.textContent = clockFormatter.format(now.toDate());
             }
         }
 
         pauseBtn.addEventListener('click', () => {
             isPaused = !isPaused;
-            pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+            pauseBtn.textContent = isPaused ? T('Resume', 'Weiter') : T('Pause', 'Pause');
             pauseBtn.classList.toggle('secondary');
         });
 
@@ -309,9 +346,9 @@
             const inputVal = tsInput.value.trim();
             const selectedZone = targetTz.value;
             const selectedFormat = tsFormat.value;
-            
+
             if (!inputVal) {
-                showToast('Enter a timestamp first', 'error');
+                showToast(T('Enter a timestamp first', 'Erst einen Zeitstempel eingeben'), 'error');
                 return;
             }
 
@@ -319,7 +356,7 @@
             try {
                 tsBigInt = BigInt(inputVal);
             } catch (e) {
-                showToast('A timestamp is a whole number', 'error');
+                showToast(T('A timestamp is a whole number', 'Ein Zeitstempel ist eine ganze Zahl'), 'error');
                 return;
             }
 
@@ -333,12 +370,15 @@
                 else format = 'ns';
 
                 const formatNames = {
-                    's': 'Seconds',
-                    'ms': 'Milliseconds',
-                    'us': 'Microseconds',
-                    'ns': 'Nanoseconds'
+                    's': T('Seconds', 'Sekunden'),
+                    'ms': T('Milliseconds', 'Millisekunden'),
+                    'us': T('Microseconds', 'Mikrosekunden'),
+                    'ns': T('Nanoseconds', 'Nanosekunden')
                 };
-                tsFormatFeedback.textContent = `Auto-detected as ${formatNames[format]}`;
+                tsFormatFeedback.textContent = T(
+                    `Auto-detected as ${formatNames[format]}`,
+                    `Automatisch als ${formatNames[format]} erkannt`
+                );
             } else {
                 tsFormatFeedback.textContent = '';
             }
@@ -360,7 +400,8 @@
             dayObj = dayjs(msValue);
 
             if (!dayObj.isValid()) {
-                showToast('That timestamp is out of the range a date can show', 'error');
+                showToast(T('That timestamp is out of the range a date can show',
+                            'Dieser Zeitstempel liegt außerhalb dessen, was ein Datum zeigen kann'), 'error');
                 return;
             }
 
@@ -368,9 +409,11 @@
             resLocal.value = dayObj.format('YYYY-MM-DD HH:mm:ss Z');
 
             resZone.value = dayObj.tz(selectedZone).format('YYYY-MM-DD HH:mm:ss Z');
-            
-            resRelative.textContent = dayObj.fromNow();
-            
+
+            /* dayjs' relativeTime plugin only knows English. Intl on the other
+               hand goes as a native and does not need vendoring. */
+            resRelative.textContent = relativeFromMs(dayObj.valueOf() - Date.now());
+
             tsResultBox.classList.remove('hidden');
         });
 
@@ -383,9 +426,9 @@
         convertToTsBtn.addEventListener('click', () => {
             const dateVal = dateInput.value;
             const tzMode = manualTz.value;
-            
+
             if (!dateVal) {
-                showToast('Pick a date first', 'error');
+                showToast(T('Pick a date first', 'Erst ein Datum wählen'), 'error');
                 return;
             }
 
@@ -395,9 +438,9 @@
             } else {
                 dayObj = dayjs(dateVal);
             }
-            
+
             if (!dayObj.isValid()) {
-                showToast('That is not a valid date', 'error');
+                showToast(T('That is not a valid date', 'Das ist kein gültiges Datum'), 'error');
                 return;
             }
 
@@ -422,7 +465,7 @@
         parseNlBtn.addEventListener('click', async () => {
             const text = nlInput.value.trim();
             if (!text) {
-                nlFeedback.textContent = "Type a date first";
+                nlFeedback.textContent = T('Type a date first', 'Erst ein Datum tippen');
                 return;
             }
 
@@ -436,22 +479,24 @@
                 const parsedDate = chronoModule.parseDate(text);
 
                 if (parsedDate) {
-                    nlFeedback.textContent = "Found a date";
+                    nlFeedback.textContent = T('Found a date', 'Datum gefunden');
                     nlFeedback.style.color = "var(--success, #2e7d32)";
 
                     dateInput.value = dayjs(parsedDate).format('YYYY-MM-DDTHH:mm:ss');
                     manualTz.value = 'local'; // chrono returns local time unless the text names a zone
                     convertToTsBtn.click();
                 } else {
-                    nlFeedback.textContent = "No date found in that";
+                    nlFeedback.textContent = T('No date found in that', 'Darin steckt kein Datum');
                     nlFeedback.style.color = "var(--accent)";
                 }
             } catch (err) {
                 console.error('Could not load chrono-node', err);
-                nlFeedback.textContent = "Could not load the parser from jsDelivr. This field needs a connection.";
+                nlFeedback.textContent = T(
+                    'Could not load the parser from jsDelivr. This field needs a connection.',
+                    'Der Parser ließ sich nicht von jsDelivr laden. Dieses Feld braucht eine Verbindung.');
                 nlFeedback.style.color = "var(--accent)";
             } finally {
-                parseNlBtn.textContent = 'Parse';
+                parseNlBtn.textContent = T('Parse', 'Auslesen');
                 parseNlBtn.disabled = false;
             }
         });
