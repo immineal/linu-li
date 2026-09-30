@@ -20,14 +20,17 @@
             justify-content: space-between;
             align-items: center;
         }
-        /* The colours jwt.io uses for the three parts, so they look familiar. */
-        .color-header { color: #fb015b; }
-        .color-payload { color: #d63aff; }
-        .color-signature { color: #00b9f1; }
-        
-        .border-header { border-left: 4px solid #fb015b; }
-        .border-payload { border-left: 4px solid #d63aff; }
-        .border-signature { border-left: 4px solid #00b9f1; }
+        /* The three parts get three palette-friendly hues instead of
+           jwt.io's crimson/magenta/cyan, which clashed with the rest of
+           the site. Header keeps the accent (a rust); payload takes a
+           dusty plum; signature takes the sage accent-secondary. */
+        .color-header { color: var(--accent); }
+        .color-payload { color: #8a5b7a; }
+        .color-signature { color: var(--accent-secondary); }
+
+        .border-header { border-left: 4px solid var(--accent); }
+        .border-payload { border-left: 4px solid #8a5b7a; }
+        .border-signature { border-left: 4px solid var(--accent-secondary); }
 
         .timestamp-hint {
             color: var(--ink-secondary);
@@ -39,9 +42,9 @@
 
         .json-key { color: var(--accent); font-weight: bold; }
         .json-string { color: var(--accent-secondary); }
-        .json-number { color: #d63aff; }
-        .json-boolean { color: #00b9f1; }
-        .json-null { color: #fb015b; }
+        .json-number { color: #8a5b7a; }
+        .json-boolean { color: var(--accent-secondary); }
+        .json-null { color: var(--accent); }
 
         .signature-controls {
             margin-top: 1rem;
@@ -65,7 +68,7 @@
         }
         .status-waiting { background: var(--border); color: var(--ink-secondary); }
         .status-valid { background: rgba(136, 168, 153, 0.2); color: var(--accent-secondary); border: 1px solid var(--accent-secondary); }
-        .status-invalid { background: rgba(251, 1, 91, 0.1); color: #fb015b; border: 1px solid #fb015b; }
+        .status-invalid { background: rgba(196, 77, 60, 0.1); color: var(--accent); border: 1px solid var(--accent); }
     </style>
 </head>
 <body>
