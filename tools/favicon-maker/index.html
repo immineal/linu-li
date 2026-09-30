@@ -154,7 +154,7 @@
 
                 </div>
 
-                <div class="card" style="display: flex; flex-direction: column;">
+                <div class="card" style="align-self: start;">
                     <label data-de="Vorschau (512 px)">Preview (512 px)</label>
 
                     <div class="preview-area">
@@ -165,14 +165,12 @@
                         The tab at the top of this window shows it at real size.
                     </div>
 
-                    <div style="margin-top: auto;">
-                        <div class="button-group" style="justify-content: center;">
-                            <button class="button" id="downloadPng" data-de="PNG herunterladen">Download PNG</button>
-                            <button class="button secondary" id="downloadIco" data-de="ICO herunterladen">Download ICO</button>
-                        </div>
-                        <div class="button-group" style="justify-content: center; margin-top: 0.5rem;">
-                            <button class="button outline" id="downloadZip" style="width: 100%;">Download Full Set (ZIP)</button>
-                        </div>
+                    <div class="button-group" style="justify-content: center;">
+                        <button class="button" id="downloadPng" data-de="PNG herunterladen">Download PNG</button>
+                        <button class="button secondary" id="downloadIco" data-de="ICO herunterladen">Download ICO</button>
+                    </div>
+                    <div class="button-group" style="justify-content: center; margin-top: 0.5rem;">
+                        <button class="button outline" id="downloadZip" style="width: 100%;">Download Full Set (ZIP)</button>
                     </div>
                 </div>
             </div>
@@ -282,6 +280,48 @@
             draw();
         }
 
+        /* Strip SVG constructs that either taint the canvas or run code:
+             - <foreignObject> can load a document with cross-origin
+               requests, and once one paints the canvas is tainted for the
+               rest of the session — no getImageData, no toDataURL, so ICO
+               export dies. That was the "why does my browser tab go blank
+               after uploading this SVG" report.
+             - <script> lets an uploaded file execute JS on the page.
+             - External <image href="http://…"> or <use href="http://…">
+               taint the canvas the same way <foreignObject> does.
+           This walks the parsed DOM once and removes anything unsafe,
+           telling the user what was dropped so they know why the preview
+           looks different from their file. */
+        function sanitiseSvg(doc) {
+            const removed = { foreign: 0, script: 0, external: 0 };
+            doc.querySelectorAll('foreignObject').forEach(el => {
+                el.remove();
+                removed.foreign++;
+            });
+            doc.querySelectorAll('script').forEach(el => {
+                el.remove();
+                removed.script++;
+            });
+            const isExternal = (href) => href && /^(https?:)?\/\//i.test(href);
+            doc.querySelectorAll('image, use').forEach(el => {
+                const href = el.getAttribute('href') || el.getAttribute('xlink:href');
+                if (isExternal(href)) {
+                    el.remove();
+                    removed.external++;
+                }
+            });
+            // Inline event handlers: onclick, onload, etc.
+            doc.querySelectorAll('*').forEach(el => {
+                for (const attr of Array.from(el.attributes)) {
+                    if (attr.name.toLowerCase().startsWith('on')) {
+                        el.removeAttribute(attr.name);
+                        removed.script++;
+                    }
+                }
+            });
+            return removed;
+        }
+
         function handleFile(files) {
             if (files.length === 0) return;
             const file = files[0];
@@ -295,6 +335,15 @@
                     const svg = doc.querySelector('svg');
 
                     if (svg) {
+                        const dropped = sanitiseSvg(doc);
+                        const total = dropped.foreign + dropped.script + dropped.external;
+                        if (total > 0) {
+                            const bits = [];
+                            if (dropped.foreign) bits.push(`${dropped.foreign} foreignObject`);
+                            if (dropped.script) bits.push(`${dropped.script} script`);
+                            if (dropped.external) bits.push(`${dropped.external} cross-origin reference`);
+                            showToast(`Dropped ${bits.join(', ')} from the SVG — they would have broken the download.`, 'info');
+                        }
                         if (!svg.hasAttribute('width')) svg.setAttribute('width', '512');
                         if (!svg.hasAttribute('height')) svg.setAttribute('height', '512');
                         const serializer = new XMLSerializer();
