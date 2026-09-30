@@ -99,6 +99,7 @@ jobs:
             tools/list-cleaner/test.js \
             tools/markdown-editor/test.js \
             tools/pdf-splitter/test.js \
+            tools/time-converter/test.js \
             tools/url-tools/test.js \
             tools/color-tools/test_color_contrast.js \
             tools/unit-converter/test_regression.js; do
