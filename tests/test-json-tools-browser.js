@@ -43,8 +43,8 @@ const BASIS = 'http://localhost:3000';
         const ziel = `${BASIS}/tools/json-tools/`;
         await page.goto(ziel, { waitUntil: 'networkidle0' });
 
-        /* Kommt die Seite woanders an, rechnet der Worker-Pfad von dort aus
-           weiter und die Prüfung darunter misst etwas anderes als gedacht. */
+        /* If the page lands somewhere else, the worker's path resolves from
+           there and the check below measures something other than intended. */
         assert.strictEqual(page.url(), ziel,
             `the server moved the address to ${page.url()} — relative paths in the ` +
             'page, the worker among them, resolve from there and not from the directory');
