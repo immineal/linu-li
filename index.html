@@ -66,15 +66,36 @@
            (0,2,1) selector reopens breathing room above the privacy line.
            The .tool-header margin-bottom override just below trims the space
            to the search bar so it sits at the same distance below this line
-           as this line sits below the intro. */
+           as this line sits below the intro. The green pill treatment is
+           the one this line used to wear, put back the way it was: sage
+           tint from --accent-secondary, thin border of the same, a small
+           pill radius, a bit of padding. */
         .tool-header p.privacy-note {
             display: inline-block;
-            margin-top: 2rem;
+            /* The header-to-intro gap sits at 8px (h1's margin-bottom).
+               The pill's own padding-top (0.35rem) and its 1px top border
+               are the standoff between its outer edge and its text, so
+               match the 8px header→intro visually by adding that standoff
+               to the intro→pill margin — the intro's text-to-pill's-text
+               distance then equals the header-to-intro distance. */
+            margin-top: calc(0.5rem + 0.35rem + 1px);
             margin-bottom: 0;
-            font-size: 0.9rem;
-            color: var(--ink-secondary);
+            padding: 0.35rem 0.9rem;
+            font-size: 0.85rem;
+            color: #4a6b5d;
+            background: rgba(107, 144, 128, 0.15);
+            border: 1px solid rgba(107, 144, 128, 0.3);
+            border-radius: 20px;
         }
-        .tool-header { margin-bottom: 2rem; }
+        body.dark-mode .tool-header p.privacy-note {
+            color: #a8c5b6;
+            background: rgba(107, 144, 128, 0.2);
+        }
+        /* Splits the space between the pill and the Pinned h2 evenly so the
+           search bar sits at the visual centre. Was 32px above / 48px below;
+           now 40px above (this bump) and 40px below (the search wrapper's
+           inline margin-bottom, which collapses with the h2's margin-top). */
+        .tool-header { margin-bottom: 2.5rem; }
         .privacy-note a {
             color: inherit;
             text-decoration: underline;
@@ -110,7 +131,7 @@
                 </p>
             </div>
 
-            <div style="max-width: 500px; margin: 0 auto 3rem; position: relative;">
+            <div style="max-width: 500px; margin: 0 auto 2.5rem; position: relative;">
                 <input type="text" id="toolSearch" placeholder="Search: pdf, crop, hash" aria-label="Search tools"
                     data-de-attr="placeholder:Suche: pdf, zuschneiden, hash|aria-label:Werkzeuge suchen"
                     style="padding-left: 2.5rem; border-radius: 50px; margin-bottom: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
