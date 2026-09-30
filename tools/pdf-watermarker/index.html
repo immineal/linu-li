@@ -45,15 +45,25 @@
             left: 50%;
             cursor: grab;
             white-space: nowrap;
-            font-family: Helvetica, sans-serif;
+            font-family: Helvetica, Arial, sans-serif;
             font-weight: bold;
             line-height: 1;
-            /* pdf-lib rotates text about its bottom-left corner */
-            transform-origin: 0% 100%;
+            /* pdf-lib draws text with (x, y) as the baseline-left, not
+               bottom-left, and rotates about that same point. The origin
+               here matches: 72% of the box height down (Helvetica-Bold's
+               ascent is 718/1000 em) is the baseline in an unrotated box. */
+            transform-origin: 0% 72%;
             border: 2px dashed rgba(196, 77, 60, 0.5);
             z-index: 10;
-            padding: 0 4px; /* a little more to grab than the letters alone */
+            padding: 0; /* used to have 4px sides; it made the preview drift right of the stamp */
         }
+
+        .watermark-warning {
+            color: var(--accent);
+            font-size: 0.85rem;
+            margin-top: 0.4rem;
+        }
+        .watermark-warning.hidden { display: none; }
 
         .watermark-overlay:active {
             cursor: grabbing;
@@ -90,6 +100,10 @@
                         <div>
                             <label data-de="Wasserzeichen-Text">Watermark Text</label>
                             <input type="text" id="watermarkText" value="CONFIDENTIAL">
+                            <p class="watermark-warning hidden" id="watermarkWarning"
+                               data-de="Diese Schriftart kennt kein Emoji, kein Kyrillisch, kein Chinesisch. Probier einen anderen Text.">
+                                This font does not know emoji, Cyrillic or Chinese. Try different text.
+                            </p>
                         </div>
                         <div>
                             <label data-de="Farbe">Color</label>
@@ -157,6 +171,7 @@
         const canvasContainer = document.getElementById('canvasContainer');
 
         const txtInput = document.getElementById('watermarkText');
+        const txtWarning = document.getElementById('watermarkWarning');
         const colInput = document.getElementById('watermarkColor');
         const opRange = document.getElementById('opacityRange');
         const opVal = document.getElementById('opacityValue');
@@ -181,6 +196,29 @@
         txtInput.addEventListener('input', updateVisuals);
         colInput.addEventListener('change', updateVisuals);
 
+        /* pdf-lib's standard fonts use WinAnsi encoding — Basic Latin, most
+           of Latin-1 Supplement, and a handful of curly quotes / dashes /
+           bullets / the euro sign. Anything else (emoji, Cyrillic, CJK,
+           Greek, Turkish specials, Vietnamese) makes pdf-lib throw "cannot
+           encode …" instead of watermarking. Better to catch it here and
+           tell the user. */
+        const WIN_ANSI_EXTRAS = new Set([
+            0x20AC, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021,
+            0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0x017D, 0x2018,
+            0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x02DC,
+            0x2122, 0x0161, 0x203A, 0x0153, 0x017E, 0x0178
+        ]);
+        function hasNonWinAnsi(str) {
+            for (const ch of str) {
+                const cp = ch.codePointAt(0);
+                if (cp <= 0xFF) continue;
+                if (WIN_ANSI_EXTRAS.has(cp)) continue;
+                return true;
+            }
+            return false;
+        }
+        window.hasNonWinAnsi = hasNonWinAnsi;
+
         function updateVisuals() {
             opVal.textContent = opRange.value;
             szVal.textContent = szRange.value;
@@ -198,6 +236,10 @@
 
             const rgbStr = colInput.value.split(',').map(n => Math.floor(parseFloat(n) * 255));
             overlay.style.color = `rgb(${rgbStr.join(',')})`;
+
+            const badChars = hasNonWinAnsi(txtInput.value);
+            txtWarning.classList.toggle('hidden', !badChars);
+            if (currentFiles.length > 0) processBtn.disabled = badChars;
         }
 
         setupDropZone(dropZone, fileInput, handleFiles);
@@ -220,8 +262,30 @@
                 showToast(`${currentFiles.length} PDFs loaded. The preview shows the first.`, 'info');
             }
 
-            await renderPreview(currentFiles[0]);
+            try {
+                await renderPreview(currentFiles[0]);
+            } catch (err) {
+                /* pdf.js does not use pdf-lib's error type — its
+                   PasswordException, and any generic damaged-file error, land
+                   here. Tell the user, roll the tool back to the drop zone,
+                   and drop the file we cannot handle. */
+                console.error(err);
+                const encrypted = err && (err.name === 'PasswordException'
+                                          || /password/i.test(err.message || '')
+                                          || /encrypt/i.test(err.message || ''));
+                showToast(encrypted
+                    ? `"${currentFiles[0].name}" is encrypted. Even when it opens without a password, its contents stay locked, and this tool cannot unlock them.`
+                    : `Could not read "${currentFiles[0].name}". It may be damaged.`,
+                    'error');
+                currentFiles = [];
+                fileInput.value = '';
+                editorArea.classList.add('hidden');
+                dropZone.classList.remove('hidden');
+                processBtn.disabled = true;
+                return;
+            }
             initDraggable();
+            updateVisuals();
         }
 
         async function renderPreview(file) {
@@ -319,8 +383,15 @@
                 const { width, height } = page.getSize();
 
                 const pdfX = width * posX;
-                // PDF counts y from the bottom, the screen from the top
-                const pdfY = height - (height * posY);
+                /* PDF counts y from the bottom, the screen from the top.
+                   The CSS overlay's top edge marks the top of the text
+                   box; pdf-lib's y marks the baseline of the first
+                   character, which sits Helvetica-Bold's ascent below
+                   that top edge. heightAtSize({ descender: false }) is
+                   that ascent, so subtracting it here drops the drawn
+                   text down to where the preview showed its top-left. */
+                const ascent = helveticaFont.heightAtSize(fontSize, { descender: false });
+                const pdfY = height - (height * posY) - ascent;
 
                 page.drawText(text, {
                     x: pdfX,
@@ -338,11 +409,15 @@
 
         processBtn.addEventListener('click', async () => {
             if (currentFiles.length === 0) return;
+            const text = txtInput.value || 'CONFIDENTIAL';
+            if (hasNonWinAnsi(text)) {
+                showToast('The watermark text has characters this font cannot draw. Try Latin letters, digits and common punctuation.', 'error');
+                return;
+            }
             processBtn.disabled = true;
             processBtn.textContent = 'Working...';
 
             try {
-                const text = txtInput.value || 'CONFIDENTIAL';
                 const fontSize = parseInt(szRange.value);
                 const opacity = parseFloat(opRange.value);
                 const angle = parseInt(rotRange.value);
@@ -393,6 +468,9 @@
             editorArea.classList.add('hidden');
             resultBox.classList.add('hidden');
             dropZone.classList.remove('hidden');
+            processBtn.disabled = true;
+            processBtn.textContent = 'Apply watermark';
+            txtWarning.classList.add('hidden');
             if (generatedPdfUrl) URL.revokeObjectURL(generatedPdfUrl);
         });
 
