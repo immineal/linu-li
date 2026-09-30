@@ -59,18 +59,19 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .privacy-badge {
+        .privacy-note {
             display: inline-block;
-            background: rgba(107, 144, 128, 0.15);
-            color: #4a6b5d;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
             margin-top: 1rem;
-            border: 1px solid rgba(107, 144, 128, 0.3);
+            font-size: 0.9rem;
+            color: var(--ink-secondary);
         }
-        body.dark-mode .privacy-badge { color: #88a899; background: rgba(107, 144, 128, 0.2); }
+        .privacy-note a {
+            color: inherit;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            text-decoration-thickness: 1px;
+        }
+        .privacy-note a:hover { color: var(--ink); }
 
         /* Extra words for the search to match. Never shown. */
         .keywords { display: none; }
@@ -92,19 +93,11 @@
             <div class="tool-header">
                 <h1 data-de="Werkzeugkasten">Toolbox</h1>
                 <p data-de="Kleine Werkzeuge, die in deinem Browser-Tab laufen. Nichts, was du hier öffnest, wird hochgeladen, und es gibt keine Konten und keine Analytik.">Small tools that run in your browser tab. Nothing you open here is uploaded, and there are no accounts or analytics.</p>
-                <div>
-                    <a href="./privacy.html" class="privacy-badge" style="text-decoration: none; transition: all 0.2s;"
-                       data-de="Läuft offline, sobald geladen &bull; Was geht doch ins Netz, und wann">
-                        Works offline once loaded &bull; What does go online, and when
-                    </a>
-                    <style>
-                        .privacy-badge:hover {
-                            background: rgba(107, 144, 128, 0.25);
-                            transform: translateY(-1px);
-                            cursor: pointer;
-                        }
-                    </style>
-                </div>
+                <p class="privacy-note">
+                    <span data-de="Nichts wird hochgeladen.">Nothing is uploaded.</span>
+                    &middot;
+                    <a href="./privacy.html" data-de="Zum Datenschutz">Read the privacy note</a>
+                </p>
             </div>
 
             <div style="max-width: 500px; margin: 0 auto 3rem; position: relative;">
