@@ -98,6 +98,7 @@ jobs:
             tools/image-resizer/test.js \
             tools/list-cleaner/test.js \
             tools/markdown-editor/test.js \
+            tools/pdf-extractor/test.js \
             tools/pdf-splitter/test.js \
             tools/pdf-watermarker/test.js \
             tools/url-tools/test.js \

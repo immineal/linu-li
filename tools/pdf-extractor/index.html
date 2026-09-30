@@ -129,6 +129,11 @@
         let extractedImages = [];
         let extractedTexts = [];
         let extractedFonts = [];
+        /* Bumped on every Reset. Every await inside a run checks its own
+           captured token against this counter so a Reset mid-extract stops
+           the loop, drops its result, and skips the "Extracted…" toast. */
+        let runToken = 0;
+        let currentPdf = null;
 
         setupDropZone(dropZone, fileInput, handleFileSelection);
 
@@ -164,6 +169,7 @@
         processBtn.addEventListener('click', async () => {
             if (!currentFile) return;
 
+            const token = ++runToken;
             processBtn.disabled = true;
             progressContainer.style.display = 'block';
             statusText.style.display = 'block';
@@ -173,6 +179,11 @@
             extractedImages = [];
             extractedTexts = [];
             extractedFonts = [];
+            /* An image or font resource stays in the operator list on every
+               page that paints it. Asking pdf.js for the same imgName again
+               after it already refused (a 10s timeout) would stall the whole
+               loop on every page. Track what we've asked for and skip it. */
+            const seenImgNames = new Set();
 
             const doImages = document.getElementById('extractImagesCb').checked;
             const doText = document.getElementById('extractTextCb').checked;
@@ -188,9 +199,12 @@
 
             try {
                 const arrayBuffer = await currentFile.arrayBuffer();
+                if (token !== runToken) return;
                 // Without fontExtraProperties pdf.js drops a font's bytes once the browser has loaded it
                 const loadingTask = await pdfOeffnen({ data: new Uint8Array(arrayBuffer), fontExtraProperties: true });
                 const pdf = await loadingTask.promise;
+                if (token !== runToken) { try { loadingTask.destroy(); } catch (e) {} return; }
+                currentPdf = pdf;
 
                 const numPages = pdf.numPages;
                 let imagesFoundTotal = 0;
@@ -201,10 +215,12 @@
                 const documentFragment = document.createDocumentFragment();
 
                 for (let i = 1; i <= numPages; i++) {
+                    if (token !== runToken) break;
                     // Let the progress bar repaint on long documents
                     if (i % 5 === 0) {
                         await new Promise(r => setTimeout(r, 0));
                     }
+                    if (token !== runToken) break;
 
                     const percent = Math.round((i / numPages) * 100);
                     progressBar.style.width = `${percent}%`;
@@ -251,9 +267,14 @@
                                 
                                 if (doImages && validImgOperators.includes(op)) {
                                     const imgName = operatorList.argsArray[j][0];
+                                    if (typeof imgName === 'string') {
+                                        if (seenImgNames.has(imgName)) continue;
+                                        seenImgNames.add(imgName);
+                                    }
                                     try {
                                         // An inline image comes along in the list itself
                                         const imageObj = typeof imgName === 'string' ? await bekommen(page.objs, imgName) : imgName;
+                                        if (token !== runToken) break;
                                         if (imageObj) {
                                             const processedImg = await processPdfImage(imageObj, i, imagesFoundTotal + 1);
                                             if (processedImg) {
@@ -316,6 +337,9 @@
                 try {
                     pdf.loadingTask.destroy();
                 } catch (e) {}
+                if (currentPdf === pdf) currentPdf = null;
+
+                if (token !== runToken) return;
 
                 // One append for all cards, not one reflow per card
                 imageGrid.appendChild(documentFragment);
@@ -340,11 +364,12 @@
                 }
 
             } catch (error) {
+                if (token !== runToken) return;
                 console.error(error);
                 showToast('Could not read this PDF: ' + error.message, 'error');
                 statusText.textContent = 'Stopped with an error.';
             } finally {
-                processBtn.disabled = false;
+                if (token === runToken) processBtn.disabled = false;
             }
         });
 
@@ -552,6 +577,12 @@
         resetBtn.addEventListener('click', resetTool);
         
         function resetTool() {
+            // Any run in flight sees the new token on its next await and returns
+            runToken++;
+            if (currentPdf) {
+                try { currentPdf.loadingTask.destroy(); } catch (e) {}
+                currentPdf = null;
+            }
             const allAssets = [...extractedImages, ...extractedTexts, ...extractedFonts];
             if (allAssets.length > 0) {
                 allAssets.forEach(asset => {
@@ -572,6 +603,7 @@
             statusText.style.display = 'none';
             progressBar.style.width = '0%';
             fileInput.value = '';
+            processBtn.disabled = false;
         }
     
     /* Is this tool holding something right now that a reload would throw
