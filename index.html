@@ -59,12 +59,22 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .privacy-note {
+        /* The landing has two ps in its header — the intro and this small
+           privacy line — so it needs a rhythm neither ends of the page-wide
+           .tool-header rule handles. .tool-header p in style.css is (0,1,1)
+           and zeros both p margins for the tool-page one-p case, so this
+           (0,2,1) selector reopens breathing room above the privacy line.
+           The .tool-header margin-bottom override just below trims the space
+           to the search bar so it sits at the same distance below this line
+           as this line sits below the intro. */
+        .tool-header p.privacy-note {
             display: inline-block;
-            margin-top: 1rem;
+            margin-top: 2rem;
+            margin-bottom: 0;
             font-size: 0.9rem;
             color: var(--ink-secondary);
         }
+        .tool-header { margin-bottom: 2rem; }
         .privacy-note a {
             color: inherit;
             text-decoration: underline;
