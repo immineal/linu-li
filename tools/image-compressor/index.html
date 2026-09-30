@@ -324,6 +324,12 @@
                 processSingleImage();
             };
             imgOrg.onerror = () => {
+                /* Reset sets src="", and an empty src makes Chrome try to
+                   load the page's own URL as an image. That fails, this
+                   handler fires, it clicks Reset again, and 14 toasts stack
+                   up before the loop dies. Only report a real load
+                   failure — an empty src is not one. */
+                if (!imgOrg.getAttribute('src')) return;
                 if (typeof showToast === 'function') {
                     showToast('Could not open this image. It may be damaged or in a format the browser cannot read.', 'error');
                 }
@@ -434,8 +440,10 @@
 
         document.getElementById('singleResetBtn').addEventListener('click', () => {
             singleFile = null;
-            document.getElementById('imgOrg').src = '';
-            document.getElementById('imgMod').src = '';
+            /* removeAttribute rather than src="" — an empty string makes
+               Chrome load the page URL and hits imgOrg.onerror. */
+            document.getElementById('imgOrg').removeAttribute('src');
+            document.getElementById('imgMod').removeAttribute('src');
             document.getElementById('compareWrapper').classList.add('hidden');
             document.getElementById('singleStats').classList.add('hidden');
             document.getElementById('singleControls').classList.add('hidden');
