@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Color Converter & Contrast Checker | Linus Linhof</title>
+    <title data-de="Farb-Umrechner & Kontrast-Prüfer | Linus Linhof">Color Converter & Contrast Checker | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -113,8 +113,8 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Color Tools</h1>
-                <p>Pick a color and copy it as HEX, RGB, HSL or CMYK. The right-hand card checks text against a background for WCAG and APCA contrast.</p>
+                <h1 data-de="Farb-Werkzeuge">Color Tools</h1>
+                <p data-de="Farbe wählen und als HEX, RGB, HSL oder CMYK kopieren. Die rechte Karte prüft Text gegen Hintergrund auf WCAG- und APCA-Kontrast.">Pick a color and copy it as HEX, RGB, HSL or CMYK. The right-hand card checks text against a background for WCAG and APCA contrast.</p>
             </div>
 
             <div class="split-view">
@@ -122,16 +122,16 @@
                 <div class="card">
                     
                     <div class="target-tabs">
-                        <button class="target-tab active" onclick="setTarget('main')">Converter</button>
-                        <button class="target-tab" onclick="setTarget('fg')">Text Color</button>
-                        <button class="target-tab" onclick="setTarget('bg')">Background</button>
+                        <button class="target-tab active" onclick="setTarget('main')" data-de="Umrechner">Converter</button>
+                        <button class="target-tab" onclick="setTarget('fg')" data-de="Textfarbe">Text Color</button>
+                        <button class="target-tab" onclick="setTarget('bg')" data-de="Hintergrund">Background</button>
                     </div>
 
                     <div style="margin-bottom: 1rem; display: flex; justify-content: flex-end;">
                         <select id="layoutSelect" data-save style="width: auto; font-size: 0.8rem; padding: 0.3rem 1rem; margin: 0;">
-                            <option value="wheel">Wheel (HSL)</option>
-                            <option value="box">Box (HSV)</option>
-                            <option value="kelvin">Kelvin (Temp)</option>
+                            <option value="wheel" data-de="Rad (HSL)">Wheel (HSL)</option>
+                            <option value="box" data-de="Box (HSV)">Box (HSV)</option>
+                            <option value="kelvin" data-de="Kelvin (Temp)">Kelvin (Temp)</option>
                         </select>
                     </div>
 
@@ -142,40 +142,40 @@
                     <label>HEX</label>
                     <div style="display:flex; gap:8px; align-items:center; margin-bottom: 1rem;">
                         <input type="text" id="valHex" value="#c44d3c" style="margin-bottom:0; flex:1;">
-                        <button class="button sm secondary" onclick="copyId('valHex')">Copy</button>
+                        <button class="button sm secondary" onclick="copyId('valHex')" data-de="Kopieren">Copy</button>
                     </div>
 
                     <label>RGB</label>
                     <div style="display:flex; gap:8px; align-items:center; margin-bottom: 1rem;">
                         <input type="text" id="valRgb" value="rgb(196, 77, 60)" style="margin-bottom:0; flex:1;">
-                        <button class="button sm secondary" onclick="copyId('valRgb')">Copy</button>
+                        <button class="button sm secondary" onclick="copyId('valRgb')" data-de="Kopieren">Copy</button>
                     </div>
 
                     <label>HSL</label>
                     <div style="display:flex; gap:8px; align-items:center; margin-bottom: 1rem;">
                         <input type="text" id="valHsl" value="hsl(7, 54%, 50%)" style="margin-bottom:0; flex:1;">
-                        <button class="button sm secondary" onclick="copyId('valHsl')">Copy</button>
+                        <button class="button sm secondary" onclick="copyId('valHsl')" data-de="Kopieren">Copy</button>
                     </div>
 
                     <label>CMYK</label>
                     <div style="display:flex; gap:8px; align-items:center;">
                         <input type="text" id="valCmyk" value="cmyk(0%, 61%, 69%, 23%)" style="margin-bottom:0; flex:1;">
-                        <button class="button sm secondary" onclick="copyId('valCmyk')">Copy</button>
+                        <button class="button sm secondary" onclick="copyId('valCmyk')" data-de="Kopieren">Copy</button>
                     </div>
 
-                    <h3 style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">Palettes</h3>
+                    <h3 style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);" data-de="Paletten">Palettes</h3>
                     <div id="paletteContainer" style="display: flex; flex-direction: column; gap: 1rem;"></div>
                 </div>
 
                 <div class="card">
-                    <h3>Accessibility Contrast</h3>
+                    <h3 data-de="Barrierefreier Kontrast">Accessibility Contrast</h3>
                     
                     <div class="split-view" style="margin-bottom: 1rem; gap: 0.5rem;">
                         
                         <div class="mini-picker-label" id="targetBtn-fg" onclick="setTarget('fg')">
                             <div class="mini-picker-swatch" style="background: #ffffff;" id="swatchFG"></div>
                             <div>
-                                <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7;">Text Color</div>
+                                <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7;" data-de="Textfarbe">Text Color</div>
                                 <div id="labelFG" style="font-family: var(--font-mono); font-size: 0.9rem;">#ffffff</div>
                             </div>
                         </div>
@@ -183,7 +183,7 @@
                         <div class="mini-picker-label" id="targetBtn-bg" onclick="setTarget('bg')">
                             <div class="mini-picker-swatch" style="background: #c44d3c;" id="swatchBG"></div>
                             <div>
-                                <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7;">Background</div>
+                                <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7;" data-de="Hintergrund">Background</div>
                                 <div id="labelBG" style="font-family: var(--font-mono); font-size: 0.9rem;">#c44d3c</div>
                             </div>
                         </div>
@@ -193,20 +193,20 @@
                     <div style="position: relative;">
                         <div style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 10;">
                             <select id="simSelect" data-save style="font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.8); backdrop-filter: blur(4px);">
-                                <option value="none">Normal Vision</option>
-                                <option value="protanopia">Protanopia (No Red)</option>
-                                <option value="deuteranopia">Deuteranopia (No Green)</option>
-                                <option value="tritanopia">Tritanopia (No Blue)</option>
+                                <option value="none" data-de="Normale Sicht">Normal Vision</option>
+                                <option value="protanopia" data-de="Protanopie (kein Rot)">Protanopia (No Red)</option>
+                                <option value="deuteranopia" data-de="Deuteranopie (kein Grün)">Deuteranopia (No Green)</option>
+                                <option value="tritanopia" data-de="Tritanopie (kein Blau)">Tritanopia (No Blue)</option>
                             </select>
                         </div>
                         <div id="contrastPreview" class="contrast-card" style="background: #c44d3c; color: #ffffff;">
-                            <h2 style="margin:0; color: inherit;">Preview Text</h2>
-                            <p style="margin:0; color: inherit;">The quick brown fox jumps over the lazy dog.</p>
+                            <h2 style="margin:0; color: inherit;" data-de="Vorschau-Text">Preview Text</h2>
+                            <p style="margin:0; color: inherit;" data-de="Franz jagt im komplett verwahrlosten Taxi quer durch Bayern.">The quick brown fox jumps over the lazy dog.</p>
                         </div>
                     </div>
 
                     <div id="suggestBox" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--input-bg); border-radius: 6px; text-align: center;">
-                        <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; font-weight: bold; color: var(--ink-secondary);">Below 4.5:1. These text colors pass:</p>
+                        <p style="margin: 0 0 0.5rem 0; font-size: 0.8rem; font-weight: bold; color: var(--ink-secondary);" data-de="Unter 4.5:1. Diese Textfarben bestehen:">Below 4.5:1. These text colors pass:</p>
                         <div id="suggestSwatches" style="display: flex; gap: 0.5rem; justify-content: center;"></div>
                     </div>
 
@@ -245,6 +245,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script>
         const valHex = document.getElementById('valHex');

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Favicon Generator | Linus Linhof</title>
+    <title data-de="Favicon-Generator | Linus Linhof">Favicon Generator | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <!-- draw() swaps this for the icon being made, so the tab shows it at real size. -->
     <link rel="icon" type="image/png" href="../../assets/favicon.svg" id="dynamic-favicon">
@@ -75,8 +75,8 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Favicon Generator</h1>
-                <p>Makes a favicon from a letter, an emoji or an image, as PNG, ICO or a full set with a web manifest.<br>The icon in this browser tab changes as you edit.</p>
+                <h1 data-de="Favicon-Generator">Favicon Generator</h1>
+                <p><span data-de="Erzeugt ein Favicon aus einem Buchstaben, Emoji oder Bild, als PNG, ICO oder als vollständiges Set mit Web-Manifest.">Makes a favicon from a letter, an emoji or an image, as PNG, ICO or a full set with a web manifest.</span><br><span data-de="Das Icon im Browser-Tab ändert sich mit.">The icon in this browser tab changes as you edit.</span></p>
             </div>
 
             <div class="split-view">
@@ -84,26 +84,26 @@
                 <div class="card">
 
                     <div class="button-group" style="margin-bottom: 1.5rem;">
-                        <button class="button active" id="modeText" onclick="setMode('text')">Text / Emoji</button>
-                        <button class="button outline" id="modeImage" onclick="setMode('image')">Image</button>
+                        <button class="button active" id="modeText" onclick="setMode('text')" data-de="Text / Emoji">Text / Emoji</button>
+                        <button class="button outline" id="modeImage" onclick="setMode('image')" data-de="Bild">Image</button>
                     </div>
 
                     <div id="textControls">
-                        <label>Text or Emoji (up to 2 characters)</label>
+                        <label data-de="Text oder Emoji (bis zu 2 Zeichen)">Text or Emoji (up to 2 characters)</label>
                         <input type="text" id="inputText" value="L" maxlength="2" style="font-size: 1.5rem; text-align: center;">
-                        
+
                         <div class="split-view" style="margin-bottom: 0;">
                             <div>
-                                <label>Font Size</label>
+                                <label data-de="Schriftgröße">Font Size</label>
                                 <input type="range" id="fontSize" min="50" max="450" value="300">
                             </div>
                             <div>
-                                <label>Font Family</label>
+                                <label data-de="Schriftart">Font Family</label>
                                 <select id="fontFamily" data-save>
-                                    <option value="sans-serif">Sans Serif</option>
-                                    <option value="serif">Serif</option>
-                                    <option value="monospace">Monospace</option>
-                                    <option value="cursive">Cursive</option>
+                                    <option value="sans-serif" data-de="Serifenlos">Sans Serif</option>
+                                    <option value="serif" data-de="Serif">Serif</option>
+                                    <option value="monospace" data-de="Monospace">Monospace</option>
+                                    <option value="cursive" data-de="Schreibschrift">Cursive</option>
                                     <option value="Arial">Arial</option>
                                     <option value="Verdana">Verdana</option>
                                     <option value="Times New Roman">Times New Roman</option>
@@ -114,16 +114,16 @@
 
                     <div id="imageControls" class="hidden">
                         <div class="drop-zone" id="dropZone" style="padding: 1.5rem; min-height: 120px;">
-                            <p style="margin: 0.5rem 0;">Drop an image here</p>
+                            <p style="margin: 0.5rem 0;" data-de="Bild hier ablegen">Drop an image here</p>
                             <input type="file" id="fileInput" class="hidden" accept="image/*">
                         </div>
                         <div style="margin-top: 1rem;">
-                            <label>Image Scale</label>
+                            <label data-de="Bildgröße">Image Scale</label>
                             <input type="range" id="imgScale" min="10" max="100" value="70">
                         </div>
                         <div style="margin-top: 1rem; display: flex; align-items: center; gap: 0.5rem;">
                             <input type="checkbox" id="autoRemoveBg" style="width: auto;">
-                            <label for="autoRemoveBg" style="margin: 0; cursor: pointer;">Remove a plain background</label>
+                            <label for="autoRemoveBg" style="margin: 0; cursor: pointer;" data-de="Einfarbigen Hintergrund entfernen">Remove a plain background</label>
                         </div>
                     </div>
 
@@ -131,23 +131,23 @@
 
                     <div class="split-view">
                         <div>
-                            <label>Shape / Background</label>
+                            <label data-de="Form / Hintergrund">Shape / Background</label>
                             <select id="shapeSelect" data-save>
-                                <option value="rounded">Rounded Square</option>
-                                <option value="circle">Circle</option>
-                                <option value="square">Square</option>
-                                <option value="none">Transparent (No Background)</option>
+                                <option value="rounded" data-de="Abgerundetes Quadrat">Rounded Square</option>
+                                <option value="circle" data-de="Kreis">Circle</option>
+                                <option value="square" data-de="Quadrat">Square</option>
+                                <option value="none" data-de="Transparent (kein Hintergrund)">Transparent (No Background)</option>
                             </select>
                         </div>
                         <div>
-                            <label>Colors</label>
+                            <label data-de="Farben">Colors</label>
                             <div class="color-input-group" id="bgColorGroup">
-                                <input type="color" id="bgColor" value="#2a2621" title="Background Color">
-                                <span style="font-size: 0.8rem;">Background</span>
+                                <input type="color" id="bgColor" value="#2a2621" title="Background Color" data-de-attr="title:Hintergrundfarbe">
+                                <span style="font-size: 0.8rem;" data-de="Hintergrund">Background</span>
                             </div>
                             <div class="color-input-group" id="fgColorGroup">
-                                <input type="color" id="fgColor" value="#faf6f2" title="Text Color">
-                                <span style="font-size: 0.8rem;">Text Color</span>
+                                <input type="color" id="fgColor" value="#faf6f2" title="Text Color" data-de-attr="title:Textfarbe">
+                                <span style="font-size: 0.8rem;" data-de="Textfarbe">Text Color</span>
                             </div>
                         </div>
                     </div>
@@ -155,20 +155,20 @@
                 </div>
 
                 <div class="card" style="display: flex; flex-direction: column;">
-                    <label>Preview (512 px)</label>
-                    
+                    <label data-de="Vorschau (512 px)">Preview (512 px)</label>
+
                     <div class="preview-area">
                         <canvas id="previewCanvas" width="512" height="512"></canvas>
                     </div>
 
-                    <div class="tab-preview-hint">
+                    <div class="tab-preview-hint" data-de="Der Tab oben in diesem Fenster zeigt es in Originalgröße.">
                         The tab at the top of this window shows it at real size.
                     </div>
 
                     <div style="margin-top: auto;">
                         <div class="button-group" style="justify-content: center;">
-                            <button class="button" id="downloadPng">Download PNG</button>
-                            <button class="button secondary" id="downloadIco">Download ICO</button>
+                            <button class="button" id="downloadPng" data-de="PNG herunterladen">Download PNG</button>
+                            <button class="button secondary" id="downloadIco" data-de="ICO herunterladen">Download ICO</button>
                         </div>
                         <div class="button-group" style="justify-content: center; margin-top: 0.5rem;">
                             <button class="button outline" id="downloadZip" style="width: 100%;">Download Full Set (ZIP)</button>
@@ -179,6 +179,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script src="../../assets/vendor/jszip.min.js"></script>
     
@@ -561,12 +562,12 @@
         // The mode buttons call it from inline onclick.
         window.setMode = setMode;
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => !!uploadedImage;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => !!uploadedImage;
     </script>
 </body>
 </html>

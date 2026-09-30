@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Compressor | Linus Linhof</title>
+    <title data-de="PDF verkleinern | Linus Linhof">PDF Compressor | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
 
@@ -103,13 +103,13 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>PDF Compressor</h1>
-                <p>Gets a PDF under a size limit, such as the 10 MB an upload form allows. You pick the limit, it finds the gentlest setting that fits and shows you a page of the finished file before you download it. Text, links and form fields stay as they are unless you choose to turn every page into an image.</p>
+                <h1 data-de="PDF verkleinern">PDF Compressor</h1>
+                <p data-de="Bringt eine PDF unter eine Größengrenze, etwa die 10 MB, die ein Uploadformular zulässt. Du wählst die Grenze, das Werkzeug findet die schonendste Einstellung, die passt, und zeigt eine Seite des Ergebnisses vor dem Download. Text, Links und Formularfelder bleiben wie sie sind, außer du machst aus jeder Seite ein Bild.">Gets a PDF under a size limit, such as the 10 MB an upload form allows. You pick the limit, it finds the gentlest setting that fits and shows you a page of the finished file before you download it. Text, links and form fields stay as they are unless you choose to turn every page into an image.</p>
             </div>
 
             <div class="card">
                 <div class="drop-zone" id="dropZone">
-                    <p>Drop a PDF here</p>
+                    <p data-de="PDF hier ablegen">Drop a PDF here</p>
                     <input type="file" id="fileInput" class="hidden" accept="application/pdf,.pdf">
                 </div>
 
@@ -117,41 +117,41 @@
                 <ul class="contents hidden" id="contentsList"></ul>
 
                 <div id="passwordPanel" class="step hidden">
-                    <label for="passwordInput">This PDF needs a password to open</label>
-                    <p class="hint" id="passwordHint">It stays in this tab. The result will not have a password.</p>
+                    <label for="passwordInput" data-de="Diese PDF braucht ein Passwort zum Öffnen">This PDF needs a password to open</label>
+                    <p class="hint" id="passwordHint" data-de="Bleibt in diesem Tab. Das Ergebnis hat kein Passwort.">It stays in this tab. The result will not have a password.</p>
                     <div class="run-row" style="justify-content: flex-start;">
                         <input type="password" id="passwordInput" autocomplete="off" style="margin: 0;">
-                        <button class="button sm" id="passwordBtn">Open</button>
+                        <button class="button sm" id="passwordBtn" data-de="Öffnen">Open</button>
                     </div>
                 </div>
 
                 <div id="optionsPanel" class="hidden">
                     <div class="step">
-                        <label>Get it under</label>
+                        <label data-de="Kleiner als">Get it under</label>
                         <div class="targets" id="targets">
                             <span class="custom-target">
-                                <input type="number" id="customTarget" min="0.05" step="0.1" placeholder="Other" aria-label="Other size in MB">
+                                <input type="number" id="customTarget" min="0.05" step="0.1" placeholder="Other" aria-label="Other size in MB" data-de-attr="placeholder:Andere|aria-label:Andere Größe in MB">
                                 <span class="small-text">MB</span>
                             </span>
                         </div>
-                        <p class="hint">A megabyte here is 1,000,000 bytes, the smaller of the two ways sites count, so the result fits either way.</p>
+                        <p class="hint" data-de="Ein Megabyte sind hier 1.000.000 Bytes, die kleinere der beiden Zählweisen, damit das Ergebnis in beide passt.">A megabyte here is 1,000,000 bytes, the smaller of the two ways sites count, so the result fits either way.</p>
                     </div>
 
                     <div class="step">
-                        <label>How</label>
+                        <label data-de="Wie">How</label>
                         <div class="methods">
                             <label class="method" id="methodImagesLabel">
                                 <input type="radio" name="method" value="images" checked>
                                 <div>
-                                    <strong>Shrink the images inside</strong>
-                                    <span>Text, drawings, links and form fields stay exactly as they are. Works when the size is in photos or scanned pages, which is most of the time.</span>
+                                    <strong data-de="Die Bilder in der Datei verkleinern">Shrink the images inside</strong>
+                                    <span data-de="Text, Zeichnungen, Links und Formularfelder bleiben genau wie sie sind. Passt, wenn die Größe in Fotos oder gescannten Seiten steckt, meistens der Fall.">Text, drawings, links and form fields stay exactly as they are. Works when the size is in photos or scanned pages, which is most of the time.</span>
                                 </div>
                             </label>
                             <label class="method" id="methodPagesLabel">
                                 <input type="radio" name="method" value="pages">
                                 <div>
-                                    <strong>Turn every page into an image</strong>
-                                    <span>Reaches any size. Text can no longer be selected or searched, and links and form fields are lost. Also offers clean-up for scans.</span>
+                                    <strong data-de="Jede Seite in ein Bild verwandeln">Turn every page into an image</strong>
+                                    <span data-de="Erreicht jede Größe. Text lässt sich nicht mehr auswählen oder suchen, Links und Formularfelder gehen verloren. Bietet außerdem Aufräumen für Scans.">Reaches any size. Text can no longer be selected or searched, and links and form fields are lost. Also offers clean-up for scans.</span>
                                 </div>
                             </label>
                         </div>
@@ -162,41 +162,41 @@
                         <label class="toggle-wrapper" style="margin-bottom: 0.25rem;">
                             <input type="checkbox" id="grayToggle" class="toggle-checkbox">
                             <div class="toggle-switch"></div>
-                            <span>Make it grey</span>
+                            <span data-de="Grau machen">Make it grey</span>
                         </label>
-                        <p class="hint" id="grayHint">Saves a little more. With the first method only the images turn grey; coloured text stays coloured.</p>
+                        <p class="hint" id="grayHint" data-de="Spart ein bisschen mehr. Bei der ersten Methode werden nur die Bilder grau, farbiger Text bleibt farbig.">Saves a little more. With the first method only the images turn grey; coloured text stays coloured.</p>
 
                         <div id="scanControls" class="hidden">
                             <label class="toggle-wrapper" style="margin: 1rem 0 0.25rem;">
                                 <input type="checkbox" id="cleanerToggle" class="toggle-checkbox">
                                 <div class="toggle-switch"></div>
-                                <span>Clean up a scan</span>
+                                <span data-de="Scan aufräumen">Clean up a scan</span>
                             </label>
-                            <p class="hint">Whitens a grey paper background and darkens faint text. Turns the pages grey.</p>
+                            <p class="hint" data-de="Macht einen grauen Papierhintergrund weiß und dunkelt blassen Text nach. Die Seiten werden grau.">Whitens a grey paper background and darkens faint text. Turns the pages grey.</p>
 
                             <div id="cleanerControls" class="hidden">
                                 <div class="settings-group">
-                                    <label for="whitePoint">White point</label>
-                                    <p class="hint">Anything lighter than this turns white. Lower it to take out a grey paper background.</p>
+                                    <label for="whitePoint" data-de="Weißpunkt">White point</label>
+                                    <p class="hint" data-de="Alles heller als dieser Wert wird weiß. Runter, um einen grauen Papierhintergrund wegzunehmen.">Anything lighter than this turns white. Lower it to take out a grey paper background.</p>
                                     <input type="range" id="whitePoint" min="100" max="255" value="200">
                                     <div class="range-labels"><span>100</span><span id="valWhite">200</span><span>255</span></div>
                                 </div>
                                 <div class="settings-group">
-                                    <label for="blackPoint">Black point</label>
-                                    <p class="hint">Anything darker than this turns black. Raise it to make faint text darker.</p>
+                                    <label for="blackPoint" data-de="Schwarzpunkt">Black point</label>
+                                    <p class="hint" data-de="Alles dunkler als dieser Wert wird schwarz. Rauf, um blassen Text dunkler zu machen.">Anything darker than this turns black. Raise it to make faint text darker.</p>
                                     <input type="range" id="blackPoint" min="0" max="150" value="50">
                                     <div class="range-labels"><span>0</span><span id="valBlack">50</span><span>150</span></div>
                                 </div>
                             </div>
 
                             <div class="settings-group">
-                                <label for="deskewSlider">Straighten (degrees)</label>
+                                <label for="deskewSlider" data-de="Geradestellen (Grad)">Straighten (degrees)</label>
                                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                                     <input type="range" id="deskewSlider" min="-5" max="5" step="0.1" value="0" style="flex: 1;">
                                     <span id="valDeskew" style="width: 48px; text-align: right; font-size: 0.9rem; color: var(--ink-secondary);">0.0°</span>
                                 </div>
-                                <button class="button outline sm" id="autoDeskewBtn">Measure the tilt of page 1</button>
-                                <p class="hint">The same angle is applied to every page.</p>
+                                <button class="button outline sm" id="autoDeskewBtn" data-de="Neigung von Seite 1 messen">Measure the tilt of page 1</button>
+                                <p class="hint" data-de="Derselbe Winkel gilt für jede Seite.">The same angle is applied to every page.</p>
                             </div>
                         </div>
                     </div>
@@ -207,7 +207,7 @@
                 </div>
                 <div class="run-row">
                     <p id="statusText" class="hidden"></p>
-                    <button class="button outline sm hidden" id="cancelBtn">Stop</button>
+                    <button class="button outline sm hidden" id="cancelBtn" data-de="Anhalten">Stop</button>
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
@@ -220,33 +220,33 @@
                     <div class="advice hidden" id="advice"></div>
 
                     <div class="button-group" style="justify-content: center;">
-                        <button class="button secondary" id="downloadBtn">Download</button>
-                        <button class="button outline" id="resetBtn">Start over</button>
+                        <button class="button secondary" id="downloadBtn" data-de="Herunterladen">Download</button>
+                        <button class="button outline" id="resetBtn" data-de="Von vorn">Start over</button>
                     </div>
 
                     <div class="preview" id="previewSection">
                         <div class="preview-bar">
-                            <label style="margin: 0;">How the result looks</label>
+                            <label style="margin: 0;" data-de="So sieht das Ergebnis aus">How the result looks</label>
                             <div class="pager">
-                                <button class="button outline sm" id="prevPage" aria-label="Previous page">&larr;</button>
+                                <button class="button outline sm" id="prevPage" aria-label="Previous page" data-de-attr="aria-label:Vorherige Seite">&larr;</button>
                                 <span id="pageLabel"></span>
-                                <button class="button outline sm" id="nextPage" aria-label="Next page">&rarr;</button>
+                                <button class="button outline sm" id="nextPage" aria-label="Next page" data-de-attr="aria-label:Nächste Seite">&rarr;</button>
                             </div>
                         </div>
                         <p class="preview-note" id="previewNote"></p>
                         <div class="compare-wrapper" id="compareWrapper">
                             <canvas id="canvasBefore" class="compare-canvas"></canvas>
                             <canvas id="canvasAfter" class="compare-canvas"></canvas>
-                            <input type="range" id="compareSlider" min="0" max="100" value="50" aria-label="Move the divider between the result and the original">
+                            <input type="range" id="compareSlider" min="0" max="100" value="50" aria-label="Move the divider between the result and the original" data-de-attr="aria-label:Trennlinie zwischen Ergebnis und Original verschieben">
                         </div>
                         <div class="compare-labels">
-                            <span>&larr; Result</span>
-                            <span>Original &rarr;</span>
+                            <span data-de="&larr; Ergebnis">&larr; Result</span>
+                            <span data-de="Original &rarr;">Original &rarr;</span>
                         </div>
-                        <p class="preview-note" style="margin-top: 0.75rem;">Double-click or long-press the page to look at that spot up close.</p>
+                        <p class="preview-note" style="margin-top: 0.75rem;" data-de="Doppelklick oder langes Drücken zeigt die Stelle aus der Nähe.">Double-click or long-press the page to look at that spot up close.</p>
                         <div class="detail hidden" id="detail">
                             <figure><canvas id="detailBefore"></canvas><figcaption>Original</figcaption></figure>
-                            <figure><canvas id="detailAfter"></canvas><figcaption>Result</figcaption></figure>
+                            <figure><canvas id="detailAfter"></canvas><figcaption data-de="Ergebnis">Result</figcaption></figure>
                         </div>
                     </div>
                 </div>
@@ -254,6 +254,7 @@
         </div>
     </main>
 
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
 
     <script>
@@ -778,12 +779,12 @@
         window.resetTool = resetTool;
         $('resetBtn').addEventListener('click', resetTool);
 
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => !!file || !!result;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => !!file || !!result;
     </script>
 </body>
 </html>

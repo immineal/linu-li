@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>List Cleaner & Sorter | Linus Linhof</title>
+    <title data-de="Listenreiniger & Sortierer | Linus Linhof">List Cleaner & Sorter | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
 </head>
@@ -11,48 +11,48 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>List Cleaner</h1>
-                <p>Sorts a list, removes duplicates and empty lines, shuffles it, or puts the same text before or after every line.</p>
+                <h1 data-de="Listenreiniger">List Cleaner</h1>
+                <p data-de="Sortiert eine Liste, entfernt Duplikate und Leerzeilen, mischt sie, oder setzt denselben Text vor oder hinter jede Zeile.">Sorts a list, removes duplicates and empty lines, shuffles it, or puts the same text before or after every line.</p>
             </div>
 
             <div class="split-view">
                 
                 <div class="card" style="display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <label for="listInput" style="margin: 0;">Input List</label>
+                        <label for="listInput" style="margin: 0;" data-de="Eingabeliste">Input List</label>
                         <span id="inputCount" style="font-size: 0.8rem; color: var(--ink-secondary);">0 lines</span>
                     </div>
-                    <textarea id="listInput" class="code-editor" style="flex-grow: 1; min-height: 400px;" placeholder="Paste a list, one item per line"></textarea>
+                    <textarea id="listInput" class="code-editor" style="flex-grow: 1; min-height: 400px;" placeholder="Paste a list, one item per line" data-de-attr="placeholder:Liste einfügen, ein Eintrag pro Zeile"></textarea>
                 </div>
 
                 <div class="card">
-                    <label>Actions</label>
+                    <label data-de="Aktionen">Actions</label>
                     <div class="button-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem;">
-                        <button class="button outline" onclick="processList('sortAZ')">Sort A → Z</button>
-                        <button class="button outline" onclick="processList('sortZA')">Sort Z → A</button>
-                        <button class="button outline" onclick="processList('reverse')">Reverse Order</button>
-                        <button class="button outline" onclick="processList('random')">Randomize</button>
-                        <button class="button outline" onclick="processList('dedup')">Remove Duplicates</button>
-                        <button class="button outline" onclick="processList('dedupInsensitive')">Dedup (Case Insensitive)</button>
-                        <button class="button outline" onclick="processList('trim')">Trim Whitespace</button>
-                        <button class="button outline" onclick="processList('empty')">Remove Empty Lines</button>
+                        <button class="button outline" onclick="processList('sortAZ')" data-de="A → Z sortieren">Sort A → Z</button>
+                        <button class="button outline" onclick="processList('sortZA')" data-de="Z → A sortieren">Sort Z → A</button>
+                        <button class="button outline" onclick="processList('reverse')" data-de="Reihenfolge umkehren">Reverse Order</button>
+                        <button class="button outline" onclick="processList('random')" data-de="Mischen">Randomize</button>
+                        <button class="button outline" onclick="processList('dedup')" data-de="Duplikate entfernen">Remove Duplicates</button>
+                        <button class="button outline" onclick="processList('dedupInsensitive')" data-de="Duplikate ohne Groß/Klein">Dedup (Case Insensitive)</button>
+                        <button class="button outline" onclick="processList('trim')" data-de="Leerzeichen kürzen">Trim Whitespace</button>
+                        <button class="button outline" onclick="processList('empty')" data-de="Leerzeilen entfernen">Remove Empty Lines</button>
                     </div>
 
                     <div style="border-top: 1px solid var(--border); padding-top: 1rem; margin-bottom: 1.5rem;">
-                        <label>Decorate Items</label>
+                        <label data-de="Einträge dekorieren">Decorate Items</label>
                         <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                            <input type="text" id="prefixInput" placeholder="Prefix (start)" style="margin-bottom: 0;">
-                            <input type="text" id="suffixInput" placeholder="Suffix (end)" style="margin-bottom: 0;">
+                            <input type="text" id="prefixInput" placeholder="Prefix (start)" style="margin-bottom: 0;" data-de-attr="placeholder:Präfix (Anfang)">
+                            <input type="text" id="suffixInput" placeholder="Suffix (end)" style="margin-bottom: 0;" data-de-attr="placeholder:Suffix (Ende)">
                         </div>
-                        <button class="button outline" style="width: 100%;" onclick="processList('decorate')">Apply Prefix/Suffix</button>
+                        <button class="button outline" style="width: 100%;" onclick="processList('decorate')" data-de="Präfix/Suffix anwenden">Apply Prefix/Suffix</button>
                     </div>
 
                     <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <label style="margin: 0;">Result</label>
+                            <label style="margin: 0;" data-de="Ergebnis">Result</label>
                             <div style="display: flex; gap: 1rem; align-items: center;">
                                 <span id="outputCount" style="font-size: 0.8rem; color: var(--ink-secondary);">0 lines</span>
-                                <button class="button sm secondary" onclick="copyResult()">Copy</button>
+                                <button class="button sm secondary" onclick="copyResult()" data-de="Kopieren">Copy</button>
                             </div>
                         </div>
                         <textarea id="listOutput" class="code-editor" style="min-height: 200px; background: var(--paper);" readonly></textarea>
@@ -63,6 +63,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script>
         const listInput = document.getElementById('listInput');
@@ -147,12 +148,12 @@
             copyToClipboard(listOutput.value);
         }
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => listInput.value.trim() !== '';
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => listInput.value.trim() !== '';
     </script>
 </body>
 </html>

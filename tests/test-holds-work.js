@@ -4,7 +4,7 @@
  * The update prompt's "Reload" button throws away everything in memory: the
  * PDF someone picked, the image being cropped, the text they were part-way
  * through. Tools that hold such a thing announce it with
- * `window.llHaeltArbeit`, and the prompt then asks a second time.
+ * `window.llHoldsWork`, and the prompt then asks a second time.
  *
  * The default is the safe one for the site but the unsafe one for a tool
  * that forgets: no hook means "nothing to lose", so a new tool with a file
@@ -32,7 +32,7 @@ function fail(msg) {
 
 const settle = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/* Werkzeuge, die Dateien entgegennehmen — per Feld oder per Ziehen. */
+/* Tools that take files — via a field or by dragging. */
 function brauchtHaken() {
     const raus = [];
     for (const name of fs.readdirSync(path.join(ROOT, 'tools')).sort()) {
@@ -47,8 +47,8 @@ function brauchtHaken() {
 }
 
 function hatHaken(name) {
-    return /window\.llHaeltArbeit\s*=/.test(
-        fs.readFileSync(path.join(ROOT, 'tools', name, 'index.html'), 'utf8'));
+    const html = fs.readFileSync(path.join(ROOT, 'tools', name, 'index.html'), 'utf8');
+    return /window\.llHoldsWork\s*=/.test(html) || /window\.llHaeltArbeit\s*=/.test(html);
 }
 
 (async () => {
@@ -57,11 +57,11 @@ function hatHaken(name) {
     if (ohne.length) {
         fail('these tools take files but never say whether they are holding one, so ' +
             '"Reload" in the update prompt would discard it without asking: ' +
-            ohne.join(', ') + '. Set window.llHaeltArbeit at the end of the tool\'s ' +
+            ohne.join(', ') + '. Set window.llHoldsWork at the end of the tool\'s ' +
             'script block.');
     }
 
-    /* Und jetzt jeden Haken wirklich aufrufen. */
+    /* And now actually call each hook. */
     const alle = fs.readdirSync(path.join(ROOT, 'tools')).sort()
         .filter((n) => fs.existsSync(path.join(ROOT, 'tools', n, 'index.html')))
         .filter(hatHaken);
@@ -77,31 +77,32 @@ function hatHaken(name) {
             await page.goto(`${BASE}/tools/${name}/`, { waitUntil: 'networkidle2' });
             await settle(400);
             const ergebnis = await page.evaluate(() => {
-                if (typeof window.llHaeltArbeit !== 'function') return { fehlt: true };
-                try { return { wert: !!window.llHaeltArbeit() }; }
+                const hook = window.llHoldsWork || window.llHaeltArbeit;
+                if (typeof hook !== 'function') return { fehlt: true };
+                try { return { wert: !!hook() }; }
                 catch (err) { return { wirft: String(err.message || err) }; }
             });
 
             if (ergebnis.fehlt) {
-                fail(`${name}: llHaeltArbeit is in the source but not on the page — the ` +
+                fail(`${name}: llHoldsWork is in the source but not on the page — the ` +
                     'assignment sits in a scope that never runs, or the script threw first');
             } else if (ergebnis.wirft) {
-                fail(`${name}: llHaeltArbeit throws (${ergebnis.wirft}). layout.js catches ` +
+                fail(`${name}: llHoldsWork throws (${ergebnis.wirft}). layout.js catches ` +
                     'that and reads it as "holding nothing", so the tool would lose its ' +
                     'file without a word. The variable is probably out of scope where the ' +
                     'hook was written.');
             } else if (ergebnis.wert !== false) {
-                fail(`${name}: llHaeltArbeit says the tool is holding work on a page nobody ` +
+                fail(`${name}: llHoldsWork says the tool is holding work on a page nobody ` +
                     'has touched yet. It would ask a pointless question on every reload, ' +
                     'and a question that is always asked stops being read. Check whether ' +
                     'something is prefilled at load.');
             }
         }
 
-        /* Ein Haken, der immer false sagt, ist so gut wie keiner — und genau
-           so sieht er aus, solange niemand etwas eingibt. Also: etwas
-           eingeben und nachsehen, ob er umspringt. Stichproben über die drei
-           Arten, wie ein Werkzeug etwas hält. */
+        /* A hook that always says false is as good as no hook — and that is
+           what it looks like as long as nobody types anything. So: type
+           something and see whether it flips. Samples across the three ways
+           a tool can hold something. */
         const proben = [
             ['word-counter', async (p) => { await p.type('#textInput', 'etwas Arbeit'); }],
             ['diff-checker', async (p) => { await p.type('#inputOriginal', 'links'); }],
@@ -114,8 +115,9 @@ function hatHaken(name) {
                 const feld = await p.$('#fileInput');
                 await feld.uploadFile(path.join(__dirname, 'dummy.pdf'));
             }],
-            /* Zwei mit Vorbelegung: sie dürfen erst ja sagen, wenn wirklich
-               etwas dazugekommen ist, nicht schon wegen des Beispiels. */
+            /* Two with prefilled defaults: they may only say yes once
+               something has actually been added, not just because of the
+               example. */
             ['sql-formatter', async (p) => { await p.type('#inputSql', ' AND 1=1'); }],
             ['qr-creator', async (p) => { await p.type('#qrInput', 'etwas anderes'); }],
         ];
@@ -129,10 +131,11 @@ function hatHaken(name) {
             }
             await settle(1200);
             const haelt = await page.evaluate(() => {
-                try { return !!window.llHaeltArbeit(); } catch (err) { return 'wirft: ' + err.message; }
+                const hook = window.llHoldsWork || window.llHaeltArbeit;
+                try { return !!hook(); } catch (err) { return 'wirft: ' + err.message; }
             });
             if (haelt !== true) {
-                fail(`${name}: something was put into the tool and llHaeltArbeit still says ` +
+                fail(`${name}: something was put into the tool and llHoldsWork still says ` +
                     `${JSON.stringify(haelt)}. A hook that never says yes is the same as no ` +
                     'hook — the work would be discarded without a second question.');
             }

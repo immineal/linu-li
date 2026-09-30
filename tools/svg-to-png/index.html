@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SVG to PNG Converter | Linus Linhof</title>
+    <title data-de="SVG zu PNG | Linus Linhof">SVG to PNG Converter | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     <style>
@@ -32,15 +32,15 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>SVG to PNG Converter</h1>
-                <p>Renders an SVG as a PNG with a transparent background, at 1x to 8x its size or at a width you set. The colours in the file can be changed first.</p>
+                <h1 data-de="SVG zu PNG">SVG to PNG Converter</h1>
+                <p data-de="Rendert eine SVG als PNG mit transparentem Hintergrund, in 1- bis 8-facher Größe oder in einer gewünschten Breite. Die Farben in der Datei lassen sich vorher ändern.">Renders an SVG as a PNG with a transparent background, at 1x to 8x its size or at a width you set. The colours in the file can be changed first.</p>
             </div>
 
             <div class="card">
                 
                 <div class="drop-zone" id="dropZone">
-                    <p>Drop an SVG file here</p>
-                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0;">or click to browse</p>
+                    <p data-de="SVG hier ablegen">Drop an SVG file here</p>
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0;" data-de="oder zum Auswählen klicken">or click to browse</p>
                     <input type="file" id="fileInput" class="hidden" accept=".svg">
                 </div>
 
@@ -49,48 +49,48 @@
 
                 <div id="settingsArea" class="hidden" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
                     <div id="colorPaletteSection" class="hidden" style="margin-bottom: 1.5rem;">
-                        <h3 style="font-size: 1.1rem; margin-bottom: 0.8rem;">Colours</h3>
-                        <p style="font-size: 0.9rem; color: var(--ink-secondary); margin-bottom: 1rem;">Every colour used in the file. Change one and it changes everywhere it appears.</p>
+                        <h3 style="font-size: 1.1rem; margin-bottom: 0.8rem;" data-de="Farben">Colours</h3>
+                        <p style="font-size: 0.9rem; color: var(--ink-secondary); margin-bottom: 1rem;" data-de="Alle Farben aus der Datei. Änderst du eine, ändert sie sich überall dort, wo sie vorkommt.">Every colour used in the file. Change one and it changes everywhere it appears.</p>
                         <div id="colorPalette" class="color-palette-grid"></div>
                     </div>
 
                     <div class="split-view">
                         <div>
-                            <label for="scaleSelect">Output Scale <span id="liveDimsPreview" style="font-size:0.8em; font-weight:normal; color:var(--ink-secondary); float:right;"></span></label>
+                            <label for="scaleSelect"><span data-de="Skalierung">Output Scale</span> <span id="liveDimsPreview" style="font-size:0.8em; font-weight:normal; color:var(--ink-secondary); float:right;"></span></label>
                             <select id="scaleSelect" data-save>
-                                <option value="1">1x (Original Size)</option>
+                                <option value="1" data-de="1x (Originalgröße)">1x (Original Size)</option>
                                 <option value="2" selected>2x</option>
                                 <option value="4">4x</option>
                                 <option value="8">8x</option>
-                                <option value="custom">Custom Width...</option>
+                                <option value="custom" data-de="Eigene Breite...">Custom Width...</option>
                             </select>
                         </div>
                         <div id="customWidthContainer" class="hidden">
-                            <label for="customWidth">Target Width (px)</label>
-                            <input type="number" id="customWidth" placeholder="e.g. 1920">
+                            <label for="customWidth" data-de="Zielbreite (px)">Target Width (px)</label>
+                            <input type="number" id="customWidth" placeholder="e.g. 1920" data-de-attr="placeholder:z. B. 1920">
                         </div>
                     </div>
                 </div>
 
                 <div class="button-group">
-                    <button class="button" id="convertBtn" disabled>Convert to PNG</button>
-                    <button class="button outline" id="clearBtn" style="display: none;">Reset</button>
+                    <button class="button" id="convertBtn" disabled data-de="In PNG umwandeln">Convert to PNG</button>
+                    <button class="button outline" id="clearBtn" style="display: none;" data-de="Zurücksetzen">Reset</button>
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
-                    <h3 style="font-size: 1.2rem; margin-bottom: 1rem;">Preview</h3>
-                    
+                    <h3 style="font-size: 1.2rem; margin-bottom: 1rem;" data-de="Vorschau">Preview</h3>
+
                     <div class="preview-container">
-                        <img id="previewImg" alt="Converted PNG Preview">
+                        <img id="previewImg" alt="Converted PNG Preview" data-de-attr="alt:Vorschau des PNG">
                     </div>
 
                     <div class="split-view" style="margin-bottom: 0;">
                         <div style="display: flex; flex-direction: column; justify-content: center;">
-                            <p style="margin-bottom: 0.5rem;"><strong>Final Size:</strong> <span id="finalDims">-</span></p>
-                            <p style="margin-bottom: 0;"><strong>File Size:</strong> <span id="finalSize">-</span></p>
+                            <p style="margin-bottom: 0.5rem;"><strong data-de="Endgröße:">Final Size:</strong> <span id="finalDims">-</span></p>
+                            <p style="margin-bottom: 0;"><strong data-de="Dateigröße:">File Size:</strong> <span id="finalSize">-</span></p>
                         </div>
                         <div class="button-group" style="justify-content: flex-end; margin-top: 0;">
-                            <button class="button secondary" id="downloadBtn">Download PNG</button>
+                            <button class="button secondary" id="downloadBtn" data-de="PNG herunterladen">Download PNG</button>
                         </div>
                     </div>
                 </div>
@@ -99,6 +99,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>
@@ -502,12 +503,12 @@
         });
 
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => !!currentFile || !!generatedBlob;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => !!currentFile || !!generatedBlob;
     </script>
 </body>
 </html>

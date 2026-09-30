@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hash Generator | Linus Linhof</title>
+    <title data-de="Hash-Generator | Linus Linhof">Hash Generator | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -16,96 +16,96 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Hash Generator</h1>
-                <p>SHA-256, SHA-512, SHA-1, MD5, SHA-3 and BLAKE2b of a text or a file. Paste a hash below to check it against all of them.</p>
+                <h1 data-de="Hash-Generator">Hash Generator</h1>
+                <p data-de="SHA-256, SHA-512, SHA-1, MD5, SHA-3 und BLAKE2b von Text oder einer Datei. Einen Hash unten einfügen, um ihn mit allen zu vergleichen.">SHA-256, SHA-512, SHA-1, MD5, SHA-3 and BLAKE2b of a text or a file. Paste a hash below to check it against all of them.</p>
             </div>
 
             <div class="card">
                 
                 <div style="margin-bottom: 2rem;">
                     <div class="button-group">
-                        <button class="button active" id="modeText">Text</button>
-                        <button class="button outline" id="modeFile">File</button>
+                        <button class="button active" id="modeText" data-de="Text">Text</button>
+                        <button class="button outline" id="modeFile" data-de="Datei">File</button>
                     </div>
                 </div>
 
                 <div id="textSection">
-                    <label>Input Text</label>
-                    <textarea id="textInput" class="code-editor" style="min-height: 150px;" placeholder="Text to hash"></textarea>
+                    <label data-de="Eingabetext">Input Text</label>
+                    <textarea id="textInput" class="code-editor" style="min-height: 150px;" placeholder="Text to hash" data-de-attr="placeholder:Text zum Hashen"></textarea>
                 </div>
 
                 <div id="fileSection" class="hidden">
                     <div class="drop-zone" id="dropZone">
-                        <p>Drop a file here, or click to pick one</p>
-                        <p style="font-size: 0.8rem; color: var(--ink-secondary);">The file is read in 5 MB pieces, so large ones work.</p>
+                        <p data-de="Datei hier ablegen, oder klicken zum Auswählen">Drop a file here, or click to pick one</p>
+                        <p style="font-size: 0.8rem; color: var(--ink-secondary);" data-de="Die Datei wird in 5-MB-Stücken gelesen, große Dateien gehen also auch.">The file is read in 5 MB pieces, so large ones work.</p>
                         <input type="file" id="fileInput" class="hidden">
                     </div>
                     <div id="fileNameDisplay" style="margin-top: 1rem; font-weight: bold; color: var(--accent);"></div>
                 </div>
 
                 <div id="compareSection" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
-                    <label>Compare Hash</label>
+                    <label data-de="Hash vergleichen">Compare Hash</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="text" id="compareInput" placeholder="Paste a hash to check it against the ones below" style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
-                        <button class="button sm secondary" id="clearCompareBtn">Clear</button>
+                        <input type="text" id="compareInput" placeholder="Paste a hash to check it against the ones below" style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;" data-de-attr="placeholder:Einen Hash einfügen, um ihn mit den Werten unten zu vergleichen">
+                        <button class="button sm secondary" id="clearCompareBtn" data-de="Leeren">Clear</button>
                     </div>
                 </div>
 
                 <div id="outputSection" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
                     
                     <div style="margin-bottom: 1.5rem;">
-                        <label>SHA-256 (Recommended) <span id="matchSHA256" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match</span></label>
+                        <label>SHA-256 <span data-de="(Empfohlen)">(Recommended)</span> <span id="matchSHA256" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;" data-de="✓ Treffer">✓ Match</span></label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" id="outSHA256" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
-                            <button class="button sm secondary" onclick="copyId('outSHA256')">Copy</button>
+                            <button class="button sm secondary" onclick="copyId('outSHA256')" data-de="Kopieren">Copy</button>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
-                        <label>SHA-512 (Recommended) <span id="matchSHA512" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match</span></label>
+                        <label>SHA-512 <span data-de="(Empfohlen)">(Recommended)</span> <span id="matchSHA512" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;" data-de="✓ Treffer">✓ Match</span></label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" id="outSHA512" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
-                            <button class="button sm secondary" onclick="copyId('outSHA512')">Copy</button>
+                            <button class="button sm secondary" onclick="copyId('outSHA512')" data-de="Kopieren">Copy</button>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
-                        <label>MD5 (Legacy) <span id="matchMD5" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match</span></label>
+                        <label>MD5 <span data-de="(Veraltet)">(Legacy)</span> <span id="matchMD5" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;" data-de="✓ Treffer">✓ Match</span></label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" id="outMD5" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
-                            <button class="button sm secondary" onclick="copyId('outMD5')">Copy</button>
+                            <button class="button sm secondary" onclick="copyId('outMD5')" data-de="Kopieren">Copy</button>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
-                        <label>SHA-1 (Legacy) <span id="matchSHA1" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match</span></label>
+                        <label>SHA-1 <span data-de="(Veraltet)">(Legacy)</span> <span id="matchSHA1" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;" data-de="✓ Treffer">✓ Match</span></label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" id="outSHA1" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
-                            <button class="button sm secondary" onclick="copyId('outSHA1')">Copy</button>
+                            <button class="button sm secondary" onclick="copyId('outSHA1')" data-de="Kopieren">Copy</button>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
-                        <label>SHA-3 (256-bit) <span id="matchSHA3_256" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match</span></label>
+                        <label>SHA-3 (256-bit) <span id="matchSHA3_256" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;" data-de="✓ Treffer">✓ Match</span></label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" id="outSHA3_256" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
-                            <button class="button sm secondary" onclick="copyId('outSHA3_256')">Copy</button>
+                            <button class="button sm secondary" onclick="copyId('outSHA3_256')" data-de="Kopieren">Copy</button>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
-                        <label>SHA-3 (512-bit) <span id="matchSHA3_512" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match</span></label>
+                        <label>SHA-3 (512-bit) <span id="matchSHA3_512" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;" data-de="✓ Treffer">✓ Match</span></label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" id="outSHA3_512" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
-                            <button class="button sm secondary" onclick="copyId('outSHA3_512')">Copy</button>
+                            <button class="button sm secondary" onclick="copyId('outSHA3_512')" data-de="Kopieren">Copy</button>
                         </div>
                     </div>
 
                     <div>
-                        <label>BLAKE2b (512-bit) <span id="matchBLAKE2b" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;">✓ Match</span></label>
+                        <label>BLAKE2b (512-bit) <span id="matchBLAKE2b" class="hidden" style="color: var(--success); font-weight: bold; margin-left: 10px;" data-de="✓ Treffer">✓ Match</span></label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" id="outBLAKE2b" readonly style="font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0; flex: 1;">
-                            <button class="button sm secondary" onclick="copyId('outBLAKE2b')">Copy</button>
+                            <button class="button sm secondary" onclick="copyId('outBLAKE2b')" data-de="Kopieren">Copy</button>
                         </div>
                     </div>
 
@@ -115,6 +115,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script>
         const modeText = document.getElementById('modeText');
@@ -298,12 +299,12 @@
             if(el.value) copyToClipboard(el.value);
         }
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => fileInput.files.length > 0;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => fileInput.files.length > 0;
     </script>
 </body>
 </html>

@@ -1,19 +1,19 @@
-# Eine Zeile je Push. Die neueste steht unten.
+# One line per push. Newest at the bottom.
 #
-# Was hier steht, bekommen wiederkehrende Besucher als Hinweis zu sehen: ein
-# Satz über das, was sich für sie ändert. Kein Commit-Titel, kein Dateiname,
-# kein "diverse Korrekturen".
+# What sits here is what returning visitors see: one sentence about what
+# changed for them. Not a commit title, not a file name, not "various fixes".
 #
-# Auf Englisch, wie der Rest der Seite. Der Hinweis selbst ist englisch
-# beschriftet, ein deutscher Satz stünde darin allein.
+# In English, like the rest of the site. The notice chrome (heading,
+# buttons) switches between English and German, but the sentences here
+# stay in English so the two locales see the same history.
 #
-# Ein Bindestrich allein heißt: dieser Push braucht keinen Hinweis.
+# A single hyphen means: this push needs no notice.
 #
-# Der Deploy besteht auf einer neuen Zeile, sobald sich eine ausgelieferte
-# Datei geändert hat, und bricht sonst ab. Ändert sich nichts Ausgeliefertes,
-# ist auch keine Zeile nötig — dann merkt kein Browser etwas davon.
+# The deploy insists on a new line as soon as a shipped file has changed,
+# and fails otherwise. If nothing shipped changes, no line is needed,
+# because no browser will notice anything either.
 #
-# Zeilen, die mit # beginnen, sind Kommentar und erscheinen nirgends.
+# Lines starting with # are comments and appear nowhere.
 The site now picks up fixes reliably instead of holding on to old files for up to a year.
 Tools no longer remember what you type — only settings like format or timezone. Anything stored before has been cleared.
 Nine tools have left the front page: eight still work at their old addresses and now say so at the top, and the banknote gallery is gone.
@@ -43,3 +43,4 @@ The Bonn Sperrmüll map looks like the rest of the site now, dark unless you hav
 The Bonn Sperrmüll map's dark mode now has a proper dark map underneath instead of the light one dimmed grey, and the theme switch and header no longer sit on mismatched boxes at three different heights.
 The front page now opens with six pinned tools by default on a first visit, and asks people who already have their own pins whether to add a few more. The rest of the tools are grouped into PDF, Images, Text, Developer and Everyday sections.
 This note now shows up straight away when a new version is ready, instead of waiting until you have been idle on the page for a while.
+The site now speaks both English and German. Which one you see is picked from your browser at first, and a small DE|EN switch at the bottom of every page swaps it. The stage planner and the Bonn map stay German.

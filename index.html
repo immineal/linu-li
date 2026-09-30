@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toolbox | Linus Linhof</title>
+    <title data-de="Werkzeugkasten | Linus Linhof">Toolbox | Linus Linhof</title>
     <meta name="description" content="Small tools that run in your browser tab: merge a PDF, strip the GPS out of a photo, make a QR code. The file you pick is never uploaded.">
     <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
     <link rel="stylesheet" href="./assets/css/style.css">
@@ -90,10 +90,11 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Toolbox</h1>
-                <p>Small tools that run in your browser tab. Nothing you open here is uploaded, and there are no accounts or analytics.</p>
-                <div>                       
-                    <a href="./privacy.html" class="privacy-badge" style="text-decoration: none; transition: all 0.2s;">
+                <h1 data-de="Werkzeugkasten">Toolbox</h1>
+                <p data-de="Kleine Werkzeuge, die in deinem Browser-Tab laufen. Nichts, was du hier öffnest, wird hochgeladen, und es gibt keine Konten und keine Analytik.">Small tools that run in your browser tab. Nothing you open here is uploaded, and there are no accounts or analytics.</p>
+                <div>
+                    <a href="./privacy.html" class="privacy-badge" style="text-decoration: none; transition: all 0.2s;"
+                       data-de="Läuft offline, sobald geladen &bull; Was geht doch ins Netz, und wann">
                         Works offline once loaded &bull; What does go online, and when
                     </a>
                     <style>
@@ -108,6 +109,7 @@
 
             <div style="max-width: 500px; margin: 0 auto 3rem; position: relative;">
                 <input type="text" id="toolSearch" placeholder="Search: pdf, crop, hash" aria-label="Search tools"
+                    data-de-attr="placeholder:Suche: pdf, zuschneiden, hash|aria-label:Werkzeuge suchen"
                     style="padding-left: 2.5rem; border-radius: 50px; margin-bottom: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5;"><circle cx="6.5" cy="6.5" r="4.75"/><path d="M10 10l4.25 4.25"/></svg>
             </div>
@@ -115,186 +117,190 @@
             <div id="pin-suggest-slot"></div>
 
             <div id="favorites-container" class="favorites-section">
-                <h2>Pinned</h2>
+                <h2 data-de="Angepinnt">Pinned</h2>
                 <div class="grid-wrapper" id="favorites-grid"></div>
             </div>
 
-            <h2>PDF</h2>
-            <p class="category-intro">Combine, cut up and convert PDFs without sending them anywhere.</p>
+            <h2 data-de="PDF">PDF</h2>
+            <p class="category-intro" data-de="PDFs zusammenfügen, zerteilen und umwandeln, ohne sie irgendwohin zu schicken.">Combine, cut up and convert PDFs without sending them anywhere.</p>
             <div class="grid-wrapper">
                 <a href="./tools/pdf-compressor/" class="card interactive" data-id="pdf-compressor">
-                    <h3>PDF Compressor</h3>
-                    <p class="small-text">Get a PDF under a size limit like 10 MB for e-mail. Shows a page of the result before you download.</p>
+                    <h3 data-de="PDF verkleinern">PDF Compressor</h3>
+                    <p class="small-text" data-de="Eine PDF unter eine Grenze wie 10 MB drücken, für den Mailanhang. Zeigt eine Seite des Ergebnisses vor dem Download.">Get a PDF under a size limit like 10 MB for e-mail. Shows a page of the result before you download.</p>
                     <span class="keywords">compress compressor shrink reduce smaller size limit mb email upload attachment optimize downsample grayscale black white scan clean pdf</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/pdf-merger/" class="card interactive" data-id="pdf-merger">
-                    <h3>PDF Merger</h3>
-                    <p class="small-text">Combine several PDFs into one. Drag to reorder the pages first.</p>
+                    <h3 data-de="PDF zusammenfügen">PDF Merger</h3>
+                    <p class="small-text" data-de="Mehrere PDFs zu einer verbinden. Seiten davor per Ziehen in die richtige Reihenfolge bringen.">Combine several PDFs into one. Drag to reorder the pages first.</p>
                     <span class="keywords">merge join combine append concatenate documents pages files split unite pdf</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/pdf-splitter/" class="card interactive" data-id="pdf-splitter">
-                    <h3>PDF Splitter</h3>
-                    <p class="small-text">Split a PDF by page range, or extract individual pages into separate files.</p>
+                    <h3 data-de="PDF zerteilen">PDF Splitter</h3>
+                    <p class="small-text" data-de="Eine PDF nach Seitenbereich trennen, oder einzelne Seiten als eigene Dateien herausziehen.">Split a PDF by page range, or extract individual pages into separate files.</p>
                     <span class="keywords">split separate extract cut pages range divide chunk break apart pdf</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/pdf-2up/" class="card interactive" data-id="pdf-2up">
-                    <h3>PDF 2-Up (Booklet Layout)</h3>
-                    <p class="small-text">Put two PDF pages side by side on one sheet, for booklets or double-sided printing.</p>
+                    <h3 data-de="PDF 2-fach (Heftchen-Layout)">PDF 2-Up (Booklet Layout)</h3>
+                    <p class="small-text" data-de="Zwei PDF-Seiten nebeneinander auf ein Blatt, für Heftchen oder beidseitigen Druck.">Put two PDF pages side by side on one sheet, for booklets or double-sided printing.</p>
                     <span class="keywords">2up two booklet duplex double sided pages side by side print layout nup pdf</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/pdf-extractor/" class="card interactive" data-id="pdf-extractor">
-                    <h3>PDF Image Extractor</h3>
-                    <p class="small-text">Pull every image out of a PDF and save them.</p>
+                    <h3 data-de="Bilder aus PDF holen">PDF Image Extractor</h3>
+                    <p class="small-text" data-de="Jedes Bild aus einer PDF ziehen und speichern.">Pull every image out of a PDF and save them.</p>
                     <span class="keywords">extract images photos pictures assets embedded download save jpg png pdf scrape</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
             </div>
 
-            <h2>Images</h2>
-            <p class="category-intro">Shrink, resize and crop photos, and see what a photo gives away before you share it.</p>
+            <h2 data-de="Bilder">Images</h2>
+            <p class="category-intro" data-de="Fotos verkleinern, umrechnen und zuschneiden, und nachsehen, was ein Foto über dich verrät, bevor du es teilst.">Shrink, resize and crop photos, and see what a photo gives away before you share it.</p>
             <div class="grid-wrapper">
                 <a href="./tools/image-compressor/" class="card interactive" data-id="image-compressor">
-                    <h3>Image Compressor</h3>
-                    <p class="small-text">Shrink photos to WebP or AVIF with a quality slider, and compare before and after.</p>
+                    <h3 data-de="Bilder verkleinern">Image Compressor</h3>
+                    <p class="small-text" data-de="Fotos zu WebP oder AVIF verkleinern, mit Qualitätsregler und Vorher-Nachher-Vergleich.">Shrink photos to WebP or AVIF with a quality slider, and compare before and after.</p>
                     <span class="keywords">compress optimize shrink reduce size photo image webp avif jpg jpeg png quality file size web upload</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/image-resizer/" class="card interactive" data-id="image-resizer">
-                    <h3>Bulk Image Resizer</h3>
-                    <p class="small-text">Resize a batch of images to exact dimensions. Keeps aspect ratio.</p>
+                    <h3 data-de="Bilder im Stapel skalieren">Bulk Image Resizer</h3>
+                    <p class="small-text" data-de="Einen Stapel Bilder auf feste Maße bringen. Seitenverhältnis bleibt.">Resize a batch of images to exact dimensions. Keeps aspect ratio.</p>
                     <span class="keywords">resize scale batch multiple bulk dimensions width height pixels images photos thumbnail</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/social-cropper/" class="card interactive" data-id="social-cropper">
-                    <h3>Social Media Cropper</h3>
-                    <p class="small-text">Crop to Instagram, Twitter or LinkedIn ratios, or a round profile picture.</p>
+                    <h3 data-de="Social-Media-Zuschnitt">Social Media Cropper</h3>
+                    <p class="small-text" data-de="Auf Instagram-, Twitter- oder LinkedIn-Format zuschneiden, oder ein rundes Profilbild.">Crop to Instagram, Twitter or LinkedIn ratios, or a round profile picture.</p>
                     <span class="keywords">crop instagram twitter linkedin facebook profile picture avatar thumbnail ratio 16:9 4:5 1:1 circle square social media</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/exif-scrubber/" class="card interactive" data-id="exif-scrubber">
-                    <h3>EXIF Metadata Remover</h3>
-                    <p class="small-text">See what location and camera data is hidden in a photo, then strip it out.</p>
+                    <h3 data-de="EXIF-Daten entfernen">EXIF Metadata Remover</h3>
+                    <p class="small-text" data-de="Sehen, welche Orts- und Kameradaten in einem Foto stecken, und sie herausnehmen.">See what location and camera data is hidden in a photo, then strip it out.</p>
                     <span class="keywords">exif metadata gps location strip remove privacy camera settings hidden data photo jpg jpeg</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/favicon-maker/" class="card interactive" data-id="favicon-maker">
-                    <h3>Favicon Generator</h3>
-                    <p class="small-text">Make .ico and .png browser tab icons from text, an emoji or an image.</p>
+                    <h3 data-de="Favicon erzeugen">Favicon Generator</h3>
+                    <p class="small-text" data-de="Aus Text, einem Emoji oder einem Bild ein .ico- oder .png-Tab-Icon machen.">Make .ico and .png browser tab icons from text, an emoji or an image.</p>
                     <span class="keywords">favicon icon ico png browser tab website logo generate create emoji text shortcut</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
             </div>
 
-            <h2>Text</h2>
-            <p class="category-intro">Compare two versions, write Markdown, make filler text.</p>
+            <h2 data-de="Text">Text</h2>
+            <p class="category-intro" data-de="Zwei Fassungen vergleichen, Markdown schreiben, Fülltext erzeugen.">Compare two versions, write Markdown, make filler text.</p>
             <div class="grid-wrapper">
                 <a href="./tools/markdown-editor/" class="card interactive" data-id="markdown-editor">
-                    <h3>Markdown Editor &amp; Preview</h3>
-                    <p class="small-text">Write Markdown and see the rendered output side by side. Export to HTML.</p>
+                    <h3 data-de="Markdown-Editor mit Vorschau">Markdown Editor &amp; Preview</h3>
+                    <p class="small-text" data-de="Markdown schreiben und die Ausgabe daneben sehen. Export als HTML.">Write Markdown and see the rendered output side by side. Export to HTML.</p>
                     <span class="keywords">markdown editor preview render html export write md github readme documentation</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/diff-checker/" class="card interactive" data-id="diff-checker">
-                    <h3>Text / Code Diff Checker</h3>
-                    <p class="small-text">Paste two texts and see what was added and removed, line by line.</p>
+                    <h3 data-de="Text- und Code-Vergleich">Text / Code Diff Checker</h3>
+                    <p class="small-text" data-de="Zwei Texte einfügen und Zeile für Zeile sehen, was hinzukam und wegging.">Paste two texts and see what was added and removed, line by line.</p>
                     <span class="keywords">diff compare difference text code changes added removed highlight inline side by side version</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/lorem-generator/" class="card interactive" data-id="lorem-generator">
-                    <h3>Lorem Ipsum Generator</h3>
-                    <p class="small-text">Generate filler text for mockups. Latin, tech jargon, or corporate speak.</p>
+                    <h3 data-de="Lorem-Ipsum-Generator">Lorem Ipsum Generator</h3>
+                    <p class="small-text" data-de="Fülltext für Mockups. Auf Latein, in Tech-Jargon oder in Business-Sprech.">Generate filler text for mockups. Latin, tech jargon, or corporate speak.</p>
                     <span class="keywords">lorem ipsum placeholder dummy filler text mockup design prototype paragraph sentence latin</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
             </div>
 
-            <h2>Developer</h2>
-            <p class="category-intro">For data you would rather not paste into a stranger's website.</p>
+            <h2 data-de="Entwicklung">Developer</h2>
+            <p class="category-intro" data-de="Für Daten, die du besser nicht auf einer fremden Seite einfügst.">For data you would rather not paste into a stranger's website.</p>
             <div class="grid-wrapper">
                 <a href="./tools/json-tools/" class="card interactive" data-id="json-tools">
-                    <h3>JSON Formatter &amp; Validator</h3>
-                    <p class="small-text">Validate, prettify or minify JSON. Browse it as a collapsible tree.</p>
+                    <h3 data-de="JSON formatieren und prüfen">JSON Formatter &amp; Validator</h3>
+                    <p class="small-text" data-de="JSON prüfen, formatieren oder komprimieren. Als aufklappbaren Baum durchgehen.">Validate, prettify or minify JSON. Browse it as a collapsible tree.</p>
                     <span class="keywords">json format validate repair fix minify prettify beautify tree view explore api response parse</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/url-tools/" class="card interactive" data-id="url-tools">
-                    <h3>URL Encoder / Tracker Stripper</h3>
-                    <p class="small-text">Encode or decode URLs, and remove tracking junk like UTM, fbclid, gclid params.</p>
+                    <h3 data-de="URL kodieren und Tracker abwerfen">URL Encoder / Tracker Stripper</h3>
+                    <p class="small-text" data-de="URLs kodieren oder dekodieren, und Tracking-Krempel wie UTM, fbclid oder gclid rauswerfen.">Encode or decode URLs, and remove tracking junk like UTM, fbclid, gclid params.</p>
                     <span class="keywords">url encode decode clean strip tracking utm fbclid gclid parameters link query string percent encoding</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/base64-converter/" class="card interactive" data-id="base64-converter">
-                    <h3>Base64 Encoder / Decoder</h3>
-                    <p class="small-text">Encode text or files to Base64, or decode Base64 strings back. Handles data URIs too.</p>
+                    <h3 data-de="Base64 kodieren und dekodieren">Base64 Encoder / Decoder</h3>
+                    <p class="small-text" data-de="Text oder Dateien in Base64 wandeln, oder Base64 zurück lesen. Data-URIs gehen auch.">Encode text or files to Base64, or decode Base64 strings back. Handles data URIs too.</p>
                     <span class="keywords">base64 encode decode text file data uri string binary convert atob btoa</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/hash-generator/" class="card interactive" data-id="hash-generator">
-                    <h3>Hash Generator</h3>
-                    <p class="small-text">Get the SHA-256, MD5, or SHA-512 hash of any text or file.</p>
+                    <h3 data-de="Hash erzeugen">Hash Generator</h3>
+                    <p class="small-text" data-de="Den SHA-256-, MD5- oder SHA-512-Hash von Text oder Datei ausrechnen.">Get the SHA-256, MD5, or SHA-512 hash of any text or file.</p>
                     <span class="keywords">hash sha256 md5 sha512 checksum file text integrity verify fingerprint crypto</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/time-converter/" class="card interactive" data-id="time-converter">
-                    <h3>Unix Timestamp Converter</h3>
-                    <p class="small-text">Convert Unix/epoch timestamps to readable dates and back, across time zones.</p>
+                    <h3 data-de="Unix-Zeitstempel umrechnen">Unix Timestamp Converter</h3>
+                    <p class="small-text" data-de="Unix-/Epoch-Zeitstempel in lesbare Daten umrechnen und zurück, über Zeitzonen hinweg.">Convert Unix/epoch timestamps to readable dates and back, across time zones.</p>
                     <span class="keywords">unix timestamp epoch convert date time seconds milliseconds timezone utc posix</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
             </div>
 
-            <h2>Everyday</h2>
-            <p class="category-intro">Colours, units, and the two local Bonn tools.</p>
+            <h2 data-de="Alltag">Everyday</h2>
+            <p class="category-intro" data-de="Farben, Einheiten, und die zwei Werkzeuge für Bonn.">Colours, units, and the two local Bonn tools.</p>
             <div class="grid-wrapper">
                 <a href="./tools/color-tools/" class="card interactive" data-id="color-tools">
-                    <h3>Color Picker &amp; Contrast Checker</h3>
-                    <p class="small-text">Pick colors, convert HEX/RGB/HSL, and check WCAG accessibility contrast ratios.</p>
+                    <h3 data-de="Farbwähler mit Kontrastprüfung">Color Picker &amp; Contrast Checker</h3>
+                    <p class="small-text" data-de="Farben auswählen, zwischen HEX, RGB und HSL umrechnen, und WCAG-Kontraste prüfen.">Pick colors, convert HEX/RGB/HSL, and check WCAG accessibility contrast ratios.</p>
                     <span class="keywords">color picker hex rgb hsl hsv convert contrast wcag accessibility a11y palette css</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/unit-converter/" class="card interactive" data-id="unit-converter">
-                    <h3>Unit Converter</h3>
-                    <p class="small-text">Convert length, weight, temperature, speed, digital storage and currency.</p>
+                    <h3 data-de="Einheiten umrechnen">Unit Converter</h3>
+                    <p class="small-text" data-de="Länge, Gewicht, Temperatur, Geschwindigkeit, Speicher und Währung umrechnen.">Convert length, weight, temperature, speed, digital storage and currency.</p>
                     <span class="keywords">unit convert length weight temperature speed storage km miles celsius fahrenheit gb mb metric imperial</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/sperrmuell/" class="card interactive" data-id="sperrmuell">
-                    <h3>Bonn Sperrmüll Map</h3>
-                    <p class="small-text">Which streets in Bonn get a bulky-waste (Sperrmüll) pickup on which day. Search by address or look on the map.</p>
+                    <h3 data-de="Bonner Sperrmüll-Karte">Bonn Sperrmüll Map</h3>
+                    <p class="small-text" data-de="Welche Straßen in Bonn an welchem Tag zur Sperrmüllabfuhr drankommen. Suche per Adresse oder auf der Karte.">Which streets in Bonn get a bulky-waste (Sperrmüll) pickup on which day. Search by address or look on the map.</p>
                     <span class="keywords">sperrmüll bonn bulky waste pickup collection map abfuhrtermine straße adresse abholtermin</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
                 <a href="./tools/buehnenbild/" class="card interactive" data-id="buehnenbild">
                     <h3>B&uuml;hnenbild-Planer &middot; Scene &amp; Prop Planner</h3>
-                    <p class="small-text">German-language planner for stage crews. Lay out props scene by scene, then print A4 ground plans and a separate Umbauplan listing every strike, set-up and move.</p>
+                    <p class="small-text" data-de="Deutschsprachiger Planer für Bühnenbild und Technik. Requisiten Szene für Szene aufstellen, A4-Grundrisse und einen Umbauplan drucken, der jeden Abbau, Aufbau und Umzug auflistet.">German-language planner for stage crews. Lay out props scene by scene, then print A4 ground plans and a separate Umbauplan listing every strike, set-up and move.</p>
                     <span class="keywords">theatre stage plan prop scene planner ground plan set design blocking act curtain rostrum print a4 rehearsal production crew bühnenplan requisiten umbauplan szenenplaner abbau aufbau umstellen requisite bühnenbild theater deutsch german</span>
-                    <span class="button outline sm">Open &rarr;</span>
+                    <span class="button outline sm" data-de="Öffnen &rarr;">Open &rarr;</span>
                 </a>
             </div>
-            <h2>Feedback</h2>
-            <p class="category-intro">An idea for a tool, or something that broke? This goes straight to my inbox.</p>
+            <h2 data-de="Rückmeldung">Feedback</h2>
+            <p class="category-intro" data-de="Eine Idee für ein Werkzeug, oder etwas ist kaputt? Landet direkt in meinem Postfach.">An idea for a tool, or something that broke? This goes straight to my inbox.</p>
             <div class="card">
                 <form action="https://formspree.io/f/mankdzjn" method="POST" style="max-width: 600px; margin: 0 auto;">
-                    <label for="email">Your email</label>
+                    <label for="email" data-de="Deine E-Mail-Adresse">Your email</label>
                     <input type="email" id="email" name="email" placeholder="you@example.com" required>
-                    
-                    <label for="message">Message</label>
-                    <textarea id="message" name="message" class="code-editor" style="min-height: 150px; background: var(--input-bg); font-family: var(--font-body);" placeholder="Which tool, and what happened or what is missing" required></textarea>
-                    
-                    <button type="submit" class="button" style="width: 100%; margin-top: 1rem;">Send</button>
+
+                    <label for="message" data-de="Nachricht">Message</label>
+                    <textarea id="message" name="message" class="code-editor" style="min-height: 150px; background: var(--input-bg); font-family: var(--font-body);" placeholder="Which tool, and what happened or what is missing" data-de-attr="placeholder:Welches Werkzeug, und was ist passiert oder was fehlt" required></textarea>
+
+                    <button type="submit" class="button" style="width: 100%; margin-top: 1rem;" data-de="Absenden">Send</button>
                 </form>
             </div>
         </div>
     </main>
 
+    <script src="./assets/js/i18n.js"></script>
     <script src="./assets/js/layout.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const t = (window.LL_I18N && window.LL_I18N.t)
+                ? window.LL_I18N.t
+                : ((en) => en);
             const MAX_FAVES = 6;
             const STORAGE_KEY = 'll_toolbox_favorites';
             const PIN_PROMPT_KEY = 'll_pin_prompt_v1';
@@ -379,13 +385,13 @@
                         if (faves.includes(parentId)) {
                             btn.classList.add('active');
                             btn.innerHTML = '&#9829;'; // Filled heart
-                            btn.setAttribute('aria-label', 'Unpin');
-                            btn.setAttribute('title', 'Unpin');
+                            btn.setAttribute('aria-label', t('Unpin', 'Losmachen'));
+                            btn.setAttribute('title', t('Unpin', 'Losmachen'));
                         } else {
                             btn.classList.remove('active');
                             btn.innerHTML = '&#9825;'; // Empty heart
-                            btn.setAttribute('aria-label', 'Pin to the top');
-                            btn.setAttribute('title', 'Pin to the top');
+                            btn.setAttribute('aria-label', t('Pin to the top', 'Nach oben anpinnen'));
+                            btn.setAttribute('title', t('Pin to the top', 'Nach oben anpinnen'));
                         }
                     }
                 });
@@ -398,7 +404,10 @@
                     faves = faves.filter(favId => favId !== id);
                 } else {
                     if (faves.length >= MAX_FAVES) {
-                        showToast(`You can pin up to ${MAX_FAVES} tools.`, 'error');
+                        showToast(t(
+                            `You can pin up to ${MAX_FAVES} tools.`,
+                            `Du kannst bis zu ${MAX_FAVES} Werkzeuge anpinnen.`
+                        ), 'error');
                         return;
                     }
                     faves.push(id);
@@ -418,8 +427,8 @@
                 const btn = document.createElement('button');
                 btn.className = 'fav-btn';
                 btn.innerHTML = '&#9825;'; // Empty heart default
-                btn.title = 'Pin to the top';
-                btn.setAttribute('aria-label', 'Pin to the top');
+                btn.title = t('Pin to the top', 'Nach oben anpinnen');
+                btn.setAttribute('aria-label', t('Pin to the top', 'Nach oben anpinnen'));
                 
                 btn.addEventListener('click', (e) => {
                     e.preventDefault(); // the button sits inside the card's link
@@ -479,22 +488,30 @@
                 const banner = document.createElement('div');
                 banner.className = 'll-pin-suggest';
                 const heading = items.length === 3
-                    ? 'A few more pins?'
-                    : (items.length === 2 ? 'Two more pins?' : 'One more pin?');
+                    ? t('A few more pins?', 'Noch ein paar Pins?')
+                    : (items.length === 2
+                        ? t('Two more pins?', 'Noch zwei Pins?')
+                        : t('One more pin?', 'Noch ein Pin?'));
+                const explain = t(
+                    'Sit them at the top of the page so they are one tap away. Click a heart later to unpin any of them.',
+                    'Oben auf der Seite anpinnen, damit sie einen Tipp entfernt sind. Später am Herzchen wieder abnehmen.'
+                );
+                const notNow = t('Not now', 'Nicht jetzt');
+                const pinLabel = items.length === 1
+                    ? t('Pin it', 'Anpinnen')
+                    : t('Pin them', 'Anpinnen');
                 const chips = items.map((it) =>
                     `<span class="ll-pin-suggest-chip">${it.name}</span>`
                 ).join('');
                 banner.innerHTML =
                     '<div class="ll-pin-suggest-text">' +
                         '<strong>' + heading + '</strong>' +
-                        '<span>Sit them at the top of the page so they are one tap away. Click a heart later to unpin any of them.</span>' +
+                        '<span>' + explain + '</span>' +
                     '</div>' +
                     '<div class="ll-pin-suggest-chips">' + chips + '</div>' +
                     '<div class="ll-pin-suggest-buttons">' +
-                        '<button type="button" data-act="no">Not now</button>' +
-                        '<button type="button" data-act="yes" class="ll-pin-yes">Pin ' +
-                            (items.length === 1 ? 'it' : 'them') +
-                        '</button>' +
+                        '<button type="button" data-act="no">' + notNow + '</button>' +
+                        '<button type="button" data-act="yes" class="ll-pin-yes">' + pinLabel + '</button>' +
                     '</div>';
 
                 banner.addEventListener('click', (e) => {
@@ -607,7 +624,10 @@
                     const p = document.createElement('p');
                     p.style.opacity = '0.5';
                     p.style.gridColumn = '1/-1';
-                    p.textContent = 'Nothing matches "' + term + '".';
+                    p.textContent = t(
+                        'Nothing matches "' + term + '".',
+                        'Nichts passt auf „' + term + '".'
+                    );
                     searchResultsGrid.appendChild(p);
                 } else {
                     matches.forEach(card => {

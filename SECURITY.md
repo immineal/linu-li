@@ -18,14 +18,14 @@ Anything that stores what someone typed. Tools remember dropdown settings and
 nothing else. In September 2026 they stored every text field on every page,
 including a WiFi password in the QR creator and a signing secret in the JWT
 debugger, for as long as the browser kept them. That is fixed and guarded by
-`tests/test-autosave-nur-einstellungen.js`, but the same mistake is easy to
+`tests/test-autosave-settings-only.js`, but the same mistake is easy to
 make again.
 
 Cross-site scripting through a file or a pasted input. Several tools render
 what you give them, and a few use libraries that parse untrusted data.
 
 A request to a server that the privacy policy does not name. The policy lists
-every one, and `tests/test-autosave-nur-einstellungen.js` fails if a page
+every one, and `tests/test-autosave-settings-only.js` fails if a page
 contacts a host that is missing from it.
 
 ## What to expect

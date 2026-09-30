@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Social Media Cropper | Linus Linhof</title>
+    <title data-de="Bild fürs Netz zuschneiden | Linus Linhof">Social Media Cropper | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -49,15 +49,15 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Social Media Cropper</h1>
-                <p>Crops a picture to the shapes Instagram, Twitter and LinkedIn expect, with rotation and a round mask for profile photos.</p>
+                <h1 data-de="Bild fürs Netz zuschneiden">Social Media Cropper</h1>
+                <p data-de="Schneidet ein Bild auf die Formate zu, die Instagram, Twitter und LinkedIn erwarten, mit Drehung und rundem Ausschnitt für Profilfotos.">Crops a picture to the shapes Instagram, Twitter and LinkedIn expect, with rotation and a round mask for profile photos.</p>
             </div>
 
             <div class="card">
                 
                 <div class="drop-zone" id="dropZone">
-                    <p>Drop an image here</p>
-                    <p style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.5rem;">Supports JPG, PNG, WEBP</p>
+                    <p data-de="Bild hier ablegen">Drop an image here</p>
+                    <p style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.5rem;" data-de="Unterstützt JPG, PNG, WEBP">Supports JPG, PNG, WEBP</p>
                     <input type="file" id="fileInput" class="hidden" accept="image/*">
                 </div>
 
@@ -75,55 +75,55 @@
                              <label class="toggle-wrapper" style="margin-bottom:0;">
                                 <input type="checkbox" id="circleToggle" class="toggle-checkbox">
                                 <div class="toggle-switch"></div>
-                                <span>Circular Mask</span>
+                                <span data-de="Runder Ausschnitt">Circular Mask</span>
                             </label>
                         </div>
                     </div>
 
                     <div class="toolbar" style="margin-bottom: 1.5rem;">
                         <div class="tool-control" style="flex: 1;">
-                            <label for="platformSelect" style="display: block; margin-bottom: 0.5rem;">Platform Template</label>
+                            <label for="platformSelect" style="display: block; margin-bottom: 0.5rem;" data-de="Plattform-Vorlage">Platform Template</label>
                             <select id="platformSelect" data-save style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;">
-                                <option value="general">General</option>
+                                <option value="general" data-de="Allgemein">General</option>
                                 <option value="ig">Instagram</option>
                                 <option value="twitter">Twitter / X</option>
                                 <option value="linkedin">LinkedIn</option>
                             </select>
                         </div>
                         <div class="tool-control" style="flex: 1;">
-                            <label for="formatSelect" style="display: block; margin-bottom: 0.5rem;">Export Format</label>
+                            <label for="formatSelect" style="display: block; margin-bottom: 0.5rem;" data-de="Exportformat">Export Format</label>
                             <select id="formatSelect" data-save style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff;">
-                                <option value="png">PNG (Transparency)</option>
+                                <option value="png" data-de="PNG (Transparenz)">PNG (Transparency)</option>
                                 <option value="webp">WebP</option>
-                                <option value="jpeg">JPEG (White Background)</option>
+                                <option value="jpeg" data-de="JPEG (weißer Hintergrund)">JPEG (White Background)</option>
                             </select>
                         </div>
                     </div>
 
-                    <label id="aspectRatioLabel">Aspect Ratio</label>
+                    <label id="aspectRatioLabel" data-de="Seitenverhältnis">Aspect Ratio</label>
                     <div class="button-group" id="ratioButtonsContainer" style="margin-bottom: 1.5rem;">
-                        <button class="button sm outline active-ratio" data-ratio="1">1:1 (Square)</button>
-                        <button class="button sm outline" data-ratio="0.8">4:5 (Portrait)</button>
-                        <button class="button sm outline" data-ratio="1.7777777777777777">16:9 (Landscape)</button>
+                        <button class="button sm outline active-ratio" data-ratio="1" data-de="1:1 (Quadrat)">1:1 (Square)</button>
+                        <button class="button sm outline" data-ratio="0.8" data-de="4:5 (Hochformat)">4:5 (Portrait)</button>
+                        <button class="button sm outline" data-ratio="1.7777777777777777" data-de="16:9 (Querformat)">16:9 (Landscape)</button>
                         <button class="button sm outline" data-ratio="0.5625">9:16 (Story)</button>
-                        <button class="button sm outline" data-ratio="NaN">Free</button>
+                        <button class="button sm outline" data-ratio="NaN" data-de="Frei">Free</button>
                     </div>
 
                     <div class="button-group">
-                        <button class="button" id="btnCrop">Crop & Export</button>
-                        <button class="button secondary outline" id="btnReset">Reset</button>
-                        <button class="button outline" id="btnClear">Choose Another</button>
+                        <button class="button" id="btnCrop" data-de="Zuschneiden und exportieren">Crop & Export</button>
+                        <button class="button secondary outline" id="btnReset" data-de="Zurücksetzen">Reset</button>
+                        <button class="button outline" id="btnClear" data-de="Anderes wählen">Choose Another</button>
                     </div>
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
-                    <label>Result Preview</label>
+                    <label data-de="Vorschau des Ergebnisses">Result Preview</label>
                     <div style="text-align: center; margin-bottom: 1.5rem; background: var(--paper); padding: 2rem; border-radius: 4px;">
                         <img id="cropped-result" src="" alt="Cropped Result">
                     </div>
                     
                     <div class="button-group">
-                        <a href="#" id="btnDownload" class="button secondary" download="cropped-image.png">Download PNG</a>
+                        <a href="#" id="btnDownload" class="button secondary" download="cropped-image.png" data-de="PNG herunterladen">Download PNG</a>
                     </div>
                 </div>
 
@@ -131,6 +131,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>
@@ -414,12 +415,12 @@
             dropZone.classList.remove('hidden');
         });
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => !!cropper;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => !!cropper;
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Word & Character Counter | Linus Linhof</title>
+    <title data-de="Wort- und Zeichenzähler | Linus Linhof">Word & Character Counter | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     <style>
@@ -104,8 +104,8 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Word & Character Counter</h1>
-                <p>Counts words, characters and sentences as you type, and estimates reading time at 200 words a minute.</p>
+                <h1 data-de="Wort- und Zeichenzähler">Word & Character Counter</h1>
+                <p data-de="Zählt Wörter, Zeichen und Sätze beim Tippen und schätzt die Lesezeit bei 200 Wörtern pro Minute.">Counts words, characters and sentences as you type, and estimates reading time at 200 words a minute.</p>
             </div>
 
             <div class="card">
@@ -113,29 +113,29 @@
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-value" id="wordCount">0</div>
-                        <div class="stat-label">Words</div>
+                        <div class="stat-label" data-de="Wörter">Words</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="charCount">0</div>
-                        <div class="stat-label">Characters</div>
+                        <div class="stat-label" data-de="Zeichen">Characters</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="charNoSpaceCount">0</div>
-                        <div class="stat-label">Chars (No Spaces)</div>
+                        <div class="stat-label" data-de="Zeichen (ohne Leerzeichen)">Chars (No Spaces)</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="sentenceCount">0</div>
-                        <div class="stat-label">Sentences</div>
+                        <div class="stat-label" data-de="Sätze">Sentences</div>
                     </div>
                 </div>
 
-                <textarea id="textInput" class="code-editor" style="font-family: var(--font-body); font-size: 1.1rem; padding: 1.5rem; min-height: 400px;" placeholder="Type or paste text here"></textarea>
+                <textarea id="textInput" class="code-editor" style="font-family: var(--font-body); font-size: 1.1rem; padding: 1.5rem; min-height: 400px;" placeholder="Type or paste text here" data-de-attr="placeholder:Text hier tippen oder einfügen"></textarea>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; color: var(--ink-secondary); font-size: 0.9rem;">
                     <span id="readTime">Reading Time: 0 min</span>
                     <div class="button-group" style="margin-top: 0;">
-                        <button class="button sm secondary" id="copyBtn">Copy Text</button>
-                        <button class="button sm outline" id="clearBtn">Clear</button>
+                        <button class="button sm secondary" id="copyBtn" data-de="Text kopieren">Copy Text</button>
+                        <button class="button sm outline" id="clearBtn" data-de="Leeren">Clear</button>
                     </div>
                 </div>
 
@@ -143,19 +143,19 @@
 
             <div class="analysis-section">
                 <div class="analysis-card">
-                    <h3>Keyword Density</h3>
+                    <h3 data-de="Wortdichte">Keyword Density</h3>
                     <ul class="keyword-list" id="keywordList">
                         <li class="keyword-item"><span class="keyword-word" style="color: var(--ink-secondary);">Nothing to count yet</span></li>
                     </ul>
                 </div>
                 <div class="analysis-card">
-                    <h3>Readability (Flesch-Kincaid)</h3>
+                    <h3 data-de="Lesbarkeit (Flesch-Kincaid)">Readability (Flesch-Kincaid)</h3>
                     <div class="readability-stat">
-                        <div class="readability-label">Reading Ease Score</div>
+                        <div class="readability-label" data-de="Lesbarkeitswert">Reading Ease Score</div>
                         <div class="readability-value" id="fleschScore">0</div>
                     </div>
                     <div class="readability-stat">
-                        <div class="readability-label">Estimated Reading Level</div>
+                        <div class="readability-label" data-de="Geschätztes Leseniveau">Estimated Reading Level</div>
                         <div class="readability-value" style="font-size: 1.2rem;" id="fleschLevel">N/A</div>
                     </div>
                 </div>
@@ -163,6 +163,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script>
         const textInput = document.getElementById('textInput');
@@ -328,12 +329,12 @@
 
         updateStats();
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => textInput.value.trim() !== '';
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => textInput.value.trim() !== '';
     </script>
 </body>
 </html>

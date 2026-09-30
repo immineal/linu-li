@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>QR Code Generator | Linus Linhof</title>
+    <title data-de="QR-Code erstellen | Linus Linhof">QR Code Generator | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css" />
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg" />
 
@@ -73,8 +73,8 @@
     <main>
       <div class="container">
         <div class="tool-header">
-          <h1>QR Code Generator</h1>
-          <p>
+          <h1 data-de="QR-Code erstellen">QR Code Generator</h1>
+          <p data-de="Erzeugt einen QR-Code aus einem Link oder Text, aus WiFi-Zugangsdaten, mit denen ein Handy sich verbindet, aus einer Kontaktkarte oder aus einer E-Mail.">
             Makes a QR code from a link or text, from WiFi credentials a phone
             can join with, from a contact card, or from an email.
           </p>
@@ -82,12 +82,12 @@
 
         <div class="split-view">
           <div class="card">
-            <label for="qrMode">QR Content Type</label>
+            <label for="qrMode" data-de="Inhaltstyp">QR Content Type</label>
             <select id="qrMode" data-save style="margin-bottom: 1.5rem">
               <option value="text">URL / Text</option>
-              <option value="wifi">WiFi Network</option>
-              <option value="contact">Contact (vCard)</option>
-              <option value="email">Email</option>
+              <option value="wifi" data-de="WiFi-Netzwerk">WiFi Network</option>
+              <option value="contact" data-de="Kontakt (vCard)">Contact (vCard)</option>
+              <option value="email" data-de="E-Mail">Email</option>
             </select>
 
             <hr
@@ -99,7 +99,7 @@
             />
 
             <div id="form-text" class="input-group-wrapper active">
-              <label for="qrInput">Content</label>
+              <label for="qrInput" data-de="Inhalt">Content</label>
               <textarea
                 id="qrInput"
                 class="code-editor"
@@ -109,30 +109,31 @@
             </div>
 
             <div id="form-wifi" class="input-group-wrapper">
-              <label>Network Name (SSID)</label>
-              <input type="text" id="wifiSSID" placeholder="MyHomeNetwork" />
+              <label data-de="Netzwerkname (SSID)">Network Name (SSID)</label>
+              <input type="text" id="wifiSSID" placeholder="MyHomeNetwork" data-de-attr="placeholder:MeinHeimnetzwerk" />
 
-              <label>Password</label>
+              <label data-de="Passwort">Password</label>
               <input
                 type="text"
                 id="wifiPass"
                 placeholder="securepassword123"
+                data-de-attr="placeholder:sicheresPasswort123"
               />
 
               <div class="split-view" style="margin-bottom: 0">
                 <div>
-                  <label>Encryption</label>
+                  <label data-de="Verschlüsselung">Encryption</label>
                   <select id="wifiType" data-save>
                     <option value="WPA">WPA/WPA2</option>
                     <option value="WEP">WEP</option>
-                    <option value="nopass">None</option>
+                    <option value="nopass" data-de="Keine">None</option>
                   </select>
                 </div>
                 <div>
-                  <label>Hidden Network?</label>
+                  <label data-de="Verstecktes Netzwerk?">Hidden Network?</label>
                   <select id="wifiHidden" data-save>
-                    <option value="false">No</option>
-                    <option value="true">Yes</option>
+                    <option value="false" data-de="Nein">No</option>
+                    <option value="true" data-de="Ja">Yes</option>
                   </select>
                 </div>
               </div>
@@ -141,41 +142,42 @@
             <div id="form-contact" class="input-group-wrapper">
               <div class="split-view">
                 <div>
-                  <label>First Name</label>
+                  <label data-de="Vorname">First Name</label>
                   <input type="text" id="vName" placeholder="John" />
                 </div>
                 <div>
-                  <label>Last Name</label>
+                  <label data-de="Nachname">Last Name</label>
                   <input type="text" id="vLast" placeholder="Doe" />
                 </div>
               </div>
-              <label>Phone Number</label>
+              <label data-de="Telefonnummer">Phone Number</label>
               <input type="text" id="vPhone" placeholder="+1 555 0192" />
 
-              <label>Email</label>
+              <label data-de="E-Mail">Email</label>
               <input type="text" id="vEmail" placeholder="john@example.com" />
 
-              <label>Organization/Company</label>
+              <label data-de="Organisation/Firma">Organization/Company</label>
               <input type="text" id="vOrg" placeholder="Acme Corp" />
             </div>
 
             <div id="form-email" class="input-group-wrapper">
-              <label>Email Address</label>
+              <label data-de="E-Mail-Adresse">Email Address</label>
               <input
                 type="text"
                 id="mailTo"
                 placeholder="recipient@example.com"
               />
 
-              <label>Subject</label>
-              <input type="text" id="mailSub" placeholder="Inquiry..." />
+              <label data-de="Betreff">Subject</label>
+              <input type="text" id="mailSub" placeholder="Inquiry..." data-de-attr="placeholder:Anfrage..." />
 
-              <label>Body</label>
+              <label data-de="Nachricht">Body</label>
               <textarea
                 id="mailBody"
                 class="code-editor"
                 style="min-height: 80px"
                 placeholder="Hello..."
+                data-de-attr="placeholder:Hallo..."
               ></textarea>
             </div>
 
@@ -189,7 +191,7 @@
 
             <div class="split-view" style="margin-bottom: 0">
               <div>
-                <label for="colorDark">Dots Color</label>
+                <label for="colorDark" data-de="Farbe der Punkte">Dots Color</label>
                 <input
                   type="color"
                   id="colorDark"
@@ -198,7 +200,7 @@
                 />
               </div>
               <div>
-                <label for="colorLight">Background</label>
+                <label for="colorLight" data-de="Hintergrund">Background</label>
                 <input
                   type="color"
                   id="colorLight"
@@ -208,12 +210,12 @@
               </div>
             </div>
 
-            <label style="margin-top: 1rem">Error Correction Level</label>
+            <label style="margin-top: 1rem" data-de="Fehlerkorrektur">Error Correction Level</label>
             <select id="errorLevel" data-save>
-              <option value="L">Low (7%)</option>
-              <option value="M" selected>Medium (15%)</option>
-              <option value="Q">Quartile (25%)</option>
-              <option value="H">High (30%)</option>
+              <option value="L" data-de="Niedrig (7%)">Low (7%)</option>
+              <option value="M" selected data-de="Mittel (15%)">Medium (15%)</option>
+              <option value="Q" data-de="Quartil (25%)">Quartile (25%)</option>
+              <option value="H" data-de="Hoch (30%)">High (30%)</option>
             </select>
           </div>
 
@@ -226,15 +228,15 @@
               justify-content: center;
             "
           >
-            <label style="align-self: flex-start">Preview</label>
+            <label style="align-self: flex-start" data-de="Vorschau">Preview</label>
 
             <div class="qr-square-container" id="canvasContainer">
-              <div class="qr-placeholder">Enter data to see preview</div>
+              <div class="qr-placeholder" data-de="Daten eingeben für Vorschau">Enter data to see preview</div>
               <div class="qr-warning-banner" id="qrWarning"></div>
             </div>
 
             <div class="button-group">
-              <button class="button secondary" id="downloadPng" disabled>
+              <button class="button secondary" id="downloadPng" disabled data-de="Bild herunterladen">
                 Download Image
               </button>
             </div>
@@ -243,6 +245,7 @@
       </div>
     </main>
 
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script>
       const qrMode = document.getElementById("qrMode");
@@ -463,17 +466,17 @@
       document.getElementById("qrInput").value = "https://linu.li";
       setTimeout(generateQR, 500);
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Über den DOM gelesen, weil die Variablen dieses
-       Werkzeugs in einem Bereich liegen, den diese Zeile nicht sieht. */
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). Read via the DOM, because this
+       tool's variables live in a scope this line cannot see. */
     const llFelder = ['qrInput', 'wifiSSID', 'wifiPass', 'vName', 'vLast', 'vPhone',
         'vEmail', 'vOrg', 'mailTo', 'mailSub', 'mailBody']
         .map((id) => document.getElementById(id)).filter(Boolean);
-    /* #qrInput ist beim Laden vorbelegt — ohne den Schnappschuss meldete das
-       Werkzeug schon auf der unberührten Seite Arbeit. */
+    /* #qrInput is pre-filled on load — without the snapshot the tool would
+       report work on an untouched page. */
     const llStart = new Map(llFelder.map((f) => [f, f.value]));
-    window.llHaeltArbeit = () =>
+    window.llHoldsWork = () =>
         llFelder.some((f) => f.value.trim() !== '' && f.value !== llStart.get(f));
     </script>
   </body>

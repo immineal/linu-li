@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Splitter | Linus Linhof</title>
+    <title data-de="PDF teilen | Linus Linhof">PDF Splitter | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -69,15 +69,15 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>PDF Splitter</h1>
-                <p>Saves the pages you pick as separate PDFs, one per page, packed into a ZIP. Pick nothing and every page gets its own file.</p>
+                <h1 data-de="PDF teilen">PDF Splitter</h1>
+                <p data-de="Speichert die gewählten Seiten als einzelne PDFs, eine pro Seite, gebündelt in einer ZIP. Ohne Auswahl bekommt jede Seite ihre eigene Datei.">Saves the pages you pick as separate PDFs, one per page, packed into a ZIP. Pick nothing and every page gets its own file.</p>
             </div>
 
             <div class="card">
                 
                 <div class="drop-zone" id="dropZone">
-                    <p>Drop a PDF here</p>
-                    <p style="font-size: 0.8rem; opacity: 0.7;">or click to browse</p>
+                    <p data-de="PDF hier ablegen">Drop a PDF here</p>
+                    <p style="font-size: 0.8rem; opacity: 0.7;" data-de="oder zum Auswählen klicken">or click to browse</p>
                     <input type="file" id="fileInput" class="hidden" accept=".pdf">
                 </div>
 
@@ -92,22 +92,22 @@
                                 <div class="file-size" id="fileSize">0 MB</div>
                             </div>
                         </div>
-                        <button class="remove-file" id="removeFileBtn" aria-label="Remove file">×</button>
+                        <button class="remove-file" id="removeFileBtn" aria-label="Remove file" data-de-attr="aria-label:Datei entfernen">×</button>
                     </li>
                 </ul>
 
                 <div id="optionsPanel" class="hidden" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
-                    <label for="pageRange">Pages</label>
+                    <label for="pageRange" data-de="Seiten">Pages</label>
                     <p style="font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 0.5rem;">
-                        Type a range or click the numbers. Empty means all pages. <span id="rangeHint"></span>
+                        <span data-de="Bereich eintippen oder Zahlen anklicken. Leer bedeutet alle Seiten.">Type a range or click the numbers. Empty means all pages.</span> <span id="rangeHint"></span>
                     </p>
-                    <input type="text" id="pageRange" placeholder="e.g. 1-5, 8">
+                    <input type="text" id="pageRange" placeholder="e.g. 1-5, 8" data-de-attr="placeholder:z. B. 1-5, 8">
                     <div class="page-grid" id="pageGrid"></div>
                 </div>
 
                 <div class="button-group">
-                    <button class="button" id="splitBtn" disabled>Split PDF</button>
-                    <button class="button outline" id="resetBtn">Reset</button>
+                    <button class="button" id="splitBtn" disabled data-de="PDF teilen">Split PDF</button>
+                    <button class="button outline" id="resetBtn" data-de="Zurücksetzen">Reset</button>
                 </div>
 
                 <div class="progress-container" id="progressContainer">
@@ -116,11 +116,11 @@
 
                 <div class="result-box hidden" id="resultBox">
                     <div style="text-align: center;">
-                        <h3 style="margin-bottom: 0.5rem;">Done</h3>
+                        <h3 style="margin-bottom: 0.5rem;" data-de="Fertig">Done</h3>
                         <p id="resultMessage">The PDF is split.</p>
-                        
+
                         <div class="button-group" style="justify-content: center;">
-                            <button class="button secondary" id="downloadBtn">Download ZIP</button>
+                            <button class="button secondary" id="downloadBtn" data-de="ZIP herunterladen">Download ZIP</button>
                         </div>
                     </div>
                 </div>
@@ -129,6 +129,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>
@@ -406,12 +407,12 @@
             }
         });
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => !!currentFile || !!zipBlob;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => !!currentFile || !!zipBlob;
     </script>
 </body>
 </html>

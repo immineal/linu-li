@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>URL Encoder/Decoder | Linus Linhof</title>
+    <title data-de="URL kodieren/dekodieren | Linus Linhof">URL Encoder/Decoder | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
 </head>
@@ -11,24 +11,24 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>URL Encoder/Decoder</h1>
-                <p>Encode and decode URLs, or strip tracking parameters such as utm_source and fbclid. Amazon, eBay, YouTube and X links are cut down to the item itself.</p>
+                <h1 data-de="URL kodieren/dekodieren">URL Encoder/Decoder</h1>
+                <p data-de="URLs kodieren und dekodieren, oder Tracking-Parameter wie utm_source und fbclid entfernen. Links von Amazon, eBay, YouTube und X werden auf den Artikel selbst gekürzt.">Encode and decode URLs, or strip tracking parameters such as utm_source and fbclid. Amazon, eBay, YouTube and X links are cut down to the item itself.</p>
             </div>
 
             <div class="card">
-                
-                <label for="inputData">Input Text / URL</label>
-                <textarea id="inputData" class="code-editor" placeholder="One URL per line, e.g. https://www.amazon.com/some-product/dp/B000000000?ref=xyz"></textarea>
-                
+
+                <label for="inputData" data-de="Text oder URL">Input Text / URL</label>
+                <textarea id="inputData" class="code-editor" placeholder="One URL per line, e.g. https://www.amazon.com/some-product/dp/B000000000?ref=xyz" data-de-attr="placeholder:Eine URL pro Zeile, z.B. https://www.amazon.com/some-product/dp/B000000000?ref=xyz"></textarea>
+
                 <div class="button-group">
-                    <button class="button secondary" id="cleanBtn" title="Removes tracking parameters and shortens Amazon, eBay, YouTube and X links">Clean</button>
-                    <button class="button outline" id="decodeBtn" title="Turns %20 back into a space, and so on">Decode</button>
-                    <button class="button outline" id="encodeBtn" title="Turns spaces and special characters into % codes">Encode</button>
-                    <button class="button outline" id="clearBtn" style="margin-left: auto;">Clear</button>
+                    <button class="button secondary" id="cleanBtn" title="Removes tracking parameters and shortens Amazon, eBay, YouTube and X links" data-de="Aufräumen" data-de-attr="title:Entfernt Tracking-Parameter und kürzt Links von Amazon, eBay, YouTube und X">Clean</button>
+                    <button class="button outline" id="decodeBtn" title="Turns %20 back into a space, and so on" data-de="Dekodieren" data-de-attr="title:Wandelt %20 zurück in ein Leerzeichen und so weiter">Decode</button>
+                    <button class="button outline" id="encodeBtn" title="Turns spaces and special characters into % codes" data-de="Kodieren" data-de-attr="title:Wandelt Leerzeichen und Sonderzeichen in %-Codes">Encode</button>
+                    <button class="button outline" id="clearBtn" style="margin-left: auto;" data-de="Leeren">Clear</button>
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
-                    <label style="margin-bottom: 0.5rem; display: block;">Result</label>
+                    <label style="margin-bottom: 0.5rem; display: block;" data-de="Ergebnis">Result</label>
                     
                     <div id="textOutput" 
                          style="min-height: 50px; 
@@ -43,8 +43,8 @@
                     <div id="paramsContainer" class="hidden"></div>
                     
                     <div class="button-group" style="margin-top: 1rem;">
-                        <button class="button sm secondary" id="copyBtn">Copy Result</button>
-                        <button class="button sm outline" id="shareBtn" title="Copies a link to this page with the result filled in">Share Link</button>
+                        <button class="button sm secondary" id="copyBtn" data-de="Ergebnis kopieren">Copy Result</button>
+                        <button class="button sm outline" id="shareBtn" title="Copies a link to this page with the result filled in" data-de="Link teilen" data-de-attr="title:Kopiert einen Link zu dieser Seite mit dem eingefügten Ergebnis">Share Link</button>
                     </div>
                 </div>
 
@@ -52,6 +52,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>
@@ -422,11 +423,11 @@
             });
         });
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Über den DOM gelesen, weil die Variablen dieses
-       Werkzeugs in einem Bereich liegen, den diese Zeile nicht sieht. */
-    window.llHaeltArbeit = () => {
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). Read via the DOM, because this
+       tool's variables live in a scope this line cannot see. */
+    window.llHoldsWork = () => {
         const feld = document.getElementById('inputData');
         return !!feld && feld.value.trim() !== '';
     };

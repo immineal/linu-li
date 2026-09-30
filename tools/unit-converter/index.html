@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unit Converter | Linus Linhof</title>
+    <title data-de="Einheiten-Umrechner | Linus Linhof">Unit Converter | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     <style>
         .converter-layout {
             display: flex;
-            align-items: flex-start; /* Beschriftungszeilen oben bündig */
+            align-items: flex-start; /* label rows aligned along the top */
             gap: 2rem;
         }
         
@@ -18,29 +18,29 @@
             width: 100%;
         }
 
-        /* Das Gleichheitszeichen soll auf Höhe der beiden Wertefelder stehen.
-           Statt es mit einem festen Pixelwert dorthin zu schieben, bekommt
-           seine Spalte denselben Aufbau wie eine Feldspalte: eine unsichtbare
-           Beschriftung darüber und darunter ein Kasten mit denselben
-           senkrechten Maßen wie ein Eingabefeld. Ändern sich Innenabstand,
-           Rahmen oder Schriftgröße der Felder, wandert das Zeichen mit. */
+        /* The equals sign should sit at the same height as the two value
+           fields. Rather than shove it there with a fixed pixel value, its
+           column mirrors a field column: an invisible label above and a box
+           below with the same vertical measurements as an input. If the
+           padding, border or font size of the fields changes, the sign
+           moves along with them. */
         .equals-column label {
             visibility: hidden;
         }
 
         .equals-sign {
             position: relative;
-            width: 2rem;                     /* Platz für das Zeichen selbst */
-            padding: 0.8rem 0;               /* wie input in style.css */
-            border: 1px solid transparent;   /* wie input, nur unsichtbar */
-            font-size: 1.5rem;               /* wie die Wertefelder */
-            font-family: var(--font-mono);   /* wie die Wertefelder */
-            line-height: normal;             /* wie im Feld, nicht die 1.6 der Seite */
+            width: 2rem;                     /* room for the sign itself */
+            padding: 0.8rem 0;               /* matches input in style.css */
+            border: 1px solid transparent;   /* like input, but invisible */
+            font-size: 1.5rem;               /* matches the value fields */
+            font-family: var(--font-mono);   /* matches the value fields */
+            line-height: normal;             /* as inside the field, not the page's 1.6 */
         }
 
-        /* Ein schmalloses Leerzeichen: unsichtbar, spannt aber die Zeile eines
-           Wertefeldes auf. Der Kasten ist damit exakt so hoch wie ein Feld —
-           auch dann, wenn die Systemschrift eine andere Zeilenhöhe mitbringt. */
+        /* A slim blank glyph: invisible, but stretches the line to the height
+           of a value field. That way the box is exactly as tall as a field —
+           even when the system font brings its own line height. */
         .equals-strut {
             font-size: 1.5rem;
         }
@@ -63,11 +63,10 @@
                 align-items: stretch;
                 gap: 1rem;
             }
-            /* Übereinander gestapelt gibt es keine Feldhöhe mehr zu treffen:
-               das Zeichen steht für sich zwischen den beiden Spalten. Früher
-               war es hier um eine Vierteldrehung gekippt und las sich damit
-               als zwei senkrechte Striche — ein Gleichheitszeichen bleibt ein
-               Gleichheitszeichen, auch auf dem Telefon. */
+            /* Stacked, there is no field height left to hit: the sign stands
+               on its own between the two columns. It used to be rotated a
+               quarter turn here and then read as two vertical strokes — an
+               equals sign stays an equals sign, on the phone too. */
             .equals-column {
                 align-self: center;
             }
@@ -87,33 +86,33 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Unit Converter</h1>
-                <p>Length, weight, temperature, speed, data storage and currency. Type a value into either box, or write the whole question in the top field.</p>
+                <h1 data-de="Einheiten-Umrechner">Unit Converter</h1>
+                <p data-de="Länge, Gewicht, Temperatur, Geschwindigkeit, Datenspeicher und Währung. Wert in ein Feld tippen, oder die ganze Frage ins obere Feld schreiben.">Length, weight, temperature, speed, data storage and currency. Type a value into either box, or write the whole question in the top field.</p>
             </div>
 
             <div class="card">
                 
                 <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem;">
-                    <label>Quick convert</label>
-                    <input type="text" id="nlpInput" placeholder="5 km in miles, or 100 usd to eur" style="width: 100%; font-size: 1.1rem; padding: 0.75rem;">
+                    <label data-de="Schnellumrechnung">Quick convert</label>
+                    <input type="text" id="nlpInput" placeholder="5 km in miles, or 100 usd to eur" style="width: 100%; font-size: 1.1rem; padding: 0.75rem;" data-de-attr="placeholder:5 km in miles, oder 100 usd in eur">
                 </div>
 
                 <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem;">
-                    <label>Category</label>
+                    <label data-de="Kategorie">Category</label>
                     <div class="button-group">
-                        <button class="button active-cat" onclick="setCategory('length')">Length</button>
-                        <button class="button outline" onclick="setCategory('weight')">Weight</button>
-                        <button class="button outline" onclick="setCategory('temp')">Temperature</button>
-                        <button class="button outline" onclick="setCategory('speed')">Speed</button>
-                        <button class="button outline" onclick="setCategory('data')">Data Storage</button>
-                        <button class="button outline" onclick="setCategory('currency')">Currency</button>
+                        <button class="button active-cat" onclick="setCategory('length')" data-de="Länge">Length</button>
+                        <button class="button outline" onclick="setCategory('weight')" data-de="Gewicht">Weight</button>
+                        <button class="button outline" onclick="setCategory('temp')" data-de="Temperatur">Temperature</button>
+                        <button class="button outline" onclick="setCategory('speed')" data-de="Geschwindigkeit">Speed</button>
+                        <button class="button outline" onclick="setCategory('data')" data-de="Datenspeicher">Data Storage</button>
+                        <button class="button outline" onclick="setCategory('currency')" data-de="Währung">Currency</button>
                     </div>
                 </div>
 
                 <div class="converter-layout">
                     
                     <div class="input-group">
-                        <label>Value 1</label>
+                        <label data-de="Wert 1">Value 1</label>
                         <input type="number" id="inputFrom" value="1" style="font-size: 1.5rem; font-family: var(--font-mono);">
                         <select id="unitFrom" data-save></select>
                     </div>
@@ -124,21 +123,22 @@
                     </div>
 
                     <div class="input-group">
-                        <label>Value 2</label>
+                        <label data-de="Wert 2">Value 2</label>
                         <input type="number" id="inputTo" style="font-size: 1.5rem; font-family: var(--font-mono);">
                         <select id="unitTo" data-save></select>
                     </div>
                 </div>
 
                 <div id="currencyOptIn" style="display: none; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); text-align: center;">
-                    <button class="button sm outline" id="fetchRatesBtn" onclick="fetchExchangeRates()">Fetch Live Currency Rates</button>
-                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;">(Requires internet. Fetches from er-api.com and coincap.io)</p>
+                    <button class="button sm outline" id="fetchRatesBtn" onclick="fetchExchangeRates()" data-de="Aktuelle Wechselkurse laden">Fetch Live Currency Rates</button>
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;" data-de="(Benötigt Internet. Lädt von er-api.com und coincap.io)">(Requires internet. Fetches from er-api.com and coincap.io)</p>
                 </div>
 
             </div>
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script>
         const nlpInput = document.getElementById('nlpInput');

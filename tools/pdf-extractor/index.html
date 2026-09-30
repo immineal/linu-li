@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Image Extractor | Linus Linhof</title>
+    <title data-de="PDF-Bildextraktor | Linus Linhof">PDF Image Extractor | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -56,15 +56,15 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>PDF Image Extractor</h1>
-                <p>Pulls out the images, text and fonts embedded in a PDF, page by page.</p>
+                <h1 data-de="PDF-Bildextraktor">PDF Image Extractor</h1>
+                <p data-de="Holt die Bilder, Texte und Schriften aus einer PDF, Seite für Seite.">Pulls out the images, text and fonts embedded in a PDF, page by page.</p>
             </div>
 
             <div class="card">
                 
                 <div class="drop-zone" id="dropZone">
-                    <p>Drop a PDF here</p>
-                    <p style="font-size: 0.85rem; opacity: 0.7;">Images come out as PNG, text as one file per page</p>
+                    <p data-de="PDF hier ablegen">Drop a PDF here</p>
+                    <p style="font-size: 0.85rem; opacity: 0.7;" data-de="Bilder kommen als PNG raus, Text als eine Datei pro Seite">Images come out as PNG, text as one file per page</p>
                     <input type="file" id="fileInput" class="hidden" accept="application/pdf">
                 </div>
                 
@@ -73,18 +73,18 @@
                 <div class="hidden" id="controlPanel">
                     <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 1rem; flex-wrap: wrap;">
                         <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
-                            <input type="checkbox" id="extractImagesCb" checked> Images
+                            <input type="checkbox" id="extractImagesCb" checked> <span data-de="Bilder">Images</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
-                            <input type="checkbox" id="extractTextCb" checked> Text
+                            <input type="checkbox" id="extractTextCb" checked> <span data-de="Text">Text</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
-                            <input type="checkbox" id="extractFontsCb" checked> Fonts
+                            <input type="checkbox" id="extractFontsCb" checked> <span data-de="Schriften">Fonts</span>
                         </label>
                     </div>
                     <div class="button-group">
-                        <button class="button" id="processBtn">Extract</button>
-                        <button class="button outline" id="resetBtn">Reset</button>
+                        <button class="button" id="processBtn" data-de="Herausholen">Extract</button>
+                        <button class="button outline" id="resetBtn" data-de="Zurücksetzen">Reset</button>
                     </div>
                 </div>
 
@@ -95,8 +95,8 @@
 
                 <div class="result-box hidden" id="resultBox">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <h3>Extracted <span id="imgCount" style="font-weight: normal; font-size: 0.9rem; color: var(--ink-secondary);"></span></h3>
-                        <button class="button secondary sm" id="downloadAllBtn">Download All (.zip)</button>
+                        <h3><span data-de="Herausgeholt">Extracted</span> <span id="imgCount" style="font-weight: normal; font-size: 0.9rem; color: var(--ink-secondary);"></span></h3>
+                        <button class="button secondary sm" id="downloadAllBtn" data-de="Alle herunterladen (.zip)">Download All (.zip)</button>
                     </div>
                     
                     <div class="image-grid" id="imageGrid"></div>
@@ -106,6 +106,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>
@@ -573,12 +574,12 @@
             fileInput.value = '';
         }
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => !!currentFile || extractedImages.length > 0;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => !!currentFile || extractedImages.length > 0;
     </script>
 </body>
 </html>

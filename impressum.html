@@ -8,18 +8,18 @@
     <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
     <meta name="robots" content="noindex, follow">
     <style>
-        .lang-switch { float: right; font-size: 0.9rem; cursor: pointer; color: var(--accent); text-decoration: underline; margin-bottom: 1rem; }
         .legal-block { margin-bottom: 2rem; }
         h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2.5rem; }
+        [data-lang-only]:not([data-lang-only=""]) { display: none; }
+        html[data-lang="de"] [data-lang-only="de"] { display: block; }
+        html[data-lang="en"] [data-lang-only="en"] { display: block; }
     </style>
 </head>
 <body>
     <main>
         <div class="container">
-            <div class="lang-switch" onclick="toggleLang()">Deutsch / English</div>
-
-            <!-- Deutsch -->
-            <div id="lang-de">
+            <!-- German -->
+            <div id="lang-de" data-lang-only="de">
                 <h1>Impressum</h1>
 
                 <div class="legal-block">
@@ -73,7 +73,7 @@
             </div>
 
             <!-- English -->
-            <div id="lang-en" style="display: none;">
+            <div id="lang-en" data-lang-only="en">
                 <h1>Legal Notice (Impressum)</h1>
 
                 <div class="legal-block">
@@ -129,28 +129,7 @@
         </div>
     </main>
 
+    <script src="./assets/js/i18n.js"></script>
     <script src="./assets/js/layout.js"></script>
-    <script>
-        function toggleLang() {
-            const de = document.getElementById('lang-de');
-            const en = document.getElementById('lang-en');
-            if (de.style.display === 'none') {
-                de.style.display = 'block'; en.style.display = 'none';
-                document.documentElement.lang = 'de';
-            } else {
-                de.style.display = 'none'; en.style.display = 'block';
-                document.documentElement.lang = 'en';
-            }
-        }
-        document.addEventListener('DOMContentLoaded', () => {
-            if ((navigator.language || '').startsWith('de')) {
-                document.documentElement.lang = 'de';
-            } else {
-                document.getElementById('lang-de').style.display = 'none';
-                document.getElementById('lang-en').style.display = 'block';
-                document.documentElement.lang = 'en';
-            }
-        });
-    </script>
 </body>
 </html>

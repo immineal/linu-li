@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base64 Encoder/Decoder | Linus Linhof</title>
+    <title data-de="Base64 kodieren/dekodieren | Linus Linhof">Base64 Encoder/Decoder | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
 </head>
@@ -11,35 +11,35 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Base64 Converter</h1>
-                <p>Encode text or any file as Base64, or decode Base64 back into text. Images, audio and PDFs get a preview.</p>
+                <h1 data-de="Base64-Konverter">Base64 Converter</h1>
+                <p data-de="Text oder eine beliebige Datei als Base64 kodieren, oder Base64 wieder in Text dekodieren. Bilder, Audio und PDFs bekommen eine Vorschau.">Encode text or any file as Base64, or decode Base64 back into text. Images, audio and PDFs get a preview.</p>
             </div>
 
             <div class="card">
                 
                 <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem;">
-                    <label>Conversion Mode</label>
+                    <label data-de="Modus">Conversion Mode</label>
                     <div class="button-group">
-                        <button class="button" id="modeTextBtn">From Text String</button>
-                        <button class="button outline" id="modeImageBtn">From File</button>
+                        <button class="button" id="modeTextBtn" data-de="Aus Text">From Text String</button>
+                        <button class="button outline" id="modeImageBtn" data-de="Aus Datei">From File</button>
                     </div>
                 </div>
 
                 <div id="textModeSection">
-                    <label for="textInput">Input Text / Base64 String</label>
-                    <textarea id="textInput" class="code-editor" placeholder="Text to encode, or Base64 to decode"></textarea>
-                    
+                    <label for="textInput" data-de="Text oder Base64-String">Input Text / Base64 String</label>
+                    <textarea id="textInput" class="code-editor" placeholder="Text to encode, or Base64 to decode" data-de-attr="placeholder:Text zum Kodieren, oder Base64 zum Dekodieren"></textarea>
+
                     <div class="button-group">
-                        <button class="button" id="encodeBtn">Encode to Base64</button>
-                        <button class="button secondary" id="decodeBtn">Decode from Base64</button>
-                        <button class="button outline" id="clearTextBtn">Clear</button>
+                        <button class="button" id="encodeBtn" data-de="Als Base64 kodieren">Encode to Base64</button>
+                        <button class="button secondary" id="decodeBtn" data-de="Aus Base64 dekodieren">Decode from Base64</button>
+                        <button class="button outline" id="clearTextBtn" data-de="Leeren">Clear</button>
                     </div>
                 </div>
 
                 <div id="imageModeSection" class="hidden">
                     <div class="drop-zone" id="dropZone">
-                        <p>Drop a file here, or click to pick one</p>
-                        <p style="font-size: 0.8rem; color: var(--ink-secondary);">Any kind of file</p>
+                        <p data-de="Datei hier ablegen, oder klicken zum Auswählen">Drop a file here, or click to pick one</p>
+                        <p style="font-size: 0.8rem; color: var(--ink-secondary);" data-de="Jede Art von Datei">Any kind of file</p>
                         <input type="file" id="fileInput" class="hidden" accept="*">
                     </div>
                     
@@ -50,7 +50,7 @@
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
-                    <label>Result</label>
+                    <label data-de="Ergebnis">Result</label>
                     
                     <div id="imagePreviewContainer" class="hidden" style="text-align: center; margin-bottom: 1.5rem; padding: 1rem; background: var(--paper); border: 1px solid var(--border); border-radius: 4px;">
                         <img id="imagePreview" src="" alt="Preview" style="max-width: 100%; max-height: 300px; height: auto; border-radius: 4px;">
@@ -60,7 +60,7 @@
                     <textarea id="outputArea" class="code-editor" readonly></textarea>
 
                     <div class="button-group" style="margin-top: 1rem;">
-                        <button class="button sm secondary" onclick="copyResult()">Copy Result</button>
+                        <button class="button sm secondary" onclick="copyResult()" data-de="Ergebnis kopieren">Copy Result</button>
                     </div>
                 </div>
 
@@ -68,6 +68,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>
@@ -402,12 +403,12 @@
             }
         }
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => fileChunks.length > 0 || textInput.value.trim() !== '';
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => fileChunks.length > 0 || textInput.value.trim() !== '';
     </script>
 </body>
 </html>

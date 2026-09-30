@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Merger | Linus Linhof</title>
+    <title data-de="PDF zusammenfügen | Linus Linhof">PDF Merger | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -37,15 +37,15 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>PDF Merger</h1>
-                <p>Combines several PDFs into one, in the order of the list. Drag a file by its handle to move it.</p>
+                <h1 data-de="PDF zusammenfügen">PDF Merger</h1>
+                <p data-de="Fügt mehrere PDFs zu einer zusammen, in der Reihenfolge der Liste. Datei am Griff ziehen, um sie zu verschieben.">Combines several PDFs into one, in the order of the list. Drag a file by its handle to move it.</p>
             </div>
 
             <div class="card">
                 
                 <div class="drop-zone" id="dropZone">
-                    <p>Drop PDFs here</p>
-                    <span style="font-size: 0.85rem; color: var(--ink-secondary); margin-top: 0.5rem;">or click to browse</span>
+                    <p data-de="PDFs hier ablegen">Drop PDFs here</p>
+                    <span style="font-size: 0.85rem; color: var(--ink-secondary); margin-top: 0.5rem;" data-de="oder zum Auswählen klicken">or click to browse</span>
                     <input type="file" id="fileInput" class="hidden" multiple accept=".pdf">
                 </div>
 
@@ -56,16 +56,16 @@
                 </div>
 
                 <div class="button-group">
-                    <button class="button" id="mergeBtn" disabled>Merge PDFs</button>
-                    <button class="button outline" id="clearBtn">Clear All</button>
+                    <button class="button" id="mergeBtn" disabled data-de="PDFs zusammenfügen">Merge PDFs</button>
+                    <button class="button outline" id="clearBtn" data-de="Alle entfernen">Clear All</button>
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
-                    <h3>Done</h3>
-                    <p>The merged PDF is ready.</p>
+                    <h3 data-de="Fertig">Done</h3>
+                    <p data-de="Die zusammengefügte PDF ist bereit.">The merged PDF is ready.</p>
                     <div class="button-group">
-                        <a href="#" class="button" id="downloadBtn" download="merged.pdf">Download Merged PDF</a>
-                        <button class="button outline" id="resetBtn">Start over</button>
+                        <a href="#" class="button" id="downloadBtn" download="merged.pdf" data-de="Zusammengefügte PDF herunterladen">Download Merged PDF</a>
+                        <button class="button outline" id="resetBtn" data-de="Von vorn">Start over</button>
                     </div>
                 </div>
 
@@ -73,6 +73,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>
@@ -390,12 +391,12 @@
 
         renderFileList();
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => storedFiles.length > 0;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => storedFiles.length > 0;
     </script>
 </body>
 </html>

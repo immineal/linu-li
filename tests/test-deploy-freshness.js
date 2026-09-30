@@ -42,7 +42,7 @@ function test(name, fn) {
     }
 }
 
-/* ------------------------------------------------- 1. der Platzhalter */
+/* ------------------------------------------------- 1. the placeholder */
 
 test('the worker carries the deployed commit, so its bytes move', () => {
     const zeile = sw.split('\n').find((l) => /^const DEPLOY_SHA/.test(l));
@@ -53,10 +53,10 @@ test('the worker carries the deployed commit, so its bytes move', () => {
 });
 
 test('the cache name does not move with it', () => {
-    /* Der Name nach dem Deploy zu benennen hieße, den Offline-Bestand
-       mehrmals täglich wegzuwerfen und auf dem Telefon wieder
-       zusammenzukopieren — ohne Gewinn, weil die Frische aus dem
-       Nachfassen im fetch-Handler kommt, nicht aus dem Namen. */
+    /* Naming the cache after the deploy would mean throwing the offline
+       store away several times a day and copying it back together on the
+       phone — for no gain, because freshness comes from the revalidate in
+       the fetch handler, not from the name. */
     const zeile = sw.split('\n').find((l) => /^const CACHE_NAME/.test(l));
     assert.ok(zeile, 'sw.js has no CACHE_NAME any more');
     assert.ok(!/__DEPLOY_SHA__/.test(zeile),
@@ -65,21 +65,20 @@ test('the cache name does not move with it', () => {
 });
 
 test('the worker deletes only its own caches', () => {
-    /* /tools/sperrmuell/ bringt einen zweiten Worker auf derselben Herkunft mit,
-       dessen activate jeden fremden Cache löscht. Diesen Gefallen zu
-       erwidern hieße, dass sich die beiden gegenseitig abräumen. */
+    /* /tools/sperrmuell/ brings a second worker on the same origin whose
+       activate deletes every foreign cache. Returning the favour would
+       mean the two of them keep clearing each other out. */
     assert.ok(/if \(!name\.startsWith\('ll-toolbox-'\)\) continue;/.test(sw),
         'activate deletes caches that are not ours — /tools/sperrmuell/ has its own worker ' +
         'on this origin and the two would wipe each other out');
 });
 
 test('the worker waits, and something exists to wake it', () => {
-    /* Zwei Hälften, die nur zusammen stimmen. Der Worker darf nicht mehr von
-       allein übernehmen — sonst tauscht er den Code unter einem Werkzeug aus,
-       das gerade eine Datei hält. Und er darf nicht endlos warten, ohne dass
-       ihn jemand weckt — sonst bliebe ein lange offener Reiter für immer auf
-       altem Stand. Fällt eine der beiden weg, fällt der Nutzen der anderen
-       mit. */
+    /* Two halves that only work together. The worker must not take over on
+       its own any more — otherwise it swaps the code under a tool that is
+       holding a file. And it must not wait forever without something to
+       wake it — otherwise a long-open tab stays on the old version. Drop
+       either half and the other loses its point. */
     const install = sw.match(/addEventListener\('install'[\s\S]*?\n\}\);/);
     assert.ok(install, 'sw.js has no install handler');
     assert.ok(!/self\.skipWaiting\(\)/.test(install[0]),
@@ -94,7 +93,7 @@ test('the worker waits, and something exists to wake it', () => {
         'ever activate once every tab of the site is closed');
 });
 
-/* --------------------------------------------------- 2. der Deploy tut es */
+/* --------------------------------------------------- 2. the deploy does it */
 
 test('the deploy writes the commit in, and stops if it cannot', () => {
     assert.ok(/sed -i .*__DEPLOY_SHA__.*sw\.js/.test(deploy),
@@ -104,7 +103,7 @@ test('the deploy writes the commit in, and stops if it cannot', () => {
         'in sw.js would silently ship a worker that never changes again');
 });
 
-/* --------------------------------- 2b. und sagt, was sich geändert hat */
+/* --------------------------------- 2b. and says what changed */
 
 test('the worker has room for the sentences', () => {
     assert.ok(/\[\/\* __DEPLOY_NOTES__ \*\/\]/.test(sw),
@@ -124,16 +123,16 @@ test('a deploy that changes the website has to say what changed', () => {
 });
 
 test('the two lists of what is not served agree', () => {
-    /* Der Strip-Schritt sagt, was nicht hochgeladen wird. Die Notiz-Prüfung
-       sagt, was als "ausgeliefert" zählt. Laufen sie auseinander, verlangt
-       eine reine Doku-Änderung einen Hinweis für etwas, das kein Besucher zu
-       sehen bekommt — und niemand versteht, warum der Deploy abbricht. */
+    /* The strip step says what is not uploaded. The note check says what
+       counts as "served". If they drift apart, a docs-only change demands
+       an update note for something no visitor ever sees — and nobody
+       understands why the deploy stops. */
     const strip = (deploy.match(/^\s*rm -f (.+)$/gm) || [])
         .flatMap((z) => z.replace(/^\s*rm -f /, '').trim().split(/\s+/))
         .filter((name) => !name.includes('*') && !name.startsWith('assets/'));
 
-    /* Die Ausschlüsse sind Muster, keine Namen: `test*.js` deckt `test.js`
-       mit ab. Wörtlich zu vergleichen meldete genau das als Lücke. */
+    /* The exclusions are patterns, not names: `test*.js` covers `test.js`
+       too. A literal compare would flag exactly that as a gap. */
     const muster = [...deploy.matchAll(/':\(exclude\)([^']+)'/g)]
         .map(([, wert]) => new RegExp('^' +
             wert.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$'));
@@ -144,15 +143,15 @@ test('the two lists of what is not served agree', () => {
 });
 
 test('the deploy fetches enough history for both checks to work', () => {
-    /* Beide scheitern lautlos an einem flachen Klon: der Live-Vergleich
-       findet den Commit nicht und hält sich für nicht zuständig, und
-       git blame hängt jede Zeile an den Randcommit. */
+    /* Both fail silently on a shallow clone: the live compare cannot find
+       the commit and thinks it has nothing to do, and git blame pins every
+       line to the boundary commit. */
     assert.ok(/fetch-depth: 0/.test(deploy),
         'checkout takes the default shallow clone — the note check would resolve no ' +
         'live commit and every sentence would claim to belong to this deploy');
 });
 
-/* ------------------------------------------------- 3. die Kopfzeilen */
+/* ------------------------------------------------- 3. the headers */
 
 test('the worker itself is never held in a cache', () => {
     const block = htaccess.match(/<Files "sw\.js">[\s\S]*?<\/Files>/);
@@ -178,9 +177,9 @@ test('the vendored libraries keep their year, and only they', () => {
 });
 
 test('the manifest is not held for a month', () => {
-    /* Es entscheidet Name, Symbol und Startseite der installierten App.
-       Bilder und Schriften behalten ihr Jahr — die sind zahlreich und
-       ändern sich nicht. */
+    /* It decides the name, icon and start page of the installed app.
+       Images and fonts keep their year — they are numerous and do not
+       change. */
     const block = htaccess.match(/<Files "manifest\.json">[\s\S]*?<\/Files>/g) || [];
     assert.ok(block.some((b) => /Cache-Control "no-cache"/.test(b)),
         'manifest.json is not set to no-cache');
@@ -188,12 +187,12 @@ test('the manifest is not held for a month', () => {
         'mod_expires still writes an Expires header a month out next to it');
 });
 
-/* ------------------------------- 3b. der zweite Worker auf derselben Herkunft */
+/* ------------------------------- 3b. the second worker on the same origin */
 
 test('the Sperrmüll map deletes only its own caches too', () => {
-    /* Die Gegenrichtung zu der Prüfung weiter oben. Löscht einer der beiden
-       fremde Caches, räumen sie sich abwechselnd gegenseitig ab — wer die
-       Karte aufmacht, verliert den Offline-Bestand der Toolbox. */
+    /* The other direction of the check further up. If either one deletes
+       foreign caches, they take turns clearing each other out — opening
+       the map loses the toolbox's offline store. */
     const sperr = lies('tools/sperrmuell/sw.js');
     assert.ok(/startsWith\("sperrmuell-"\)/.test(sperr),
         'tools/sperrmuell/sw.js deletes every cache that is not its own, /sw.js included');
@@ -210,14 +209,14 @@ test('the map keeps its hashed bundles and revalidates its dates', () => {
 });
 
 test('the map\'s own worker is not caught by the year', () => {
-    /* tools/sperrmuell/sw.js liegt eine Ebene über assets/ und muss die
-       no-cache-Regel aus der Wurzel behalten. */
+    /* tools/sperrmuell/sw.js sits one level above assets/ and must keep the
+       no-cache rule from the root. */
     const assets = lies('tools/sperrmuell/assets/.htaccess');
     assert.ok(!/sw\.js/.test(assets.replace(/#[^\n]*/g, '')),
         'tools/sperrmuell/assets/.htaccess reaches the worker with a live directive');
 });
 
-/* ---------------------------------------- 4. grün geprüft, dann hochgeladen */
+/* ---------------------------------------- 4. green-checked, then uploaded */
 
 test('the deploy waits for the test run', () => {
     assert.ok(/workflow_run:/.test(deploy),
@@ -227,8 +226,8 @@ test('the deploy waits for the test run', () => {
 });
 
 test('the workflow it waits for is the one that exists', () => {
-    /* Die Verbindung ist eine Zeichenkette. Wird ci.yml umbenannt, hört der
-       Deploy auf zu feuern, und nirgends wird etwas rot. */
+    /* The connection is a string. Rename ci.yml and the deploy stops
+       firing, and nothing anywhere turns red. */
     const gewartet = deploy.match(/workflows: \["([^"]+)"\]/);
     assert.ok(gewartet, 'the deploy does not name the CI workflow it waits for');
     const ci = lies('.github/workflows/ci.yml');
@@ -240,10 +239,11 @@ test('the workflow it waits for is the one that exists', () => {
 });
 
 test('a fork cannot deploy to the website', () => {
-    /* CI läuft auf pull_request, also auch für Forks dieses öffentlichen
-       Repos. Ein workflow_run-Job läuft danach mit den FTP-Secrets, und
-       branches:[main] prüft den Branchnamen *im Fork*. Ohne diese beiden
-       Bedingungen spiegelt der Deploy fremden Code auf linu.li. */
+    /* CI runs on pull_request, which means on forks of this public repo
+       too. A workflow_run job runs afterwards with the FTP secrets, and
+       branches:[main] checks the branch name *inside the fork*. Without
+       both of these conditions the deploy mirrors foreign code onto
+       linu.li. */
     assert.ok(/workflow_run\.event == 'push'/.test(deploy),
         'nothing stops a pull_request run from reaching the deploy — a fork PR would ' +
         'be mirrored onto linu.li with this repository\'s FTP credentials');
@@ -265,7 +265,7 @@ test('the deploy ships the commit that passed, not the branch head', () => {
         'by default, which may be a commit no test ever saw');
 });
 
-/* -------------------------------------- und nichts davon geht mit hoch */
+/* -------------------------------------- and none of this gets uploaded */
 
 test('none of this lands on the website', () => {
     const strip = deploy.match(/rm -rf ([^\n]*)/);

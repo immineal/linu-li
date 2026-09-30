@@ -45,7 +45,7 @@ A push that changes a file the website serves has to add a line to `assets/updat
 
 A form field is remembered across reloads only if it carries `data-save`, and only `<select>` may carry it. The site used to store every text field on every page, which is how a WiFi password and a JWT signing secret ended up in localStorage. A dropdown can only hold what the source lists as an option, so nothing anyone types fits inside one.
 
-A tool that holds a file sets `window.llHaeltArbeit` to a function saying so. Before reloading, the update prompt asks. A tool with no hook counts as holding nothing, so one that forgets throws away someone's file without a word.
+A tool that holds a file sets `window.llHoldsWork` to a function saying so. Before reloading, the update prompt asks. A tool with no hook counts as holding nothing, so one that forgets throws away someone's file without a word.
 
 A new version of a vendored library gets a new file name. Everything under `assets/vendor/` goes out with a year of cache and `immutable`, so changing a file under its old name leaves everyone who ever visited on the old copy.
 

@@ -181,7 +181,7 @@ jobs:
             exit 0
           fi
 
-          echo "Geändert seit $LIVE:"; echo "$GEAENDERT" | sed 's/^/  /'
+          echo "Changed since $LIVE:"; echo "$GEAENDERT" | sed 's/^/  /'
 
           git diff --name-only "$LIVE" HEAD -- "$NOTIZ" | grep -q . || {
             echo "::error::$NOTIZ carries no new line, but these files changed since the live version:"
@@ -204,8 +204,9 @@ jobs:
           if notiz.exists():
               for zeile in notiz.read_text(encoding="utf-8").splitlines():
                   text = zeile.strip()
-                  # Kommentare und das ausdrückliche "kein Hinweis" fallen raus,
-                  # zählen aber auch nicht mit: die Seite vergleicht Anzahlen.
+                  # Comments and the deliberate "no notice" line are dropped,
+                  # and they do not count towards the total either: the page
+                  # compares counts.
                   if text and not text.startswith("#") and text != "-":
                       zeilen.append(text)
 
@@ -216,7 +217,7 @@ jobs:
               raise SystemExit("::error::sw.js carries no __DEPLOY_NOTES__ marker any more")
           eingesetzt = json.dumps(zeilen, ensure_ascii=False)
           worker.write_text(text.replace(marke, eingesetzt, 1), encoding="utf-8")
-          print(f"{len(zeilen)} Zeilen in den Worker geschrieben")
+          print(f"{len(zeilen)} lines written into the worker")
           PYTHON
           node --check sw.js || { echo "::error::sw.js no longer parses after the notes were written in"; exit 1; }
           grep -c 'DEPLOY_NOTES' sw.js

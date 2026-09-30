@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Case Converter | Linus Linhof</title>
+    <title data-de="Groß-/Kleinschreibung umwandeln | Linus Linhof">Case Converter | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
 </head>
@@ -11,17 +11,17 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Case Converter</h1>
-                <p>Rewrites text in UPPERCASE, lowercase, Title Case, camelCase, snake_case and a few others.</p>
+                <h1 data-de="Groß-/Kleinschreibung umwandeln">Case Converter</h1>
+                <p data-de="Schreibt Text in UPPERCASE, lowercase, Title Case, camelCase, snake_case und ein paar weitere Formen um.">Rewrites text in UPPERCASE, lowercase, Title Case, camelCase, snake_case and a few others.</p>
             </div>
 
             <div class="card">
-                <label for="textInput">Input Text</label>
+                <label for="textInput" data-de="Eingabetext">Input Text</label>
                 <div id="dropZone" class="drop-zone" style="margin-bottom: 1rem; border: 2px dashed var(--border); border-radius: 8px; padding: 1rem; text-align: center; cursor: pointer;">
-                    <p style="margin: 0; pointer-events: none;">Drag and drop a .txt file here, or paste below</p>
+                    <p style="margin: 0; pointer-events: none;" data-de="Eine .txt-Datei hierher ziehen oder unten einfügen">Drag and drop a .txt file here, or paste below</p>
                     <input type="file" id="fileInput" accept=".txt" style="display: none;">
                 </div>
-                <textarea id="textInput" class="code-editor" style="min-height: 200px;" placeholder="Type or paste text here"></textarea>
+                <textarea id="textInput" class="code-editor" style="min-height: 200px;" placeholder="Type or paste text here" data-de-attr="placeholder:Text hier tippen oder einfügen"></textarea>
 
                 <div class="button-group" style="margin-bottom: 1.5rem; justify-content: center;" id="modeButtons">
                     <button class="button outline" data-mode="upper" onclick="setMode('upper')">UPPERCASE</button>
@@ -37,10 +37,10 @@
 
                 <div class="result-box hidden" id="resultBox">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <label style="margin-bottom: 0;">Result</label>
+                        <label style="margin-bottom: 0;" data-de="Ergebnis">Result</label>
                         <div class="button-group" style="margin: 0;">
                             <button class="button sm secondary" id="copyBtn">Copy</button>
-                            <button class="button sm outline" id="clearBtn">Clear</button>
+                            <button class="button sm outline" id="clearBtn" data-de="Leeren">Clear</button>
                         </div>
                     </div>
                     <textarea id="outputBox" class="code-editor" readonly style="background: var(--paper); min-height: 200px;"></textarea>
@@ -50,6 +50,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script>
         const textInput = document.getElementById('textInput');
@@ -141,12 +142,12 @@
             });
         }
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => textInput.value.trim() !== '';
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => textInput.value.trim() !== '';
     </script>
 </body>
 </html>

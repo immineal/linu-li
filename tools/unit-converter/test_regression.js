@@ -35,8 +35,16 @@ window.localStorage = {
 };
 
 // The page script keeps these in its own scope; the tests need them on window.
+// Pick by content, not by index: the head grew two more <script src="…">
+// tags (i18n.js and layout.js) when the language switch was added, and the
+// old scriptElements[1] pointed at layout.js after that.
 const scriptElements = dom.window.document.querySelectorAll('script');
-const inlineScript = scriptElements[1].textContent;
+const inlineScriptEl = Array.from(scriptElements).find((el) => {
+    const src = el.getAttribute('src');
+    return !src && /factors/.test(el.textContent);
+});
+if (!inlineScriptEl) throw new Error('unit-converter: could not find its inline setup script');
+const inlineScript = inlineScriptEl.textContent;
 const evalCode = `
 ${inlineScript}
 window.factors = factors;

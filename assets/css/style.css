@@ -482,12 +482,13 @@ input, select, textarea { max-width: 100%; }
 }
 
 /* ---------------------------------------------------------------- *
- * "Eine neue Fassung ist da" — der Hinweis aus assets/js/layout.js.
+ * "A new version is ready" — the notice from assets/js/layout.js.
  *
- * Modal, weil er eine Frage stellt, deren Antwort die Seite neu lädt: wer
- * ihn übersieht und weitertippt, verliert sonst beim Klick auf „Neu laden"
- * etwas, mit dem er nicht gerechnet hat. Erscheint frühestens, wenn jemand
- * eine Weile nichts getan hat, oder wenn er ohnehin gerade weggeht.
+ * Modal, because its answer reloads the page. Anyone who overlooks it and
+ * keeps typing would otherwise lose something on their next "Reload" click
+ * that they were not expecting. It appears at the earliest moment when
+ * somebody has been idle for a while, or when they were about to leave the
+ * page anyway.
  * ---------------------------------------------------------------- */
 .ll-update {
     position: fixed;
@@ -498,11 +499,11 @@ input, select, textarea { max-width: 100%; }
     justify-content: center;
     padding: 1.5rem;
     background: rgba(0, 0, 0, 0.45);
-    /* Auf einem Telefon quer (360×520) ragte die Karte mit fünf Sätzen oben
-       und unten aus dem Bild: beide Knöpfe unerreichbar, kein Rand zum
-       Antippen, und Escape hat ein Telefon nicht. Der Hinweis wäre nicht
-       wegzubekommen gewesen — und der Link, der ihn ausgelöst hat, dauerhaft
-       tot. Jetzt rollt der Hintergrund, und die Liste rollt in sich. */
+    /* On a landscape phone (360x520), the card with five sentences ran off
+       the screen top and bottom. Both buttons were out of reach, no edge to
+       tap, and a phone has no Escape key. The notice would have been stuck,
+       and the link that triggered it dead for good. Now the background
+       scrolls, and the list scrolls inside the card. */
     overflow-y: auto;
     overscroll-behavior: contain;
 }
@@ -530,7 +531,7 @@ input, select, textarea { max-width: 100%; }
     font-size: 0.95rem;
     margin: 0 0 1.25rem;
     padding-left: 1.1rem;
-    /* Die Knöpfe bleiben sichtbar, egal wie viele Sätze zusammenkommen. */
+    /* The buttons stay visible however many sentences pile up. */
     overflow-y: auto;
     min-height: 0;
 }
@@ -565,10 +566,10 @@ input, select, textarea { max-width: 100%; }
     }
 }
 
-/* Werkzeuge, die nicht mehr weiterentwickelt werden, tragen ihn oben im
-   Inhalt. Gedaempft und ohne Warnfarbe: die Seite tut ja noch, was sie soll,
-   sie waechst nur nicht mehr. Gebaut wird er in layout.js, sobald
-   <html data-status="archiv"> es verlangt. */
+/* Tools that are no longer being worked on carry this at the top of the
+   content. Muted and without a warning colour: the page still does its job,
+   it just does not grow any more. It is built in layout.js when
+   <html data-status="archiv"> asks for it. */
 .archive-note {
     max-width: none;
     margin: 0 0 2rem;
@@ -581,3 +582,35 @@ input, select, textarea { max-width: 100%; }
     font-size: 0.85rem;
     line-height: 1.5;
 }
+
+/* Language switch in the footer. Small on purpose. Someone whose browser
+   is already set to the language they want should not have to notice this
+   button, so it sits between the legal links, in the same muted type. */
+.ll-lang-switch {
+    display: inline-block;
+    background: none;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+.ll-lang-switch .ll-lang-current {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+.ll-lang-switch .ll-lang-other {
+    opacity: 0.55;
+}
+.ll-lang-switch:hover .ll-lang-other,
+.ll-lang-switch:focus-visible .ll-lang-other {
+    opacity: 1;
+}
+.ll-lang-switch:focus-visible {
+    outline: 2px solid var(--accent, currentColor);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+

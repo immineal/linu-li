@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF 2-Up | Linus Linhof</title>
+    <title data-de="PDF 2-Up | Linus Linhof">PDF 2-Up | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -57,15 +57,15 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>PDF 2-Up</h1>
-                <p>Puts two pages side by side on one landscape sheet: the same page twice, pages in order, or in booklet order for folding.</p>
+                <h1 data-de="PDF 2-Up">PDF 2-Up</h1>
+                <p data-de="Setzt zwei Seiten nebeneinander auf ein Querformatblatt: dieselbe Seite doppelt, der Reihe nach oder in Broschürenreihenfolge zum Falten.">Puts two pages side by side on one landscape sheet: the same page twice, pages in order, or in booklet order for folding.</p>
             </div>
 
             <div class="card">
                 
                 <div class="drop-zone" id="dropZone">
-                    <p>Drop a PDF here</p>
-                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0;">or click to browse</p>
+                    <p data-de="PDF hier ablegen">Drop a PDF here</p>
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0;" data-de="oder zum Auswählen klicken">or click to browse</p>
                     <input type="file" id="fileInput" class="hidden" accept="application/pdf">
                 </div>
 
@@ -73,7 +73,7 @@
 
                 <div id="optionsPanel" class="hidden" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 2rem;">
                     
-                    <label>Layout Style</label>
+                    <label data-de="Anordnung">Layout Style</label>
                     <div class="layout-selector">
                         <div class="layout-option active" data-value="duplicate">
                             <svg viewBox="0 0 100 60" class="layout-icon">
@@ -82,7 +82,7 @@
                                 <text x="27.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">1</text>
                                 <text x="72.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">1</text>
                             </svg>
-                            <div class="layout-title">Duplicate</div>
+                            <div class="layout-title" data-de="Doppelt">Duplicate</div>
                             <div class="layout-desc">1-1, 2-2, 3-3</div>
                         </div>
                         <div class="layout-option" data-value="sequential">
@@ -92,7 +92,7 @@
                                 <text x="27.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">1</text>
                                 <text x="72.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">2</text>
                             </svg>
-                            <div class="layout-title">Sequential</div>
+                            <div class="layout-title" data-de="Der Reihe nach">Sequential</div>
                             <div class="layout-desc">1-2, 3-4, 5-6</div>
                         </div>
                         <div class="layout-option" data-value="booklet">
@@ -102,35 +102,35 @@
                                 <text x="27.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">4</text>
                                 <text x="72.5" y="38" font-family="sans-serif" font-size="24" font-weight="bold" fill="currentColor" text-anchor="middle" style="color: var(--ink);">1</text>
                             </svg>
-                            <div class="layout-title">Booklet</div>
+                            <div class="layout-title" data-de="Broschüre">Booklet</div>
                             <div class="layout-desc">4-1, 2-3</div>
                         </div>
                     </div>
 
                     <div class="split-view">
                         <div>
-                            <label for="pageMargin">Page Margin (mm)</label>
+                            <label for="pageMargin" data-de="Seitenrand (mm)">Page Margin (mm)</label>
                             <input type="number" id="pageMargin" value="0" min="0" step="1" placeholder="0">
                         </div>
                         <div>
-                            <label for="bleedArea">Bleed Area (mm)</label>
+                            <label for="bleedArea" data-de="Beschnitt (mm)">Bleed Area (mm)</label>
                             <input type="number" id="bleedArea" value="0" min="0" step="1" placeholder="0">
                         </div>
                         <div>
-                            <label for="cutLine">Cut Line / Crop Marks</label>
+                            <label for="cutLine" data-de="Schnittlinie / Passermarken">Cut Line / Crop Marks</label>
                             <select id="cutLine" data-save>
-                                <option value="none">None</option>
-                                <option value="dashed">Center Dashed Line</option>
-                                <option value="solid">Center Solid Line</option>
-                                <option value="cropmarks">Corner Crop Marks (requires bleed)</option>
+                                <option value="none" data-de="Keine">None</option>
+                                <option value="dashed" data-de="Gestrichelte Mittellinie">Center Dashed Line</option>
+                                <option value="solid" data-de="Durchgehende Mittellinie">Center Solid Line</option>
+                                <option value="cropmarks" data-de="Passermarken an den Ecken (braucht Beschnitt)">Corner Crop Marks (requires bleed)</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
                 <div class="button-group">
-                    <button class="button" id="processBtn" disabled>Process PDF</button>
-                    <button class="button outline" id="clearBtn" disabled>Clear</button>
+                    <button class="button" id="processBtn" disabled data-de="PDF verarbeiten">Process PDF</button>
+                    <button class="button outline" id="clearBtn" disabled data-de="Entfernen">Clear</button>
                 </div>
 
                 <div class="progress-container" id="progressContainer">
@@ -139,9 +139,9 @@
 
                 <div class="result-box hidden" id="resultBox">
                     <div style="text-align: center;">
-                        <h3 style="margin-bottom: 0.5rem;">Done</h3>
-                        <p style="margin-bottom: 1.5rem;">The new PDF is ready.</p>
-                        <a id="downloadLink" class="button secondary">Download PDF</a>
+                        <h3 style="margin-bottom: 0.5rem;" data-de="Fertig">Done</h3>
+                        <p style="margin-bottom: 1.5rem;" data-de="Die neue PDF ist bereit.">The new PDF is ready.</p>
+                        <a id="downloadLink" class="button secondary" data-de="PDF herunterladen">Download PDF</a>
                     </div>
                 </div>
 
@@ -149,6 +149,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>
@@ -471,12 +472,12 @@
             }
         });
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => !!currentFile;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => !!currentFile;
     </script>
 </body>
 </html>
