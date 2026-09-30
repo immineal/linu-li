@@ -46,13 +46,14 @@ const PRECACHE_URLS = [
     '/impressum.html',
     '/privacy.html',
     '/assets/css/style.css',
+    '/assets/js/i18n.js',
     '/assets/js/layout.js',
     '/assets/favicon.svg'
 ];
 
 // Third-party libraries, served with a year and `immutable` (see
 // assets/vendor/.htaccess) on the promise that a new version of a library
-// gets a new file name — tests/test-vendor-unveraendert.js keeps that
+// gets a new file name — tests/test-vendor-immutable.js keeps that
 // promise. Because the name is the version, there is nothing to revalidate:
 // asking the server about 3.1 MB of mermaid on every page load would cost a
 // round trip and never find anything.
@@ -214,7 +215,7 @@ self.addEventListener('fetch', (event) => {
         try {
             const cache = await caches.open(CACHE_NAME);
             await cache.put(request, kopie);
-        } catch (err) { /* volles Kontingent, nächstes Mal wieder */ }
+        } catch (err) { /* quota full, try again next time */ }
         return response;
     });
 
@@ -227,10 +228,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(gecacht.then((hit) => hit || frisch));
 });
 
-/* Zwei Antworten auf dieselbe Adresse: dieselbe Datei? ETag zuerst, weil er
-   genau ist; Last-Modified als Rückfall, weil nicht jeder Server einen ETag
-   schickt. Sagt keiner von beiden etwas, gilt sie als geändert — lieber
-   einmal zu viel geschrieben als eine Korrektur verschluckt. */
+/* Two responses to the same address: the same file? ETag first, because it
+   is exact; Last-Modified as a fallback, because not every server sends an
+   ETag. If neither says anything, treat it as changed — better to write
+   once too often than to swallow a correction. */
 function gleicherStand(a, b) {
     const etagA = a.headers.get('ETag');
     const etagB = b.headers.get('ETag');

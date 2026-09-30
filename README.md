@@ -10,6 +10,8 @@ Search for "merge PDF" and every result wants the file uploaded first. For a sca
 
 Browsers have been able to do this work by themselves for years, so these do. The file you pick never goes anywhere. There are no accounts, no analytics and no cookies, and once you have opened the site it keeps working on a train with no signal.
 
+The tools show up in English or German depending on the browser's language, and a small DE|EN switch at the bottom of every page flips between the two. The stage planner and the Bonn map stay in German because they are made for German users.
+
 Five things do reach outside, and none of them carries your file. The EXIF tool and the Bonn map load map tiles from OpenStreetMap. The image compressor pulls its WebP and AVIF codecs from esm.sh. The timestamp tool fetches a date parser from jsDelivr the first time you ask it to read plain language. The unit converter asks two servers for exchange rates, always the whole table, so the request says nothing about what you are converting. The contact form posts to Formspree. [The privacy policy](https://linu.li/privacy.html) names all five and says what each one receives.
 
 ## The tools
@@ -110,7 +112,8 @@ It needs three secrets: `FTP_SERVER`, `FTP_USER` and `FTP_PASSWORD`. The rest is
 assets/
   css/          global styles
   fonts/        Libre Baskerville and Space Grotesk, self-hosted
-  js/           shared layout, service worker registration, update prompt
+  js/           shared layout, service worker registration, update prompt,
+                language detection (i18n.js) and the footer language switch
   vendor/       third-party libraries
   manifest.json PWA manifest
 tools/          one folder per tool, each a standalone page

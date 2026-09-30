@@ -1,7 +1,7 @@
 /**
  * What the site actually stores while somebody uses it (Puppeteer).
  *
- * tests/test-autosave-nur-einstellungen.js reads the source and checks that
+ * tests/test-autosave-settings-only.js reads the source and checks that
  * nothing dangerous carries `data-save`. This one types into real pages in a
  * real browser and looks at what ends up in localStorage, because the source
  * check can only see what it knows to look for: a field named `wifiPass` is
@@ -31,8 +31,8 @@ function fail(msg) {
 
 const settle = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/* Eingetippt, nicht per value gesetzt: die Speicherung hängt am
-   input-Ereignis, und ein zugewiesenes .value löst keines aus. */
+/* Typed in, not set through .value: storage hangs off the input event,
+   and an assigned .value fires none. */
 async function tippen(page, pfad, selektor, text, vorher) {
     await page.goto(BASE + pfad, { waitUntil: 'networkidle2' });
     await settle(900);
@@ -40,7 +40,7 @@ async function tippen(page, pfad, selektor, text, vorher) {
     if (!(await page.$(selektor))) return null;
     await page.click(selektor, { clickCount: 3 }).catch(() => {});
     await page.type(selektor, text, { delay: 10 });
-    await settle(800);          // die Speicherung wartet 300 ms
+    await settle(800);          // storage waits 300 ms
     return page.evaluate((t) => Object.entries(localStorage)
         .filter(([, wert]) => typeof wert === 'string' && wert.includes(t))
         .map(([schluessel]) => schluessel), text);
@@ -55,7 +55,7 @@ async function tippen(page, pfad, selektor, text, vorher) {
     try {
         const page = await browser.newPage();
 
-        /* ---- 1. Geheimnisse und Inhalte bleiben draußen ---- */
+        /* ---- 1. secrets and content stay out ---- */
         const geheim = [
             ['/tools/qr-creator/', '#wifiPass', 'GEHEIM-WLAN-PASSWORT',
                 async (p) => { await p.select('#qrMode', 'wifi').catch(() => {}); await settle(400); }],
@@ -76,16 +76,16 @@ async function tippen(page, pfad, selektor, text, vorher) {
             }
         }
 
-        /* ---- 2. Einstellungen werden gemerkt UND zurückgeladen ---- */
+        /* ---- 2. settings are remembered AND read back ---- */
         //
-        // Nur nachzusehen, ob ein Schlüssel entsteht, hat hier schon einmal
-        // nichts gefangen: die erste Fassung schrieb alle 32 Einstellungen
-        // und las keine zurück, und dieser Test war grün. Es zählt, was nach
-        // dem Neuladen im Feld steht.
+        // Only checking that a key gets written has caught nothing here
+        // before: the first version wrote all 32 settings and read none
+        // back, and this test was green. What counts is what stands in
+        // the field after a reload.
         for (const [pfad, selektor] of [
             ['/tools/image-resizer/', '#outputFormat'],
             ['/tools/lorem-generator/', '#format'],
-            ['/tools/time-converter/', '#targetTz'],   // wird per Skript gefüllt
+            ['/tools/time-converter/', '#targetTz'],   // filled in by a script
         ]) {
             await page.goto(BASE + pfad, { waitUntil: 'networkidle2' });
             await settle(1200);
@@ -103,7 +103,7 @@ async function tippen(page, pfad, selektor, text, vorher) {
             await settle(700);
 
             await page.goto(BASE + pfad, { waitUntil: 'networkidle2' });
-            await settle(1500);   // die per Skript gefüllte Auswahl braucht einen Moment
+            await settle(1500);   // the script-populated dropdown needs a moment
             const danach = await page.evaluate((sel) =>
                 (document.querySelector(sel) || {}).value, selektor);
             if (danach !== anders) {
@@ -114,7 +114,7 @@ async function tippen(page, pfad, selektor, text, vorher) {
             }
         }
 
-        /* ---- 3. Der Altbestand wird einmalig geräumt ---- */
+        /* ---- 3. the old backlog is cleared out once ---- */
         await page.evaluate(() => {
             localStorage.setItem('autosave_/tools/jwt-debugger/_signatureSecret', 'ALTLAST');
             localStorage.setItem('autosave_/tools/qr-creator/_wifiPass', 'ALTLAST');

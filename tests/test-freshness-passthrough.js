@@ -28,9 +28,9 @@ const puppeteer = require('puppeteer');
 
 const BASE = process.env.TEST_BASE_URL || 'http://localhost:3000';
 
-/* Liegt in tests/, weil der Deploy dieses Verzeichnis ohnehin entfernt — die
-   Datei kann also nie versehentlich auf der Seite landen, auch wenn dieser
-   Lauf mittendrin abbricht. */
+/* Sits in tests/ because the deploy strips that directory anyway — the
+   file can never accidentally land on the site, even if this run breaks
+   off halfway through. */
 const PROBE_DATEI = path.join(__dirname, 'frische-probe.js');
 const PROBE_URL = '/tests/frische-probe.js';
 
@@ -55,8 +55,8 @@ const settle = (ms) => new Promise((r) => setTimeout(r, ms));
         await page.evaluate(() => navigator.serviceWorker.ready).catch(() => {});
         await settle(1200);
 
-        /* Ohne Controller läuft die Anfrage am Worker vorbei und der Test
-           prüfte nichts. */
+        /* Without a controller the request runs past the worker and the
+           test would check nothing. */
         await page.reload({ waitUntil: 'networkidle2' });
         await settle(800);
         if (!(await page.evaluate(() => !!navigator.serviceWorker.controller))) {
@@ -73,12 +73,12 @@ const settle = (ms) => new Promise((r) => setTimeout(r, ms));
             return;
         }
 
-        // Der Deploy: dieselbe Adresse, anderer Inhalt.
+        // The deploy: same URL, different content.
         fs.writeFileSync(PROBE_DATEI, 'window.__probe = "neu";\n');
         await settle(300);
 
         const zweitens = await hol();
-        await settle(1200);   // dem Nachfassen im Hintergrund Zeit lassen
+        await settle(1200);   // give the background revalidate time
         const drittens = await hol();
 
         if (/neu/.test(zweitens) || /neu/.test(drittens)) {

@@ -59,9 +59,9 @@ test('the short address rule asks the file system instead of keeping a list', ()
 });
 
 test('every tool is covered by it, and nothing else is', () => {
-    /* Die Regel greift für genau die Namen, unter denen ein Verzeichnis in
-       tools/ liegt. Was in der Wurzel liegt, darf sie nicht anfassen —
-       privacy.html und sitemap.xml werden ausgeliefert, nicht umgeleitet. */
+    /* The rule fires for exactly the names that have a directory under
+       tools/. Anything at the root must be left alone: privacy.html and
+       sitemap.xml are served, not redirected. */
     const werkzeuge = fs.readdirSync(path.join(ROOT, 'tools'), { withFileTypes: true })
         .filter((e) => e.isDirectory()).map((e) => e.name);
     assert.ok(werkzeuge.length > 25,

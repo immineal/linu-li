@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   termine:
-    name: Abfuhrtermine holen
+    name: Fetch collection dates
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -41,8 +41,8 @@ jobs:
           cache: "npm"
           cache-dependency-path: src/sperrmuell/package-lock.json
 
-      - name: Pläne von opendata.bonn.de holen
-        id: holen
+      - name: Fetch schedules from opendata.bonn.de
+        id: fetch
         working-directory: src/sperrmuell
         timeout-minutes: 15
         run: |
@@ -51,15 +51,15 @@ jobs:
           npm run schedules
           if git status --porcelain -- etl/termine | grep -q .; then
             git status --short -- etl/termine
-            echo "neu=1" >> "$GITHUB_OUTPUT"
+            echo "new=1" >> "$GITHUB_OUTPUT"
           else
-            echo "Nichts Neues."
+            echo "Nothing new."
           fi
 
       # Street geometry comes fresh from OpenStreetMap. The build fails on its
       # own if too few streets match, and then nothing is committed.
-      - name: Daten bauen
-        if: steps.holen.outputs.neu == '1'
+      - name: Build the data
+        if: steps.fetch.outputs.new == '1'
         working-directory: src/sperrmuell
         timeout-minutes: 40
         run: |
@@ -67,8 +67,8 @@ jobs:
           npm run data
           npm test
 
-      - name: Auf main legen und die Tests anstoßen
-        if: steps.holen.outputs.neu == '1'
+      - name: Push to main and trigger the tests
+        if: steps.fetch.outputs.new == '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -77,10 +77,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/sperrmuell/etl/termine tools/sperrmuell/data assets/update-note.txt
-          git commit -m "chore(sperrmuell): neue Abfuhrtermine von bonnorange"
-          for versuch in 1 2 3; do
+          git commit -m "chore(sperrmuell): new collection dates from bonnorange"
+          for attempt in 1 2 3; do
             git push origin HEAD:main && break
-            [ "$versuch" = 3 ] && exit 1
+            [ "$attempt" = 3 ] && exit 1
             git pull --rebase origin main
           done
           gh workflow run ci.yml --ref main

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Password Generator | Linus Linhof</title>
+    <title data-de="Passwort-Generator | Linus Linhof">Password Generator | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     <style>
@@ -44,8 +44,8 @@
     <main>
         <div class="container" style="max-width: 800px;">
             <div class="tool-header">
-                <h1>Password Generator</h1>
-                <p>Random passwords, or passphrases from the 2048-word BIP39 list. The randomness comes from the Web Crypto API.</p>
+                <h1 data-de="Passwort-Generator">Password Generator</h1>
+                <p data-de="Zufällige Passwörter oder Passphrasen aus der 2048-Wörter-BIP39-Liste. Die Zufälligkeit kommt aus der Web Crypto API.">Random passwords, or passphrases from the 2048-word BIP39 list. The randomness comes from the Web Crypto API.</p>
             </div>
 
             <div class="card">
@@ -60,24 +60,24 @@
                 </div>
 
                 <div class="button-group" style="justify-content: center; margin-bottom: 2rem;">
-                    <button class="button" id="generateBtn">Generate New</button>
-                    <button class="button secondary" id="copyBtn">Copy Password</button>
+                    <button class="button" id="generateBtn" data-de="Neu generieren">Generate New</button>
+                    <button class="button secondary" id="copyBtn" data-de="Passwort kopieren">Copy Password</button>
                 </div>
 
                 <div style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
                     <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; justify-content: center;">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                             <input type="radio" name="mode" value="characters" checked id="modeChars">
-                            Random Characters
+                            <span data-de="Zufällige Zeichen">Random Characters</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                             <input type="radio" name="mode" value="passphrase" id="modePassphrase">
-                            Passphrase
+                            <span data-de="Passphrase">Passphrase</span>
                         </label>
                     </div>
 
                     <div id="settingsChars">
-                        <label for="lengthRange">Length: <span id="lengthValue" style="color: var(--accent);">16</span></label>
+                        <label for="lengthRange"><span data-de="Länge">Length</span>: <span id="lengthValue" style="color: var(--accent);">16</span></label>
                         <input type="range" id="lengthRange" min="6" max="64" value="16">
 
                         <div class="split-view" style="margin-top: 1.5rem;">
@@ -85,45 +85,45 @@
                                 <label class="toggle-wrapper">
                                 <input type="checkbox" id="chkUppercase" class="toggle-checkbox" checked>
                                 <div class="toggle-switch"></div>
-                                <span>Uppercase (A-Z)</span>
+                                <span data-de="Großbuchstaben (A-Z)">Uppercase (A-Z)</span>
                             </label>
                             <label class="toggle-wrapper">
                                 <input type="checkbox" id="chkLowercase" class="toggle-checkbox" checked>
                                 <div class="toggle-switch"></div>
-                                <span>Lowercase (a-z)</span>
+                                <span data-de="Kleinbuchstaben (a-z)">Lowercase (a-z)</span>
                             </label>
                             <label class="toggle-wrapper">
                                 <input type="checkbox" id="chkNumbers" class="toggle-checkbox" checked>
                                 <div class="toggle-switch"></div>
-                                <span>Numbers (0-9)</span>
+                                <span data-de="Zahlen (0-9)">Numbers (0-9)</span>
                             </label>
                         </div>
                             <div>
                                 <label class="toggle-wrapper">
                                     <input type="checkbox" id="chkSymbols" class="toggle-checkbox" checked>
                                     <div class="toggle-switch"></div>
-                                    <span>Symbols (!@#$)</span>
+                                    <span data-de="Sonderzeichen (!@#$)">Symbols (!@#$)</span>
                                 </label>
                                 <label class="toggle-wrapper">
                                     <input type="checkbox" id="chkAmbiguous" class="toggle-checkbox">
                                     <div class="toggle-switch"></div>
-                                    <span>No Ambiguous (l, 1, O, 0)</span>
+                                    <span data-de="Ohne verwechselbare (l, 1, O, 0)">No Ambiguous (l, 1, O, 0)</span>
                                 </label>
                             </div>
                         </div>
                     </div>
 
                     <div id="settingsPassphrase" style="display: none;">
-                        <label for="wordsRange">Words: <span id="wordsValue" style="color: var(--accent);">4</span></label>
+                        <label for="wordsRange"><span data-de="Wörter">Words</span>: <span id="wordsValue" style="color: var(--accent);">4</span></label>
                         <input type="range" id="wordsRange" min="3" max="12" value="4">
 
                         <div style="margin-top: 1.5rem;">
-                            <label for="separatorSelect" style="display: block; margin-bottom: 0.5rem;">Separator:</label>
+                            <label for="separatorSelect" style="display: block; margin-bottom: 0.5rem;" data-de="Trennzeichen:">Separator:</label>
                             <select id="separatorSelect" data-save style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-family: var(--font-body); background: var(--input-bg); color: var(--input-text);">
-                                <option value="-">Hyphen (-)</option>
-                                <option value="_">Underscore (_)</option>
-                                <option value=".">Period (.)</option>
-                                <option value=" ">Space</option>
+                                <option value="-" data-de="Bindestrich (-)">Hyphen (-)</option>
+                                <option value="_" data-de="Unterstrich (_)">Underscore (_)</option>
+                                <option value="." data-de="Punkt (.)">Period (.)</option>
+                                <option value=" " data-de="Leerzeichen">Space</option>
                             </select>
                         </div>
                     </div>
@@ -134,6 +134,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script src="words.js"></script>
     <script>

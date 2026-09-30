@@ -23,7 +23,7 @@
  * one deliberate edit, visible in the diff, instead of a silent one.
  *
  * To update the list after a deliberate change:
- *     node tests/test-vendor-unveraendert.js --schreiben
+ *     node tests/test-vendor-immutable.js --schreiben
  */
 const assert = require('assert');
 const crypto = require('crypto');
@@ -34,8 +34,8 @@ const ROOT = path.join(__dirname, '..');
 const VENDOR = path.join(ROOT, 'assets/vendor');
 const LISTE = path.join(__dirname, 'vendor-hashes.json');
 
-/* Unterordner zählen mit: pdf.js kommt als Ordner mit seiner Version im
-   Namen (pdfjs-6.3.289/), und für jede Datei darin gilt dasselbe Versprechen. */
+/* Subfolders count too: pdf.js comes as a folder with its version in the
+   name (pdfjs-6.3.289/), and the same promise holds for every file in it. */
 function hashesLesen(ordner = VENDOR, gefunden = {}) {
     for (const name of fs.readdirSync(ordner).sort()) {
         if (name.startsWith('.')) continue;
@@ -52,11 +52,11 @@ function hashesLesen(ordner = VENDOR, gefunden = {}) {
 
 const gefunden = hashesLesen();
 
-/* Der Schreibmodus ist Absicht: er macht das Nachtragen zu einem Befehl statt
-   zu einer Handarbeit, und der Diff zeigt trotzdem jede einzelne Zeile. */
+/* Write mode is deliberate: it turns updating the list into a command
+   instead of hand work, and the diff still shows every single line. */
 if (process.argv.includes('--schreiben')) {
     fs.writeFileSync(LISTE, JSON.stringify(gefunden, null, 2) + '\n');
-    console.log(`vendor-hashes.json neu geschrieben — ${Object.keys(gefunden).length} Dateien`);
+    console.log(`vendor-hashes.json rewritten — ${Object.keys(gefunden).length} files`);
     process.exit(0);
 }
 
@@ -81,7 +81,7 @@ test('every vendored library still has the contents it was listed with', () => {
         'these files changed under the same name, and everyone who visited before ' +
         'keeps the old copy for a year: ' + geaendert.join(', ') + '. ' +
         'Give the new version a new file name, then run ' +
-        'node tests/test-vendor-unveraendert.js --schreiben');
+        'node tests/test-vendor-immutable.js --schreiben');
 });
 
 test('no vendored library disappeared without the list being updated', () => {

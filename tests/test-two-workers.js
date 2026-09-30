@@ -27,7 +27,7 @@
  * the middle of this test to be provoked into it — which in real life is
  * what a deploy does, and here would mean editing sw.js on disk while the
  * test runs. That direction is held by the static check in
- * tests/test-deploy-frische.js instead ("the worker deletes only its own
+ * tests/test-deploy-freshness.js instead ("the worker deletes only its own
  * caches"), which reads the line straight out of sw.js.
  */
 const puppeteer = require('puppeteer');
@@ -41,8 +41,8 @@ function fail(msg) {
 
 const settle = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/* Ein Worker meldet sich erst nach einem Neuladen als zuständig; danach
-   braucht sein activate noch einen Moment. */
+/* A worker only reports as controller after a reload; after that its
+   activate still needs a moment. */
 async function besuchen(page, pfad) {
     await page.goto(BASE + pfad, { waitUntil: 'networkidle2' });
     await page.evaluate(() => navigator.serviceWorker.ready).catch(() => {});
@@ -51,15 +51,14 @@ async function besuchen(page, pfad) {
     await settle(1500);
 }
 
-/* Zwei Fassungen dieses Tests haben nichts gefangen, bevor diese hier stand:
-   erst eine, die nur `caches.keys()` ansah — der Wurzel-Worker legt seinen
-   Cache beim nächsten Seitenaufruf sofort wieder an, der Name ist also immer
-   da. Dann eine, die die Einträge zählte — nach dem Löschen füllt sich der
-   Cache beim Weiterklicken wieder, im kaputten Lauf auf 27 statt 39, was
-   über der Schwelle lag.
-   Was das Löschen nicht überlebt, ist eine ganz bestimmte Adresse, die die
-   andere Seite nie anfragt. Also legen wir eine hinein und sehen nach, ob
-   sie noch da ist. */
+/* Two versions of this test caught nothing before this one:
+   first one that only looked at `caches.keys()` — the root worker
+   recreates its cache on the next page load, so the name is always there.
+   Then one that counted the entries — after the delete the cache fills up
+   again as you click around, in the broken run to 27 instead of 39, which
+   was above the threshold.
+   What does not survive the delete is one specific URL the other side
+   never asks for. So we put one in and check whether it is still there. */
 const MURMEL = '/tests/zwei-worker-murmel.txt';
 
 const murmelLegen = (page, cacheName) => page.evaluate(async (name, url) => {
@@ -114,7 +113,7 @@ const bestand = (page) => page.evaluate(async () => {
         }
         await murmelLegen(page, karteCache);
 
-        // Und zurück: die Karte darf ihren Bestand ebenso behalten.
+        // And back: the map has to keep its store just the same.
         await besuchen(page, '/tools/pdf-splitter/');
         if (!(await murmelDa(page, karteCache))) {
             fail('going back to a tool cleared the map cache — the map would not come ' +

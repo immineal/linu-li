@@ -3,11 +3,11 @@ if ('serviceWorker' in navigator) {
     // is served from, so the old one under /assets/ controlled no page at all
     // and the site was never actually available offline.
     navigator.serviceWorker.register('/sw.js')
-        .then(neueVersionAnbieten)
+        .then(offerNewVersion)
         .catch(err => console.error('Service worker registration failed:', err));
 
     // Visitors from before still carry that /assets/ registration around.
-    // It controls nothing, but it holds an old cache — send it on its way.
+    // It controls nothing, but it holds an old cache. Send it on its way.
     navigator.serviceWorker.getRegistrations()
         .then(regs => regs.forEach(reg => {
             if (reg.scope.endsWith('/assets/')) reg.unregister();
@@ -26,217 +26,222 @@ if ('serviceWorker' in navigator) {
  *
  * Two rules shape when it appears, and both exist to keep it out of the way:
  *
- *   - it asks at the first safe moment — either the visitor is about to
+ *   - It asks at the first safe moment. Either the visitor is about to
  *     leave this page anyway (an internal link), or they have stopped doing
  *     anything for a while. Whichever comes first.
- *   - it never asks a page twice. "Später" is a variable, not a stored
- *     preference: nothing is written down, nothing needs a line in the
+ *   - It never asks a page twice. "Later" is a variable, not a stored
+ *     preference. Nothing is written down, nothing needs a line in the
  *     privacy policy, and the next page asks once more. A visitor who keeps
  *     dismissing it still gets the new version the moment they close the tab.
  *
  * The sentences come from the waiting worker, which carries every note since
- * the version this page is running (assets/update-note.txt → sw.js). Asking
+ * the version this page is running (assets/update-note.txt -> sw.js). Asking
  * somebody to reload without saying why is how update prompts get trained
  * away.
  * ============================================================ */
 
-const NOTIZEN_SICHTBAR = 5;
+const VISIBLE_NOTES = 5;
 
-function neueVersionAnbieten(registration) {
+function offerNewVersion(registration) {
     if (!registration) return;
 
-    let schonGefragt = false;      // diese Seite, nicht dieser Browser
-    let ichWarEs = false;          // nur der Reiter, der gedrückt hat, lädt neu
+    let alreadyAsked = false;      // this page, not this browser
+    let itWasMe = false;           // only the tab that clicked reloads
 
-    /* Ganz oben, und das ist kein Geschmack: `pruefen()` weiter unten läuft
-       noch während dieser Funktionskörper abgearbeitet wird, und es ruft
-       `planen()`, das beide liest. Standen sie unterhalb, warf der Zugriff
-       in die temporale Totzone — aber nur dann, wenn beim Laden schon ein
-       Worker wartete. Dann starb der Rest dieser Funktion, der Klick-Zuhörer
-       wurde nie registriert, und der Hinweis erschien nie wieder. Sichtbar
-       war davon eine einzige Zeile in der Konsole. */
-    let geplant = false;
+    /* At the top on purpose. `check()` further down runs while this function
+       body is still being processed, and it calls `schedule()`, which reads
+       both of these. If they sat below, the access threw in the temporal
+       dead zone, but only when a worker was already waiting at load time.
+       When that happened, the rest of this function died, the click listener
+       was never registered, and the notice never appeared again. All that
+       was visible of it was a single line in the console. */
+    let scheduled = false;
 
-    /* Ein Wechsel des Workers betrifft jeden Reiter. Ohne diese Sperre würde
-       der Nachbarreiter mitladen und die Datei wegwerfen, die dort gerade
-       offen ist — ohne dass dort jemand etwas gedrückt hätte. */
-    let zielNachTausch = null;
-    let getauscht = false;
+    /* A worker swap touches every tab. Without this lock, the neighbouring
+       tab would reload along and throw away the file it has open, without
+       anybody there having clicked anything. */
+    let targetAfterSwap = null;
+    let swapped = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!ichWarEs || getauscht) return;
-        getauscht = true;
-        window.location.href = zielNachTausch || window.location.href;
+        if (!itWasMe || swapped) return;
+        swapped = true;
+        window.location.href = targetAfterSwap || window.location.href;
     });
 
-    const wartender = () => registration.waiting;
+    const waiting = () => registration.waiting;
 
-    function pruefen() {
-        if (wartender()) planen();
+    function check() {
+        if (waiting()) schedule();
     }
 
     registration.addEventListener('updatefound', () => {
-        const neuer = registration.installing;
-        if (!neuer) return;
-        neuer.addEventListener('statechange', () => {
-            if (neuer.state === 'installed' && navigator.serviceWorker.controller) planen();
+        const newer = registration.installing;
+        if (!newer) return;
+        newer.addEventListener('statechange', () => {
+            if (newer.state === 'installed' && navigator.serviceWorker.controller) schedule();
         });
     });
-    pruefen();
+    check();
 
     /**
-     * Ohne Warten: sobald ein neuer Worker installiert und wartend ist,
-     * fragen. Das trifft auch den Fall, der die Ruhelogik davor umging —
-     * jemand, der beim Neuladen zusehen will, ist nie 90 Sekunden lang
-     * untätig, aber gerade er sollte den Hinweis lesen und drücken können.
-     * Für Reiter im Hintergrund macht das Popup keinen Schaden: er sieht
-     * es, sobald er zurückwechselt.
+     * No waiting. As soon as a new worker is installed and waiting, ask. This
+     * also covers the case the idle-timer logic missed: somebody who wants to
+     * watch the reload happen is never idle for 90 seconds, but they are
+     * exactly the person who should get the prompt. On a background tab the
+     * popup does no harm, they see it when they come back.
      *
-     * Ein einziger Wachhund gegen den Fall, dass registration.waiting im
-     * Moment des updatefound-Statechange noch nicht besetzt ist — das
-     * geschieht kurz nach dem installed-Übergang, deshalb der Aufschub in
-     * die nächste Task-Runde.
+     * A single guard against the case where registration.waiting is not yet
+     * populated when the updatefound statechange fires. That happens shortly
+     * after the installed transition, hence the deferral into the next task
+     * round.
      */
-    function planen() {
-        if (schonGefragt || geplant) return;
-        geplant = true;
-        const anlauf = () => {
-            if (schonGefragt) return;
-            if (!wartender()) return;
-            if (document.body) fragen();
-            else document.addEventListener('DOMContentLoaded', () => fragen(), { once: true });
+    function schedule() {
+        if (alreadyAsked || scheduled) return;
+        scheduled = true;
+        const runOnce = () => {
+            if (alreadyAsked) return;
+            if (!waiting()) return;
+            if (document.body) ask();
+            else document.addEventListener('DOMContentLoaded', () => ask(), { once: true });
         };
-        if (wartender()) setTimeout(anlauf, 0);
-        else setTimeout(anlauf, 100);
+        if (waiting()) setTimeout(runOnce, 0);
+        else setTimeout(runOnce, 100);
     }
 
-    /* Was der wartende Worker ist und was er zu erzählen hat. */
-    function fragenAn(worker) {
-        return new Promise((antwort) => {
-            if (!worker) return antwort(null);
-            const kanal = new MessageChannel();
-            const uhr = setTimeout(() => antwort(null), 2000);
-            kanal.port1.onmessage = (e) => { clearTimeout(uhr); antwort(e.data); };
-            try { worker.postMessage({ frage: 'stand' }, [kanal.port2]); }
-            catch (err) { clearTimeout(uhr); antwort(null); }
+    /* What the waiting worker is and what it has to say. */
+    function askWorker(worker) {
+        return new Promise((answer) => {
+            if (!worker) return answer(null);
+            const channel = new MessageChannel();
+            const timer = setTimeout(() => answer(null), 2000);
+            channel.port1.onmessage = (e) => { clearTimeout(timer); answer(e.data); };
+            try { worker.postMessage({ frage: 'stand' }, [channel.port2]); }
+            catch (err) { clearTimeout(timer); answer(null); }
         });
     }
 
-    /* Der Klick, der den Hinweis ausgelöst hat, wollte irgendwo hin. */
-    function weiter(adresse) { if (adresse) window.location.href = adresse; }
+    /* The click that triggered the notice wanted to go somewhere. */
+    function goOn(address) { if (address) window.location.href = address; }
 
-    async function fragen(danach) {
-        if (schonGefragt) { weiter(danach); return; }
-        schonGefragt = true;
+    async function ask(afterwards) {
+        if (alreadyAsked) { goOn(afterwards); return; }
+        alreadyAsked = true;
 
-        /* Nebeneinander, nicht nacheinander: der Klick auf den Link ist schon
-           abgefangen, und zwei Fristen von je zwei Sekunden hintereinander
-           ließen ihn bis zu vier Sekunden lang tot wirken. */
-        const [neu, alt] = await Promise.all([
-            fragenAn(wartender()),
-            fragenAn(navigator.serviceWorker.controller),
+        /* Side by side, not one after the other. The click on the link is
+           already intercepted, and two two-second deadlines back to back made
+           it look dead for up to four seconds. */
+        const [next, current] = await Promise.all([
+            askWorker(waiting()),
+            askWorker(navigator.serviceWorker.controller),
         ]);
 
-        /* Kennt der laufende Worker seinen Stand nicht, ist er älter als
-           dieser Mechanismus — dann gibt es nichts zu erzählen, und der
-           Tausch geschieht still. Das ist der allererste Rollout. */
-        if (!neu || !alt || !alt.sha) { if (danach) weiter(danach); return; }
+        /* If the running worker does not know its own build, it is older
+           than this mechanism. Nothing to tell, and the swap happens
+           silently. That is the very first rollout. */
+        if (!next || !current || !current.sha) { if (afterwards) goOn(afterwards); return; }
 
-        /* Gezählt, nicht verglichen: die Sätze, die der laufende Worker noch
-           nicht kannte, sind die hinter seiner eigenen Anzahl. */
-        const alle = neu.notizen || [];
-        const schon = (alt.notizen || []).length;
-        const neue = alle.slice(schon);
-        if (!neue.length) { if (danach) weiter(danach); return; }
+        /* Counted, not matched. The sentences the running worker did not know
+           yet are the ones after its own count. */
+        const all = next.notizen || [];
+        const known = (current.notizen || []).length;
+        const fresh = all.slice(known);
+        if (!fresh.length) { if (afterwards) goOn(afterwards); return; }
 
-        zeigen(neue, danach);
+        show(fresh, afterwards);
     }
 
-    function zeigen(notizen, danach) {
-        const de = document.documentElement.lang === 'de' ||
-            document.documentElement.getAttribute('data-frame') === 'de';
-        const sag = (en, ger) => (de ? ger : en);
+    function show(notes, afterwards) {
+        const t = (window.LL_I18N && window.LL_I18N.t)
+            ? window.LL_I18N.t
+            : ((en, de) => (document.documentElement.lang === 'de' ? de : en));
 
-        const schirm = document.createElement('div');
-        schirm.className = 'll-update';
-        schirm.innerHTML = `
+        const dialog = document.createElement('div');
+        dialog.className = 'll-update';
+        dialog.innerHTML = `
             <div class="ll-update-karte" role="dialog" aria-modal="true"
                  aria-labelledby="ll-update-titel">
-              <h2 id="ll-update-titel">${sag('A new version is ready', 'Eine neue Fassung ist da')}</h2>
+              <h2 id="ll-update-titel">${t('A new version is ready', 'Eine neue Fassung ist da')}</h2>
               <ul></ul>
               <div class="ll-update-knoepfe">
-                <button type="button" data-tun="spaeter">${sag('Later', 'Später')}</button>
-                <button type="button" data-tun="jetzt" class="ll-update-ja">${sag('Reload', 'Neu laden')}</button>
+                <button type="button" data-tun="spaeter">${t('Later', 'Später')}</button>
+                <button type="button" data-tun="jetzt" class="ll-update-ja">${t('Reload', 'Neu laden')}</button>
               </div>
             </div>`;
 
-        const liste = schirm.querySelector('ul');
-        notizen.slice(0, NOTIZEN_SICHTBAR).forEach((text) => {
+        const list = dialog.querySelector('ul');
+        notes.slice(0, VISIBLE_NOTES).forEach((text) => {
             const li = document.createElement('li');
             li.textContent = text;
-            liste.appendChild(li);
+            list.appendChild(li);
         });
-        if (notizen.length > NOTIZEN_SICHTBAR) {
-            const rest = notizen.length - NOTIZEN_SICHTBAR;
+        if (notes.length > VISIBLE_NOTES) {
+            const rest = notes.length - VISIBLE_NOTES;
             const li = document.createElement('li');
             li.className = 'll-update-rest';
-            li.textContent = sag(`and ${rest} more`, `und ${rest} weitere`);
-            liste.appendChild(li);
+            li.textContent = t(`and ${rest} more`, `und ${rest} weitere`);
+            list.appendChild(li);
         }
 
-        const vorher = document.activeElement;
-        const schliessen = () => {
-            document.removeEventListener('keydown', taste, true);
-            schirm.remove();
-            if (vorher && vorher.focus) vorher.focus();
-            weiter(danach);
+        const previousFocus = document.activeElement;
+        const close = () => {
+            document.removeEventListener('keydown', onKey, true);
+            dialog.remove();
+            if (previousFocus && previousFocus.focus) previousFocus.focus();
+            goOn(afterwards);
         };
-        const taste = (e) => {
-            if (e.key === 'Escape') { e.preventDefault(); schliessen(); }
+        const onKey = (e) => {
+            if (e.key === 'Escape') { e.preventDefault(); close(); }
         };
 
-        schirm.addEventListener('click', (e) => {
-            const tun = e.target.getAttribute && e.target.getAttribute('data-tun');
-            if (tun === 'spaeter' || e.target === schirm) return schliessen();
-            if (tun !== 'jetzt') return;
+        dialog.addEventListener('click', (e) => {
+            const action = e.target.getAttribute && e.target.getAttribute('data-tun');
+            if (action === 'spaeter' || e.target === dialog) return close();
+            if (action !== 'jetzt') return;
 
-            /* Ein Werkzeug, das etwas hält, sagt es. Wer sich nicht meldet,
-               gilt als leer — die meisten sind es, und ein Werkzeug mit
-               Arbeit dran muss sich melden. tests/test-arbeit-haken.js
-               besteht darauf, dass jedes mit Datei-Eingabe das tut. */
-            let haelt = false;
-            try { haelt = !!(window.llHaeltArbeit && window.llHaeltArbeit()); }
-            catch (err) { haelt = false; }
-            if (haelt && !window.confirm(sag(
+            /* A tool that holds something says so. Whoever does not answer is
+               taken as empty. Most tools are, and one with actual work in it
+               has to speak up. tests/test-holds-work.js insists that every
+               tool with a file input does. */
+            let holds = false;
+            try { holds = !!(window.llHoldsWork && window.llHoldsWork()); }
+            catch (err) { holds = false; }
+            /* Backwards compatibility: the hook used to be called llHaeltArbeit.
+               A tool that still exports the old name during a deploy window
+               should still be respected. */
+            if (!holds) {
+                try { holds = !!(window.llHaeltArbeit && window.llHaeltArbeit()); }
+                catch (err) { holds = false; }
+            }
+            if (holds && !window.confirm(t(
                 'This tool is still holding something that reloading will discard. Reload anyway?',
                 'Dieses Werkzeug hält noch etwas, das beim Neuladen verloren geht. Trotzdem neu laden?'))) {
                 return;
             }
 
-            ichWarEs = true;
-            /* Wer hierher über einen Klick auf einen Link gekommen ist,
-               wollte woandershin. Ihn stattdessen auf der alten Seite neu
-               laden zu lassen, verschluckt seinen Klick — die neue Adresse
-               tut beides auf einmal: sie holt die neuen Dateien und bringt
-               ihn dorthin, wo er hinwollte. */
-            zielNachTausch = danach || window.location.href;
-            const w = wartender();
+            itWasMe = true;
+            /* Someone who got here by clicking a link wanted to go somewhere.
+               Reloading them on the old page instead would swallow their click.
+               The new address does both at once: it picks up the new files and
+               takes them where they wanted to go. */
+            targetAfterSwap = afterwards || window.location.href;
+            const w = waiting();
             if (w) w.postMessage({ frage: 'uebernimm' });
-            /* Nimmt der Worker die Aufforderung nicht an, geht es trotzdem
-               weiter — die neuen Dateien holt die Seite sich dann selbst. */
-            setTimeout(() => { if (!getauscht) window.location.href = zielNachTausch; }, 1200);
+            /* If the worker does not accept the ask, the reload happens
+               anyway. The page will fetch the new files itself. */
+            setTimeout(() => { if (!swapped) window.location.href = targetAfterSwap; }, 1200);
         });
 
-        document.addEventListener('keydown', taste, true);
-        document.body.appendChild(schirm);
-        const ja = schirm.querySelector('.ll-update-ja');
-        if (ja) ja.focus();
+        document.addEventListener('keydown', onKey, true);
+        document.body.appendChild(dialog);
+        const yesButton = dialog.querySelector('.ll-update-ja');
+        if (yesButton) yesButton.focus();
     }
 }
 
 // The manifest is what makes the site installable. Only the front page
 // carried a link to it, so a visitor who arrived straight at a tool was
 // never offered the install. index.html still has its own link in the
-// markup, which is better than waiting for this script — hence the check.
+// markup, which is better than waiting for this script, hence the check.
 if (!document.querySelector('link[rel="manifest"]')) {
     const manifestLink = document.createElement('link');
     manifestLink.rel = 'manifest';
@@ -248,18 +253,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const inToolsDir = window.location.pathname.includes('/tools/');
     const rootPath = inToolsDir ? '../../' : './';
 
-    // A page can ask for a German frame with data-frame="de". Not every German
-    // page wants one: Impressum and Datenschutz are German documents that
-    // belong to the whole site, and their frame stays English with the rest.
-    const de = document.documentElement.getAttribute('data-frame') === 'de';
-    const say = (english, german) => (de ? german : english);
+    /* The site-wide t(). If i18n.js has not loaded (test harness, or a
+       misconfigured page), fall back to the old data-frame="de" seed so this
+       file still works in isolation. */
+    const t = (window.LL_I18N && window.LL_I18N.t)
+        ? window.LL_I18N.t
+        : ((english, german) => (
+            document.documentElement.getAttribute('data-frame') === 'de' ? german : english
+        ));
+    const lang = (window.LL_I18N && window.LL_I18N.lang) ||
+        (document.documentElement.getAttribute('lang') === 'de' ? 'de' : 'en');
+    /* The page is locked when either the runtime says so or the markup does.
+       The buehnenbild page loads its own local i18n; it does not load the
+       site-wide one, so window.LL_I18N is not there. The data-lang-lock
+       attribute is the fallback signal that the page is not for switching. */
+    const locked = !!(window.LL_I18N && window.LL_I18N.locked) ||
+        !!document.documentElement.getAttribute('data-lang-lock');
 
     const headerHTML = `
     <header class="main-header">
         <nav>
             <a href="${rootPath}" class="logo-link">linu.li</a>
             <div style="display:flex; gap: 1.5rem; align-items: center;">
-                <button id="theme-toggle" class="theme-switch" aria-label="${say('Switch between light and dark', 'Zwischen hell und dunkel wechseln')}">
+                <button id="theme-toggle" class="theme-switch" aria-label="${t('Switch between light and dark', 'Zwischen hell und dunkel wechseln')}">
                     <div class="switch-track">
                         <div class="switch-thumb"></div>
                     </div>
@@ -268,11 +284,22 @@ document.addEventListener('DOMContentLoaded', () => {
         </nav>
     </header>`;
 
+    /* The language switch. Hidden on pages that lock a locale (buehnenbild
+       and sperrmuell). "DE|EN" with the current one dimmed, one click flips.
+       Uses aria-pressed so a screen reader hears which one is active. */
+    const otherLang = lang === 'de' ? 'en' : 'de';
+    const otherLabel = otherLang.toUpperCase();
+    const langSwitchHTML = locked ? '' : `
+        <button type="button" class="ll-lang-switch"
+                aria-label="${t('Switch language to ' + otherLabel, 'Sprache auf ' + otherLabel + ' wechseln')}">
+            <span class="ll-lang-current" aria-hidden="true">${lang.toUpperCase()}</span><span class="ll-lang-sep" aria-hidden="true"> | </span><span class="ll-lang-other" aria-hidden="true">${otherLabel}</span>
+        </button>`;
+
     const footerHTML = `
     <footer style="text-align: center; padding: 3rem 1rem; opacity: 0.8; font-size: 0.9rem; border-top: 1px solid var(--border); margin-top: auto;">
         <div style="margin-bottom: 1.5rem;">
             <a href="https://ko-fi.com/linuslinhof" target="_blank" rel="noopener noreferrer" class="donate-btn">
-                ${say('Buy me a coffee', 'Spendier mir einen Kaffee')}
+                ${t('Buy me a coffee', 'Spendier mir einen Kaffee')}
             </a>
         </div>
 
@@ -280,8 +307,8 @@ document.addEventListener('DOMContentLoaded', () => {
             &copy; ${new Date().getFullYear()} Linus Linhof
         </p>
         <p style="margin: 0.5rem auto 0; opacity: 0.7; text-align: center;">
-            <a href="${rootPath}impressum.html">${say('Impressum / Legal', 'Impressum')}</a> &bull; 
-            <a href="${rootPath}privacy.html">${say('Privacy / Datenschutz', 'Datenschutz')}</a>
+            <a href="${rootPath}impressum.html">${t('Legal notice', 'Impressum')}</a> &bull;
+            <a href="${rootPath}privacy.html">${t('Privacy', 'Datenschutz')}</a>${langSwitchHTML ? ' &bull; ' + langSwitchHTML : ''}
         </p>
     </footer>
     <div id="toast-container" class="toast-container"></div>`;
@@ -289,32 +316,45 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.insertAdjacentHTML('afterbegin', headerHTML);
     document.body.insertAdjacentHTML('beforeend', footerHTML);
 
-    /* Ein Werkzeug meldet sich mit data-status="archiv" selbst als stillgelegt:
-       es steht nicht mehr auf der Startseite, laeuft aber weiter. Der Hinweis
-       gehoert auf die Seite selbst, denn sie wird von hier an nur noch ueber
-       Lesezeichen und Suchmaschinen erreicht — auf der Startseite steht nichts
-       mehr, was ihn zeigen koennte. Er sitzt oben im Inhalt statt ueber dem
-       Kopf, weil er ein Hinweis ist und keine Warnung. */
+    /* A tool marks itself as archived with data-status="archiv". It is off
+       the front page, but still runs. The notice belongs on the page itself,
+       since from here on it is reached only through bookmarks and search
+       engines. The front page has nothing left to point at it. It sits on
+       top of the content rather than above the header, because it is a
+       notice and not a warning. */
     if (document.documentElement.getAttribute('data-status') === 'archiv') {
-        const platz = document.querySelector('main .container') || document.querySelector('main');
-        if (platz) {
-            platz.insertAdjacentHTML('afterbegin', `
+        const spot = document.querySelector('main .container') || document.querySelector('main');
+        if (spot) {
+            spot.insertAdjacentHTML('afterbegin', `
             <p class="archive-note">
-                ${say('Nobody is working on this tool any more. It still works, but it is off the front page.',
-                      'Dieses Werkzeug wird nicht mehr weiterentwickelt. Es funktioniert weiter, steht aber nicht mehr auf der Startseite.')}
-                ${say('Need it back? Write to', 'Brauchst du es? Schreib an')}
+                ${t('Nobody is working on this tool any more. It still works, but it is off the front page.',
+                    'Dieses Werkzeug wird nicht mehr weiterentwickelt. Es funktioniert weiter, steht aber nicht mehr auf der Startseite.')}
+                ${t('Need it back? Write to', 'Brauchst du es? Schreib an')}
                 <a href="mailto:feedback@linu.li">feedback@linu.li</a>
             </p>`);
         }
     }
 
+    /* Wire up the language switch. Persists the choice and reloads. i18n.js
+       is where the actual work lives; this button is only the trigger. */
+    const langBtn = document.querySelector('.ll-lang-switch');
+    if (langBtn && window.LL_I18N && !locked) {
+        langBtn.addEventListener('click', () => {
+            window.LL_I18N.setLang(window.LL_I18N.otherLang());
+        });
+    }
+
+    /* Second i18n sweep after the header/footer are in the DOM. i18n.js did
+       one on DOMContentLoaded, but the chrome was not there yet. */
+    if (window.LL_I18N && window.LL_I18N.apply) window.LL_I18N.apply();
+
     const themeToggle = document.getElementById('theme-toggle');
-    /* Ohne try/catch fiel hier alles Weitere aus, sobald der Browser den
-       Zugriff sperrt (privates Fenster, Website-Daten blockiert): die Seite
-       kam hell statt dunkel, der Umschalter reagierte nicht, und die
-       Bereinigung weiter unten wurde nie erreicht. */
+    /* Without try/catch, everything below here fell over as soon as the
+       browser blocked access (private window, site data blocked): the page
+       came up light instead of dark, the toggle did not react, and the
+       cleanup further down never ran. */
     let savedTheme = null;
-    try { savedTheme = localStorage.getItem('theme'); } catch (err) { /* gesperrt */ }
+    try { savedTheme = localStorage.getItem('theme'); } catch (err) { /* blocked */ }
 
     if (savedTheme !== 'light') {
         document.body.classList.add('dark-mode');
@@ -324,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         themeToggle.addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
             const isDark = document.body.classList.contains('dark-mode');
-            try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch (err) { /* gesperrt */ }
+            try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch (err) { /* blocked */ }
         });
     }
 
@@ -345,11 +385,11 @@ document.addEventListener('DOMContentLoaded', () => {
     //
     //     <select id="outputFormat" data-save>
     //
-    // Mark settings — a format, a mode, a unit, a timezone. Never a field
+    // Mark settings, a format, a mode, a unit, a timezone. Never a field
     // that carries what someone typed, and never an output. If you are not
     // sure, leave it off: the cost is that a dropdown forgets, and the cost
     // of the other mistake is somebody's password sitting in localStorage.
-    // tests/test-autosave-nur-einstellungen.js checks this.
+    // tests/test-autosave-settings-only.js checks this.
     const pageId = window.location.pathname; // Unique key per tool
 
     // One-time clear-out of what the old rule left behind. It cannot be
@@ -365,21 +405,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 .forEach(key => localStorage.removeItem(key));
             localStorage.setItem('ll_autosave_bereinigt_v1', '1');
         }
-    } catch (err) { /* kein Speicher, nichts aufzuräumen */ }
+    } catch (err) { /* no storage, nothing to clean */ }
 
     const inputsToSave = document.querySelectorAll(
         'textarea[data-save][id], input[type="text"][data-save][id], select[data-save][id]');
 
     inputsToSave.forEach(input => {
         const storageKey = `autosave_${pageId}_${input.id}`;
-        
+
         // Restore.
         //
         // This used to read `if (saved !== null && input.value === '')`, and
         // that condition is never true for a <select>: a dropdown with
         // options always has a value. Every marked field is a dropdown, so
-        // the setting was written on every change and never once read back —
-        // storage with no purpose, while the privacy policy said it was there
+        // the setting was written on every change and never once read back.
+        // Storage with no purpose, while the privacy policy said it was there
         // to bring a tool back the way you left it. Found by measuring all 32
         // fields in a browser, not by reading the line.
         //
@@ -388,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // not have yet silently does nothing. So: try, and if the option is
         // not there, watch the element until it is.
         const savedValue = localStorage.getItem(storageKey);
-        if (savedValue !== null) wiederherstellen(input, savedValue);
+        if (savedValue !== null) restore(input, savedValue);
 
         let debounceTimer;
         input.addEventListener('input', (e) => {
@@ -405,23 +445,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    /* Einen gespeicherten Wert zurücksetzen, auch wenn die Auswahl ihre
-       Einträge erst später bekommt. Nach zehn Sekunden ist Schluss: dann
-       gibt es die Option nicht mehr, und der alte Wert wäre ohnehin falsch. */
-    function wiederherstellen(feld, wert) {
-        const passt = () => feld.tagName !== 'SELECT' ||
-            [...feld.options].some((o) => o.value === wert);
+    /* Restore a stored value even when the dropdown gets its options later.
+       Ten seconds is the cutoff. After that the option is not coming, and
+       the stored value would be wrong anyway. */
+    function restore(field, value) {
+        const fits = () => field.tagName !== 'SELECT' ||
+            [...field.options].some((o) => o.value === value);
 
-        if (passt()) { feld.value = wert; return; }
+        if (fits()) { field.value = value; return; }
 
-        const beobachter = new MutationObserver(() => {
-            if (!passt()) return;
-            feld.value = wert;
-            feld.dispatchEvent(new Event('change', { bubbles: true }));
-            beobachter.disconnect();
+        const observer = new MutationObserver(() => {
+            if (!fits()) return;
+            field.value = value;
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+            observer.disconnect();
         });
-        beobachter.observe(feld, { childList: true, subtree: true });
-        setTimeout(() => beobachter.disconnect(), 10_000);
+        observer.observe(field, { childList: true, subtree: true });
+        setTimeout(() => observer.disconnect(), 10_000);
     }
 
     // Nothing in the site calls this. It is here for a tool that wants to
@@ -438,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
-    if (!container) return; 
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
@@ -451,10 +491,13 @@ function showToast(message, type = 'info') {
 }
 
 function copyToClipboard(text) {
+    const t = (window.LL_I18N && window.LL_I18N.t)
+        ? window.LL_I18N.t
+        : ((en) => en);
     navigator.clipboard.writeText(text).then(() => {
-        showToast('Copied to clipboard', 'success');
+        showToast(t('Copied to clipboard', 'In die Zwischenablage kopiert'), 'success');
     }).catch(err => {
-        showToast('Could not copy to the clipboard', 'error');
+        showToast(t('Could not copy to the clipboard', 'Kopieren in die Zwischenablage fehlgeschlagen'), 'error');
     });
 }
 
@@ -485,7 +528,7 @@ function setupDropZone(dropZone, fileInput, onFilesSelected) {
         dropZone.classList.remove('drag-over');
         if (e.dataTransfer.files.length) {
             fileInput.files = e.dataTransfer.files;
-            onFilesSelected(e.dataTransfer.files); 
+            onFilesSelected(e.dataTransfer.files);
         }
     });
 
@@ -502,7 +545,7 @@ function setupSEO() {
     const h1 = document.querySelector('h1');
     const descP = document.querySelector('.tool-header p') || document.querySelector('p');
 
-    // An h1 can be present but render to nothing — the scene planner's wordmark
+    // An h1 can be present but render to nothing. The scene planner's wordmark
     // collapses to 0x0, so innerText is empty and the tab was called "| Linus
     // Linhof". Fall back to the page's own <title>, read once at load so a
     // second pass never sees a title this function already rewrote.

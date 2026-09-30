@@ -83,7 +83,7 @@ function fail(msg) {
 
         await (await page.$('#fileInput')).uploadFile(file);
         await page.waitForFunction(() => !document.getElementById('optionsPanel').classList.contains('hidden'), { timeout: 60000 });
-        if (!(await page.evaluate(() => window.llHaeltArbeit()))) fail('the page does not report holding the file');
+        if (!(await page.evaluate(() => (window.llHoldsWork || window.llHaeltArbeit)()))) fail('the page does not report holding the file');
 
         const pick = (mb) => page.evaluate((mb) => {
             const b = [...document.querySelectorAll('#targets button')].find((x) => x.textContent === mb + ' MB');
@@ -177,7 +177,7 @@ function fail(msg) {
         if (!r.details.some((d) => d.includes('can no longer be selected'))) fail('the result does not say that the text is gone');
 
         await page.click('#resetBtn');
-        if (await page.evaluate(() => window.llHaeltArbeit())) fail('after starting over the page still reports holding work');
+        if (await page.evaluate(() => (window.llHoldsWork || window.llHaeltArbeit)())) fail('after starting over the page still reports holding work');
 
         if (errors.length) fail('errors on the page: ' + errors.join(' | '));
     } finally {

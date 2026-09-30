@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQL Formatter | Linus Linhof</title>
+    <title data-de="SQL-Formatierer | Linus Linhof">SQL Formatter | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -13,24 +13,24 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>SQL Formatter</h1>
-                <p>Reindents a query and capitalises the keywords. Knows Standard SQL, MySQL, PostgreSQL and PL/SQL, and can turn CREATE TABLE statements into TypeScript interfaces or Prisma models.</p>
+                <h1 data-de="SQL-Formatierer">SQL Formatter</h1>
+                <p data-de="Rückt eine Abfrage neu ein und schreibt die Schlüsselwörter groß. Kennt Standard SQL, MySQL, PostgreSQL und PL/SQL und wandelt CREATE-TABLE-Anweisungen in TypeScript-Interfaces oder Prisma-Modelle um.">Reindents a query and capitalises the keywords. Knows Standard SQL, MySQL, PostgreSQL and PL/SQL, and can turn CREATE TABLE statements into TypeScript interfaces or Prisma models.</p>
             </div>
 
             <div class="split-view">
                 
                 <div class="card" style="display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <label for="inputSql" style="margin: 0;">Input SQL</label>
+                        <label for="inputSql" style="margin: 0;" data-de="SQL-Eingabe">Input SQL</label>
                         <select id="languageSelect" data-save style="width: auto; margin: 0; padding: 0.4rem 1rem;">
-                            <option value="auto_detect">Auto-Detect Dialect</option>
-                            <option value="sql">Standard SQL</option>
+                            <option value="auto_detect" data-de="Dialekt automatisch erkennen">Auto-Detect Dialect</option>
+                            <option value="sql" data-de="Standard SQL">Standard SQL</option>
                             <option value="mysql">MySQL</option>
                             <option value="postgresql">PostgreSQL</option>
                             <option value="plsql">PL/SQL</option>
-                            <optgroup label="Schema Export">
-                                <option value="typescript">TypeScript Interfaces</option>
-                                <option value="prisma">Prisma Models</option>
+                            <optgroup label="Schema Export" data-de-attr="label:Schema-Export">
+                                <option value="typescript" data-de="TypeScript-Interfaces">TypeScript Interfaces</option>
+                                <option value="prisma" data-de="Prisma-Modelle">Prisma Models</option>
                             </optgroup>
                         </select>
                     </div>
@@ -39,10 +39,10 @@
 
                 <div class="card" style="display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <label style="margin: 0;">Formatted Result</label>
+                        <label style="margin: 0;" data-de="Formatiertes Ergebnis">Formatted Result</label>
                         <div class="button-group" style="margin: 0;">
                             <button class="button sm" id="formatBtn">Format</button>
-                            <button class="button sm secondary" id="copyBtn">Copy</button>
+                            <button class="button sm secondary" id="copyBtn" data-de="Kopieren">Copy</button>
                         </div>
                     </div>
                     <textarea id="outputSql" class="code-editor" readonly style="flex-grow: 1; min-height: 400px; background: var(--code-bg);"></textarea>
@@ -52,6 +52,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script>
         const inputSql = document.getElementById('inputSql');
@@ -201,13 +202,13 @@
         inputSql.value = "SELECT id, username, email FROM users WHERE active = 1 AND created_at > '2023-01-01' ORDER BY username ASC LIMIT 10;";
         setTimeout(formatQuery, 100);
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
     const llStart = inputSql.value;
-    window.llHaeltArbeit = () => inputSql.value.trim() !== '' && inputSql.value !== llStart;
+    window.llHoldsWork = () => inputSql.value.trim() !== '' && inputSql.value !== llStart;
     </script>
 </body>
 </html>

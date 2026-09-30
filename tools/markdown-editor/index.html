@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown Previewer | Linus Linhof</title>
+    <title data-de="Markdown-Vorschau | Linus Linhof">Markdown Previewer | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -39,24 +39,24 @@
     <main>
         <div class="container" style="max-width: 1400px;">
             <div class="tool-header">
-                <h1>Markdown Previewer</h1>
-                <p>Write Markdown on the left, see the rendered HTML on the right.</p>
+                <h1 data-de="Markdown-Vorschau">Markdown Previewer</h1>
+                <p data-de="Links Markdown schreiben, rechts das gerenderte HTML sehen.">Write Markdown on the left, see the rendered HTML on the right.</p>
             </div>
 
             <div class="split-view" style="grid-template-columns: 1fr 1fr; align-items: stretch;">
                 
                 <div class="editor-pane">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <label for="mdInput">Markdown Input</label>
-                        <button class="button sm outline" id="clearBtn">Clear</button>
+                        <label for="mdInput" data-de="Markdown-Eingabe">Markdown Input</label>
+                        <button class="button sm outline" id="clearBtn" data-de="Leeren">Clear</button>
                     </div>
                     <textarea id="mdInput" class="code-editor" style="flex-grow: 1; min-height: 600px; font-size: 0.9rem;" placeholder="# A heading&#10;&#10;Some **Markdown**"></textarea>
                 </div>
 
                 <div class="editor-pane">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <label>Live Preview</label>
-                        <button class="button sm secondary" id="copyHtmlBtn">Copy HTML</button>
+                        <label data-de="Live-Vorschau">Live Preview</label>
+                        <button class="button sm secondary" id="copyHtmlBtn" data-de="HTML kopieren">Copy HTML</button>
                     </div>
                     <div id="preview" class="markdown-body"></div>
                 </div>
@@ -65,6 +65,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script>
         const mdInput = document.getElementById('mdInput');
@@ -187,13 +188,13 @@ graph TD;
             copyToClipboard(html);
         });
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
     const llStart = mdInput.value;
-    window.llHaeltArbeit = () => mdInput.value.trim() !== '' && mdInput.value !== llStart;
+    window.llHoldsWork = () => mdInput.value.trim() !== '' && mdInput.value !== llStart;
     </script>
 </body>
 </html>

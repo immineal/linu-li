@@ -69,16 +69,17 @@ jobs:
               tests/test-number-spinners.js|\
               tests/test-unit-converter-layout.js|\
               tests/test-service-worker.js|\
-              tests/test-frische-durchreichen.js|\
-              tests/test-zwei-worker.js|\
-              tests/test-autosave-verhalten.js|\
-              tests/test-update-hinweis.js|\
-              tests/test-arbeit-haken.js|\
+              tests/test-freshness-passthrough.js|\
+              tests/test-two-workers.js|\
+              tests/test-autosave-behaviour.js|\
+              tests/test-update-notice.js|\
+              tests/test-holds-work.js|\
               tests/test-page-metadata.js|\
               tests/test-json-tools-browser.js|\
               tests/test-pdf-compressor-browser.js|\
-              tests/test-zeitstempel-knopf.js|\
-              tests/test-archiv-hinweis.js|\
+              tests/test-timestamp-button.js|\
+              tests/test-archive-notice.js|\
+              tests/test-sprache.js|\
               tests/test-buehnenbild-zoom.js|\
               tests/test-buehnenbild-drucken.js|\
               tests/test-sperrmuell-karte.js)
@@ -183,7 +184,7 @@ jobs:
 
           run_test "tests/test-json-tools-browser.js"
           run_test "tests/test-pdf-compressor-browser.js"
-          run_test "tests/test-zeitstempel-knopf.js"
+          run_test "tests/test-timestamp-button.js"
           run_test "tests/test-pdf-watermarker.js"
           run_test "tools/social-cropper/social-cropper.spec.js"
           run_test "tests/test-diff-checker-xss.js"
@@ -191,13 +192,14 @@ jobs:
           run_test "tests/test-number-spinners.js"
           run_test "tests/test-unit-converter-layout.js"
           run_test "tests/test-service-worker.js"
-          run_test "tests/test-frische-durchreichen.js"
-          run_test "tests/test-zwei-worker.js"
-          run_test "tests/test-autosave-verhalten.js"
-          run_test "tests/test-update-hinweis.js"
-          run_test "tests/test-arbeit-haken.js"
+          run_test "tests/test-freshness-passthrough.js"
+          run_test "tests/test-two-workers.js"
+          run_test "tests/test-autosave-behaviour.js"
+          run_test "tests/test-update-notice.js"
+          run_test "tests/test-holds-work.js"
           run_test "tests/test-page-metadata.js"
-          run_test "tests/test-archiv-hinweis.js"
+          run_test "tests/test-archive-notice.js"
+          run_test "tests/test-sprache.js"
           run_test "tests/test-buehnenbild-zoom.js"
           run_test "tests/test-buehnenbild-drucken.js"
           run_test "tests/test-sperrmuell-karte.js"

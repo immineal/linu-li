@@ -29,11 +29,11 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 
-/* Was die Seite ausliefert und was layout.js einbindet. */
+/* What the site serves and what layout.js is pulled into. */
 function seiten() {
-    /* Jede ausgelieferte HTML-Datei, die layout.js einbindet — nicht nur
-       tools/<name>/index.html. tools/buehnenbild/handbuch.html lädt es
-       ebenfalls und lag vorher außerhalb der Prüfung. */
+    /* Every served HTML file that pulls in layout.js — not only
+       tools/<name>/index.html. tools/buehnenbild/handbuch.html loads it
+       too and used to sit outside this check. */
     const raus = [];
     const ueberspringen = new Set(['node_modules', 'tests', '.tests', '.git',
         '.github', 'thisshouldbegitignored', 'test-results', 'sperrmuell']);
@@ -48,7 +48,7 @@ function seiten() {
     return raus.filter((p) => fs.readFileSync(path.join(ROOT, p), 'utf8').includes('layout.js'));
 }
 
-/* Jedes Feld, das die Markierung trägt. */
+/* Every field that carries the marker. */
 function markierte() {
     const raus = [];
     for (const seite of seiten()) {
@@ -64,15 +64,15 @@ function markierte() {
     return raus;
 }
 
-/* Ein Namensmuster hatte hier zuerst gestanden und war beides zugleich: zu
-   lasch (`wifiSSID`, `vLast` und `vOrg` gingen glatt durch) und zu streng
-   (ein ehrliches `inputFormat` wäre durchgefallen). Es musste raten, was ein
-   Name bedeutet.
-   Die Regel darunter muss nicht raten: nur ein <select> darf gemerkt werden.
-   Eine Auswahl kann ausschließlich das enthalten, was im Quelltext als
-   Option steht — nichts Eingetipptes passt hinein, egal wie das Feld heißt.
-   Für ein Freitextfeld gilt das nie, auch wenn es als Einstellung gemeint
-   ist. Wer eine Einstellung merken will, macht eine Auswahl daraus. */
+/* A name pattern had stood here first and was both at once: too lax
+   (`wifiSSID`, `vLast` and `vOrg` walked straight through) and too strict
+   (an honest `inputFormat` would have failed). It had to guess at what a
+   name meant.
+   The rule below does not have to guess: only a <select> may be remembered.
+   A dropdown can hold nothing except the options written in the source —
+   nothing anybody types fits into it, whatever the field is called. That
+   never holds for a free-text field, even one meant as a setting. If you
+   want to remember a setting, turn it into a dropdown. */
 
 let passed = 0;
 function test(name, fn) {
@@ -128,15 +128,15 @@ test('no output is remembered', () => {
 });
 
 test('what is written down is also read back', () => {
-    /* Die erste Fassung schrieb 32 Einstellungen und las keine einzige
-       zurück: `if (saved !== null && input.value === '')` ist bei einer
-       Auswahl nie wahr. Gespeichert wurde also für nichts, und die
-       Datenschutzerklärung behauptete einen Zweck, den es nicht gab. */
+    /* The first version wrote 32 settings down and read none of them back:
+       `if (saved !== null && input.value === '')` is never true for a
+       dropdown. Storage happened for nothing, and the privacy policy
+       claimed a purpose that did not exist. */
     const layout = fs.readFileSync(path.join(ROOT, 'assets/js/layout.js'), 'utf8');
     assert.ok(!/savedValue !== null && input\.value === ''/.test(layout),
         'the restore is gated on the field being empty again — a dropdown never is, ' +
         'so nothing would ever be read back');
-    assert.ok(/wiederherstellen\(input, savedValue\)/.test(layout),
+    assert.ok(/restore\(input, savedValue\)/.test(layout),
         'nothing restores a saved setting');
 });
 
@@ -149,8 +149,8 @@ test('data-no-save is gone and stays gone', () => {
 });
 
 test('every key the site can write is in the privacy policy', () => {
-    /* Die Erklärung führt die Schlüssel einzeln auf. Ein neuer Schlüssel im
-       Code, der dort fehlt, macht sie unwahr — und niemandem fällt es auf. */
+    /* The policy lists the keys one by one. A new key in the code that is
+       missing there makes it untrue — and nobody notices. */
     const policy = fs.readFileSync(path.join(ROOT, 'privacy.html'), 'utf8');
     for (const schluessel of ['autosave_', 'll_autosave_bereinigt_v1', 'theme',
         'll_toolbox_favorites', 'linuli_currency_rates', 'sp.planner.v1']) {
@@ -160,16 +160,15 @@ test('every key the site can write is in the privacy policy', () => {
 });
 
 test('every server the site talks to is in the privacy policy', () => {
-    /* Die Erklärung sagt „Folgende Ausnahmen bestehen" und zählt sie auf.
-       Drei fehlten: der Zeit-Umrechner holt chrono-node von jsDelivr, der
-       Einheiten-Umrechner Kurse von zwei Anbietern. Eine Aufzählung, die
-       Vollständigkeit behauptet, braucht etwas, das sie einhält. */
+    /* The policy says "the following exceptions apply" and enumerates them.
+       Three were missing: the time converter pulls chrono-node from jsDelivr,
+       the unit converter rates from two providers. A list that claims to be
+       complete needs something to hold it to that. */
     const policy = fs.readFileSync(path.join(ROOT, 'privacy.html'), 'utf8');
-    /* Nur, was die Seite von sich aus anfragt. Ein <a href> ist eine Adresse,
-       die der Besucher selbst anklickt — das ist keine Übermittlung durch
-       diese Seite, und ein `placeholder="https://example.com"` erst recht
-       nicht. Gesucht wird deshalb nach den Stellen, an denen ein Browser
-       ohne Zutun lädt. */
+    /* Only what the page requests on its own. An <a href> is an address the
+       visitor clicks — that is not a transmission by this site, and a
+       `placeholder="https://example.com"` even less so. So we look for the
+       spots where a browser loads without a click. */
     const HOLT = [
         /\bfetch\(\s*['"`](https:\/\/[a-z0-9.-]+)/gi,
         /\bimport\(\s*['"`](https:\/\/[a-z0-9.-]+)/gi,
@@ -177,7 +176,7 @@ test('every server the site talks to is in the privacy policy', () => {
         /<link\b[^>]*\bhref\s*=\s*['"](https:\/\/[a-z0-9.-]+)/gi,
         /\bnew\s+(?:Worker|EventSource|WebSocket)\(\s*['"`](https:\/\/[a-z0-9.-]+)/gi,
         /\b(?:action)\s*=\s*['"](https:\/\/[a-z0-9.-]+)/gi,
-        /['"`](https:\/\/[a-z0-9.{}-]+\/[^'"`]*\{[zxy]\})/gi,   // Kartenkacheln
+        /['"`](https:\/\/[a-z0-9.{}-]+\/[^'"`]*\{[zxy]\})/gi,   // map tiles
     ];
     const fremd = new Set();
     const dateien = seiten().concat(['assets/js/layout.js', 'tools/buehnenbild/app.js']);

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bulk Image Resizer | Linus Linhof</title>
+    <title data-de="Bilder skalieren (Stapel) | Linus Linhof">Bulk Image Resizer | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -13,55 +13,55 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Bulk Image Resizer</h1>
-                <p>Resizes a batch of images to a given width or height and keeps the aspect ratio. The images are not uploaded anywhere.</p>
+                <h1 data-de="Bilder skalieren (Stapel)">Bulk Image Resizer</h1>
+                <p data-de="Skaliert mehrere Bilder auf eine Breite oder Höhe, das Seitenverhältnis bleibt. Die Bilder werden nirgends hochgeladen.">Resizes a batch of images to a given width or height and keeps the aspect ratio. The images are not uploaded anywhere.</p>
             </div>
 
             <div class="card">
                 
                 <div class="split-view">
                     <div>
-                        <label for="targetWidth">Target Width (px)</label>
-                        <input type="number" id="targetWidth" value="1200" min="1" max="10000" placeholder="Auto">
+                        <label for="targetWidth" data-de="Zielbreite (px)">Target Width (px)</label>
+                        <input type="number" id="targetWidth" value="1200" min="1" max="10000" placeholder="Auto" data-de-attr="placeholder:Auto">
                     </div>
                     <div>
-                        <label for="targetHeight">Target Height (px)</label>
-                        <input type="number" id="targetHeight" min="1" max="10000" placeholder="Auto">
+                        <label for="targetHeight" data-de="Zielhöhe (px)">Target Height (px)</label>
+                        <input type="number" id="targetHeight" min="1" max="10000" placeholder="Auto" data-de-attr="placeholder:Auto">
                     </div>
                 </div>
 
                 <div class="split-view" style="margin-top: 1rem;">
                     <div>
-                        <label for="outputFormat">Output Format</label>
+                        <label for="outputFormat" data-de="Ausgabeformat">Output Format</label>
                         <select id="outputFormat" data-save>
                             <option value="image/jpeg">JPEG</option>
-                            <option value="image/png">PNG (lossless)</option>
+                            <option value="image/png" data-de="PNG (verlustfrei)">PNG (lossless)</option>
                             <option value="image/webp">WebP</option>
                         </select>
                     </div>
                     <div style="display: flex; align-items: flex-end; padding-bottom: 0.5rem;">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                             <input type="checkbox" id="smartCrop" disabled>
-                            <span>Crop to exact size, keeping the centre</span>
+                            <span data-de="Auf exakte Größe zuschneiden, Mitte behalten">Crop to exact size, keeping the centre</span>
                         </label>
                     </div>
                 </div>
 
                 <div id="qualityWrapper" style="margin-top: 1rem;">
-                    <label for="qualityRange">JPEG/WebP Quality (<span id="qualityValue">80</span>%)</label>
+                    <label for="qualityRange"><span data-de="JPEG/WebP-Qualität">JPEG/WebP Quality</span> (<span id="qualityValue">80</span>%)</label>
                     <input type="range" id="qualityRange" min="10" max="100" value="80">
                 </div>
 
                 <div style="margin-top: 1rem; margin-bottom: 1rem;">
-                    <label for="namingPattern">File Naming Pattern</label>
+                    <label for="namingPattern" data-de="Dateinamen-Muster">File Naming Pattern</label>
                     <input type="text" id="namingPattern" value="{original}_resized.{ext}" placeholder="{original}_{width}x{height}.{ext}">
                     <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.25rem;">
-                        Variables: <code>{original}</code>, <code>{width}</code>, <code>{height}</code>, <code>{ext}</code>
+                        <span data-de="Variablen:">Variables:</span> <code>{original}</code>, <code>{width}</code>, <code>{height}</code>, <code>{ext}</code>
                     </p>
                 </div>
 
                 <div class="drop-zone" id="dropZone">
-                    <p>Drop images here</p>
+                    <p data-de="Bilder hier ablegen">Drop images here</p>
                     <p style="font-size: 0.8rem; color: var(--ink-secondary);">(JPG, PNG, WEBP)</p>
                     <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
                 </div>
@@ -73,16 +73,16 @@
                 </div>
 
                 <div class="button-group">
-                    <button class="button" id="resizeBtn" disabled>Resize Images</button>
-                    <button class="button outline" id="clearBtn">Clear All</button>
+                    <button class="button" id="resizeBtn" disabled data-de="Bilder skalieren">Resize Images</button>
+                    <button class="button outline" id="clearBtn" data-de="Alles leeren">Clear All</button>
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
-                    <h3 style="text-align: center;">Done</h3>
+                    <h3 style="text-align: center;" data-de="Fertig">Done</h3>
                     <p style="text-align: center; margin-bottom: 1rem;" id="resultStats"></p>
-                    
+
                     <div style="display: flex; justify-content: center;">
-                        <button class="button secondary" id="downloadZipBtn">Download All as ZIP</button>
+                        <button class="button secondary" id="downloadZipBtn" data-de="Alle als ZIP laden">Download All as ZIP</button>
                     </div>
                 </div>
 
@@ -90,6 +90,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>
@@ -434,12 +435,12 @@
             showToast('Download started', 'success');
         });
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => selectedFiles.length > 0 || !!zipBlob;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => selectedFiles.length > 0 || !!zipBlob;
     </script>
 </body>
 </html>

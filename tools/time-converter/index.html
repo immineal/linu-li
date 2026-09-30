@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unix Timestamp Converter | Linus Linhof</title>
+    <title data-de="Unix-Zeitstempel-Umrechner | Linus Linhof">Unix Timestamp Converter | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -47,8 +47,8 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Unix Timestamp Converter</h1>
-                <p>Shows the current Unix time, and converts between timestamps and dates in your own time zone or another one.</p>
+                <h1 data-de="Unix-Zeitstempel-Umrechner">Unix Timestamp Converter</h1>
+                <p data-de="Zeigt die aktuelle Unix-Zeit und rechnet zwischen Zeitstempeln und Daten in deiner oder einer anderen Zeitzone um.">Shows the current Unix time, and converts between timestamps and dates in your own time zone or another one.</p>
             </div>
 
             <div class="card">
@@ -58,11 +58,11 @@
                     <div class="hero-time" id="currentHumanTime">Loading...</div>
                     
                     <div class="big-display" id="currentTimestamp" style="margin-top: 0;">...</div>
-                    <label style="color: var(--ink-secondary); font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; margin-top: -10px; display: block; margin-bottom: 1.5rem;">Seconds since Epoch</label>
-                    
+                    <label style="color: var(--ink-secondary); font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; margin-top: -10px; display: block; margin-bottom: 1.5rem;" data-de="Sekunden seit Epoch">Seconds since Epoch</label>
+
                     <div class="button-group" style="justify-content: center;">
                         <button class="button sm" id="pauseBtn">Pause</button>
-                        <button class="button sm outline" id="copyCurrentBtn">Copy Timestamp</button>
+                        <button class="button sm outline" id="copyCurrentBtn" data-de="Zeitstempel kopieren">Copy Timestamp</button>
                     </div>
                 </div>
 
@@ -70,99 +70,99 @@
                      sides. Children go left, right, left, right. -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" id="converterGrid">
 
-                    <h3 style="margin-bottom: 0.75rem;">Timestamp &rarr; Date</h3>
-                    <h3 style="margin-bottom: 0.75rem;">Date &rarr; Timestamp</h3>
+                    <h3 style="margin-bottom: 0.75rem;" data-de="Zeitstempel → Datum">Timestamp &rarr; Date</h3>
+                    <h3 style="margin-bottom: 0.75rem;" data-de="Datum → Zeitstempel">Date &rarr; Timestamp</h3>
 
                     <div>
-                        <label for="tsInput">Enter Timestamp</label>
-                        <input type="number" id="tsInput" placeholder="e.g. 1678886400">
+                        <label for="tsInput" data-de="Zeitstempel eingeben">Enter Timestamp</label>
+                        <input type="number" id="tsInput" placeholder="e.g. 1678886400" data-de-attr="placeholder:z. B. 1678886400">
                     </div>
                     <div>
-                        <label for="nlInput">Natural Language Date <span style="font-size: 0.8em; color: var(--ink-secondary); font-weight: normal;">(fetches a parser from jsDelivr on first use)</span></label>
+                        <label for="nlInput"><span data-de="Datum in Umgangssprache">Natural Language Date</span> <span style="font-size: 0.8em; color: var(--ink-secondary); font-weight: normal;" data-de="(lädt beim ersten Nutzen einen Parser von jsDelivr)">(fetches a parser from jsDelivr on first use)</span></label>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="text" id="nlInput" placeholder="e.g. Next Friday at 5pm" style="margin-bottom: 0; flex: 1;">
+                            <input type="text" id="nlInput" placeholder="e.g. Next Friday at 5pm" style="margin-bottom: 0; flex: 1;" data-de-attr="placeholder:z. B. nächsten Freitag um 17 Uhr">
                             <button class="button sm outline" id="parseNlBtn" style="flex-shrink: 0; align-self: stretch;">Parse</button>
                         </div>
                         <div id="nlFeedback" style="font-size: 0.8rem; color: var(--accent); margin-top: 0.4rem; min-height: 1.1em;"></div>
                     </div>
 
                     <div>
-                        <label for="tsFormat">Input Format</label>
+                        <label for="tsFormat" data-de="Eingabeformat">Input Format</label>
                         <select id="tsFormat" data-save>
-                            <option value="auto">Auto-detect</option>
-                            <option value="s">Seconds</option>
-                            <option value="ms">Milliseconds</option>
-                            <option value="us">Microseconds</option>
-                            <option value="ns">Nanoseconds</option>
+                            <option value="auto" data-de="Automatisch erkennen">Auto-detect</option>
+                            <option value="s" data-de="Sekunden">Seconds</option>
+                            <option value="ms" data-de="Millisekunden">Milliseconds</option>
+                            <option value="us" data-de="Mikrosekunden">Microseconds</option>
+                            <option value="ns" data-de="Nanosekunden">Nanoseconds</option>
                         </select>
                         <div id="tsFormatFeedback" style="font-size: 0.8rem; color: var(--accent); margin-top: -0.75rem; margin-bottom: 1rem; min-height: 1.1em;"></div>
                     </div>
                     <div>
-                        <label for="manualTz">Select Timezone</label>
+                        <label for="manualTz" data-de="Zeitzone wählen">Select Timezone</label>
                         <select id="manualTz" data-save>
-                            <option value="local">Local Time</option>
+                            <option value="local" data-de="Ortszeit">Local Time</option>
                             <option value="utc">UTC</option>
                         </select>
                     </div>
 
                     <div>
-                        <label for="targetTz">Convert to Timezone</label>
+                        <label for="targetTz" data-de="In Zeitzone umrechnen">Convert to Timezone</label>
                         <select id="targetTz" data-save>
                         </select>
                     </div>
                     <div>
-                        <label for="dateInput">Select Date &amp; Time</label>
+                        <label for="dateInput" data-de="Datum & Uhrzeit wählen">Select Date &amp; Time</label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="datetime-local" id="dateInput" step="1" style="flex: 1; margin-bottom: 0;">
-                            <button class="button sm outline" id="setNowBtn" style="flex-shrink: 0; align-self: stretch;" title="Set to current time">Now</button>
+                            <button class="button sm outline" id="setNowBtn" style="flex-shrink: 0; align-self: stretch;" title="Set to current time" data-de="Jetzt" data-de-attr="title:Auf jetzige Zeit setzen">Now</button>
                         </div>
                     </div>
 
                     <div class="button-group" style="margin-top: 0.5rem;">
-                        <button class="button" id="convertToDateBtn">Convert</button>
-                        <button class="button outline" id="clearTsBtn">Clear</button>
+                        <button class="button" id="convertToDateBtn" data-de="Umrechnen">Convert</button>
+                        <button class="button outline" id="clearTsBtn" data-de="Leeren">Clear</button>
                     </div>
                     <div class="button-group" style="margin-top: 0.5rem;">
-                        <button class="button" id="convertToTsBtn">Get Timestamp</button>
-                        <button class="button outline" id="clearDateBtn">Clear</button>
+                        <button class="button" id="convertToTsBtn" data-de="Zeitstempel holen">Get Timestamp</button>
+                        <button class="button outline" id="clearDateBtn" data-de="Leeren">Clear</button>
                     </div>
 
                     <div class="result-box hidden" id="tsResultBox">
                         <label>GMT / UTC</label>
                         <input type="text" readonly id="resUtc" style="font-family: var(--font-mono); font-size: 0.9rem;" onclick="this.select()">
-                        
-                        <label>Your Local Time</label>
+
+                        <label data-de="Deine Ortszeit">Your Local Time</label>
                         <input type="text" readonly id="resLocal" style="font-family: var(--font-mono); font-size: 0.9rem;" onclick="this.select()">
-                        
-                        <label>Selected Timezone</label>
+
+                        <label data-de="Gewählte Zeitzone">Selected Timezone</label>
                         <input type="text" readonly id="resZone" style="font-family: var(--font-mono); font-size: 0.9rem; font-weight: bold; color: var(--accent);" onclick="this.select()">
 
-                        <label>Relative</label>
+                        <label data-de="Relativ">Relative</label>
                         <p id="resRelative" style="font-family: var(--font-mono); margin-bottom: 0; color: var(--ink-secondary);"></p>
                     </div>
                     <div class="result-box hidden" id="dateResultBox">
-                        <label>Unix Timestamp (Seconds)</label>
+                        <label data-de="Unix-Zeitstempel (Sekunden)">Unix Timestamp (Seconds)</label>
                         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 1rem;">
                             <input type="text" readonly id="resTsSeconds" style="font-family: var(--font-mono); margin-bottom: 0; flex: 1;" onclick="this.select()">
-                            <button class="button sm secondary" onclick="copyInput('resTsSeconds')">Copy</button>
+                            <button class="button sm secondary" onclick="copyInput('resTsSeconds')" data-de="Kopieren">Copy</button>
                         </div>
 
-                        <label>Timestamp (Milliseconds)</label>
+                        <label data-de="Zeitstempel (Millisekunden)">Timestamp (Milliseconds)</label>
                         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 1rem;">
                             <input type="text" readonly id="resTsMillis" style="font-family: var(--font-mono); margin-bottom: 0; flex: 1;">
-                            <button class="button sm secondary" onclick="copyInput('resTsMillis')">Copy</button>
+                            <button class="button sm secondary" onclick="copyInput('resTsMillis')" data-de="Kopieren">Copy</button>
                         </div>
 
-                        <label>Timestamp (Microseconds)</label>
+                        <label data-de="Zeitstempel (Mikrosekunden)">Timestamp (Microseconds)</label>
                         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 1rem;">
                             <input type="text" readonly id="resTsMicro" style="font-family: var(--font-mono); margin-bottom: 0; flex: 1;">
-                            <button class="button sm secondary" onclick="copyInput('resTsMicro')">Copy</button>
+                            <button class="button sm secondary" onclick="copyInput('resTsMicro')" data-de="Kopieren">Copy</button>
                         </div>
 
-                        <label>Timestamp (Nanoseconds)</label>
+                        <label data-de="Zeitstempel (Nanosekunden)">Timestamp (Nanoseconds)</label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" readonly id="resTsNano" style="font-family: var(--font-mono); margin-bottom: 0; flex: 1;">
-                            <button class="button sm secondary" onclick="copyInput('resTsNano')">Copy</button>
+                            <button class="button sm secondary" onclick="copyInput('resTsNano')" data-de="Kopieren">Copy</button>
                         </div>
                     </div>
 
@@ -177,6 +177,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>

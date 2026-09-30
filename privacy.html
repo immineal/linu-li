@@ -8,8 +8,10 @@
     <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
     <meta name="robots" content="noindex, follow">
     <style>
-        .lang-switch { float: right; font-size: 0.9rem; cursor: pointer; color: var(--accent); text-decoration: underline; }
         h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2.5rem; }
+        [data-lang-only]:not([data-lang-only=""]) { display: none; }
+        html[data-lang="de"] [data-lang-only="de"] { display: block; }
+        html[data-lang="en"] [data-lang-only="en"] { display: block; }
         h3 { margin-top: 1.5rem; font-size: 1.05rem; }
         .note-box {
             background: rgba(107, 144, 128, 0.1);
@@ -40,14 +42,14 @@
         th { opacity: 0.65; font-weight: 600; }
         code { overflow-wrap: anywhere; }
         a { overflow-wrap: break-word; }
-        /* In der Tabelle nicht: sonst schrumpfen die Spalten zu Buchstabensaeulen,
-           statt dass der Kasten seitwaerts scrollt. */
+        /* Not inside the table itself, or the columns collapse into
+           letter-thin pillars instead of the box scrolling sideways. */
         th code, td code { overflow-wrap: normal; }
 
-        /* Die Tabellen sind breiter als ein Handydisplay. Sie scrollen deshalb
-           in ihrem eigenen Kasten, damit nicht die ganze Seite zu breit wird.
-           Der Schatten am Rand zeigt, dass rechts noch etwas steht:
-           die aeusseren Verlaeufe scrollen mit, die inneren decken sie am Ende ab. */
+        /* The tables are wider than a phone screen. They scroll inside their
+           own box so the whole page does not have to. The shadow on the edge
+           says there is more to the right: the outer gradients scroll along
+           with the content and the inner ones cover them at each end. */
         .table-scroll {
             --edge: rgba(0, 0, 0, 0.25);
             --edge-fade: rgba(0, 0, 0, 0);
@@ -65,11 +67,10 @@
         }
         .table-scroll table { margin: 0; }
         @media (max-width: 700px) {
-            /* Etwas breiter als noetig: sonst quetschen sich die langen Spalten
-               in schmale Saeulen und die Zeilen werden turmhoch. */
+            /* A little wider than strictly needed: otherwise the long columns
+               squeeze into narrow pillars and the rows grow tower-tall. */
             .table-scroll table.wide { min-width: 40rem; }
-            .lang-switch { float: none; display: inline-block; margin-bottom: 1rem; }
-            /* "Datenschutzerklaerung" ist breiter als ein 320px-Display. */
+            /* "Datenschutzerklärung" is wider than a 320px display. */
             h1, h2, h3 { hyphens: auto; overflow-wrap: break-word; }
         }
     </style>
@@ -77,10 +78,8 @@
 <body>
     <main>
         <div class="container">
-            <div class="lang-switch" onclick="toggleLang()">Deutsch / English</div>
-
-            <!-- Deutsch -->
-            <div id="lang-de">
+            <!-- German -->
+            <div id="lang-de" data-lang-only="de">
                 <h1>Datenschutzerklärung</h1>
                 <p style="opacity:0.6; font-size:0.9rem;">Stand: September 2026</p>
 
@@ -216,7 +215,7 @@
             </div>
 
             <!-- English -->
-            <div id="lang-en" style="display: none;">
+            <div id="lang-en" data-lang-only="en">
                 <h1>Privacy Policy</h1>
                 <p style="opacity:0.6; font-size:0.9rem;">Last updated: September 2026</p>
 
@@ -353,28 +352,7 @@
         </div>
     </main>
 
+    <script src="./assets/js/i18n.js"></script>
     <script src="./assets/js/layout.js"></script>
-    <script>
-        function toggleLang() {
-            const de = document.getElementById('lang-de');
-            const en = document.getElementById('lang-en');
-            if (de.style.display === 'none') {
-                de.style.display = 'block'; en.style.display = 'none';
-                document.documentElement.lang = 'de';
-            } else {
-                de.style.display = 'none'; en.style.display = 'block';
-                document.documentElement.lang = 'en';
-            }
-        }
-        document.addEventListener('DOMContentLoaded', () => {
-            if ((navigator.language || '').startsWith('de')) {
-                document.documentElement.lang = 'de';
-            } else {
-                document.getElementById('lang-de').style.display = 'none';
-                document.getElementById('lang-en').style.display = 'block';
-                document.documentElement.lang = 'en';
-            }
-        });
-    </script>
 </body>
 </html>

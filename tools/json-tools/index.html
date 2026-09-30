@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSON Workbench | Linus Linhof</title>
+    <title data-de="JSON-Werkbank | Linus Linhof">JSON Workbench | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     
@@ -116,28 +116,28 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>JSON Workbench</h1>
-                <p>Check and format JSON, repair the usual mistakes, filter it with JSONPath, or browse it as a collapsible tree.</p>
+                <h1 data-de="JSON-Werkbank">JSON Workbench</h1>
+                <p data-de="JSON prüfen und formatieren, übliche Fehler reparieren, mit JSONPath filtern oder als aufklappbaren Baum durchsehen.">Check and format JSON, repair the usual mistakes, filter it with JSONPath, or browse it as a collapsible tree.</p>
             </div>
 
             <div class="card" style="margin-bottom: 1.5rem; padding: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     
                     <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                        <button class="button sm outline" id="uploadTrigger">Open file</button>
+                        <button class="button sm outline" id="uploadTrigger" data-de="Datei öffnen">Open file</button>
                         <input type="file" id="jsonFileInput" accept=".json,.txt,.csv" class="hidden">
-                        
+
                         <select id="indentSelect" data-save style="margin: 0; width: auto; padding-right: 2rem;">
-                            <option value="2">2 Spaces</option>
-                            <option value="4">4 Spaces</option>
+                            <option value="2" data-de="2 Leerzeichen">2 Spaces</option>
+                            <option value="4" data-de="4 Leerzeichen">4 Spaces</option>
                             <option value="tab">Tabs</option>
-                            <option value="min">Minify (Compact)</option>
+                            <option value="min" data-de="Minimieren (kompakt)">Minify (Compact)</option>
                         </select>
 
                         <label class="toggle-wrapper" style="margin:0;">
                             <input type="checkbox" id="unescapeToggle" class="toggle-checkbox">
                             <div class="toggle-switch" style="transform:scale(0.8);"></div>
-                            <span style="font-size:0.9rem;">Unescape Strings</span>
+                            <span style="font-size:0.9rem;" data-de="Strings entescapen">Unescape Strings</span>
                         </label>
 
                         <div style="display: flex; gap: 0.5rem; align-items: center; background: var(--card-bg); border: 1px solid var(--border); padding: 0 8px; border-radius: 4px; height: 36px;">
@@ -147,9 +147,9 @@
                     </div>
 
                     <div class="button-group" style="margin: 0;">
-                        <button class="button" id="processBtn">Format / Repair</button>
-                        <button class="button secondary" id="csvBtn">Export to CSV</button>
-                        <button class="button outline" id="clearBtn">Clear</button>
+                        <button class="button" id="processBtn" data-de="Formatieren / Reparieren">Format / Repair</button>
+                        <button class="button secondary" id="csvBtn" data-de="Als CSV exportieren">Export to CSV</button>
+                        <button class="button outline" id="clearBtn" data-de="Leeren">Clear</button>
                     </div>
                 </div>
             </div>
@@ -158,25 +158,25 @@
                 
                 <div class="card" style="display: flex; flex-direction: column; padding: 1.5rem;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <label for="jsonInput">Input</label>
+                        <label for="jsonInput" data-de="Eingabe">Input</label>
                     </div>
-                    <textarea id="jsonInput" class="code-editor" style="flex-grow: 1; min-height: 500px;" placeholder="Paste JSON or drop a file here.&#10;Unquoted keys, single quotes and trailing commas get repaired." spellcheck="false"></textarea>
+                    <textarea id="jsonInput" class="code-editor" style="flex-grow: 1; min-height: 500px;" placeholder="Paste JSON or drop a file here.&#10;Unquoted keys, single quotes and trailing commas get repaired." spellcheck="false" data-de-attr="placeholder:JSON hier einfügen oder Datei ablegen.&#10;Schlüssel ohne Anführungszeichen, einfache Anführungszeichen und Kommas am Ende werden repariert."></textarea>
                 </div>
 
                 <div class="card" style="display: flex; flex-direction: column; position: relative; padding: 1.5rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; min-height: 2rem;">
-                        <label style="margin: 0; flex-shrink: 0;">Result</label>
-                        
+                        <label style="margin: 0; flex-shrink: 0;" data-de="Ergebnis">Result</label>
+
                         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                             <div class="view-toggle-group">
                                 <button class="view-toggle-btn active" id="viewCodeBtn">Code</button>
-                                <button class="view-toggle-btn" id="viewTreeBtn">Tree</button>
+                                <button class="view-toggle-btn" id="viewTreeBtn" data-de="Baum">Tree</button>
                             </div>
 
                             <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                                 <button class="button sm outline" id="toggleWrapBtn">Unwrap</button>
-                                <button class="button sm outline" id="downloadBtn">Download</button>
-                                <button class="button sm" id="copyBtn">Copy</button>
+                                <button class="button sm outline" id="downloadBtn" data-de="Herunterladen">Download</button>
+                                <button class="button sm" id="copyBtn" data-de="Kopieren">Copy</button>
                             </div>
                         </div>
                     </div>
@@ -195,6 +195,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>
@@ -594,12 +595,12 @@
             URL.revokeObjectURL(url);
         }
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => jsonInput.value.trim() !== '';
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => jsonInput.value.trim() !== '';
     </script>
 </body>
 </html>

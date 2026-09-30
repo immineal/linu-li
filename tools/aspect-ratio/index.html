@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aspect Ratio Calculator | Linus Linhof</title>
+    <title data-de="Seitenverhältnis-Rechner | Linus Linhof">Aspect Ratio Calculator | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
     <style>
@@ -77,8 +77,8 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>Aspect Ratio Calculator</h1>
-                <p>Pick a ratio, type a width or a height, and it works out the other side.</p>
+                <h1 data-de="Seitenverhältnis-Rechner">Aspect Ratio Calculator</h1>
+                <p data-de="Verhältnis wählen, Breite oder Höhe eintragen, die andere Seite folgt.">Pick a ratio, type a width or a height, and it works out the other side.</p>
             </div>
 
             <div class="card">
@@ -93,13 +93,13 @@
 
                 <div style="margin-bottom: 2rem; text-align: center;">
                     <input type="file" id="bgUpload" accept="image/*" style="display: none;">
-                    <button class="button sm" onclick="document.getElementById('bgUpload').click()">Choose Background Image</button>
-                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;">Puts one of your pictures behind the box, to see what that ratio would keep. It stays on your device.</p>
+                    <button class="button sm" onclick="document.getElementById('bgUpload').click()" data-de="Hintergrundbild wählen">Choose Background Image</button>
+                    <p style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.5rem;" data-de="Legt ein Bild von dir hinter die Box, um zu sehen, was das Verhältnis freilässt. Bleibt auf deinem Gerät.">Puts one of your pictures behind the box, to see what that ratio would keep. It stays on your device.</p>
                 </div>
 
                 <div class="split-view">
                     <div>
-                        <label>Displays & Video</label>
+                        <label data-de="Bildschirme & Video">Displays & Video</label>
                         <div class="button-group" style="margin-bottom: 1rem; flex-wrap: wrap;">
                             <button class="button sm outline" onclick="setRatio(16,9)">16:9</button>
                             <button class="button sm outline" onclick="setRatio(16,10)">16:10</button>
@@ -107,7 +107,7 @@
                             <button class="button sm outline" onclick="setRatio(32,9)">32:9</button>
                         </div>
 
-                        <label>Photo & Social</label>
+                        <label data-de="Foto & Social Media">Photo & Social</label>
                         <div class="button-group" style="margin-bottom: 1.5rem; flex-wrap: wrap;">
                             <button class="button sm outline" onclick="setRatio(3,2)">3:2</button>
                             <button class="button sm outline" onclick="setRatio(4,3)">4:3</button>
@@ -116,7 +116,7 @@
                             <button class="button sm outline" onclick="setRatio(9,16)">9:16</button>
                         </div>
                         
-                        <label>Custom Ratio (W : H)</label>
+                        <label data-de="Eigenes Verhältnis (B : H)">Custom Ratio (W : H)</label>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <input type="number" id="ratioW" value="16" min="1">
                             <span style="font-weight: bold;">:</span>
@@ -125,20 +125,20 @@
                     </div>
 
                     <div>
-                        <label>Dimensions (px)</label>
+                        <label data-de="Maße (px)">Dimensions (px)</label>
                         <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center;">
                             <div>
-                                <label style="font-size: 0.8rem; color: var(--ink-secondary);">Width</label>
+                                <label style="font-size: 0.8rem; color: var(--ink-secondary);" data-de="Breite">Width</label>
                                 <input type="number" id="widthInput" value="1920">
                             </div>
                             <div style="padding-top: 15px;">×</div>
                             <div>
-                                <label style="font-size: 0.8rem; color: var(--ink-secondary);">Height</label>
+                                <label style="font-size: 0.8rem; color: var(--ink-secondary);" data-de="Höhe">Height</label>
                                 <input type="number" id="heightInput" value="1080">
                             </div>
                         </div>
-                        
-                        <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--ink-secondary); text-align: center;">
+
+                        <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--ink-secondary); text-align: center;" data-de="Eine Seite ändern, die andere folgt.">
                             Change either side and the other follows.
                         </div>
                     </div>
@@ -148,6 +148,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     <script>
         const ratioW = document.getElementById('ratioW');
@@ -292,12 +293,12 @@
 
         setRatio(16, 9);
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => bgUpload.files.length > 0;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => bgUpload.files.length > 0;
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EXIF Data Remover | Linus Linhof</title>
+    <title data-de="EXIF-Daten entfernen | Linus Linhof">EXIF Data Remover | Linus Linhof</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
 
@@ -99,15 +99,15 @@
     <main>
         <div class="container">
             <div class="tool-header">
-                <h1>EXIF Data Remover</h1>
-                <p>Shows the location, camera and dates stored in a JPEG. The copy it saves has none of that, and no IPTC, XMP or Content Credentials either.<br>The picture itself is not re-compressed, so it loses no quality.</p>
+                <h1 data-de="EXIF-Daten entfernen">EXIF Data Remover</h1>
+                <p><span data-de="Zeigt Ort, Kamera und Datumsangaben, die in einer JPEG stecken. Die gespeicherte Kopie enthält davon nichts, auch kein IPTC, XMP oder Content Credentials.">Shows the location, camera and dates stored in a JPEG. The copy it saves has none of that, and no IPTC, XMP or Content Credentials either.</span><br><span data-de="Das Bild selbst wird nicht neu komprimiert und verliert keine Qualität.">The picture itself is not re-compressed, so it loses no quality.</span></p>
             </div>
 
             <div class="card">
                 
                 <div class="drop-zone massive-drop-zone" id="dropZone">
-                    <p>Drop images here (JPG only)</p>
-                    <p style="font-size: 0.9rem; color: var(--ink-secondary); margin-top: 0.5rem;">Large files are fine. Nothing is uploaded.</p>
+                    <p data-de="Bilder hier ablegen (nur JPG)">Drop images here (JPG only)</p>
+                    <p style="font-size: 0.9rem; color: var(--ink-secondary); margin-top: 0.5rem;" data-de="Große Dateien sind kein Problem. Nichts wird hochgeladen.">Large files are fine. Nothing is uploaded.</p>
                     <input type="file" id="fileInput" class="hidden" multiple accept="image/jpeg, image/jpg">
                 </div>
 
@@ -115,16 +115,16 @@
 
                 <div id="metadataPreview" class="preview-section hidden">
                     <div class="preview-header">
-                        Privacy Report <span style="font-weight: normal; color: var(--ink); font-size: 0.9rem;">(Previewing: <span id="previewFileName">filename.jpg</span>)</span>
+                        <span data-de="Datenschutz-Bericht">Privacy Report</span> <span style="font-weight: normal; color: var(--ink); font-size: 0.9rem;">(<span data-de="Vorschau">Previewing</span>: <span id="previewFileName">filename.jpg</span>)</span>
                     </div>
                     <div class="meta-grid">
                         <div class="meta-table" id="metaTable"></div>
                         <div style="position: relative;">
                             <div id="mapContainer"></div>
-                            <div id="noGpsMsg" class="no-gps-overlay hidden">No location in this photo</div>
+                            <div id="noGpsMsg" class="no-gps-overlay hidden" data-de="Kein Ort in diesem Foto">No location in this photo</div>
                             <div id="mapOptInOverlay" class="no-gps-overlay hidden" style="flex-direction: column; background: rgba(0,0,0,0.05); z-index: 1005;">
-                                <p style="margin-bottom: 10px; color: var(--ink); font-weight: 500;">This photo carries a location</p>
-                                <button class="button sm outline" id="loadMapBtn">Show on Map (loads tiles from OpenStreetMap)</button>
+                                <p style="margin-bottom: 10px; color: var(--ink); font-weight: 500;" data-de="Dieses Foto enthält einen Ort">This photo carries a location</p>
+                                <button class="button sm outline" id="loadMapBtn" data-de="Auf Karte zeigen (lädt Kacheln von OpenStreetMap)">Show on Map (loads tiles from OpenStreetMap)</button>
                             </div>
                         </div>
                     </div>
@@ -132,21 +132,21 @@
 
                 <div id="controlPanel" class="hidden">
                     <div class="copyright-panel">
-                        <label for="copyrightInput" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Copyright Notice (optional)</label>
-                        <p style="font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 1rem;">Written into the cleaned copy as its only EXIF tag.</p>
-                        <input type="text" id="copyrightInput" class="input" placeholder="e.g. © 2024 Jane Doe">
+                        <label for="copyrightInput" style="display: block; font-weight: 500; margin-bottom: 0.5rem;" data-de="Urheberrechtsvermerk (optional)">Copyright Notice (optional)</label>
+                        <p style="font-size: 0.85rem; color: var(--ink-secondary); margin-bottom: 1rem;" data-de="Wird als einziger EXIF-Eintrag in die bereinigte Kopie geschrieben.">Written into the cleaned copy as its only EXIF tag.</p>
+                        <input type="text" id="copyrightInput" class="input" placeholder="e.g. © 2024 Jane Doe" data-de-attr="placeholder:z. B. © 2024 Jane Doe">
                     </div>
 
                     <div class="copyright-panel" style="margin-top: 1rem;">
                         <label style="display: flex; align-items: center; cursor: pointer; font-weight: 500;">
                             <input type="checkbox" id="removeIccCheckbox" checked style="margin-right: 0.5rem; width: auto;">
-                            Remove colour profile (ICC)
+                            <span data-de="Farbprofil entfernen (ICC)">Remove colour profile (ICC)</span>
                         </label>
                     </div>
 
                     <div class="button-group" style="margin-top: 2rem;">
-                        <button class="button" id="processBtn">Remove Metadata</button>
-                        <button class="button outline" id="clearBtn">Clear</button>
+                        <button class="button" id="processBtn" data-de="Metadaten entfernen">Remove Metadata</button>
+                        <button class="button outline" id="clearBtn" data-de="Entfernen">Clear</button>
                     </div>
                 </div>
 
@@ -155,11 +155,11 @@
                 </div>
 
                 <div class="result-box hidden" id="resultBox">
-                    <h3>Done</h3>
+                    <h3 data-de="Fertig">Done</h3>
                     <p id="resultMessage">The cleaned copies are ready.</p>
-                    
+
                     <div class="button-group">
-                        <button class="button secondary" id="downloadBtn">Download Cleaned Files</button>
+                        <button class="button secondary" id="downloadBtn" data-de="Bereinigte Dateien herunterladen">Download Cleaned Files</button>
                     </div>
                 </div>
 
@@ -167,6 +167,7 @@
         </div>
     </main>
     
+    <script src="../../assets/js/i18n.js"></script>
     <script src="../../assets/js/layout.js"></script>
     
     <script>
@@ -620,12 +621,12 @@
             });
         }
     
-    /* Hält dieses Werkzeug gerade etwas, das ein Neuladen vernichtet?
-       Gefragt wird beim Druck auf "Neu laden" im Update-Hinweis
-       (assets/js/layout.js). Wer sich nicht meldet, gilt als leer —
-       tests/test-arbeit-haken.js besteht darauf, dass jedes Werkzeug mit
-       Datei-Eingabe sich meldet. */
-    window.llHaeltArbeit = () => queue.length > 0 || processedBlobs.length > 0;
+    /* Is this tool holding something right now that a reload would throw
+       away? The question is asked when someone clicks "Reload" in the
+       update notice (assets/js/layout.js). A tool that stays quiet counts
+       as empty. tests/test-holds-work.js insists that every tool with a
+       file input speaks up. */
+    window.llHoldsWork = () => queue.length > 0 || processedBlobs.length > 0;
     </script>
 </body>
 </html>
