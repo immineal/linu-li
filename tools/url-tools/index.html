@@ -97,12 +97,25 @@
 
             // Used on every link that is not rebuilt from an Amazon, eBay,
             // YouTube or X item ID further down.
+            /* Only params that are unambiguously tracking IDs on any site.
+               A short name like `p`, `s`, `z`, `m` is almost always a real
+               query param on someone's site (WordPress post ID, search
+               term, map zoom, mobile mode) so those must not go on this
+               list. Amazon-specific tracking is stripped by the Amazon
+               path above, which replaces the URL with just /dp/ASIN — the
+               `pd_rd_*`/`pf_rd_*`/`ref` family below is here as a fallback
+               for Amazon sub-links that skip the /dp/ path.
+
+               The list is one long array so tools/url-tools/test.js can
+               keep extracting it with its simple regex-and-split parser.
+               Grouped roughly: utm_* first, then ad-network click IDs,
+               then email/marketing analytics, then Amazon fallback. */
             const paramsToRemove = new Set([
                 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_cid', 'utm_reader', 'utm_referrer', 'utm_name', 'utm_social', 'utm_social-type', 'utm_id',
-                'fbclid', 'gclid', 'igshid', '_hsenc', '_hsmi', 'mc_cid', 'mc_eid', 'mkt_tok', 'yclid', '_openstat', 'wt_mc', 'twclid', 'msclkid', 'dclid', 'wbraid', 'gbraid',
+                'fbclid', 'gclid', 'igshid', 'yclid', 'twclid', 'msclkid', 'dclid', 'wbraid', 'gbraid',
+                '_hsenc', '_hsmi', 'mc_cid', 'mc_eid', 'mkt_tok', '_openstat', 'wt_mc',
                 'oly_anon_id', 'oly_enc_id', '__s', '_bta_tid', '_bta_c', 'trk_contact', 'trk_msg', 'trk_module', 'trk_sid',
-                'pd_rd_r', 'pd_rd_w', 'pd_rd_wg', 'pf_rd_p', 'pf_rd_r', 'pf_rd_s', 'pf_rd_t', 'pf_rd_i', 'pf_rd_m', 'ref', 'ref_', 'sr_share', 'si', 's', '_t', '_r', 'share_id', 'feature', 'context', 'smid', 'cmpid',
-                'cj1', 'rv1', 'nb', 'p', 'b', 'z', 'm', 'n', 'k', 'c', 'clid', 'qid', 'sr', 'dchild', 'keywords'
+                'pd_rd_r', 'pd_rd_w', 'pd_rd_wg', 'pf_rd_p', 'pf_rd_r', 'pf_rd_s', 'pf_rd_t', 'pf_rd_i', 'pf_rd_m', 'ref', 'ref_'
             ]);
 
             function renderParamsEditor(urlStr) {

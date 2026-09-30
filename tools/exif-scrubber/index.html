@@ -56,18 +56,29 @@
         #mapContainer {
             height: 300px;
             width: 100%;
-            background: #eee;
+            background: var(--card-bg);
             position: relative;
         }
         .no-gps-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.05);
-            color: var(--ink-secondary);
+            background: var(--card-bg);
+            color: var(--ink);
             font-style: italic;
             z-index: 1000;
         }
+        /* The opt-in stack over the map: proper card fill, ink text, plain
+           button. The old rgba tint over a light-grey background rendered as
+           near-white text and was unreadable in both themes. */
+        #mapOptInOverlay {
+            background: var(--card-bg);
+            color: var(--ink);
+            font-style: normal;
+            padding: 1rem;
+            text-align: center;
+        }
+        #mapOptInOverlay p { color: var(--ink); }
         
         .risk-badge {
             background: rgba(196, 77, 60, 0.1);
@@ -122,8 +133,8 @@
                         <div style="position: relative;">
                             <div id="mapContainer"></div>
                             <div id="noGpsMsg" class="no-gps-overlay hidden" data-de="Kein Ort in diesem Foto">No location in this photo</div>
-                            <div id="mapOptInOverlay" class="no-gps-overlay hidden" style="flex-direction: column; background: rgba(0,0,0,0.05); z-index: 1005;">
-                                <p style="margin-bottom: 10px; color: var(--ink); font-weight: 500;" data-de="Dieses Foto enthält einen Ort">This photo carries a location</p>
+                            <div id="mapOptInOverlay" class="no-gps-overlay hidden" style="flex-direction: column; z-index: 1005;">
+                                <p style="margin-bottom: 10px; font-weight: 500;" data-de="Dieses Foto enthält einen Ort">This photo carries a location</p>
                                 <button class="button sm outline" id="loadMapBtn" data-de="Auf Karte zeigen (lädt Kacheln von OpenStreetMap)">Show on Map (loads tiles from OpenStreetMap)</button>
                             </div>
                         </div>
@@ -181,7 +192,9 @@
         const progressBar = document.getElementById('progressBar');
         const resultBox = document.getElementById('resultBox');
         const resultMessage = document.getElementById('resultMessage');
-        const downloadBtn = document.getElementById('downloadBtn');
+        // let, not const — the button is re-cloned to drop old click listeners,
+        // and this reference has to move with it.
+        let downloadBtn = document.getElementById('downloadBtn');
 
         const metadataPreview = document.getElementById('metadataPreview');
         const metaTable = document.getElementById('metaTable');
@@ -191,10 +204,13 @@
         const mapOptInOverlay = document.getElementById('mapOptInOverlay');
         const loadMapBtn = document.getElementById('loadMapBtn');
 
-        let queue = []; 
-        let processedBlobs = []; 
+        let queue = [];
+        let processedBlobs = [];
         let mapInstance = null;
         let mapMarker = null;
+        // Bumped on every reset. A cleaning loop that started under an older
+        // id stops touching the UI as soon as it notices.
+        let runId = 0;
 
         setupDropZone(dropZone, fileInput, handleFiles);
 
@@ -214,8 +230,12 @@
         }
 
         function handleFiles(files) {
+            const t = (window.LL_I18N && window.LL_I18N.t)
+                ? window.LL_I18N.t
+                : ((en) => en);
             const validTypes = ['image/jpeg', 'image/jpg'];
             let addedCount = 0;
+            let duplicateCount = 0;
             let firstValidFile = null;
 
             Array.from(files).forEach(file => {
@@ -225,11 +245,19 @@
                         queue.push(file);
                         addedCount++;
                         if (!firstValidFile) firstValidFile = file;
+                    } else {
+                        duplicateCount++;
                     }
                 } else {
-                    showToast(`Skipped ${file.name}: only JPG is supported`, 'error');
+                    showToast(t(`Skipped ${file.name}: only JPG is supported`,
+                                `${file.name} übersprungen: nur JPG wird unterstützt`), 'error');
                 }
             });
+
+            if (duplicateCount > 0 && addedCount === 0) {
+                showToast(t('That file is already on the list.',
+                            'Diese Datei liegt schon auf der Liste.'), 'info');
+            }
 
             if (addedCount > 0) {
                 renderFileList();
@@ -281,10 +309,11 @@
         };
 
         function resetTool() {
+            runId++;
             queue = [];
             processedBlobs = [];
             fileList.innerHTML = '';
-            fileInput.value = ''; 
+            fileInput.value = '';
             controlPanel.classList.add('hidden');
             metadataPreview.classList.add('hidden');
             resultBox.classList.add('hidden');
@@ -429,6 +458,28 @@
             }
         }
 
+        // A copyright notice piexif can write into the 0th Copyright tag. The
+        // library encodes ASCII strings; anything above 0x7E gets truncated to
+        // a byte and reads as mojibake in a viewer, so we route non-ASCII
+        // through UserComment (Exif tag, spec allows UTF-8 with a BOM).
+        function isAscii(str) {
+            for (let i = 0; i < str.length; i++) {
+                if (str.charCodeAt(i) > 0x7E) return false;
+            }
+            return true;
+        }
+
+        // A JPEG that never got fully written out won't parse cleanly, and
+        // handing back a truncated copy as if it were fine is worse than
+        // saying "no". End-of-image is FFD9; scan the last few bytes to allow
+        // for trailing padding some cameras add.
+        function looksTruncated(bytes) {
+            for (let k = bytes.length - 1; k >= Math.max(0, bytes.length - 32); k--) {
+                if (bytes[k] === 0xD9 && k > 0 && bytes[k - 1] === 0xFF) return false;
+            }
+            return true;
+        }
+
         window.stripAllMetadataAndInject = function(file, copyrightText, removeICC = true) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -443,6 +494,24 @@
                             reject(new Error("Not a valid JPEG"));
                             return;
                         }
+                        if (looksTruncated(bytes)) {
+                            reject(new Error("Truncated JPEG — no end-of-image marker"));
+                            return;
+                        }
+
+                        // Read the Orientation before we strip the EXIF block.
+                        // Phones write portrait shots as landscape pixels plus
+                        // an Orientation tag that says "turn me a quarter":
+                        // stripping the tag leaves the picture on its side.
+                        let orientation = null;
+                        try {
+                            const b64 = 'data:image/jpeg;base64,' +
+                                btoa(String.fromCharCode.apply(null, bytes));
+                            const originalExif = piexif.load(b64);
+                            const raw = originalExif && originalExif['0th'] &&
+                                originalExif['0th'][piexif.ImageIFD.Orientation];
+                            if (raw && raw >= 2 && raw <= 8) orientation = raw;
+                        } catch (err) { /* no EXIF or bad EXIF; leave it null */ }
 
                         segments.push(bytes.slice(0, 2));
                         i = 2;
@@ -506,13 +575,41 @@
 
                         let finalBlob = new Blob([cleanBytes], { type: 'image/jpeg' });
 
-                        if (copyrightText && copyrightText.trim() !== '') {
+                        const hasCopyright = copyrightText && copyrightText.trim() !== '';
+                        const needsExif = hasCopyright || orientation !== null;
+
+                        if (needsExif) {
                             const reader2 = new FileReader();
                             reader2.onload = function(e2) {
                                 try {
                                     const zeroth = {};
-                                    zeroth[piexif.ImageIFD.Copyright] = copyrightText.trim();
-                                    const exifObj = {"0th": zeroth, "Exif": {}, "GPS": {}};
+                                    const exifIfd = {};
+
+                                    if (orientation !== null) {
+                                        zeroth[piexif.ImageIFD.Orientation] = orientation;
+                                    }
+
+                                    if (hasCopyright) {
+                                        const notice = copyrightText.trim();
+                                        if (isAscii(notice)) {
+                                            zeroth[piexif.ImageIFD.Copyright] = notice;
+                                        } else {
+                                            // Copyright is ASCII-only in the spec. Keep an ASCII
+                                            // placeholder on that tag and put the real string,
+                                            // UTF-8, into UserComment (spec supports Unicode via
+                                            // a leading 8-byte code prefix).
+                                            zeroth[piexif.ImageIFD.Copyright] = 'See UserComment';
+                                            const utf8 = new TextEncoder().encode(notice);
+                                            const prefix = [0x55,0x4E,0x49,0x43,0x4F,0x44,0x45,0x00]; // "UNICODE\0"
+                                            const buf = new Uint8Array(prefix.length + utf8.length);
+                                            buf.set(prefix, 0);
+                                            buf.set(utf8, prefix.length);
+                                            exifIfd[piexif.ExifIFD.UserComment] =
+                                                String.fromCharCode.apply(null, buf);
+                                        }
+                                    }
+
+                                    const exifObj = {"0th": zeroth, "Exif": exifIfd, "GPS": {}};
                                     const exifbytes = piexif.dump(exifObj);
 
                                     const newBase64 = piexif.insert(exifbytes, e2.target.result);
@@ -552,49 +649,73 @@
             resultBox.classList.add('hidden');
             processedBlobs = [];
 
-            const total = queue.length;
+            const t = (window.LL_I18N && window.LL_I18N.t)
+                ? window.LL_I18N.t
+                : ((en) => en);
+
+            // Snapshot the run so a Clear during the loop can stop it.
+            const thisRun = ++runId;
             let errorCount = 0;
+            let unsupportedCopyright = 0;
             const copyrightInput = document.getElementById('copyrightInput');
             const copyrightText = copyrightInput ? copyrightInput.value : '';
             const removeIccCheckbox = document.getElementById('removeIccCheckbox');
             const removeICC = removeIccCheckbox ? removeIccCheckbox.checked : true;
-            
+
             try {
-                for (let i = 0; i < total; i++) {
+                // The queue can shrink under us; test length each iteration and
+                // stop as soon as a Clear (or a new run) has bumped runId.
+                let i = 0;
+                while (thisRun === runId && i < queue.length) {
                     const file = queue[i];
                     try {
                         const blob = await window.stripAllMetadataAndInject(file, copyrightText, removeICC);
+                        if (thisRun !== runId) return; // cleared while awaiting
                         processedBlobs.push({ name: `clean_${file.name}`, blob: blob });
                     } catch (err) {
+                        if (thisRun !== runId) return;
                         console.error(`Failed to scrub ${file.name}:`, err);
-                        // Left out rather than handed back with its metadata still in it.
                         errorCount++;
                     }
 
+                    const total = queue.length || 1;
                     const percent = Math.round(((i + 1) / total) * 100);
                     progressBar.style.width = `${percent}%`;
 
-                    // Let the progress bar paint during long batches.
                     if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+                    i++;
                 }
 
+                if (thisRun !== runId) return;
+
                 setTimeout(() => {
+                    if (thisRun !== runId) return;
                     if (errorCount > 0) {
-                        showToast(`${errorCount} file(s) could not be read and were left out of the download.`, 'error');
+                        showToast(t(
+                            `${errorCount} file(s) could not be read and were left out of the download.`,
+                            `${errorCount} Datei(en) konnten nicht gelesen werden und fehlen im Download.`
+                        ), 'error');
                     }
                     if (processedBlobs.length > 0) {
                         showResult();
                     } else {
                         resultBox.classList.remove('hidden');
-                        resultMessage.textContent = 'None of the files could be cleaned.';
+                        resultMessage.textContent = t(
+                            'None of the files could be cleaned.',
+                            'Keine der Dateien konnte bereinigt werden.'
+                        );
                         downloadBtn.style.display = 'none';
                     }
                     processBtn.disabled = false;
                 }, 500);
 
             } catch (error) {
+                if (thisRun !== runId) return;
                 console.error(error);
-                showToast('Cleaning stopped with an error. The browser console has details.', 'error');
+                showToast(t(
+                    'Cleaning stopped with an error. The browser console has details.',
+                    'Bereinigung wurde mit einem Fehler abgebrochen. Details in der Konsole.'
+                ), 'error');
                 processBtn.disabled = false;
             }
         }
@@ -602,14 +723,27 @@
         function showResult() {
             resultBox.classList.remove('hidden');
             metadataPreview.classList.add('hidden');
-            
+
+            const t = (window.LL_I18N && window.LL_I18N.t)
+                ? window.LL_I18N.t
+                : ((en) => en);
             const count = processedBlobs.length;
-            resultMessage.textContent = `Removed the metadata from ${count} image${count !== 1 ? 's' : ''}.`;
-            
-            // Cloning drops the listener left from the previous run.
-            const newBtn = downloadBtn.cloneNode(true);
-            downloadBtn.parentNode.replaceChild(newBtn, downloadBtn);
-            
+            resultMessage.textContent = t(
+                `Removed the metadata from ${count} image${count !== 1 ? 's' : ''}.`,
+                `Metadaten aus ${count} Bild${count !== 1 ? 'ern' : ''} entfernt.`
+            );
+
+            // Re-query in case a previous run left downloadBtn pointing at a
+            // detached node — replaceChild on that would throw and the button
+            // would stay disabled forever.
+            let current = document.getElementById('downloadBtn') || downloadBtn;
+            if (!current.parentNode) current = document.querySelector('#resultBox .button-group .button.secondary') || current;
+            const newBtn = current.cloneNode(true);
+            newBtn.id = 'downloadBtn';
+            newBtn.style.display = '';
+            current.parentNode.replaceChild(newBtn, current);
+            downloadBtn = newBtn;
+
             newBtn.addEventListener('click', () => {
                 if (processedBlobs.length === 1) {
                     saveAs(processedBlobs[0].blob, processedBlobs[0].name);

@@ -235,32 +235,45 @@
         }
 
         encodeBtn.addEventListener('click', () => {
+            const t = (window.LL_I18N && window.LL_I18N.t)
+                ? window.LL_I18N.t : ((en) => en);
             const input = textInput.value.trim();
             if (!input) {
-                showToast('Nothing to encode', 'error');
+                showToast(t('Nothing to encode', 'Nichts zu kodieren'), 'error');
                 return;
             }
             try {
                 const result = utf8_to_b64(input);
                 showResult(result);
-                showToast('Encoded', 'success');
+                showToast(t('Encoded', 'Kodiert'), 'success');
             } catch (err) {
-                showToast('Could not encode this text', 'error');
+                /* Clear any stale result so a user does not read the old
+                   output as if it were the new one. */
+                resultBox.classList.add('hidden');
+                showToast(t('Could not encode this text',
+                            'Konnte diesen Text nicht kodieren'), 'error');
             }
         });
 
         decodeBtn.addEventListener('click', () => {
+            const t = (window.LL_I18N && window.LL_I18N.t)
+                ? window.LL_I18N.t : ((en) => en);
             const input = textInput.value.trim();
             if (!input) {
-                showToast('Nothing to decode', 'error');
+                showToast(t('Nothing to decode', 'Nichts zu dekodieren'), 'error');
                 return;
             }
             try {
                 const result = b64_to_utf8(input);
                 showResult(result);
-                showToast('Decoded', 'success');
+                showToast(t('Decoded', 'Dekodiert'), 'success');
             } catch (err) {
-                showToast('Not valid Base64, or not text once decoded', 'error');
+                /* Clear the stale result on failure — otherwise the old
+                   decoded text sits under the error toast and reads like
+                   the answer to the new input. */
+                resultBox.classList.add('hidden');
+                showToast(t('Not valid Base64, or not text once decoded',
+                            'Kein gültiges Base64, oder nach dem Dekodieren kein Text'), 'error');
             }
         });
 

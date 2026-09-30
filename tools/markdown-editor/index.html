@@ -112,6 +112,17 @@ graph TD;
                     const cleanHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['target'] }) : "The preview is off because DOMPurify did not load.";
                     preview.innerHTML = cleanHtml;
 
+                    /* Open preview links in a new tab. Otherwise a click
+                       navigates the editor page away and the unsaved text is
+                       gone (nothing persists here on purpose). */
+                    preview.querySelectorAll('a[href]').forEach((a) => {
+                        const href = a.getAttribute('href');
+                        if (href && !href.startsWith('#')) {
+                            a.setAttribute('target', '_blank');
+                            a.setAttribute('rel', 'noopener noreferrer');
+                        }
+                    });
+
                     // marked turns ```mermaid into an ordinary code block;
                     // Mermaid wants the source in a div.mermaid instead.
                     if (typeof mermaid !== 'undefined') {
@@ -178,7 +189,18 @@ graph TD;
         render(true);
 
         clearBtn.addEventListener('click', () => {
-            mdInput.value = '';
+            /* execCommand keeps the browser's undo history alive, so Ctrl+Z
+               brings the text back after a misclick. Direct .value = '' wipes
+               the history and one accidental Clear loses a long document
+               for good. execCommand is deprecated but still the only way
+               to write to a textarea without breaking undo. */
+            if (!mdInput.value) return;
+            mdInput.focus();
+            mdInput.select();
+            let cleared = false;
+            try { cleared = document.execCommand('insertText', false, ''); }
+            catch (err) { cleared = false; }
+            if (!cleared) mdInput.value = '';
             render(true);
             mdInput.focus();
         });

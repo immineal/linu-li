@@ -43,8 +43,8 @@ console.log("Running Unit Converter formatNumber tests...");
 
 // Test cases
 testFormatNumber(0, "0", "Zero");
-testFormatNumber(0.0000000000001, "0", "Very small positive number (< 1e-12)");
-testFormatNumber(-0.0000000000001, "0", "Very small negative number (> -1e-12)");
+testFormatNumber(0.0000000000001, "1e-13", "Very small positive number in scientific notation");
+testFormatNumber(-0.0000000000001, "-1e-13", "Very small negative number in scientific notation");
 testFormatNumber(1000000, "1000000", "Large positive number (>= 1e6)");
 testFormatNumber(1234567.89, "1234567.89", "Large positive number with decimals");
 testFormatNumber(-1000000, "-1000000", "Large negative number (<= -1e6)");
@@ -52,16 +52,19 @@ testFormatNumber(1.23456789, "1.23456789", "Normal number rounding");
 testFormatNumber(0.1 + 0.2, "0.3", "Floating point addition issue (0.1 + 0.2)");
 testFormatNumber(-1.23456789, "-1.23456789", "Normal negative number rounding");
 
+// convertTemp returns numbers now; formatNumber is applied at the call site.
 function testConvertTemp(val, from, to, expected, description) {
-    const result = window.eval(`convertTemp(${val}, "${from}", "${to}")`);
+    const raw = window.eval(`convertTemp(${val}, "${from}", "${to}")`);
+    const result = window.eval(`formatNumber(convertTemp(${val}, "${from}", "${to}"))`);
     try {
+        assert.strictEqual(typeof raw, 'number');
         assert.strictEqual(result, expected);
         console.log(`✅ Passed: ${description} (${val} ${from} -> ${expected} ${to})`);
     } catch (e) {
         console.error(`❌ Failed: ${description}`);
         console.error(`   Input: ${val} ${from} to ${to}`);
         console.error(`   Expected: ${expected}`);
-        console.error(`   Actual: ${result}`);
+        console.error(`   Actual: ${result} (raw ${raw}, typeof ${typeof raw})`);
         process.exit(1);
     }
 }

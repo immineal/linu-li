@@ -28,20 +28,6 @@ self.onmessage = async (e) => {
                 });
                 break;
             }
-            case 'image/avif': {
-                const { encode } = await loadModule('avif');
-
-                // For AVIF the page's slider sets encoder speed (0-10), not
-                // quality, so options.quality arrives here as a speed.
-                // Quality stays fixed at cqLevel 33.
-                resultBuffer = await encode(imageData, {
-                    cqLevel: 33,
-                    speed: options.quality,
-                    // 4:2:0. Without it some images came out black and white.
-                    subsample: 1,
-                });
-                break;
-            }
             case 'image/jpeg': {
                 const { encode } = await loadModule('jpeg');
                 resultBuffer = await encode(imageData, {

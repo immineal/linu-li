@@ -447,17 +447,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* Restore a stored value even when the dropdown gets its options later.
        Ten seconds is the cutoff. After that the option is not coming, and
-       the stored value would be wrong anyway. */
+       the stored value would be wrong anyway.
+
+       Fire 'change' in both paths, immediate and observed. Without it the
+       tool never reruns its handler on load, and a remembered non-default
+       choice arrives silently: qr-creator remembered "WiFi" but kept the
+       URL form on screen, unit-converter came back with "km, mi" in the
+       dropdowns but still showed the m/ft numbers, and every dropdown-driven
+       tool had a subtler version of the same. */
     function restore(field, value) {
         const fits = () => field.tagName !== 'SELECT' ||
             [...field.options].some((o) => o.value === value);
 
-        if (fits()) { field.value = value; return; }
+        const apply = () => {
+            field.value = value;
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        if (fits()) { apply(); return; }
 
         const observer = new MutationObserver(() => {
             if (!fits()) return;
-            field.value = value;
-            field.dispatchEvent(new Event('change', { bubbles: true }));
+            apply();
             observer.disconnect();
         });
         observer.observe(field, { childList: true, subtree: true });
@@ -479,6 +490,15 @@ document.addEventListener('DOMContentLoaded', () => {
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
+    // Drop any live toast that says exactly the same thing. Clicking Format
+    // five times used to stack five identical "Formatted" toasts; every
+    // JSONPath keystroke pause added another.
+    Array.from(container.querySelectorAll('.toast')).forEach((old) => {
+        if (old.textContent === message && !old.dataset.retiring) {
+            old.dataset.retiring = '1';
+            old.remove();
+        }
+    });
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
@@ -512,7 +532,18 @@ function formatFileSize(bytes) {
 function setupDropZone(dropZone, fileInput, onFilesSelected) {
     if (!dropZone || !fileInput) return;
 
-    dropZone.addEventListener('click', () => fileInput.click());
+    /* Clear the input value before every open dialog. Without this a user who
+       resets a tool and then picks the *same* file again gets nothing: the
+       browser only fires 'change' when files differ from what was there
+       before, and after a reset the input still remembers the last pick.
+       Setting value = '' costs nothing when the input is already empty and
+       fixes re-uploads across every file-input tool on the site
+       (image-compressor, image-resizer, favicon-maker, pdf-merger, and a
+       handful of others). */
+    dropZone.addEventListener('click', () => {
+        fileInput.value = '';
+        fileInput.click();
+    });
 
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();

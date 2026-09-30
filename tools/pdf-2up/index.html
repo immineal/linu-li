@@ -199,22 +199,32 @@
 
         function updateUI() {
             fileList.innerHTML = '';
-            
+
             if (currentFile) {
+                /* Filenames are user input. Building the row with innerHTML
+                   made a file called `x <img src=x onerror=window.PWNED=1>.pdf`
+                   run its onerror on every render. Use textContent for the
+                   name and size and only innerHTML the fixed structure. */
                 const li = document.createElement('li');
                 li.className = 'file-item';
-                li.innerHTML = `
-                    <div class="file-info">
-                        <div>
-                            <div class="file-name">${currentFile.name}</div>
-                            <div class="file-size">${formatFileSize(currentFile.size)}</div>
-                        </div>
-                    </div>
-                    <button class="remove-file" aria-label="Remove file" onclick="removeFile()">×</button>
-                `;
-                const fragment = document.createDocumentFragment();
-                fragment.appendChild(li);
-                fileList.appendChild(fragment);
+                const info = document.createElement('div');
+                info.className = 'file-info';
+                const inner = document.createElement('div');
+                const name = document.createElement('div');
+                name.className = 'file-name';
+                name.textContent = currentFile.name;
+                const size = document.createElement('div');
+                size.className = 'file-size';
+                size.textContent = formatFileSize(currentFile.size);
+                inner.append(name, size);
+                info.appendChild(inner);
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-file';
+                removeBtn.setAttribute('aria-label', 'Remove file');
+                removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => removeFile());
+                li.append(info, removeBtn);
+                fileList.appendChild(li);
                 
                 dropZone.classList.add('hidden');
                 optionsPanel.classList.remove('hidden');

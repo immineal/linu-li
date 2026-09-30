@@ -188,8 +188,18 @@
                 input.value = currentColor.length === 7 ? currentColor : '#000000';
                 input.className = 'color-picker-input';
 
+                /* Debounce the re-render. The color picker fires 'input' on
+                   every pixel of drag, and on a big SVG each re-render was
+                   scaling down and firing a "Too large, so scaled down"
+                   toast. Twelve toasts stacked up for one slow drag. */
+                let colorDebounce;
                 input.addEventListener('input', (e) => {
                     currentColorsMap.set(normalizedOriginal, e.target.value);
+                    clearTimeout(colorDebounce);
+                    colorDebounce = setTimeout(updateSVGElements, 120);
+                });
+                input.addEventListener('change', () => {
+                    clearTimeout(colorDebounce);
                     updateSVGElements();
                 });
 

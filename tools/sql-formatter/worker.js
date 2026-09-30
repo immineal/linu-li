@@ -4,11 +4,17 @@ importScripts('schema_converter.js');
 self.onmessage = function(e) {
     const { id, raw, action, lang, uppercase } = e.data;
 
+    /* The vendored sql-formatter takes `keywordCase`, not `uppercase`.
+       The old option name was a silent no-op, so lowercase input came back
+       untouched even though the tool's description promised uppercase
+       keywords. */
+    const keywordCase = uppercase === false ? 'preserve' : 'upper';
+
     try {
         if (action === 'format') {
             const formatted = sqlFormatter.format(raw, {
                 language: lang,
-                uppercase: uppercase !== false,
+                keywordCase,
                 linesBetweenQueries: 2
             });
             self.postMessage({ id, success: true, result: formatted });
@@ -28,12 +34,18 @@ self.onmessage = function(e) {
 
             const formatted = sqlFormatter.format(raw, {
                 language: bestDialect,
-                uppercase: uppercase !== false,
+                keywordCase,
                 linesBetweenQueries: 2
             });
             self.postMessage({ id, success: true, result: formatted, guessedDialect: bestDialect });
         }
     } catch (err) {
-        self.postMessage({ id, success: false, error: err.message || "Unknown error" });
+        /* The raw parser error can be tens of kilobytes of grammar rules.
+           Trim so the output box shows a first line the user can act on. */
+        let msg = err.message || "Unknown error";
+        const firstLine = msg.split('\n').find((l) => l.trim());
+        if (firstLine && firstLine.length < msg.length) msg = firstLine.slice(0, 400);
+        else if (msg.length > 400) msg = msg.slice(0, 400) + '…';
+        self.postMessage({ id, success: false, error: msg });
     }
 };

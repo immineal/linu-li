@@ -79,6 +79,14 @@ a:hover { opacity: 0.7; text-decoration: underline; }
 .card.interactive { cursor: pointer; height: 100%; display: flex; flex-direction: column; text-decoration: none;}
 .card.interactive:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(0,0,0,0.06); border-color: var(--accent); }
 
+/* Trim the last child's own margin so the card's bottom padding is the
+   whole air below it. Without this, form elements' 1.25rem margin-bottom
+   stacks on top of the card's 2rem padding, so ten tools were showing
+   56-100px under their last control against 33px at the sides. Uses
+   :not(.hidden) so a display:none last element doesn't count. */
+.card > *:last-child:not(.hidden) { margin-bottom: 0; }
+.card > *:last-child:not(.hidden) > *:last-child { margin-bottom: 0; }
+
 /* Forms */
 label { display: block; margin-bottom: 0.5rem; font-family: var(--font-heading); font-size: 0.9rem; font-weight: 500; }
 
@@ -141,6 +149,11 @@ input[type=range] { width: 100%; margin: 10px 0; cursor: pointer; accent-color: 
     background: rgba(0,0,0,0.02); border-radius: 8px; transition: all 0.3s; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     min-height: 200px;
+    /* The drop zone always has something after it (a config panel, a list of
+       files, a result box), and until now that "something" sat right against
+       the dashed border with 0-16px between them in most tools. Give it real
+       breathing room. */
+    margin-bottom: 1.5rem;
 }
 .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: rgba(196, 77, 60, 0.05); }
 .drop-zone p { margin-bottom: 0.5rem; pointer-events: none; }

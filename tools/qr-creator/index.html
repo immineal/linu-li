@@ -236,8 +236,11 @@
             </div>
 
             <div class="button-group">
-              <button class="button secondary" id="downloadPng" disabled data-de="Bild herunterladen">
-                Download Image
+              <button class="button" id="downloadPngBtn" disabled data-de="PNG herunterladen">
+                Download PNG
+              </button>
+              <button class="button outline" id="downloadPng" disabled data-de="SVG herunterladen">
+                Download SVG
               </button>
             </div>
           </div>
@@ -262,6 +265,7 @@
       const container = document.getElementById("canvasContainer");
       const warningBanner = document.getElementById("qrWarning");
       const downloadBtn = document.getElementById("downloadPng");
+      const downloadPngBtn = document.getElementById("downloadPngBtn");
 
       let currentDataUrl = null;
 
@@ -382,6 +386,7 @@
 
           currentDataUrl = dataUrl;
           downloadBtn.disabled = false;
+          downloadPngBtn.disabled = false;
 
           if (targetLevel !== finalLevel) {
             warningBanner.textContent = `Too much data for level ${targetLevel}, so this code uses ${finalLevel}.`;
@@ -396,6 +401,7 @@
           container.appendChild(warningBanner);
           warningBanner.classList.remove("visible");
           downloadBtn.disabled = true;
+          downloadPngBtn.disabled = true;
           currentDataUrl = null;
         }
       };
@@ -409,6 +415,7 @@
           container.appendChild(warningBanner);
           warningBanner.classList.remove("visible");
           downloadBtn.disabled = true;
+          downloadPngBtn.disabled = true;
           currentDataUrl = null;
           return;
         }
@@ -460,6 +467,47 @@
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+      });
+
+      /* PNG comes from rasterising the SVG on a canvas here on the main
+         thread. The worker builds SVG because a worker has no document to
+         create a canvas from; the main thread has both. WhatsApp, Word and
+         most print shops don't take SVG, so a PNG is the format most
+         casual users actually want. */
+      downloadPngBtn.addEventListener("click", () => {
+        if (!currentDataUrl) return;
+        const t = (window.LL_I18N && window.LL_I18N.t)
+          ? window.LL_I18N.t : ((en) => en);
+        const size = 1024;
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = colorLight.value;
+          ctx.fillRect(0, 0, size, size);
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, 0, 0, size, size);
+          canvas.toBlob((blob) => {
+            if (!blob) return;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `qrcode-${qrMode.value}-${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, "image/png");
+        };
+        img.onerror = () => {
+          if (typeof showToast === "function") {
+            showToast(t("Could not build the PNG.",
+                        "Konnte das PNG nicht erzeugen."), "error");
+          }
+        };
+        img.src = currentDataUrl;
       });
 
       // Start with a code on screen rather than an empty box.
