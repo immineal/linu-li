@@ -53,3 +53,4 @@ The PDF watermarker warns before you click Apply if the text has emoji, Cyrillic
 Reset on the PDF extractor now actually stops the run instead of letting it finish in the background and pop a success message over an empty page. It also stops asking the same image ten times over on a document that repeats one, which used to add ten seconds per repeated page.
 -
 -
+-
