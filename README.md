@@ -78,6 +78,8 @@ Every tool answers at two of them: `linu.li/tools/qr-creator/` and the short `li
 
 The Bonn map used to live at `linu.li/sperrmuell/` and now answers under `tools/` like everything else. The old address redirects, with a single exception: `/sperrmuell/sw.js` is rewritten internally, not redirected, to `tools/sperrmuell/abgemeldet-sw.js`, so it still answers 200 with a real script. That script's only job is to unregister the worker that address installed. A service worker script is never fetched through a redirect: the browser reads that as a failed update and keeps what it has, so without this the old worker would go on serving the old copy of the map out of its cache and never learn about the move. A worker's scope comes from the address it was requested from rather than from where the file sits, which is why the file can live inside the tool instead of in a directory of its own at the root.
 
+Files handed out as plain links live at `linu.li/f/<name>`, and `node src/publish-file.js <path>[=<name>]` puts one there. They have to be committed, because the deploy mirrors the repository with `--delete` and would remove anything else. A link downloads the file, and the service worker leaves these addresses alone so a download never lands in the offline cache.
+
 ## How it is built
 
 Plain HTML, CSS and JavaScript. No bundler, no framework, no build step: what is in the repository is what the server sends, and each tool is one self-contained `index.html`. The Bonn map is the exception, a Vite app.
@@ -116,6 +118,7 @@ assets/
                 language detection (i18n.js) and the footer language switch
   vendor/       third-party libraries
   manifest.json PWA manifest
+f/              files handed out as plain links
 tools/          one folder per tool, each a standalone page
   sperrmuell/   the Bonn map: data committed, the rest built on deploy
 src/
@@ -127,4 +130,4 @@ sw.js           service worker, has to sit at the root to cover the whole site
 
 ## License
 
-[GNU GPL v3](LICENSE).
+[GNU GPL v3](LICENSE). That covers the code. The files in `f/` are not part of it and carry their own terms wherever they are linked from.

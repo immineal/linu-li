@@ -59,6 +59,12 @@ const PRECACHE_URLS = [
 // round trip and never find anything.
 const UNVERAENDERLICH = '/assets/vendor/';
 
+// Downloads, see src/publish-file.js. Left to the browser entirely: the page
+// branch below would store every file a visitor clicks in the offline cache,
+// and the last branch would try to store the partial answers an audio element
+// asks for, which Cache Storage refuses.
+const DATEIEN = '/f/';
+
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => cache.addAll(
@@ -139,6 +145,7 @@ self.addEventListener('fetch', (event) => {
     if (request.method !== 'GET') return;
     const url = new URL(request.url);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+    if (url.origin === self.location.origin && url.pathname.startsWith(DATEIEN)) return;
 
     // Pages come from the network first. The site redeploys on every push,
     // and answering a page from the cache first would hand a returning

@@ -1,0 +1,24 @@
+# linu.li/f/<name>: files handed out as plain links. See src/publish-file.js.
+#
+# No RewriteEngine in here. A directory that switches it on stops inheriting
+# the rewrites from the root, and the root is where HTTP goes to HTTPS.
+
+# A link should give the visitor the file, not a bare player tab they then
+# have to work out how to save from.
+<IfModule mod_headers.c>
+    Header set Content-Disposition "attachment"
+</IfModule>
+
+AddType audio/mpeg .mp3
+AddType audio/wav .wav
+AddType audio/flac .flac
+
+# The root's month of cache would hold a corrected file back from anyone who
+# already has the old one. The address is printed in places that cannot be
+# edited easily, so a replaced file has to win. Asking costs a 304.
+<IfModule mod_expires.c>
+    ExpiresActive Off
+</IfModule>
+<IfModule mod_headers.c>
+    Header set Cache-Control "no-cache"
+</IfModule>
